@@ -2,13 +2,27 @@
 
 This is the distinct TODO list for selected unfinished work, with completed and closed items marked below. Current behavior is documented in the engineering guides. The reusable [cleanup instructions](repository-cleanup-prompt.md) apply to repository and harness cleanup. Item numbers remain stable.
 
+Status: ✅ complete; ⏳ in progress; ▧ not started. Closed/will-not-do items are labelled separately.
+
 ## Selected unfinished work
 
-23. **CI reliability and efficiency campaign — ✅ complete.** The [eleven-phase campaign](ci-reliability-campaign/README.md) and [scorecard](ci-reliability-campaign/acceptance.md) record qualified failure detection, ownership, state-based synchronization, complete coverage, verified source pairs, build reuse, measured scheduling, and final acceptance. Reliability, safety, and efficacy govern speed and reduction targets. Broad 50% reductions were not demonstrated. Changes are on paired feature branches; merge, release, deployment, and physical qualification remain separate.
+24. ▧ **Remove the initial time/calibration review link.** Review whether Transmitter Status provides sufficient operator information, and remove the “Review Time and calibration result” link shown at the top of the page on first load if it is redundant. The linked Station → Time and calibration section did not provide useful additional information during operator use.
+
+25. ▧ **Hostname editing in the captive portal.** Allow the operator to change the device hostname from the captive portal page.
+
+26. ▧ **Locked-control feedback.** Show a short tooltip, “Controls are locked”, when the operator attempts to click or otherwise interact with a locked control or field. Keep the control locked while providing this feedback.
+
+27. ▧ **Radio pins control alignment.** Align the RF output engine label and selector with the adjacent RF output GPIO and Button labels and selectors. Correct both the Direct GPIO / PIO layout and the Si5351 layout, where only RF output engine and Button are shown. The RF output engine field currently sits lower than the neighboring fields. In GPS wiring and timing, also align the controls for “Validated UTC/PPS association”, “PPS edge delay from UTC boundary (ns)”, and “Capture timestamp error allowance (µs)” with neighboring controls. Wrapped labels and inline help must not displace individual controls within a row; preserve readable labels and responsive layout.
+
+28. ▧ **Shared documentation and Pico favicon.** Use the same default page/site icon as the WsprryPi documentation across the WsprryPico documentation pages on Read the Docs and the web pages served by the Pico, including the captive portal.
+
+29. ▧ **Hardware settings saves while standalone operation is suspended.** Investigate the reported inability to save Si5351, GPS, PPS, LED, and button pin/configuration settings while Transmitter status says “Standalone operation is suspended. Future WSPR needs a saved dial before schedules can be enabled.” The reported state shows no job, inactive RF output, and an available owner. Determine which save/admission condition actually blocks these edits; the status message alone does not establish the cause. Allow otherwise valid hardware settings to be saved independently of a saved WSPR dial or schedule enablement, while preserving applicable access, ownership, output, and validation checks. Make any actual save refusal specific and actionable.
+
+23. ✅ **CI reliability and efficiency campaign — complete.** The [eleven-phase campaign](ci-reliability-campaign/README.md) and [scorecard](ci-reliability-campaign/acceptance.md) record qualified failure detection, ownership, state-based synchronization, complete coverage, verified source pairs, build reuse, measured scheduling, and final acceptance. Reliability, safety, and efficacy govern speed and reduction targets. Broad 50% reductions were not demonstrated. Changes are on paired feature branches; merge, release, deployment, and physical qualification remain separate.
 
 ## Possible future work
 
-21. **Si5351 automatic carrier-correction repeatability — follow-up.** The [close-spaced carrier comparison](gps-pps-validation.md#close-spaced-carrier-comparison) is complete with the existing RSP1B; the RSPduo is not a prerequisite. Two off/on repeats at each selected 160 m, 60 m and 10 m point establish GP2 improvement beyond the declared measurement allowances. Si5351 baseline errors are stable, while corrected errors vary between repeats; consistent Si5351 improvement remains unestablished. Investigate the selected calibration estimates, observation spans and engine realization before claiming repeatable improvement for Si5351. Keep this specific question separate from the completed GPS/PPS implementation and accepted launch timing. Further receiver/temperature coverage is not implied by the present bench results.
+21. ▧ **Si5351 automatic carrier-correction repeatability — follow-up.** The [close-spaced carrier comparison](gps-pps-validation.md#close-spaced-carrier-comparison) is complete with the existing RSP1B; the RSPduo is not a prerequisite. Two off/on repeats at each selected 160 m, 60 m and 10 m point establish GP2 improvement beyond the declared measurement allowances. Si5351 baseline errors are stable, while corrected errors vary between repeats; consistent Si5351 improvement remains unestablished. Investigate the selected calibration estimates, observation spans and engine realization before claiming repeatable improvement for Si5351. Keep this specific question separate from the completed GPS/PPS implementation and accepted launch timing. Further receiver/temperature coverage is not implied by the present bench results.
 
 ## Closed — will not do
 
