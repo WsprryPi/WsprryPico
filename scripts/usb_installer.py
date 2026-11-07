@@ -1609,6 +1609,11 @@ def finish_erase(args, record, path):
         require(re.search(r'^\s+type:\s+RP2350$', info, re.M) and
                 re.search(r'^\s+chipid:\s+0x' + args.device.lower() + '$', info, re.M),
                 'Erase BOOTSEL chip identity mismatch')
+        if getattr(args, 'terminal_ui', False):
+            terminal_section('BOOTSEL confirmed')
+            terminal_paragraph(f'Pico {args.device} is connected in BOOTSEL on the original USB port.\n\n'
+                               'Board identity verified. Continuing with erase and verification.')
+            terminal_section('Erasing flash')
         # Pico 2 W's confirmed board geometry defines FLASH_SIZE. picotool's
         # reported size is a content-wrap heuristic and is absent for uniform
         # or erased flash; it is neither geometry evidence nor an erase guard.
@@ -2122,23 +2127,22 @@ def continuation_command(args, result):
 
 
 def reconnect_instructions(serial):
-    return (f'For Pico {serial}:\n'
+    return (f'For Pico {serial}:\n\n'
             '  1. Unplug its USB data cable.\n'
             '  2. Hold BOOTSEL while reconnecting it to the same physical USB port.\n'
-            '  3. Release BOOTSEL after reconnecting.\n')
+            '  3. Release BOOTSEL after reconnecting.\n\n')
 
 
 def wait_for_erase_bootsel(args, result, timeout=180):
     """Wait only in the terminal flow; resume through the guarded transaction."""
     path = Path(result['transaction'])
     terminal_section('Waiting for BOOTSEL')
-    terminal_message('Erase is paused; no flash has been erased yet.\n'
-                     + reconnect_instructions(result['serial']) +
-                     'This installer is still running. After the same Pico reconnects in BOOTSEL,\n'
-                     'it will automatically erase and verify all flash. No second command is needed.\n'
-                     'Keep USB connected until verification finishes.\n'
-                     f'Waiting up to {timeout} seconds. Press Ctrl+C to cancel and resume later.\n')
-    terminal_paragraph('Transaction: ' + str(path))
+    terminal_paragraph('Erase is paused; no flash has been erased yet.')
+    terminal_message('\n' + reconnect_instructions(result['serial']).rstrip('\n') + '\n')
+    terminal_paragraph('This installer is still running. After the same Pico reconnects in BOOTSEL, '
+                       'it will automatically erase and verify all flash.\n\nNo second command is needed.\n\n'
+                       'Keep USB connected until verification finishes.\n\n'
+                       f'Waiting up to {timeout} seconds. Press Ctrl+C to cancel and resume later.')
     deadline = time.monotonic() + timeout
     try:
         while time.monotonic() < deadline:
@@ -2224,7 +2228,7 @@ def emit_result(args, result):
         terminal_paragraph(result['snapshot'])
     if result.get('serial') and result.get('error_code') != 'device_mode_mismatch':
         terminal_paragraph('Pico ' + result['serial'])
-    if result.get('transaction'):
+    if result.get('transaction') and result.get('recovery_required'):
         terminal_paragraph('Transaction: ' + result['transaction'])
     if result.get('retention_warning'):
         terminal_paragraph(result['retention_warning'])
@@ -2273,17 +2277,19 @@ def select_interactive_device(operation):
 def bootsel_callout(args, result):
     if result.get('operation') == 'erase':
         if result.get('stage') == 'complete' and result.get('erase_verified') is True:
-            terminal_message('Erase verified: all 4 MiB of flash is blank, including firmware and saved data.\n'
+            terminal_paragraph('Erase verified: all 4 MiB of flash is blank, including firmware and saved data.\n\n'
                              'The Pico remains in BOOTSEL. Install firmware before using it again.')
         elif result.get('recovery_required'):
-            terminal_message('The installer has stopped and returned control to your shell.\n'
+            terminal_section('Resume the erase')
+            terminal_paragraph('The installer has stopped and returned control to your shell.\n\n'
                              + ('Erase is prepared; no flash has been erased yet.\n'
                               if result.get('stage') == 'awaiting_bootsel' else
-                              'Erase is unconfirmed. Do not assume credentials or firmware have been removed.\n')
-                             + reconnect_instructions(result['serial']) +
-                             'After reconnecting in BOOTSEL, copy and run this entire command in your shell\n'
-                             'to continue the same-board erase and verification:\n\n  '
-                             + continuation_command(args, result) + '\n\nKeep USB connected until verification finishes.')
+                              'Erase is unconfirmed. Do not assume credentials or firmware have been removed.'))
+            terminal_message('\n' + reconnect_instructions(result['serial']).rstrip('\n') + '\n')
+            terminal_paragraph('After reconnecting in BOOTSEL, copy and run this entire command in your shell '
+                               'to continue the same-board erase and verification:')
+            terminal_message('\n  ' + continuation_command(args, result) + '\n')
+            terminal_paragraph('Keep USB connected until verification finishes.')
         return
     pending = (result.get('manual_bootsel_required') is True and
                result.get('recovery_required') is True and

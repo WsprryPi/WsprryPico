@@ -1192,6 +1192,9 @@ class EraseTests(unittest.TestCase):
                             ('\n' if test.fault == 'unknown_size' else
                              '\n flash size: ' + ('2048K' if test.fault == 'size' else '4096K') + '\n'))
                 if args[0] == 'erase':
+                    if getattr(test, 'terminal_messages', None) is not None:
+                        test.assertIn('BOOTSEL confirmed', test.terminal_messages.getvalue())
+                        test.assertIn('Board identity verified.', test.terminal_messages.getvalue())
                     test.assertEqual(args, ('erase', '-r', '0x10000000', '0x10400000'))
                     record = next(value for p in test.root.glob('*/transaction.json')
                                   if (value := installer.decode(p.read_bytes())).get('operation') == 'erase'
@@ -1342,6 +1345,7 @@ class EraseTests(unittest.TestCase):
         sightings = iter(([application], [application], [], [other], [self.board]))
         snapshot = {'target': {'device_id': installer.device_id(SERIAL)}, 'config': {'config': {'enabled': False}}}
         messages = InteractiveSelectionTests.Terminal()
+        self.terminal_messages = messages
         with patch.object(installer, 'discover', side_effect=lambda: next(sightings, [self.board])), \
              patch.object(installer, 'public_snapshot', return_value=snapshot), patch.object(installer, 'admit_snapshot'), \
              patch.object(installer, 'prepare_standalone_picotool'), patch.object(installer.time, 'sleep'), \
@@ -1351,7 +1355,13 @@ class EraseTests(unittest.TestCase):
         self.assertEqual([c[0] for c in self.calls], ['info', 'erase', 'verify'])
         self.assertIn('This installer is still running', messages.getvalue())
         self.assertIn('No second command is needed', messages.getvalue())
+        self.assertIn(f'For Pico {SERIAL}:\n\n  1.', messages.getvalue())
+        self.assertIn('Release BOOTSEL after reconnecting.\n\n', messages.getvalue())
+        self.assertIn('\n\nBOOTSEL confirmed\n\n', messages.getvalue())
+        self.assertLess(messages.getvalue().index('BOOTSEL confirmed'),
+                        messages.getvalue().index('Erase all 4 MiB'))
         self.assertNotIn('recover --transaction', messages.getvalue())
+        self.assertNotIn('Transaction:', messages.getvalue())
         self.assertEqual(self.flash, b'\xff' * installer.FLASH_SIZE)
 
     def test_wait_timeout_cancel_and_changed_port_preserve_transaction_without_erasing(self):
@@ -1817,6 +1827,59 @@ class StandaloneGuidanceTests(unittest.TestCase):
                            CURL_LOG=str(root / 'curl.log'), CURL_SOURCE=str(source), TMPDIR=str(temporary),
                            WSPRRY_PICO_USB_INSTALLER_REVISION='')
         return environment, revision, record, temporary
+
+    @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
+    def test_saved_bootstrap_uses_adjacent_pair_from_another_working_directory(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            environment, _, _, _ = self.bootstrap_fixture(root)
+            source = root / 'source'
+            (source / 'ci').mkdir()
+            (source / 'ci/release-manifest-2.schema.json').write_text('{}')
+            (source / 'usb_installer.py').write_text(
+                'import json,os,sys\nfrom pathlib import Path\n'
+                'print(json.dumps({"args":sys.argv[1:],"pin":os.environ.get("WSPRRY_PICO_USB_INSTALLER_REVISION"),'
+                '"schema":(Path(__file__).parent/"ci/release-manifest-2.schema.json").read_text()}))\n')
+            environment['WSPRRY_PICO_USB_INSTALLER_REVISION'] = 'a' * 40
+            for arguments in ([], ['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes']):
+                with self.subTest(arguments=arguments):
+                    result = subprocess.run(['bash', str(source / 'install_usb.sh'), '--local-installer', *arguments],
+                                            env=environment, cwd=root, text=True, capture_output=True, timeout=10)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertTrue(result.stderr.startswith('\nUsing the local USB installer'))
+                    actual = json.loads(result.stdout)
+                    self.assertEqual(actual['args'], arguments or ['discover'])
+                    self.assertIsNone(actual['pin'])
+                    self.assertEqual(actual['schema'], '{}')
+                    self.assertFalse((root / 'curl.log').exists())
+            (source / 'ci/release-manifest-2.schema.json').unlink()
+            result = subprocess.run(['bash', str(source / 'install_usb.sh'), '--local-installer'],
+                                    env=environment, cwd=root, text=True, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('Local installer is incomplete', result.stderr)
+            self.assertFalse((root / 'curl.log').exists())
+
+    @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
+    def test_default_downloads_despite_adjacent_pair_and_piped_local_option_refuses(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            environment, _, _, _ = self.bootstrap_fixture(root)
+            source = root / 'source'
+            (source / 'ci').mkdir()
+            (source / 'ci/release-manifest-2.schema.json').write_text('{}')
+            result = subprocess.run(['bash', str(source / 'install_usb.sh'), 'discover'],
+                                    env=environment, cwd=root, text=True, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn('devices', json.loads(result.stdout))
+            self.assertNotIn('Using the local', result.stderr)
+            self.assertEqual(len((root / 'curl.log').read_text().splitlines()), 3)
+            (root / 'curl.log').unlink()
+            result = subprocess.run(['bash', '-s', '--', '--local-installer', 'discover'],
+                                    input=(source / 'install_usb.sh').read_text(),
+                                    env=environment, cwd=root, text=True, capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, 2)
+            self.assertIn('requires a saved install_usb.sh', result.stderr)
+            self.assertFalse((root / 'curl.log').exists())
 
     @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
     def test_piped_bootstrap_uses_terminal_selection_and_formats_terminal_or_redirected_results(self):

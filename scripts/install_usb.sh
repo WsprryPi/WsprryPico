@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MIT. Bootstrap a single immutable installer revision; firmware defaults to devel.
+# MIT. Bootstrap one immutable revision; adjacent local files require opt-in.
 set -euo pipefail
 case "$(uname -s)" in
     Darwin|Linux) ;;
@@ -12,13 +12,32 @@ if [[ "${EUID:-$(id -u)}" == 0 ]]; then
     echo 'Run this bootstrap as your ordinary user; scope USB permissions separately.' >&2
     exit 2
 fi
-command -v curl >/dev/null || { echo 'curl is required.' >&2; exit 2; }
 command -v python3 >/dev/null || { echo 'Python 3.10 or newer was not found. Install Python from https://www.python.org/downloads/ or your OS package manager, then rerun this command.' >&2; exit 2; }
 python3 -c 'import sys
 if sys.version_info < (3,10):
     print("Found Python " + sys.version.split()[0] + " at " + sys.executable + "; this installer needs Python 3.10 or newer. Install a supported Python from https://www.python.org/downloads/ or your OS package manager, ensure python3 selects it, then rerun.", file=sys.stderr)
     sys.exit(2)'
 umask 077
+# Local use must be explicit so adjacent files never override GitHub downloads.
+printf '\n' >&2
+if [[ "${1:-}" == --local-installer ]]; then
+    shift
+    if [[ -z "${BASH_SOURCE[0]:-}" ]]; then
+        echo '--local-installer requires a saved install_usb.sh, not a piped script.' >&2
+        exit 2
+    fi
+    installer_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)
+    if [[ ! -f "$installer_directory/usb_installer.py" || ! -f "$installer_directory/ci/release-manifest-2.schema.json" ]]; then
+        echo 'Local installer is incomplete. Keep usb_installer.py and ci/release-manifest-2.schema.json beside install_usb.sh.' >&2
+        exit 2
+    fi
+    if [[ $# == 0 ]]; then set -- discover; fi
+    echo 'Using the local USB installer and schema beside install_usb.sh.' >&2
+    # Local recovery must keep using this file, not an inherited remote pin.
+    unset WSPRRY_PICO_USB_INSTALLER_REVISION
+    exec python3 "$installer_directory/usb_installer.py" "$@"
+fi
+command -v curl >/dev/null || { echo 'curl is required.' >&2; exit 2; }
 installer_tmp=$(mktemp -d "${TMPDIR:-/tmp}/wsprrypico-usb.XXXXXXXX")
 trap 'rm -rf -- "$installer_tmp"' EXIT
 trap 'exit 130' INT

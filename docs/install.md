@@ -36,6 +36,8 @@ bash install_usb.sh discover
 
 Discovery lists connected boards with their USB serial numbers and ports. Record the serial for the intended board, then replace `SERIAL` in the commands below with that exact USB serial. It differs from the full stable device ID shown by firmware. If discovery finds nothing, check the data cable and USB permissions.
 
+The launcher downloads the installer from GitHub by default, even when local installer files are present. To use local files explicitly, run `bash install_usb.sh --local-installer discover`, or replace `discover` with the intended operation and its options. Place `--local-installer` before the operation. Keep `usb_installer.py` and `ci/release-manifest-2.schema.json` beside the saved launcher, from the same source revision. Missing local files stop the command with an error. The local option requires a saved launcher; commands piped directly to Bash use GitHub downloads.
+
 ### Run directly with curl
 
 You can also run the public bootstrap without keeping a local script. For a first installation, hold **BOOTSEL** while connecting the Pico, release it, then run this from a Bash terminal as your ordinary user:
