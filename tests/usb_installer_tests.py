@@ -866,6 +866,47 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn('before.bin', json.dumps(record))
 
 
+class InstalledPublicBundleTests(unittest.TestCase):
+    def test_retained_original_bytes_are_independent_of_same_version_candidate(self):
+        files, manifest, image = fixture(modern=True)
+        snapshot = {'firmware': manifest['firmware_version'],
+                    'source_revision': manifest['source']['revision'][:12]}
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            for name, data in files.items(): (directory/name).write_bytes(data)
+            actual = installer.installed_public(directory, snapshot, 'devel')
+            self.assertEqual(actual[2], installer.verify_bundle(files, 'devel')[1])
+            snapshot['source_revision'] = 'f'*12
+            with self.assertRaises(installer.Refusal):
+                installer.installed_public(directory, snapshot, 'devel')
+            snapshot['source_revision'] = manifest['source']['revision'][:12]
+            uf2_name = installer.candidate_asset(files, manifest)['path']
+            (directory/uf2_name).write_bytes(files[uf2_name]+b'changed')
+            with self.assertRaises(installer.Refusal):
+                installer.installed_public(directory, snapshot, 'devel')
+
+    def test_equal_version_changed_source_refuses_before_reset(self):
+        files, manifest, _ = fixture(modern=True)
+        image = installer.verify_bundle(files, 'devel')[1]
+        snapshot = {'firmware': manifest['firmware_version'], 'source_revision': 'f'*12}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            args = SimpleNamespace(operation='upgrade', device=SERIAL, board='pico2_w',
+                                   branch='devel', picotool='fixture', state_dir=root)
+            board = {'serial':SERIAL, 'parent':'fixed', 'mode':'application', 'ports':{}}
+            with patch.object(installer, 'private_directory', return_value=root), \
+                 patch.object(installer, 'device_lock', lambda _:contextlib.nullcontext()), \
+                 patch.object(installer, 'selected', return_value=board), \
+                 patch.object(installer, 'Picotool', return_value=SimpleNamespace(identity={})), patch.object(installer, 'verify_linked_identity'), \
+                 patch.object(installer, 'public_snapshot', return_value=snapshot), \
+                 patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management') as management, \
+                 self.assertRaises(installer.TransactionFailure) as caught:
+                installer.transaction(args, files, manifest, image, Network())
+            management.assert_not_called()
+            self.assertIn('tag/source changed', str(caught.exception))
+            self.assertFalse(caught.exception.result['recovery_required'])
+
+
 class InstalledBundleHandoffTests(unittest.TestCase):
     """Exercise a local deployment followed by a public upgrade through the real transaction."""
 

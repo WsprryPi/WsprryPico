@@ -730,6 +730,17 @@ def remember_local(directory, record, *, root=None):
                          'uf2_sha256': record['uf2_sha256'], 'manifest': decode(files['local-build.json'])})
 
 
+def installed_public(directory, snapshot, branch):
+    """A retained verified bundle identifies old bytes independently of editable tags."""
+    files = read_bundle(directory)
+    require('local-build.json' not in files, 'A public baseline needs its original verified public bundle')
+    manifest, image = verify_bundle(files, branch)
+    require(manifest['firmware_version'] == snapshot['firmware'] and
+            manifest['source']['revision'][:12] == snapshot['source_revision'],
+            'Supplied installed public bundle does not identify the running firmware')
+    return files, manifest, image
+
+
 def resolve_installed(client, version):
     """An installed image keeps its own original branch provenance."""
     kind = version_kind(version)
@@ -1721,7 +1732,8 @@ def transaction(args, files, manifest, image, client=None):
         require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
         root = private_directory(args.state_dir)
         prune_transactions(root)
-        if 'local-build.json' in files or getattr(args, 'installed_bundle', None) is not None:
+        if 'local-build.json' in files or (getattr(args, 'installed_bundle', None) is not None and
+                                         (Path(args.installed_bundle) / 'local-build.json').is_file()):
             require(not (root / ('.local-reference-' + serial + '.json')).is_symlink() and
                     not (root / ('.local-image-' + serial + '.uf2')).is_symlink(),
                     'Unsafe local reference destination')
@@ -1768,12 +1780,21 @@ def transaction(args, files, manifest, image, client=None):
                             save_bytes(installed / name, data)
                         verify_linked_identity(tool, installed / candidate_asset(old_files, old_manifest)['path'], old_manifest)
                 else:
-                    require(getattr(args, 'installed_bundle', None) is None,
-                            '--installed-bundle is only for an installed local development image')
                     require(version_kind(old_version) in ('ci', 'prerelease', 'stable'),
                             'Unsupported installed firmware; retain backup and recover deliberately')
-                    old_files, old_manifest, old_image = ((files, manifest, image) if old_version == manifest['firmware_version'] and
-                                                        'local-build.json' not in files else resolve_installed(client, old_version))
+                    if getattr(args, 'installed_bundle', None) is not None:
+                        old_files, old_manifest, old_image = installed_public(args.installed_bundle, snapshot, args.branch)
+                        installed = directory / 'installed'
+                        installed.mkdir(mode=0o700)
+                        for name, data in old_files.items():
+                            save_bytes(installed / name, data)
+                        verify_linked_identity(tool, installed / candidate_asset(old_files, old_manifest)['path'], old_manifest)
+                    else:
+                        old_files, old_manifest, old_image = ((files, manifest, image) if old_version == manifest['firmware_version'] and
+                                                            'local-build.json' not in files else resolve_installed(client, old_version))
+                    require(old_manifest['source']['revision'][:12] == snapshot['source_revision'],
+                            'Installed public tag/source changed; retain the original verified bundle and '
+                            'supply it independently with --installed-bundle. No reset or firmware write was requested.')
                 require(old_manifest['update']['application_end'] != '103ec000' or manifest['update']['application_end'] == '103ec000',
                         'Rollback would overwrite the UDP journal reservation; a reviewed settings-preserving migration is required')
                 old_source, new_source = old_manifest['source']['revision'], manifest['source']['revision']
@@ -1849,7 +1870,7 @@ def transaction(args, files, manifest, image, client=None):
                                int(old_manifest['update']['application_end'], 16)-0x10000000] ==
                         b'\xff' * (int(old_manifest['update']['application_end'], 16)-int(manifest['update']['application_end'], 16)),
                         'Newly reserved storage is not erased; migration is unsupported')
-                if getattr(args, 'installed_bundle', None) is not None:
+                if old_version == '0.0.0-devel' and getattr(args, 'installed_bundle', None) is not None:
                     for suffix, maximum in (('json', 65536), ('uf2', MAX_DOWNLOAD)):
                         previous = root / (('.local-reference-' if suffix == 'json' else '.local-image-') + serial + '.' + suffix)
                         if previous.exists():
@@ -2358,7 +2379,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     choice.add_argument('--local-build', type=Path, help='Explicit developer source checkout to compile with existing pinned tools')
     choice.add_argument('--local-bundle', type=Path, help='Explicit previously built developer bundle')
     parser.add_argument('--installed-bundle', type=Path,
-                        help='Original developer bundle for the running local image; upgrade verifies flash before repairing its reference')
+                        help='Original verified public or developer bundle for the running image; upgrade verifies its actual flash independently of editable tags')
     parser.add_argument('--local-variant', choices=('normal','inhibited','si5351-engineering'), help='Explicit developer firmware engine; inhibited never drives RF; si5351-engineering enables unqualified Si5351 output')
     parser.add_argument('--build-dir', type=Path, help='New developer build directory; never reused')
     parser.add_argument('--source-revision', help='Require this exact full local source HEAD')
