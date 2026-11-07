@@ -118,3 +118,15 @@ The admitted Station Control and Wi-Fi/Host pages display “Controls are locked
 Disabled fields remain outside ordinary keyboard navigation. Focusing the existing, named Unlock controls button provides equivalent tooltip and polite live feedback without adding a tab stop for every field. Activating that button retains its existing explicit sign-in action. Escape, subsequent focus movement, outside interaction, scrolling, navigation, and unlock dismiss feedback; pointer feedback also expires after six seconds. The focused keyboard hint remains until dismissal. A single tooltip and live region serve dynamically generated controls and preserve existing accessible descriptions. Hit transparency applies only to eligible disabled controls; there are no form wrappers or scrolling overlays. A captured locked pointer gesture cannot activate a control if it unlocks before release.
 
 Browser fixtures complete streamed responses through the existing 100-step ACK interface with a size-derived finite burst bound, progress checks, and exact Content-Length validation. This adapts the test carrier to the served asset size without changing production HTTP limits or deadlines.
+
+## Control-row alignment
+
+Radio pins and GPS groups use shared, content-sized caption, control, and optional inline-help tracks. The RF engine, RF GPIO, and Button controls align in Direct GPIO mode. Si5351 removes the direct GPIO field from layout and shares the row between engine and Button. GPS labels, including units and help icons, wrap within the shared caption track without displacing individual controls. The existing 650 px breakpoint stacks the fields; zoom and inline validation use natural row sizing rather than fixed label heights. Native labels, form associations, settings keys, units, and serialized values are preserved.
+
+The focused native geometry runner uses the production page and handler fixture:
+
+```sh
+node tests/control_alignment_browser.mjs /absolute/path/to/consumer_bootstrap_driver build/control-alignment verify
+```
+
+Set `CHROME_BIN` as described in the [browser validation guide](README.md#browser-interface-checks). `verify` checks complete rows, caption bounds, hidden columns, form associations, inline errors, breakpoints, and zoom. The optional `baseline` mode records measurements and renders before an edit; it does not assert alignment and does not qualify acceptance. The regular consumer and certificate section suites run the geometry checks as well.

@@ -6,11 +6,11 @@
   "groups": {
     "app.min.js": {
       "inputs": {
-        "locked-controls.js": "f0a9ffd9ba1dcd253aa1a3534c1bda27ac8ed91657af4d2f837dbc09652465d1",
+        "locked-controls.js": "17d657eb75f51f840f320fefd8cc6c7f98ee2ca9fb36d42b741b7b05ad091320",
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
         "control-contract.js": "1c6bcab60fd1e77511ffc1cede644db4085bc7abe71a753b13d03e7a63c65302",
         "si5351.js": "c0325caa6eebb5281bfa92843011312dd9fb87d5adaed86a5bebb7c6a001e889",
-        "gps.js": "86cea6e3a88115b77123a519d4edd58e421c225921767a2b35000b69770024ad",
+        "gps.js": "9b57dcdb62df630cba72854479fb8a4458e761e64fd93108e97cf5da43c6fdcf",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
         "operations.js": "b1e3d4c42f45a5924aa751dca452b6cf3e54c9cea6b285fc05fbc4094abc1b78",
         "standalone-frequency.js": "690df1c89b02c8075f149b1d48644dee0c2fb8f87d923303822bc804766c1c7e",
@@ -25,8 +25,8 @@
         "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
         "app.js": "ab90730ec9de39e52b2e40e2afcba51995a0a7a199ef9b3a3cb41b28191591e9"
       },
-      "sha256": "ff29566a90c3489f5f09c84c6891641044d6a38ce2a9213f9bf60484074390c2",
-      "bytes": 281009
+      "sha256": "8774ac79b57705842fbccb1e0d2b7b8e6bb35b7dd961488790b8a481a79db643",
+      "bytes": 281189
     },
     "config-validation.min.js": {
       "inputs": {
@@ -44,10 +44,10 @@
     },
     "organization.min.js": {
       "inputs": {
-        "organization.js": "bfad542c9dca203505b064c3e1f98018a1ccfb236514e0164ad794454de3a594"
+        "organization.js": "522b497a34a221225a5f8fe5f37853b46c3398e7d8950732975db484ee4955ea"
       },
-      "sha256": "db4c9680318e6bd8ebbf3dba42473a285e1b9f0ecdb635f2f49942d97a277f13",
-      "bytes": 9608
+      "sha256": "a9fc560bbfee14ec28feb64a05ea0845ed825bea63b274c2065deb27eee58cac",
+      "bytes": 9718
     }
   }
 }

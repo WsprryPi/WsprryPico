@@ -56,6 +56,9 @@
     }
     function schedule() {if(frame===null)frame=root.requestAnimationFrame(()=>{frame=null;update();});}
     function hit(event) {
+      // A help link or another independent action inside a label is not a field attempt.
+      const action=event.target.closest?.('a,button,summary');
+      if(action&&!action.hasAttribute(marker))return null;
       const label=event.target.closest?.('label');
       if(label?.control?.hasAttribute(marker)&&valid(label.control))return label.control;
       // Marked native controls are hit-transparent, so disabled-event differences

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {checkLockedControls} from './locked_controls_browser.mjs';
 import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkGps} from './gps_ui_checks.mjs';
+import {checkControlAlignment} from './control_alignment_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
 import {execFileSync} from 'node:child_process';
 import {writeFile,mkdir} from 'node:fs/promises';
@@ -124,6 +125,8 @@ try {
       pass('native Si5351 conditional controls, validation focus, draft isolation, atomic save and direct restoration');
       await checkGps({evaluate,section,click,idle,capture,telemetryFixture:process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER?JSON.parse(execFileSync(process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER,{encoding:'utf8'})):null});
       pass('native GPS pin/timing validation focus, QLG3 receive-only protection, atomic save and separate qualification');
+      await checkControlAlignment({evaluate,send,section,output:path.join(output,'alignment')});
+      pass('content-sized RF/GPS control alignment across engines, labels, help, locks, breakpoints and zoom');
     } else if(carrier==='field') {
       await control({op:'field_clock'});
       await send('Page.bringToFront');
@@ -306,6 +309,8 @@ try {
       await checkSi5351({evaluate,section,click,idle,capture});
       await checkGps({evaluate,section,click,idle,capture});
       pass('consumer encrypted RF/GPS controls retain conditional validation, atomic saves, relocated policy readback, and lock state');
+      await checkControlAlignment({evaluate,send,section,output:path.join(output,'alignment')});
+      pass('encrypted RF/GPS control alignment across engines, labels, help, locks, breakpoints and zoom');
     }
     const result={carrier,browser:(await send('Browser.getVersion')).product,checks,physical_device:false};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');

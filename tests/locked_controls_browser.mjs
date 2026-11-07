@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {until} from './browser_harness.mjs';
 import {writeFile} from 'node:fs/promises';
 import path from 'node:path';
+import {closeHelpTarget} from './contextual_help_browser.mjs';
 export async function checkLockedControls({evaluate,send,key,section,login,idle,output}) {
   const tip='document.getElementById("locked-control-tooltip")';
   const visible=()=>evaluate(`!${tip}.hidden`);
@@ -43,6 +44,13 @@ export async function checkLockedControls({evaluate,send,key,section,login,idle,
   await key('Tab');assert.equal(await visible(),false,'focus movement dismisses');
   await section('radio-settings');
   await mouse('select[name=rf_engine]');await shown();
+  const beforeHelp=new Set((await send('Target.getTargets')).targetInfos.map(t=>t.targetId));
+  await mouse('label:has(>select[name=rf_engine]) .documentation-help');
+  let openedHelp;
+  await until(async()=>{openedHelp=(await send('Target.getTargets')).targetInfos.find(t=>t.openerId&&!beforeHelp.has(t.targetId));return !!openedHelp;},'native field help opens while controls are locked');
+  assert.equal(await visible(),false,'help inside a native label is independent of the locked field');
+  await closeHelpTarget(send,openedHelp.targetId);await send('Page.bringToFront');
+
   await evaluate(`document.getElementById('config').elements.rf_engine.value='i2c';syncRfEngine()`);
   await mouse('#si5351-settings [data-si=reference_source]');await shown();
   await mouse('#gps-settings [data-gps=enabled]');await shown();
