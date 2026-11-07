@@ -1,5 +1,6 @@
 // Shipped page/bundle -> Chrome -> production HTTP/AEAD; time and board are synthetic.
 import assert from 'node:assert/strict';
+import {checkLockedControls} from './locked_controls_browser.mjs';
 import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkGps} from './gps_ui_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
@@ -72,11 +73,12 @@ try {
         '--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
         '--remote-debugging-port=0','--user-data-dir='+profile,'--proxy-server=http://127.0.0.1:'+proxyPort,
         '--proxy-bypass-list=<-loopback>','about:blank'],profile);chrome=started.browser.process;
-    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});cdp.on('Page.windowOpen',params=>helpWindows.push(params));await send('Page.enable');
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});cdp.on('Page.windowOpen',params=>helpWindows.push(params));cdp.on('Runtime.exceptionThrown',event=>console.error('Browser exception',JSON.stringify(event.exceptionDetails)));await send('Runtime.enable');await send('Page.enable');
     await until(()=>evaluate('!!document.documentElement').catch(navigationTransient),'active Chrome page');
     await navigate();
     await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'automatic settings loaded');
     assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'normal startup has no settings-result link');
+    if(carrier==='consumer') {await checkLockedControls({evaluate,send,key,section,login,idle,output});pass('native authentication-lock feedback, guarded pointer/touch/keyboard and cleanup');}
     if(carrier==='consumer') {
       // Fail the actual automatic public reads on a new document, without a save.
       const injection=await send('Page.addScriptToEvaluateOnNewDocument',{source:`
@@ -139,6 +141,10 @@ try {
       await idle();
       assert.match(await evaluate('document.getElementById("field-access-status").textContent'),/is off/);
       pass('AP automatic browser time, field persistence read/save, responsive field controls and status');
+      await click('access-toggle');await idle();
+      await until(()=>evaluate('!busy && online && !!settingsLoadedBoot'),'AP public observations after logout');
+      await checkLockedControls({evaluate,send,key,section,login,idle,output});
+      pass('captive AP authentication-lock feedback, guarded pointer/touch/keyboard and cleanup');
     } else {
     assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
@@ -304,7 +310,8 @@ try {
     const result={carrier,browser:(await send('Browser.getVersion')).product,checks,physical_device:false};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');
 } catch(error) {
-    console.error('UI failure state',await evaluate('JSON.stringify({busy,online,carrier:accessCarrier,authenticated:localAuthenticated,notice:document.getElementById("notice").textContent,field:capabilities?.field_access,context:radio?.context,hidden:document.hidden,fieldSupported:fieldTimeSupported(),focus:document.activeElement.id,open:[...document.querySelectorAll("[data-operator-section][open]")].map(e=>e.id)})').catch(()=>null));
+    console.error('UI document',cdp ? await evaluate('JSON.stringify({url:location.href,title:document.title,body:document.body?.textContent.slice(0,180),carrier:typeof accessCarrier,busy:typeof busy})').catch(()=>null) : null);
+    console.error('UI failure state',cdp ? await evaluate('JSON.stringify({busy,online,writeState,markers:document.querySelectorAll("[data-auth-locked-control]").length,carrier:accessCarrier,authenticated:localAuthenticated,notice:document.getElementById("notice").textContent,field:capabilities?.field_access,context:radio?.context,hidden:document.hidden,fieldSupported:fieldTimeSupported(),focus:document.activeElement.id,open:[...document.querySelectorAll("[data-operator-section][open]")].map(e=>e.id)})').catch(()=>null) : null);
     throw error;
 }
 });

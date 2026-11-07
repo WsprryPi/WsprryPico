@@ -890,6 +890,42 @@ function accessAuthenticated() {
     localIdentity ? localAuthenticated && !localLocked : accessCarrier==='certificate');
 }
 function controlsUnlocked() { return !accessLoginPending && accessAuthenticated(); }
+// Feedback eligibility is independent of native disabled state. It grants no access.
+function authenticationLockApplies(node) {
+  if(controlsUnlocked() || accessClosing || accessLoginPending || uiBusy() ||
+     !['consumer','local'].includes(accessCarrier) || !localIdentity) return false;
+  if(node===$('access-toggle'))return true;
+  if(!online)return false;
+  if(!node.closest('#station-settings-lock,#wifi-settings-lock') && node.id!=='restart' || node.readOnly)return false;
+  // Do not explain hardware/ownership, unsupported, or uncertain-save locks as authentication.
+  if(!snapshot || snapshot.job.owner_id!==null || snapshot.job.output_active!==false ||
+     !['empty','complete','aborted','missed'].includes(snapshot.job.state))return false;
+  if(node.closest('#message-settings') && (!capabilities?.message_jobs || snapshot.standalone.reboot_required))return false;
+  if(node.closest('#job-settings') && snapshot.standalone.reboot_required)return false;
+  if(node.closest('#pin-settings,#amplifier-pin-settings') && !pinChoices)return false;
+  if(node.closest('#amplifier-pin-settings') && !supportsAmplifier())return false;
+  if(node.closest('#field-access-settings') && !WsprryControl.supported('field_access',capabilities?.field_access))return false;
+  if(node.closest('#hostname-settings') && (!hostnameState?.writable || hostnameUncertain))return false;
+  if(node.closest('#consumer-network-settings,#consumer-station-settings') && (consumerAttempt || hostnameState?.pending_restart))return false;
+  if(node.closest('#logging-settings') && (!loggingSnapshot || loggingBusy))return false;
+  if(node.closest('#pico-password-settings') && !picoPasswordState)return false;
+  if(node.id==='restart')return !!capabilities?.features?.restart && !restartSent &&
+    !Boolean(operationsSnapshot&&!operationsSnapshot.reset_allowed) && !!consoleObservedMs && Date.now()-consoleObservedMs<=15000;
+  if(['hostname-save','hostname-default','hostname-review'].includes(node.id))return true;
+  if(node.matches('[data-gps]'))return WsprryControl.supported('gps',capabilities?.gps);
+  if(node.matches('[data-si]'))return WsprryControl.supported('si5351',capabilities?.si5351);
+  if(node.closest('#filter-selector-controls') && !WsprryFilters.supported(capabilities?.filter_selector))return false;
+  if(node.matches('.password-toggle')) {
+    const input=$(node.getAttribute('aria-controls'));
+    return !!input && !input.disabled && !input.readOnly;
+  }
+  if(node.type==='submit' && writeState!=='ready' && !node.closest('#consumer-network-settings'))return false;
+  if(!node.disabled)return true;
+  // Own-disabled actions retain their independent readback/feature admission.
+  if(writeState!=='ready')return false;
+  return ['save-config','save-pins','save-beacon-policy','start','message-start'].includes(node.id) && !!currentConfig;
+}
+const lockedFeedback=globalThis.WsprryLockedControls?.create({eligible:authenticationLockApplies,lock:$('access-toggle')});
 function controls(connected) {
   if(['unknown','unavailable'].includes(accessCarrier)) connected=false;
   if(accessClosing || localLocked && localIdentity && !radio) connected=false;
@@ -973,6 +1009,7 @@ function controls(connected) {
     'Save WSPR configuration stores your edits as a draft. Apply WSPR configuration makes the saved schedule active. Checking or unchecking the box alone does not change the Pico.';
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
   renderAccess(); renderSettingsRecovery();
+  lockedFeedback?.update();
 }
 const initialStation = {callsign:'N0CALL',locator:'ZZ99',power_dbm:0};
 function stationEntry(data,key) {

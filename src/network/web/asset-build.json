@@ -2,10 +2,11 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "975e4d785b35ab3a13c509af50e9adae2719862d8d487a15ad4ccad6f8e1f6fb",
+  "recipe_sha256": "12c0bc6366c1183c428ce5bea10add5e0aa1b5dcc8a14d38c9f88e6781446c5c",
   "groups": {
     "app.min.js": {
       "inputs": {
+        "locked-controls.js": "f0a9ffd9ba1dcd253aa1a3534c1bda27ac8ed91657af4d2f837dbc09652465d1",
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
         "control-contract.js": "1c6bcab60fd1e77511ffc1cede644db4085bc7abe71a753b13d03e7a63c65302",
         "si5351.js": "c0325caa6eebb5281bfa92843011312dd9fb87d5adaed86a5bebb7c6a001e889",
@@ -22,10 +23,10 @@
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
-        "app.js": "ac0039a171998ec66c770f6d230845c99f3e111ebd0a83b24a60f607036267c8"
+        "app.js": "ab90730ec9de39e52b2e40e2afcba51995a0a7a199ef9b3a3cb41b28191591e9"
       },
-      "sha256": "e4547ed7e7cbc93e9cb7df6245fb1bd32f6b452acb035024e88ba3fcb8fce786",
-      "bytes": 274967
+      "sha256": "ff29566a90c3489f5f09c84c6891641044d6a38ce2a9213f9bf60484074390c2",
+      "bytes": 281009
     },
     "config-validation.min.js": {
       "inputs": {

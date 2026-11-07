@@ -57,7 +57,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js src/network/web/udp-logging.js
-    src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
+    src/network/web/locked-controls.js src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
     src/network/web/si5351.js src/network/web/gps.js src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/filter-selector.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css

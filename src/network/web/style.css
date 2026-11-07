@@ -87,3 +87,7 @@ header .documentation-help:has(svg):hover{color:#fff}
 @media(max-width:650px){.header-actions{align-self:stretch;justify-content:space-between;gap:.5rem}header #area-nav{gap:.25rem 1rem;min-width:0}header #area-nav a{font-size:1rem}}
 
 .transmitter-actions .help-heading>button{margin:0}
+
+/* Native disabled controls remain authoritative; only authentication hit targets pass through. */
+[data-auth-locked-control]{pointer-events:none}
+.locked-control-tooltip{position:fixed;z-index:10;width:max-content;max-width:calc(100% - 2rem);padding:.5rem .75rem;border:1px solid #687e90;border-radius:4px;background:#e7eef4;color:#25313d;font-size:.875rem;line-height:1.5;overflow-wrap:anywhere;pointer-events:none}

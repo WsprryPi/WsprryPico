@@ -58,6 +58,19 @@ async function refresh() {
     await evaluate("document.getElementById('refresh').click()");
     await until(()=>evaluate('!busy'),'refresh');
 }
+async function expiredLockFeedback() {
+    assert.equal(await evaluate('authenticationLockApplies(document.getElementById("access-toggle"))'),true,'expired-session lock remains a keyboard feedback route');
+    await send('Page.bringToFront');
+    await evaluate('document.getElementById("device-name").focus()');
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',modifiers:8,windowsVirtualKeyCode:9});
+    await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',modifiers:8,windowsVirtualKeyCode:9});
+    assert.equal(await evaluate('document.activeElement.id'),'access-toggle');
+    await until(()=>evaluate('!document.getElementById("locked-control-tooltip").hidden'),'expired-session lock feedback');
+    assert.equal(await evaluate('document.getElementById("locked-control-tooltip").textContent'),'Controls are locked');
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27});
+    assert.equal(await evaluate('document.getElementById("locked-control-tooltip").hidden'),true);
+}
 async function capture(state) {
     if(process.env.UI_REVIEW_NO_CAPTURE==='1')return;
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]) {
@@ -115,6 +128,7 @@ try{await scope.run(async()=>{
     assert.equal(await evaluate('document.getElementById("local-login").hidden'),false);
     assert.equal(await evaluate('document.getElementById("save-config").disabled'),true);
     assert.equal(await draft(),'240 / 0','Expired sessions must preserve the unsaved draft');
+    await expiredLockFeedback();
     await capture('idle-expired');
     await login();
     assert.equal(await draft(),'240 / 0','Expired sessions must preserve the unsaved draft');
@@ -130,6 +144,7 @@ try{await scope.run(async()=>{
     assert.deepEqual(await evaluate('sessionRequests.filter(request=>!["GET"].includes(request.method))'),[],'Locked workflows must not dispatch mutations');
     if(sensitivity==='mutation'){assert.deepEqual(await control({op:'sensitivity_saved_mutation'}),{});faultEntered=true;}
     assert.deepEqual(await journal(),initialJournal,'Locked workflows must not persist configuration');
+    await expiredLockFeedback();
     await capture('absolute-expired');
     const result={browser:(await send('Browser.getVersion')).product,virtual_time:true,fixture_profiles:['consumer-lan'],fixture_driver_starts:nativeProfiles.length,idle_boundary_ms:1800000,absolute_boundary_ms:28800000,public_and_edit_activity_do_not_renew:true,draft_preserved:true,readback_review_required:true,no_mutations:true,journal_unchanged:true,screenshots:process.env.UI_REVIEW_NO_CAPTURE==='1'?0:4};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');

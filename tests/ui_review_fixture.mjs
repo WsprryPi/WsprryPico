@@ -1,3 +1,4 @@
+import {fixtureHttpBody} from './fixture_http_body.mjs';
 // Opt-in review server: maintained pages and production handlers, synthetic RAM
 // journals and deterministic board/TCP boundaries. Never connects to hardware.
 import assert from 'node:assert/strict';
@@ -90,14 +91,7 @@ try {
           const result = await fixture.fetch(authority, ap, resource,
             {method:request.method, body, headers:{'Content-Type':request.headers['content-type'] || 'application/json'},
               marker:resource.startsWith('/api/owner/') ? 'Owner' : /^\/api\/(bootstrap|recovery)\//.test(resource) ? 'Bootstrap' : 'Radio'});
-          const socket=fixture.socket;
-          bytes=Buffer.from(await result.arrayBuffer());
-          const expected=Number(result.headers.get('content-length'));
-          for (let pump=0; bytes.length<expected && pump<4; ++pump) {
-            await fixture.command({op:'complete',socket});
-            bytes=decodeWire((await fixture.command({op:'wire',socket})).wire).body;
-          }
-          assert.equal(bytes.length, expected, 'complete production response');
+          bytes=await fixtureHttpBody(fixture,result);
           status=result.status; headers=Object.fromEntries(result.headers);
         }
         await appendFile(path.join(output,'requests.jsonl'), JSON.stringify({surface:name,

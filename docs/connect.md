@@ -71,6 +71,8 @@ Status, accepted job details, schedules, frequencies, and saved settings load wi
 
 The unlocked icon locks this browser when you log out. It preserves drafts, accepted transmissions, and schedules; other logins keep their own access. If logout cannot be confirmed, the page reports local locking and any uncertainty about whether the login is still occupied. Closing or canceling the password dialog clears its password fields. The icon describes application access, not transport security or transmitter ownership.
 
+When controls are locked, tapping or clicking an authentication-locked field shows “Controls are locked”. Keyboard users can focus the lock beside the hostname for the same feedback. Use that lock button to sign in. Escape, moving focus, scrolling, or interacting elsewhere dismisses the message; showing it does not change settings.
+
 The hostname identifies the running device. A saved rename takes effect only after restart. The **full stable device ID** is the Pico's permanent 32-character hexadecimal identifier. It distinguishes Picos sharing a name and differs from the USB serial used by the installer. An IP address can change after reconnecting to the network. If `.local` fails, use the current IP in your router. After signing in, check the full device ID in **About this Pico / Diagnostics** and record it for later identification.
 
 ## Request setup Wi-Fi with the external button

@@ -1,20 +1,31 @@
+import {fixtureHttpBody} from './fixture_http_body.mjs';
 // Full production dispatcher/streamed assets. TCP/board/time are boundary doubles.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {Fixture} from './consumer_sessions.test.mjs';
 async function complete(f,host,ap,path,options) {
-  const response = await f.fetch(host,ap,path,options), socket=f.socket;
-  let bytes=Buffer.from(await response.arrayBuffer());
-  const expected=Number(response.headers.get('content-length'));
-  for(let pump=0;bytes.length<expected && pump<4;pump++) {
-    await f.command({op:'complete',socket});
-    const result=await f.command({op:'wire',socket});
-    const wire=Buffer.from(result.wire,'hex');bytes=wire.subarray(wire.indexOf('\r\n\r\n')+4);
-  }
-  assert.equal(bytes.length,expected,'exact streamed Content-Length');
+  const response = await f.fetch(host,ap,path,options);
+  const bytes=await fixtureHttpBody(f,response);
   assert.equal(response.headers.get('cache-control'),'no-store');
   return {response,html:bytes.toString()};
+}
+// The ACK adapter must finish larger real pages and must never accept a stalled,
+// truncated, oversized or malformed response as browser evidence.
+{
+  const expected=500009;let length=1,bursts=0;
+  const response=()=>new Response(Buffer.alloc(1),{headers:{'content-length':String(expected)}});
+  const adapter={socket:7,async command(value){
+    assert.equal(value.socket,7);
+    if(value.op==='complete'){++bursts;length=Math.min(expected,length+100000);return {};}
+    return {wire:Buffer.concat([Buffer.from('HTTP/1.1 200 OK\r\n\r\n'),Buffer.alloc(length)]).toString('hex')};
+  }};
+  assert.equal((await fixtureHttpBody(adapter,response())).length,expected);assert.equal(bursts,6);
+  const stalled={socket:7,async command(value){return value.op==='complete'?{}:{wire:Buffer.from('HTTP/1.1 200 OK\r\n\r\nx').toString('hex')};}};
+  await assert.rejects(fixtureHttpBody(stalled,response()),/makes progress/);
+  await assert.rejects(fixtureHttpBody(stalled,new Response('x',{headers:{'content-length':'bad'}})),/declared response/);
+  await assert.rejects(fixtureHttpBody(stalled,new Response('x',{headers:{'content-length':'1048577'}})),/bounded fixture/);
+  await assert.rejects(fixtureHttpBody(stalled,new Response('xx',{headers:{'content-length':'1'}})),/exact complete/);
 }
 // A script may stream multiple C++ literals. Keep the original literal bound
 // at its actual storage layer and verify CSP against the whole executed script.
