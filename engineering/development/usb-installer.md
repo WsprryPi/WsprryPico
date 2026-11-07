@@ -183,3 +183,7 @@ WsprryPi's selected USB Pico controls call the identified deployed core. The ada
 ### Saved and transient suspension
 
 Postboot verification compares saved suspension strictly when a standalone configuration exists. With no saved configuration, automatic unconfigured suspension and the temporary verification hold are runtime observations; their different startup values do not represent a saved-settings migration. Configuration absence, saved progress, hostname, frequency, calibration, watermark and message schedule remain independently compared. Job ownership and inactive output remain admission requirements for every maintenance operation.
+
+### Shared runtime locks on Linux
+
+The standalone installer opens existing serial locks without `O_CREAT`, which Linux `fs.protected_regular` can refuse for a different owner in the shared sticky directory. A missing lock is created exclusively; a concurrent creator is followed by one no-follow reopen. The inode and foreign ownership are preserved, exclusive nonblocking locking is unchanged, and only the current owner's regular lock can have its mode adjusted. No lock deletion or system protection change is a recovery step. Pi runtime lease callers must follow the same open-existing rule for cross-user handoff.

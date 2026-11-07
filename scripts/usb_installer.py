@@ -1493,11 +1493,11 @@ def device_lock(serial):
             Path.home() / 'Library/Caches/WsprryPico/locks')
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     require(not root.is_symlink(), 'Unsafe lock directory')
-    fd = os.open(root / (serial + '.lock'), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o660)
-    if os.fstat(fd).st_uid == os.getuid():
-        os.fchmod(fd, 0o660 if platform.system() == 'Linux' else 0o600)
+    fd = open_device_lock(root / (serial + '.lock'))
     try:
         require(stat.S_ISREG(os.fstat(fd).st_mode), 'Unsafe device lock')
+        if os.fstat(fd).st_uid == os.getuid():
+            os.fchmod(fd, 0o660 if platform.system() == 'Linux' else 0o600)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as error:
@@ -1505,6 +1505,19 @@ def device_lock(serial):
         yield
     finally:
         os.close(fd)
+
+
+def open_device_lock(path):
+    # Linux protected_regular refuses O_CREAT on a foreign existing file in a
+    # shared sticky directory. Never recreate, unlink, or chmod a foreign lock.
+    flags = os.O_RDWR | os.O_NOFOLLOW
+    try:
+        return os.open(path, flags)
+    except FileNotFoundError:
+        try:
+            return os.open(path, flags | os.O_CREAT | os.O_EXCL, 0o660)
+        except FileExistsError:
+            return os.open(path, flags)
 
 
 def private_directory(path):

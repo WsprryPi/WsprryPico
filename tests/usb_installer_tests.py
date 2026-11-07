@@ -2234,5 +2234,46 @@ class ControlSnapshotTransitionTests(unittest.TestCase):
             self.capture(upgrade=True, wrong=True)
 
 
+class SharedDeviceLockTests(unittest.TestCase):
+    def test_existing_lock_opens_without_create_and_preserves_inode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'shared.lock'
+            path.write_text('foreign owner metadata')
+            identity = path.stat().st_ino
+            original = os.open
+            def protected_open(name, flags, *args):
+                if Path(name).exists() and flags & os.O_CREAT:
+                    raise PermissionError('protected_regular')
+                return original(name, flags, *args)
+            with patch.object(installer.os, 'open', side_effect=protected_open):
+                fd = installer.open_device_lock(path)
+                os.close(fd)
+            self.assertEqual(path.stat().st_ino, identity)
+            self.assertEqual(path.read_text(), 'foreign owner metadata')
+
+    def test_concurrent_first_creator_reopens_without_replacing_lock(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'shared.lock'
+            original = os.open
+            def raced_open(name, flags, *args):
+                if flags & os.O_CREAT:
+                    path.write_text('concurrent owner')
+                return original(name, flags, *args)
+            with patch.object(installer.os, 'open', side_effect=raced_open):
+                fd = installer.open_device_lock(path)
+                os.close(fd)
+            self.assertEqual(path.read_text(), 'concurrent owner')
+
+    def test_symlink_lock_never_opens_or_changes_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'target'
+            target.write_text('retained')
+            path = Path(directory) / 'shared.lock'
+            path.symlink_to(target)
+            with self.assertRaises(OSError):
+                installer.open_device_lock(path)
+            self.assertEqual(target.read_text(), 'retained')
+
+
 if __name__ == '__main__':
     unittest.main()
