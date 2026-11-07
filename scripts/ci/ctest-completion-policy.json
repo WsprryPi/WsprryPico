@@ -133,7 +133,7 @@
     },
     "operator_asset_build_tests": {
       "kind": "unittest",
-      "count": 8,
+      "count": 10,
       "entrypoint": "tests/operator_asset_build_tests.py"
     },
     "pico_application_adapter_tests": {
