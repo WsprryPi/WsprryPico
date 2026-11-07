@@ -1330,6 +1330,71 @@ class EraseTests(unittest.TestCase):
         self.args.transaction = Path(result['transaction'])
         self.assertTrue(installer.recover_transaction(self.args)['erase_verified'])
 
+    def prepare_wait(self):
+        self.board['mode'] = 'application'
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)}, 'config': {'config': {'enabled': False}}}
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), patch.object(installer, 'admit_snapshot'):
+            return installer.erase_transaction(self.args)
+
+    def test_terminal_erase_waits_through_disconnect_and_other_board_then_verifies(self):
+        application = dict(self.board, mode='application')
+        other = dict(self.board, serial='0' * 16)
+        sightings = iter(([application], [application], [], [other], [self.board]))
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)}, 'config': {'config': {'enabled': False}}}
+        messages = InteractiveSelectionTests.Terminal()
+        with patch.object(installer, 'discover', side_effect=lambda: next(sightings, [self.board])), \
+             patch.object(installer, 'public_snapshot', return_value=snapshot), patch.object(installer, 'admit_snapshot'), \
+             patch.object(installer, 'prepare_standalone_picotool'), patch.object(installer.time, 'sleep'), \
+             contextlib.redirect_stdout(InteractiveSelectionTests.Terminal()), contextlib.redirect_stderr(messages):
+            code = installer.main(['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes'], human=True)
+        self.assertEqual(code, 0)
+        self.assertEqual([c[0] for c in self.calls], ['info', 'erase', 'verify'])
+        self.assertIn('This installer is still running', messages.getvalue())
+        self.assertIn('No second command is needed', messages.getvalue())
+        self.assertNotIn('recover --transaction', messages.getvalue())
+        self.assertEqual(self.flash, b'\xff' * installer.FLASH_SIZE)
+
+    def test_wait_timeout_cancel_and_changed_port_preserve_transaction_without_erasing(self):
+        for failure in ('timeout', 'cancel', 'port'):
+            with self.subTest(failure=failure):
+                self.board['parent'] = 'same-port'
+                result = self.prepare_wait()
+                if failure == 'port': self.board['parent'] = 'other-port'
+                with patch.object(installer.time, 'monotonic', side_effect=[0, 2] if failure == 'timeout' else [0, 0]), \
+                     patch.object(installer.time, 'sleep', side_effect=KeyboardInterrupt), \
+                     contextlib.redirect_stderr(io.StringIO()), \
+                     self.assertRaises(installer.TransactionFailure) as caught:
+                    installer.wait_for_erase_bootsel(self.args, result, timeout=1)
+                self.assertTrue(caught.exception.result['recovery_required'])
+                self.assertEqual(caught.exception.result['stage'], 'awaiting_bootsel')
+                self.assertTrue(Path(result['transaction']).is_file())
+                self.assertFalse(self.calls)
+                self.assertEqual(self.flash[0], 0x5a)
+
+    def test_terminal_timeout_prints_continuation_and_redirected_output_does_not_wait(self):
+        result = self.prepare_wait()
+        for terminal in (True, False):
+            with self.subTest(terminal=terminal):
+                output = InteractiveSelectionTests.Terminal() if terminal else io.StringIO()
+                messages = InteractiveSelectionTests.Terminal()
+                failure = installer.TransactionFailure('Timed out waiting for BOOTSEL', result, Path(result['transaction']))
+                with patch.object(installer, 'erase_transaction', return_value=result), \
+                     patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
+                     patch.object(installer, 'wait_for_erase_bootsel', side_effect=failure) as wait, \
+                     contextlib.redirect_stdout(output), contextlib.redirect_stderr(messages):
+                    code = installer.main(['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes'], human=True)
+                if terminal:
+                    wait.assert_called_once()
+                    self.assertEqual(code, 3)
+                    self.assertIn('installer has stopped', messages.getvalue())
+                    self.assertIn('copy and run this entire command', messages.getvalue())
+                    self.assertIn('recover --transaction', messages.getvalue())
+                else:
+                    wait.assert_not_called()
+                    self.assertEqual(code, 0)
+                    self.assertEqual(json.loads(output.getvalue())['stage'], 'awaiting_bootsel')
+                self.assertFalse(self.calls)
+
 
 class InteractiveSelectionTests(unittest.TestCase):
     OTHER = '2545B6EFBF78028C'

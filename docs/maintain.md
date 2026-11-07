@@ -88,7 +88,7 @@ bash install_usb.sh discover
 bash install_usb.sh erase --device USB_SERIAL --board pico2_w --yes
 ```
 
-The installer requires an idle, unowned device with its saved standalone schedule disabled or unconfigured. If prompted, reconnect the same board and port in BOOTSEL and use the printed recovery command. Success requires a full blank comparison and reports **erase_verified: true** and **4194304** erased bytes. An interrupted or failed check does not prove erasure. Existing host backups remain. [Install firmware again](install.md) before normal use.
+The installer requires an idle, unowned device with its saved standalone schedule disabled or unconfigured. In a terminal, it pauses for up to three minutes while you reconnect the same board to the same USB port in BOOTSEL. Leave the installer running: it automatically continues the erase and verification after detecting that board. No second command is needed. If the wait times out or you press Ctrl+C, run the printed recovery command after reconnecting in BOOTSEL. Redirected output and `--json-only` return the prepared transaction without waiting; use its recovery command to continue. Success requires a full blank comparison and reports **erase_verified: true** and **4194304** erased bytes. An interrupted or failed check does not prove erasure. Existing host backups remain. [Install firmware again](install.md) before normal use.
 
 ## USB update backups and recovery
 

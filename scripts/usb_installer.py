@@ -2128,6 +2128,38 @@ def reconnect_instructions(serial):
             '  3. Release BOOTSEL after reconnecting.\n')
 
 
+def wait_for_erase_bootsel(args, result, timeout=180):
+    """Wait only in the terminal flow; resume through the guarded transaction."""
+    path = Path(result['transaction'])
+    terminal_section('Waiting for BOOTSEL')
+    terminal_message('Erase is paused; no flash has been erased yet.\n'
+                     + reconnect_instructions(result['serial']) +
+                     'This installer is still running. After the same Pico reconnects in BOOTSEL,\n'
+                     'it will automatically erase and verify all flash. No second command is needed.\n'
+                     'Keep USB connected until verification finishes.\n'
+                     f'Waiting up to {timeout} seconds. Press Ctrl+C to cancel and resume later.\n')
+    terminal_paragraph('Transaction: ' + str(path))
+    deadline = time.monotonic() + timeout
+    try:
+        while time.monotonic() < deadline:
+            matches = [board for board in discover() if board['serial'] == result['serial']]
+            require(len(matches) <= 1, 'Duplicate physical USB serial')
+            if matches:
+                board = matches[0]
+                require(board['parent'] == result['parent'],
+                        'Physical USB port changed; reconnect the selected Pico to its original port')
+                if board['mode'] == 'bootsel':
+                    args.transaction = path
+                    return recover_transaction(args)
+            time.sleep(.5)
+        raise Refusal('Timed out waiting for the selected Pico in BOOTSEL; no flash was erased')
+    except TransactionFailure:
+        raise
+    except (Refusal, OSError, KeyError, ValueError, KeyboardInterrupt) as error:
+        message = 'BOOTSEL wait cancelled; no flash was erased' if isinstance(error, KeyboardInterrupt) else str(error)
+        raise TransactionFailure(message, result, path) from error
+
+
 def terminal_message(message):
     # A disconnected terminal must not change programming results or emit a
     # second JSON response from the outer exception handler.
@@ -2244,11 +2276,13 @@ def bootsel_callout(args, result):
             terminal_message('Erase verified: all 4 MiB of flash is blank, including firmware and saved data.\n'
                              'The Pico remains in BOOTSEL. Install firmware before using it again.')
         elif result.get('recovery_required'):
-            terminal_message(('Erase is prepared; no flash has been erased yet.\n'
+            terminal_message('The installer has stopped and returned control to your shell.\n'
+                             + ('Erase is prepared; no flash has been erased yet.\n'
                               if result.get('stage') == 'awaiting_bootsel' else
                               'Erase is unconfirmed. Do not assume credentials or firmware have been removed.\n')
                              + reconnect_instructions(result['serial']) +
-                             'Continue the same-board erase and verification with:\n\n  '
+                             'After reconnecting in BOOTSEL, copy and run this entire command in your shell\n'
+                             'to continue the same-board erase and verification:\n\n  '
                              + continuation_command(args, result) + '\n\nKeep USB connected until verification finishes.')
         return
     pending = (result.get('manual_bootsel_required') is True and
@@ -2366,6 +2400,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
             args.picotool = args.picotool or 'picotool'
             recovery_pending = True
             result = erase_transaction(args)
+            if args.terminal_ui and result.get('stage') == 'awaiting_bootsel':
+                result = wait_for_erase_bootsel(args, result)
         elif args.operation == 'recover':
             require(args.device and args.yes and args.transaction and args.board == 'pico2_w',
                     'Recovery requires --device, --transaction, --board pico2_w and --yes')
