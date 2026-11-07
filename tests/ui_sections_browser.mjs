@@ -75,6 +75,35 @@ try {
     cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});cdp.on('Page.windowOpen',params=>helpWindows.push(params));await send('Page.enable');
     await until(()=>evaluate('!!document.documentElement').catch(navigationTransient),'active Chrome page');
     await navigate();
+    await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'automatic settings loaded');
+    assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'normal startup has no settings-result link');
+    if(carrier==='consumer') {
+      // Fail the actual automatic public reads on a new document, without a save.
+      const injection=await send('Page.addScriptToEvaluateOnNewDocument',{source:`
+        const startupFetch=globalThis.fetch;
+        globalThis.fetch=(url,...args)=> ['/ntp-timeout','/rf-calibration'].some(path=>String(url).endsWith(path))
+          ? Promise.resolve(new Response(JSON.stringify({error:'Automatic settings read unavailable'}),{status:503,headers:{'Content-Type':'application/json'}})) : startupFetch(url,...args);
+      `});
+      await navigate();
+      await until(()=>evaluate('!loadingSettings && document.getElementById("ntp-timeout-status").textContent!=="Loading timeout…"'),'automatic settings settled');
+      assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'automatic read failure is not a save result');
+      assert.equal(await evaluate('document.getElementById("local-access").open'),false);
+      for(const id of ['ntp-timeout-status','rf-calibration-status'])
+        assert.match(await evaluate(`document.getElementById('${id}').textContent`),/Automatic settings read unavailable/,'failed read remains inline');
+      assert.equal(await evaluate('document.getElementById("clock").textContent.includes("Unknown")'),false,'independent current clock report survives settings failure');
+      await capture('automatic-read-failure');
+      await section('time-calibration');
+      assert.equal(await evaluate('document.activeElement===document.querySelector("#time-calibration > summary")'),true,'bookmark still focuses the section');
+      await login();
+      await click('ntp-timeout-read');await idle();
+      assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),false,'explicit failed read keeps actionable recovery');
+      await click('access-toggle');await idle(); // Retire this regression's login before the capacity scenarios.
+      await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:injection.identifier});
+      await navigate();
+      await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'automatic settings settled');
+      assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'reload clears only document-local recovery');
+      pass('automatic time/calibration read failures stay inline; explicit recovery and bookmarks remain available');
+    }
     await capture('help-status');
     await checkContextualHelp({evaluate,send,key,section,helpWindows});
     pass('native contextual help: collapsed/locked, pointer/keyboard, drafts/files/History, no application requests');

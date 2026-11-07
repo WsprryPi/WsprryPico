@@ -66,7 +66,7 @@ Normal public settings reads and confirmed saves show no recovery panel or stale
 
 Setup receipt controls appear only for a pending request, beside the matching form. A completed result can retain a brief inline status, while Check saved result and reconnection instructions disappear. Receipt checking never resubmits the request. Moving the presentation nodes changes no API, crypto, profile, carrier, or journal contract.
 
-Station identity is inside WSPR Configuration; its legacy bookmark remains an alias. The saved draft summary carries the authoritative Type 1/2/3 plan. Time and calibration is a separate managed section. Timeout, calibration, and amplifier timing load with the page; their read actions are conditional recovery controls. Selector readback keeps its concise saved/active status and omits raw boot JSON.
+Station identity is inside WSPR Configuration; its legacy bookmark remains an alias. The saved draft summary carries the authoritative Type 1/2/3 plan. Time and calibration is a separate managed section. Timeout, calibration, and amplifier timing load with the page; their read actions are conditional recovery controls. Automatic timeout and calibration read errors stay beside their controls without a top-level save-result link. Explicit failed reads and unconfirmed saves retain that recovery link. Transmitter status independently reports current clock and transmission observations. Selector readback keeps its concise saved/active status and omits raw boot JSON.
 
 ## Submission authority and feedback
 
