@@ -160,6 +160,18 @@ int main() {
     assert(unavailable_alias.body_text().find("password") == std::string::npos);
     assert(unavailable_alias.body_text().find("USB Console recovery") != std::string::npos);
 
+    HttpParser icon_request;
+    send("GET /favicon.ico HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", icon_request);
+    const auto icon = bootstrap_http_wire(icon_request.request(), "device-id", "firmware");
+    assert(icon.find("Content-Type: image/x-icon\r\n") != std::string::npos);
+    assert(icon.find("Content-Length: 15406\r\n") != std::string::npos);
+    assert(icon.find("Set-Cookie:") == std::string::npos);
+    assert(wsprrypico::network::web_asset("/favicon.ico")->body ==
+           wsprrypico::network::bootstrap_asset("/favicon.ico")->body);
+    for (const auto route : {"/index.html", "/owner.html", "/recovery.html"})
+        assert(wsprrypico::network::bootstrap_asset(route)->body.find("href=\"/favicon.ico\"") !=
+               std::string_view::npos);
+
     HttpParser foreign_post;
     assert(send("POST /local/v1/identity HTTP/1.1\r\nHost: captive.apple.com\r\n"
                 "Content-Length: 0\r\n\r\n",

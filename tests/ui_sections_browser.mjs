@@ -6,7 +6,7 @@ import {checkGps} from './gps_ui_checks.mjs';
 import {checkControlAlignment} from './control_alignment_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
 import {execFileSync} from 'node:child_process';
-import {writeFile,mkdir} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {BrowserHarness,until,fixtureJson,navigationTransient} from './browser_harness.mjs';
 const h=new BrowserHarness();
@@ -77,6 +77,18 @@ try {
     cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});cdp.on('Page.windowOpen',params=>helpWindows.push(params));cdp.on('Runtime.exceptionThrown',event=>console.error('Browser exception',JSON.stringify(event.exceptionDetails)));await send('Runtime.enable');await send('Page.enable');
     await until(()=>evaluate('!!document.documentElement').catch(navigationTransient),'active Chrome page');
     await navigate();
+    assert.equal(await evaluate(`document.querySelectorAll('link[rel="icon"]').length`),1);
+    const expectedIcon=(await readFile(new URL('../docs/_static/favicon.ico',import.meta.url))).toString('hex');
+    for(let attempt=0;attempt<2;attempt++) {
+      const icon=await evaluate(`(async()=>{const link=document.querySelector('link[rel="icon"]');
+        const response=await fetch(link.href);const bytes=new Uint8Array(await response.arrayBuffer());
+        const image=new Image();image.src=link.href;await image.decode();
+        return {status:response.status,type:response.headers.get('content-type'),cache:response.headers.get('cache-control'),
+          hex:Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join(''),width:image.naturalWidth,height:image.naturalHeight};})()`);
+      assert.equal(icon.status,200);assert.equal(icon.type,'image/x-icon');assert.equal(icon.cache,'no-store');
+      assert.equal(icon.hex,expectedIcon);assert.ok(icon.width>0&&icon.height>0);
+    }
+    pass('local shared favicon bytes, browser decoding and repeat delivery before login');
     await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'automatic settings loaded');
     assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'normal startup has no settings-result link');
     if(carrier==='consumer') {await checkLockedControls({evaluate,send,key,section,login,idle,output});pass('native authentication-lock feedback, guarded pointer/touch/keyboard and cleanup');}

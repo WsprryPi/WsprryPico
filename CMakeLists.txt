@@ -69,7 +69,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/app.min.js src/network/web/config-validation.min.js
     src/network/web/device-presentation.min.js src/network/web/organization.min.js
     src/network/web/asset-build.json scripts/build_operator_assets.mjs
-    scripts/generate_web_assets.py)
+    scripts/generate_web_assets.py docs/_static/favicon.ico)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     engineering/protocol/control-policy.json engineering/protocol/control-1.schema.json
     engineering/protocol/wtp-1.schema.json

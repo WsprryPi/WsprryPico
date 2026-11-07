@@ -216,6 +216,10 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
             response_.static_parts = asset->parts;
             response_.content_security_policy = consumer_radio_csp();
         }
+    } else if (request.method == "GET" && request.path == "/favicon.ico" && radio_ &&
+               radio_->page_admitted(request, client_interface_)) {
+        const auto asset = web_asset(request.path);
+        response_ = {200, "", std::string(asset->type), {}, {}, asset->body, asset->parts};
     } else if (client_interface_ != ConsumerInterface::AccessPoint)
         response_ = http_error(403, "forbidden");
     else if (request.path == "/api/presentation/v1" && request.method == "GET" &&

@@ -15,6 +15,7 @@ Docutils 0.21 writer, preserving responsive sizing and authored dimensions.
 MIT, copyright 2026 Lee Bussy; the complete
 retained notice is in [the manual's credits](docs/reference/credits.md).
 Preserve that notice with distributions of these assets and adapted material.
+The firmware also embeds the same unmodified favicon for local browser pages.
 
 The wiring diagrams `docs/_static/images/wiring/pico2w-base-configuration.svg`,
 `docs/_static/images/wiring/pico2w-gps-flipped-wiring.svg`
