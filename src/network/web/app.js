@@ -1925,8 +1925,8 @@ async function readHostname(token = pageIdentity.request()) {
   if (!hostnameDraft) $('hostname-input').value = d.saved;
   $('hostname-status').textContent = 'Active: ' + d.active + '. Saved: ' + d.saved + '. ' +
     (d.pending_restart ? 'Restart is required to use the new address. This page may disconnect; sign in again when the Pico returns.' :
-      d.writable ? 'The saved address is active for this boot.' : d.reason === 'complete_station_setup_first' ?
-        'Complete station setup before choosing a hostname.' : 'This engineering name requires matching replacement credentials.');
+      d.writable ? 'The saved address is active for this boot.' : d.reason === 'credential_bound_deployment' ?
+        'This engineering name requires matching replacement credentials.' : 'Hostname settings are unavailable. Read saved state before another save.');
   if (d.pending_restart) showContinuation({device:d.target.device_id,boot:d.target.boot_id,name:d.saved});
   else { $('hostname-continue').hidden=true; $('hostname-continue').href=''; }
   if (returnReceipt) {

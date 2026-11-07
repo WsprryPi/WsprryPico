@@ -8,7 +8,7 @@ Status: ✅ complete; ⏳ in progress; ▧ not started. Closed/will-not-do items
 
 24. ✅ **Remove the initial time/calibration review link — complete.** Automatic timeout and calibration read errors stay beside their controls without a top-level save-result link. Transmitter status retains current clock and transmission observations; Time and calibration remains available through normal navigation and bookmarks. Explicit failed reads and unconfirmed saves retain their recovery links. See [contextual saved-state review](browser-pages.md#contextual-saved-state-review).
 
-25. ▧ **Hostname editing in the captive portal.** Allow the operator to change the device hostname from the captive portal page. The [saved execution prompt](captive-portal-hostname-prompt.md) defines the implementation, validation, adversarial review loop, and standing execution authority; it has not been executed.
+25. ⏳ **Hostname editing in the captive portal.** Allow the operator to change the device hostname from the captive portal page. The [saved execution prompt](captive-portal-hostname-prompt.md) defines the implementation, validation, adversarial review loop, and standing execution authority; execution and validation are in progress on `codex/rc.2`.
 
 26. ▧ **Locked-control feedback.** Show a short tooltip, “Controls are locked”, when the operator attempts to click or otherwise interact with a locked control or field. Keep the control locked while providing this feedback. The [saved execution prompt](locked-control-feedback-prompt.md) defines the implementation, validation, adversarial review loop, and standing execution authority; it has not been executed.
 

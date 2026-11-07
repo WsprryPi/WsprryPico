@@ -24,7 +24,7 @@ Checks end after about 90 seconds. If they time out, open the saved name manuall
 
 The browser title starts with the confirmed active hostname, even when opened by IP. A pending or last-confirmed name is an observation; verify the device before entering a password.
 
-If the controls say **Complete station setup first**, complete and apply the [station details](configure.md#station-identity) before retrying the rename. Browser access and login do not require station details. A certificate-bound name is read-only in this editor; follow the displayed reason rather than resetting to retry it. If a save reports a certificate-update error, restore time synchronization and follow the reported recovery instructions.
+A hostname can be chosen during initial setup, before station details are entered. On a blank Pico, save the Wi-Fi connection first. Reconnect to the Pico’s Wi-Fi and open **http://192.168.4.1/**, then sign in and open **Wi-Fi/Host → Device hostname**. The default Pico password is the saved Wi-Fi password. Hostname saving is separate from Wi-Fi saving; neither requires station details. A certificate-bound name is read-only in this editor; follow the displayed reason rather than resetting to retry it. If a save reports a certificate-update error, restore time synchronization and follow the reported recovery instructions.
 
 If WsprryPi connects over the network, follow its [connection-profile update procedure](https://wsprry-pi.readthedocs.io/en/devel/Advanced_Operations/ini_configuration/transmitter_backends.html#after-a-pico-hostname-change) after verifying the rename. Renaming a Fleet profile changes only its label.
 

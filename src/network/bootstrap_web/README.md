@@ -1,16 +1,16 @@
 # Pico setup pages
 
 The setup interface organizes admitted controls into **Station/Transmission** and
-**Wi-Fi/Host** in one document. Committed consumer AP `/` and `/index.html`
+**Wi-Fi/Host** in one document. Wi-Fi-only and committed consumer AP `/` and `/index.html`
 select Wi-Fi/Host; infrastructure `/` selects Station/Transmission. `/station`
 and `/wifi-host` keep the chosen area through reload. `/radio` and `/owner.html`
 remain station-control bookmarks for a committed consumer. Switching areas
 keeps the current login and drafts. Raw AP setup APIs stay AP-only.
 
-Blank/network-only AP roots retain the Wi-Fi-first pages described below;
+Blank AP roots retain the Wi-Fi-first pages described below;
 `/station`, `/radio` and `/owner.html` lead to optional station commissioning
-with an explicit Wi-Fi-first refusal where needed. These profiles have no job
-control authority. Cross-document commissioning changes ask before discarding
+with an explicit Wi-Fi-first refusal where needed. Blank profiles have no job
+control authority. After Wi-Fi setup, Device hostname uses the existing password-authenticated editor without requiring station details; hostname and Wi-Fi saves remain separate transactions. Cross-document commissioning changes ask before discarding
 edited fields. Unavailable setup/control shows bounded recovery guidance.
 Station details use [automatic Type 1/2/3 planning](../../../engineering/development/wspr-planning.md).
 

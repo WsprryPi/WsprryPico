@@ -25,6 +25,8 @@ bool valid_network_profile(const NetworkProfile& profile) {
     return network::valid_device_id(profile.device_id) && printable(profile.ssid, 1, 32) &&
            printable(profile.password, 8, 63) &&
            standalone::valid_time_server(profile.time_server) &&
+           (profile.hostname.empty() ||
+            network::canonical_local_hostname(profile.hostname) == profile.hostname) &&
            (profile.request_sha256.empty() ||
             (profile.request_sha256.size() == 64 &&
              std::all_of(profile.request_sha256.begin(), profile.request_sha256.end(),
@@ -37,12 +39,16 @@ std::optional<NetworkProfile> parse_network_profile(std::string_view text) {
     auto root = wtp::json::parse(text);
     if (!root || !root->get("version"))
         return {};
+    const bool named = root->get("version")->raw == "4";
     const bool old = root->get("version")->raw == "1";
     const bool durable = root->get("version")->raw == "3";
-    if ((!old && !durable && root->get("version")->raw != "2") ||
+    if ((!old && !durable && !named && root->get("version")->raw != "2") ||
         !wtp::json::fields(
-            *root, old ? std::initializer_list<std::string_view>{"version", "device_id", "ssid",
-                                                                 "password"}
+            *root, named ? std::initializer_list<std::string_view>{"version", "device_id", "ssid",
+                                                                   "password", "time_server",
+                                                                   "request_sha256", "hostname"}
+                   : old ? std::initializer_list<std::string_view>{"version", "device_id", "ssid",
+                                                                   "password"}
                    : durable
                        ? std::initializer_list<std::string_view>{"version", "device_id", "ssid",
                                                                  "password", "time_server",
@@ -50,23 +56,20 @@ std::optional<NetworkProfile> parse_network_profile(std::string_view text) {
                        : std::initializer_list<std::string_view>{"version", "device_id", "ssid",
                                                                  "password", "time_server"}) ||
         root->get("device_id")->type() != '"' || root->get("ssid")->type() != '"' ||
-        root->get("password")->type() != '"')
+        root->get("password")->type() != '"' || (!old && root->get("time_server")->type() != '"') ||
+        (named &&
+         (root->get("hostname")->type() != '"' || root->get("hostname")->string().empty())) ||
+        ((durable || named) && (root->get("request_sha256")->type() != '"' ||
+                                (durable && root->get("request_sha256")->string().empty()))))
         return {};
     NetworkProfile profile{root->get("device_id")->string(), root->get("ssid")->string(),
                            root->get("password")->string()};
-    if (!old) {
-        if (root->get("time_server")->type() != '"')
-            return {};
+    if (!old)
         profile.time_server = root->get("time_server")->string();
-    }
-    if (durable) {
-        if (root->get("request_sha256")->type() != '"' ||
-            root->get("request_sha256")->string().empty()) {
-            scrub(profile);
-            return {};
-        }
+    if (named)
+        profile.hostname = root->get("hostname")->string();
+    if (durable || named)
         profile.request_sha256 = root->get("request_sha256")->string();
-    }
     if (!valid_network_profile(profile)) {
         scrub(profile);
         return {};
@@ -77,14 +80,19 @@ std::optional<NetworkProfile> parse_network_profile(std::string_view text) {
 std::string serialize_network_profile(const NetworkProfile& profile) {
     if (!valid_network_profile(profile))
         return {};
-    return "{\"version\":" + std::string(profile.request_sha256.empty() ? "2" : "3") +
+    return "{\"version\":" +
+           std::string(!profile.hostname.empty()        ? "4"
+                       : profile.request_sha256.empty() ? "2"
+                                                        : "3") +
            ",\"device_id\":" + wtp::json::quote(profile.device_id) +
            ",\"ssid\":" + wtp::json::quote(profile.ssid) +
            ",\"password\":" + wtp::json::quote(profile.password) +
            ",\"time_server\":" + wtp::json::quote(profile.time_server) +
-           (profile.request_sha256.empty()
+           (profile.request_sha256.empty() && profile.hostname.empty()
                 ? std::string{}
                 : ",\"request_sha256\":" + wtp::json::quote(profile.request_sha256)) +
+           (profile.hostname.empty() ? std::string{}
+                                     : ",\"hostname\":" + wtp::json::quote(profile.hostname)) +
            "}";
 }
 
@@ -136,5 +144,6 @@ void scrub(NetworkProfile& profile) {
     clear(profile.password);
     clear(profile.time_server);
     clear(profile.request_sha256);
+    clear(profile.hostname);
 }
 } // namespace wsprrypico::provisioning

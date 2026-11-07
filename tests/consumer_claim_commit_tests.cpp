@@ -55,6 +55,7 @@ struct Platform : provisioning::ConsumerClaimCommitPlatform {
     bool expire_during_write = false;
     unsigned time_reads = 0, tls_generations = 0;
     std::string hostname = "wsprrypico-0a60df.local";
+    std::string expected_tls_hostname = "wsprrypico-0a60df.local";
     std::uint64_t ms = 500;
     std::optional<std::uint64_t> utc = 1'800'000'000;
     bool safe_to_commit() override {
@@ -80,7 +81,7 @@ struct Platform : provisioning::ConsumerClaimCommitPlatform {
     bool generate_tls(std::string_view selected_device, std::string_view hostname,
                       std::uint64_t now, provisioning::ConsumerTls& out) override {
         ++tls_generations;
-        if (!generation || selected_device != device || hostname != "wsprrypico-0a60df.local" ||
+        if (!generation || selected_device != device || hostname != expected_tls_hostname ||
             now != 1'800'000'000)
             return false;
         out.hostname = wrong_generated_hostname ? "other.local" : std::string(hostname);
@@ -361,6 +362,31 @@ int main() {
     pending_text.replace(pending_flag, 18, "\"tls_pending\":false");
     assert(!provisioning::parse_consumer_profile(pending_text));
 
+    // Completing station setup preserves a hostname selected on the captive
+    // Wi-Fi-only page, including before its explicit restart has happened.
+    for (const bool synchronized : {false, true}) {
+        MemoryMedia named_media;
+        provisioning::ProfileStore named_store(named_media);
+        assert(named_store.load());
+        provisioning::NetworkProfile network{device, "Home Net", "test-password"};
+        network.hostname = "setup-name.local";
+        assert(named_store.select(provisioning::ProfileSource::NetworkOnly,
+                                  provisioning::serialize_network_profile(network)));
+        const auto named_binding = binding(provisioning::ProfileSource::NetworkOnly, 1);
+        provisioning::ConsumerClaimSlot named_slot;
+        grant(named_slot, named_binding);
+        Platform named_platform;
+        named_platform.expected_tls_hostname = network.hostname;
+        if (!synchronized)
+            named_platform.utc.reset();
+        const auto result = provisioning::commit_consumer_claim(
+            named_store, named_slot, named_binding, values, named_platform,
+            provisioning::RuntimeSource::NetworkOnly, 500);
+        assert(result.state == provisioning::ConsumerCommitState::Committed);
+        const auto selected = provisioning::parse_consumer_profile(named_store.data());
+        assert(selected && selected->tls.hostname == network.hostname);
+        assert(selected->tls_pending == !synchronized);
+    }
     MemoryMedia network_media;
     provisioning::ProfileStore network_store(network_media);
     assert(network_store.load());

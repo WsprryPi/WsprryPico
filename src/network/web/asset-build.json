@@ -22,10 +22,10 @@
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
-        "app.js": "420bc77eb5d95750b131752af54df31450f294ecf2c314ea23f1d60fca94ef34"
+        "app.js": "ac0039a171998ec66c770f6d230845c99f3e111ebd0a83b24a60f607036267c8"
       },
-      "sha256": "53261f66ee4efd757ee8c1f031a157976badcae851d153481a4a357b5d7498e0",
-      "bytes": 274946
+      "sha256": "e4547ed7e7cbc93e9cb7df6245fb1bd32f6b452acb035024e88ba3fcb8fce786",
+      "bytes": 274967
     },
     "config-validation.min.js": {
       "inputs": {

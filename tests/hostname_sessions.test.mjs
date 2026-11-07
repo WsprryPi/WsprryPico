@@ -40,3 +40,53 @@ try {
   assert.equal(reset.data.saved,'wsprrypico-0a60df.local');
   console.log('PASS hostname AP/station rename, strict identities, generations, preserved config, restart and old-authority refusal');
 } finally {await f.stop();}
+
+// The initial captive portal becomes password authenticated after Wi-Fi setup,
+// without station details or a transmitter configuration journal.
+const early = new Fixture(process.argv[2],['1'.repeat(32),'--blank']);
+try {
+  await early.time(1000);
+  assert.equal((await early.fetch('192.168.4.1',true,'/api/control/v1/hostname',{method:'PUT',body:'{}'})).status,405);
+  await early.command({op:'page_profile',mode:'network'});
+  const ap=early.client('192.168.4.1',true);
+  const generation=(await early.command({op:'stats'})).profile_generation;
+  const forged=await early.fetch('192.168.4.1',true,'/api/consumer/v1/request',{
+    method:'POST',body:JSON.stringify({contract:'Wsprry-Control/1',schema:'hostname',hostname:'forged.local'})});
+  assert.ok(forged.status>=400 && forged.status<500);
+  assert.equal((await early.command({op:'stats'})).profile_generation,generation);
+  await early.login(ap);
+  const original=await early.command({op:'stats'});
+  assert.equal(original.config_sequence,'0');
+  const first=await call(ap,'hostname');
+  assert.equal(first.status,200);assert.equal(first.data.writable,true);
+  assert.equal(first.data.source,'network_profile');
+  for(const hostname of ['url://a.local','a.b.local','a_.local','x'.repeat(64)+'.local',42,{}]) {
+    assert.equal((await call(ap,'hostname','PUT',{schema:'hostname',target:first.data.target,hostname},first.revision)).status,400);
+  }
+  assert.equal((await call(ap,'hostname','PUT',{schema:'hostname',target:{...first.data.target,boot_id:'b'.repeat(32)},hostname:'pico-a.local'},first.revision)).status,409);
+  const saved=await call(ap,'hostname','PUT',{schema:'hostname',target:first.data.target,hostname:'PICO-A.LOCAL.'},first.revision);
+  assert.equal(saved.status,200);assert.equal(saved.data.saved,'pico-a.local');
+  assert.equal(saved.data.active,first.data.active);assert.equal(saved.data.pending_restart,true);
+  let stats=await early.command({op:'stats'});
+  assert.equal(stats.config_sequence,'0');assert.equal(stats.api_restarts,original.api_restarts);
+  assert.equal(stats.watermark,original.watermark);
+  await assert.rejects(ap.request('status'));
+  await early.time(2000);await early.login(ap);
+  assert.equal((await call(ap,'hostname','PUT',{schema:'hostname',target:first.data.target,hostname:'pico-b.local'},first.revision)).status,412);
+  let readback=await call(ap,'hostname');
+  // An accepted save with a lost response still consumes exactly one generation.
+  const request=ap.fetcher;let drop=true;
+  ap.fetcher=async(...args)=>{const response=await request(...args);if(drop&&args[0].endsWith('/request')){drop=false;throw Error('lost committed reply');}return response;};
+  await assert.rejects(call(ap,'hostname','PUT',{schema:'hostname',target:readback.data.target,hostname:'pico-b.local'},readback.revision));
+  ap.fetcher=request;ap.clear();await early.time(3000);await early.login(ap);
+  readback=await call(ap,'hostname');assert.equal(readback.data.saved,'pico-b.local');
+  assert.equal(BigInt(readback.data.generation),BigInt(first.data.generation)+2n);
+  const restart=await call(ap,'restart','POST',{},readback.revision);assert.equal(restart.status,202);
+  await early.command({op:'reboot'});await early.time(4000);await early.login(ap);
+  readback=await call(ap,'hostname');assert.equal(readback.data.active,'pico-b.local');
+  assert.equal(readback.data.pending_restart,false);assert.notEqual(readback.data.target.boot_id,first.data.target.boot_id);
+  const restored=await call(ap,'hostname','PUT',{schema:'hostname',target:readback.data.target,hostname:null},readback.revision);
+  assert.equal(restored.status,200);assert.equal(restored.data.saved,first.data.default);
+  stats=await early.command({op:'stats'});assert.equal(stats.config_sequence,'0');
+  console.log('PASS initial captive AP hostname editing before station setup, guarded writes, lost reply, explicit restart and default restoration');
+} finally {await early.stop();}

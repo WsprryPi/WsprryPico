@@ -100,10 +100,16 @@ struct Test {
     Platform platform;
     provisioning::HostnameSettings settings{store,  runtime,     platform,
                                             device, "old.local", "default.local"};
-    Test() {
+    Test(bool network_only = false) {
         assert(store.load());
-        assert(store.select(provisioning::ProfileSource::ConsumerProfile,
-                            provisioning::serialize_consumer_profile(consumer())));
+        if (network_only) {
+            assert(store.select(
+                provisioning::ProfileSource::NetworkOnly,
+                provisioning::serialize_network_profile(
+                    {device, "Home Net", "test-password", "pool.ntp.org", std::string(64, 'c')})));
+        } else
+            assert(store.select(provisioning::ProfileSource::ConsumerProfile,
+                                provisioning::serialize_consumer_profile(consumer())));
         assert(runtime.load(store, device, provisioning::BuildBundleState::Absent));
         f.api.consumer_config(runtime);
         f.api.hostname_settings(settings);
@@ -127,6 +133,75 @@ struct Test {
 };
 } // namespace
 int main() {
+    // Initial Wi-Fi setup has no station snapshot or TLS to rotate. Its name
+    // still uses the same revision/target-guarded hostname transaction.
+    {
+        Test early(true);
+        const provisioning::NetworkProfile network{device, "Home Net", "test-password",
+                                                   "pool.ntp.org", std::string(64, 'c')};
+        assert(early.runtime.load(early.store, device, provisioning::BuildBundleState::Absent));
+        const auto before = early.store.data(), revision = early.f.api.revision();
+        const auto report = early.settings.readback(early.f.service.status().boot_id);
+        assert(report.find("\"writable\":true") != report.npos);
+        assert(report.find("\"source\":\"network_profile\"") != report.npos);
+        assert(early.request("\"bad.name.local\"").status == 400);
+        assert(early.store.data() == before);
+        assert(early.request("\"Pico-Setup.LOCAL.\"").status == 200);
+        auto saved = provisioning::parse_network_profile(early.store.data());
+        assert(saved && saved->hostname == "pico-setup.local");
+        auto expected_network = network;
+        expected_network.hostname = "pico-setup.local";
+        assert(*saved == expected_network);
+        const auto encoded = provisioning::serialize_network_profile(*saved);
+        for (const auto& replacement : {"42", "null", "\"bad.name.local\"", "\"UPPER.LOCAL\""}) {
+            auto malformed = encoded;
+            const auto value = malformed.find("\"pico-setup.local\"");
+            assert(value != std::string::npos);
+            malformed.replace(value, std::string("\"pico-setup.local\"").size(), replacement);
+            assert(!provisioning::parse_network_profile(malformed));
+        }
+        auto extra = encoded;
+        extra.insert(extra.size() - 1, ",\"extra\":true");
+        assert(!provisioning::parse_network_profile(extra));
+        auto unknown = encoded;
+        unknown.replace(unknown.find("\"version\":4"), 11, "\"version\":5");
+        assert(!provisioning::parse_network_profile(unknown));
+
+        assert(early.store.source() == provisioning::ProfileSource::NetworkOnly);
+        assert(early.runtime.source() == provisioning::RuntimeSource::NetworkOnly);
+        assert(early.settings.readback(early.f.service.status().boot_id)
+                   .find("\"active\":\"old.local\"") != std::string::npos);
+        assert(early.request("\"other.local\"", revision).status == 412);
+        const auto sequence = early.store.sequence();
+        assert(early.request("\"PICO-SETUP.LOCAL.\"").status == 200);
+        assert(early.store.sequence() == sequence);
+        early.platform.safe = false;
+        assert(early.request("\"other.local\"").status == 409);
+        assert(early.store.sequence() == sequence);
+        early.platform.safe = true;
+        assert(early.request("null").status == 200);
+        saved = provisioning::parse_network_profile(early.store.data());
+        assert(saved && saved->hostname.empty() && saved->ssid == network.ssid);
+        // Closed storage versions and canonical hostname validation remain independent.
+        for (const auto& name :
+             {"bad.name.local", "-bad.local", "bad_.local", "Bad.LOCAL", "bad.local."}) {
+            auto invalid = network;
+            invalid.hostname = name;
+            assert(provisioning::serialize_network_profile(invalid).empty());
+        }
+    }
+    for (unsigned at = 1; at <= 8; ++at) {
+        Test cut(true);
+        const auto before = cut.store.data();
+        cut.media.fail_at = cut.media.writes + at;
+        const auto result = cut.request("\"changed.local\"");
+        provisioning::ProfileStore recovered(cut.media);
+        assert(recovered.load());
+        const auto selected = provisioning::parse_network_profile(recovered.data());
+        assert(selected && selected->ssid == "Home Net" && selected->password == "test-password");
+        assert(result.status == 200 ? selected->hostname == "changed.local"
+                                    : recovered.data() == before);
+    }
     Test t;
     const auto original = t.store.data(), rev = t.f.api.revision();
     const auto watermark = t.f.store.watermark();

@@ -1254,6 +1254,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                 return http_error(503, "profile_unavailable");
             }
             bootstrap_previous_network_ = *saved;
+            trial_.hostname = saved->hostname;
             provisioning::scrub(*saved);
         } else if (profile_->source() == provisioning::ProfileSource::ConsumerProfile) {
             auto saved = provisioning::parse_consumer_profile(profile_->data());

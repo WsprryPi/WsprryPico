@@ -42,7 +42,7 @@ Online help needs Internet access; the setup Wi-Fi network may not provide it. O
 
 ## Open the control page
 
-Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. An IP address is a numeric network address such as `192.168.1.123`; a hostname is a name such as `wpico-60df.local`. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi.
+Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. An IP address is a numeric network address such as `192.168.1.123`; a hostname is a name such as `wpico-60df.local`. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi. After the first Wi-Fi save, **Wi-Fi/Host → Device hostname** is available there for an authenticated [hostname change](maintain.md#change-the-hostname), even before station setup.
 
 1. Connect your phone or computer to the same home network as the Pico. A wired computer on that network also works. Avoid a guest network that prevents devices from reaching each other.
 2. Find the Pico in your router's connected-device list, or use the hostname reported by the setup page. A default name looks like `wpico-60df.local`; your Pico's suffix will differ.
