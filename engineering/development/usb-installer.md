@@ -179,3 +179,7 @@ A cleanup failure adds `retention_warning` to the result. It does not replace a 
 The bootstrap resolves its installer source revision once and retrieves the core and schema at that immutable revision. Firmware branch selection remains independent. Current invocation instructions live in the [operator installation guide](../../docs/install.md).
 
 WsprryPi's selected USB Pico controls call the identified deployed core. The adapter verifies an independently published compatible installer and its hashes; browser requests cannot supply commands, URLs, or local paths. Only the selected member is held, with a private persistent marker across service restart. The marker remains until core verification and Pi USB reconnection both succeed. Network-only selections do not offer a USB update. Local compilation remains an explicit host command.
+
+### Saved and transient suspension
+
+Postboot verification compares saved suspension strictly when a standalone configuration exists. With no saved configuration, automatic unconfigured suspension and the temporary verification hold are runtime observations; their different startup values do not represent a saved-settings migration. Configuration absence, saved progress, hostname, frequency, calibration, watermark and message schedule remain independently compared. Job ownership and inactive output remain admission requirements for every maintenance operation.

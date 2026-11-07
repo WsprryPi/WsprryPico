@@ -1998,7 +1998,10 @@ def saved_semantics(snapshot):
             'calibration': snapshot['calibration']['saved'],
             'message_schedule': (snapshot.get('message_schedule') or {}).get('saved'),
             'watermark_utc_ns': snapshot['status']['standalone']['watermark_utc_ns'],
-            'suspended': snapshot['status']['standalone']['suspended']}
+            # With no saved schedule, suspension is a derived startup/maintenance
+            # observation, not durable operator state. Configured schedules keep
+            # their strict saved suspension comparison.
+            'suspended': snapshot['status']['standalone']['suspended'] if config is not None else None}
 
 
 def admit_snapshot(snapshot):

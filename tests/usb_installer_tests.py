@@ -866,6 +866,21 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn('before.bin', json.dumps(record))
 
 
+class SavedSuspensionSemanticsTests(unittest.TestCase):
+    def test_unconfigured_maintenance_runtime_flag_is_not_saved_state(self):
+        snapshot={'config':{'config':None},'progress':{'fields':{},'draft_revision':'0'},
+                  'hostname':{'saved':'lifecycle-test.local'},'frequency':{'frequency_hz':None},
+                  'calibration':{'saved':None},
+                  'status':{'standalone':{'watermark_utc_ns':'0','suspended':True}}}
+        before=installer.saved_semantics(snapshot)
+        snapshot['status']['standalone']['suspended']=False
+        self.assertEqual(installer.saved_semantics(snapshot),before)
+        snapshot['config']['config']={'enabled':False}
+        configured=installer.saved_semantics(snapshot)
+        snapshot['status']['standalone']['suspended']=True
+        self.assertNotEqual(installer.saved_semantics(snapshot),configured)
+
+
 class InstalledPublicBundleTests(unittest.TestCase):
     def test_retained_original_bytes_are_independent_of_same_version_candidate(self):
         files, manifest, image = fixture(modern=True)
