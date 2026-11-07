@@ -342,6 +342,10 @@ std::optional<WebAsset> consumer_radio_asset(){
  return WebAsset{"radio-inline","text/html",radio_parts};
 }
 std::string_view consumer_radio_csp(){return "test-csp";}
+std::optional<WebAsset> web_asset(std::string_view path){
+ if(path!="/favicon.ico")return {};
+ return WebAsset{std::string_view("\0\0\1\0",4),"image/x-icon"};
+}
 struct Network {
  std::string address="192.0.2.10",hostname="pico-test.local";
  const std::string& ipv4()const{return address;}
@@ -439,7 +443,13 @@ int main() {
  radio.page_allowed=false;server.dispatch();check(server.response_.status==403);
  radio.page_allowed=true;radio.ready=false;server.dispatch();check(server.response_.status==403);
  radio.ready=true;asset_available=false;server.dispatch();check(server.response_.status==503);
- asset_available=true;server.client_interface_=ConsumerInterface::AccessPoint;
+ asset_available=true;
+ server.parser_.value.path="/favicon.ico";server.dispatch();
+ check(server.response_.status==200&&server.response_.type=="image/x-icon");
+ check(server.response_.static_body.size()==4&&server.response_.body.empty());
+ radio.page_allowed=false;server.dispatch();check(server.response_.status==403);
+ radio.page_allowed=true;
+ server.client_interface_=ConsumerInterface::AccessPoint;
  server.parser_.value.path="/radio";server.dispatch();check(server.response_.status==200);
  server.parser_.value.path="/";server.dispatch();
  check(server.response_.status==302&&server.response_.location=="/wifi-host");
