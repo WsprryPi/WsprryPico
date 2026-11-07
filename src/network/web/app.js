@@ -795,6 +795,11 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     const code = typeof data.error === 'string' ? data.error : data.error?.code;
     const explanation = {
       storage_fault:'Settings storage could not be verified. Resolve storage health before another save',
+      busy:'The transmitter is occupied or its output is not confirmed inactive. Check Transmitter status and wait for an idle, unowned Pico before saving',
+      target_mismatch:'The Pico identity or boot changed. Read current saved settings and review the target before another save',
+      invalid_config:'The complete settings candidate is invalid. Review the saved settings and the fields being saved',
+      invalid_hardware_update:'The hardware save could not preserve unrelated settings. Read current saved settings and review them before another save',
+      output_disable_failed:'Settings may already be saved, but output inhibition could not be verified. Review saved settings and use USB Console recovery before transmitting',
       invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
       invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',

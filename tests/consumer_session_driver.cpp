@@ -539,6 +539,23 @@ struct Driver {
             poll_server();
             return "{}";
         }
+        if (op == "hardware_save_review") {
+            // Host-only reproduction of an older saved schedule preference
+            // without a dial. No device, clock qualification or RF is involved.
+            for (auto* fixture : {&f, &engineering}) {
+                check(fixture->scheduler.idle());
+                auto config = standalone::parse_config(network_test::config);
+                check(config.has_value());
+                config->enabled = true;
+                config->wspr_dial_frequency_hz.reset();
+                check(fixture->store.save(*config));
+                std::destroy_at(&fixture->scheduler);
+                std::construct_at(&fixture->scheduler, fixture->store, fixture->service);
+                check(fixture->scheduler.command("STOP").find("\"suspended\":true") !=
+                      std::string::npos);
+            }
+            return "{}";
+        }
         if (op == "message_review") {
             // Model a boot after the fixture's initial saved configuration.
             // This runs before serving the opt-in CW review and never on a device.

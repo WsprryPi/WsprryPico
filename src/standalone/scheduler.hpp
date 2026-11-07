@@ -90,7 +90,10 @@ class Scheduler {
     bool hardware_application_failed() const {
         return hardware_application_failed_;
     }
-    std::string command(std::string_view line);
+    // Hardware intent is internal to the validated shared configuration writer.
+    // Console CONFIG and all transmission-setting writes retain full prerequisites.
+    enum class ConfigPurpose { General, Hardware };
+    std::string command(std::string_view line, ConfigPurpose purpose = ConfigPurpose::General);
     std::string status(const wtp::ServiceStatus* observation = nullptr) const;
 
   private:

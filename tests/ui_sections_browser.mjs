@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {checkLockedControls} from './locked_controls_browser.mjs';
 import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkGps} from './gps_ui_checks.mjs';
+import {checkHardwareSaveIsolation} from './hardware_save_checks.mjs';
 import {checkControlAlignment} from './control_alignment_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
 import {execFileSync} from 'node:child_process';
@@ -324,6 +325,10 @@ try {
       await checkControlAlignment({evaluate,send,section,output:path.join(output,'alignment')});
       pass('encrypted RF/GPS control alignment across engines, labels, help, locks, breakpoints and zoom');
     }
+    await control({op:'hardware_save_review'});
+    await navigate();if(carrier!=='engineering')await login();
+    await checkHardwareSaveIsolation({evaluate,section,click,idle,capture});
+    pass('hardware saves preserve suspended no-dial recurrence and invalid WSPR drafts; LED, button, Si5351, GPS/PPS use production journals');
     const result={carrier,browser:(await send('Browser.getVersion')).product,checks,physical_device:false};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');
 } catch(error) {
