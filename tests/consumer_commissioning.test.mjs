@@ -2,6 +2,7 @@
 // are explicit doubles. Real Noble bootstrap/owner and Mbed TLS crypto run.
 import assert from 'node:assert/strict';
 import {Fixture} from './consumer_sessions.test.mjs';
+import {fixtureHttpBody} from './fixture_http_body.mjs';
 import {begin as beginWifi,seal as sealWifi} from '../src/network/bootstrap_web/crypto.js';
 import {p256} from '../src/network/bootstrap_web/node_modules/@noble/curves/nist.js';
 globalThis.WsprryPicoOwnerKey={keygen:()=>p256.keygen(),getPublicKey:(key,compressed)=>p256.getPublicKey(key,compressed)};
@@ -19,9 +20,7 @@ await run('Wi-Fi-only setup survives reboot and admits LAN login without station
  await f.command({op:'reboot'});await f.time(8000);
  for(const host of ['192.168.1.53','wsprrypico-0a60df.local']){
    const page=await f.fetch(host,false,'/');assert.equal(page.status,200);
-   let bytes=Buffer.from(await page.arrayBuffer()),expected=Number(page.headers.get('content-length'));
-   for(let i=0;bytes.length<expected&&i<4;i++){await f.command({op:'complete',socket:f.socket});const wire=Buffer.from((await f.command({op:'wire',socket:f.socket})).wire,'hex');bytes=wire.subarray(wire.indexOf('\r\n\r\n')+4);}
-   assert.equal(bytes.length,expected);assert.match(bytes.toString(),/id="local-login"/);
+   const bytes=await fixtureHttpBody(f,page);assert.match(bytes.toString(),/id="local-login"/);
    const a=f.client(host);await f.login(a);
    assert.equal((await(await a.request('config')).json()).config,null);
    assert.equal((await(await a.request('station')).json()).station,null);
