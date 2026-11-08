@@ -288,6 +288,43 @@ class HttpFailureTests(unittest.TestCase):
 
 
 class InstallerTests(unittest.TestCase):
+    def test_prepared_release_resolves_after_original_publish_was_skipped(self):
+        net = Network()
+        net.jobs['jobs'][1]['conclusion'] = 'skipped'
+        with self.assertRaises(installer.Refusal):
+            installer.resolve(net)
+        record = dict(packet_sha256=installer.public_packet_sha(net.release),
+                      source=net.proof['source'],build_run=net.proof['run_id'],
+                      build_attempt=1,tag=net.tag,
+                      publishers=[dict(run_id=90,attempt=1,source='b'*40)])
+        net.release['body'] = ('<!-- '+installer.PREPARED_MARKER+'\n'+json.dumps(record)+'\n-->')
+        run = copy.deepcopy(net.run)
+        run.update(id=90,head_sha='b'*40,head_branch='devel',event='workflow_dispatch',
+                   path='.github/workflows/publish-prepared.yml',
+                   html_url='https://github.com/'+installer.REPOSITORY+'/actions/runs/90',
+                   display_title='Prepared firmware '+record['packet_sha256']+' (publish)')
+        jobs=copy.deepcopy(net.jobs)
+        for index,job in enumerate(jobs['jobs']):
+            job.update(id=90+index,name='validate' if index==0 else 'publish',
+                       conclusion='skipped' if index==0 else 'success',
+                       run_id=90,head_sha='b'*40,head_branch='devel',
+                       run_url='https://api.github.com/repos/'+installer.REPOSITORY+'/actions/runs/90',
+                       html_url=run['html_url']+'/job/'+str(90+index),
+                       check_run_url='https://api.github.com/repos/'+installer.REPOSITORY+'/check-runs/'+str(90+index))
+        original=net.api
+        def api(path):
+            if path.startswith('actions/runs/90/'):
+                return jobs if '/jobs?' in path else run
+            return original(path)
+        net.api=api
+        self.assertEqual(installer.resolve(net)[1]['source']['revision'],net.proof['source'])
+        for conclusion in ('failure','skipped'):
+            jobs['jobs'][1]['conclusion']=conclusion
+            with self.assertRaises(installer.PublicationPending):installer.resolve(net)
+        jobs['jobs'][1]['conclusion']='success'
+        run['head_repository']['full_name']='foreign/repository'
+        with self.assertRaises(installer.Refusal):installer.resolve(net)
+
     def test_saved_dial_semantics_are_exact_and_independent(self):
         snapshot = dict(config={'config':{'station':{'callsign':'K1ABC'}}},
                         progress={'fields':{},'draft_revision':'17'},

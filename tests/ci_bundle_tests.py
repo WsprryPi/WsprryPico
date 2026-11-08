@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / 'scripts/ci'))
 import bundle
 import download
 import publish
+import prepared
 import run as ci_run
 
 
@@ -658,7 +659,7 @@ class BundleTests(unittest.TestCase):
                                version=self.version, destination=self.base / (branch + '-download'))
         return args, responses, archives
 
-    def retrieve_fixture(self, args, responses, archives, publication=False):
+    def retrieve_fixture(self, args, responses, archives, publication=False, prepared_packet=False, retriever=None):
         verifier = bundle.verify
         actual_capture = bundle.capture
         tool = self.base / 'trusted-fixture-picotool'
@@ -672,7 +673,7 @@ class BundleTests(unittest.TestCase):
              patch.object(bundle, 'capture', side_effect=lambda *a:
                           'picotool v2.3.0 (fixture)' if a == ('picotool','version') else actual_capture(*a)), \
              patch.object(download.shutil, 'which', return_value=str(tool)):
-            return download.retrieve(args, for_publication=publication)
+            return (retriever or download.retrieve)(args, for_publication=publication, prepared=prepared_packet)
 
     def test_both_branch_downloads_remain_distinct(self):
         for branch in ('devel', 'main'):
@@ -1213,6 +1214,166 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(downloaded['branch'], 'main')
         self.assertEqual(downloaded['uf2'], receipt['uf2'])
         self.assertEqual(bundle.sha(original / 'audit.zip'), bundle.sha(args.destination / 'audit.zip'))
+
+
+    def prepared_fixture(self):
+        args, responses, archives = self.download_fixture('devel', event='workflow_dispatch')
+        next(j for j in responses['actions/runs/1/attempts/1/jobs']['jobs']
+             if j['name'] == 'publish')['conclusion'] = 'skipped'
+        original = download.retrieve
+        def retrieve(value, **kwargs):
+            return self.retrieve_fixture(value, responses, archives,
+                                         prepared_packet=kwargs.get('prepared', False), retriever=original)
+        with patch.object(download, 'retrieve', side_effect=retrieve), \
+             patch.object(publish, 'api', side_effect=AssertionError('publication during preparation')):
+            plan = prepared.prepare(args)
+        return args, plan, responses, archives, retrieve
+
+    def test_prepared_packet_survives_exit_and_revalidation_without_publication(self):
+        args, plan, responses, archives, retrieve = self.prepared_fixture()
+        retained = prepared.read_plan(args.destination/'prepared-publication.json')
+        self.assertEqual(retained, plan)
+        before = {name: path.read_bytes() for name, path in prepared.public_files(args.destination).items()}
+        self.assertEqual(len(before), 9)
+        # A different publisher invocation retains the original build/run identity.
+        with patch.dict(os.environ, {'GITHUB_RUN_ID':'999'}), \
+             patch.object(download, 'retrieve', side_effect=retrieve), \
+             patch.object(publish, 'api', side_effect=AssertionError('publication during verify')):
+            destination = self.base/'later validation'
+            result = prepared.verify(retained, destination)
+        self.assertEqual(result['status'], 'PASS')
+        self.assertIs(result['publication_performed'], False)
+        self.assertEqual(before, {n:p.read_bytes() for n,p in prepared.public_files(destination).items()})
+
+    def test_prepared_archive_drift_and_expiry_refuse_before_public_effects(self):
+        args, plan, responses, archives, retrieve = self.prepared_fixture()
+        for index, change in enumerate(('digest','expired','source')):
+            bad = copy.deepcopy(responses)
+            if change == 'source': bad['actions/runs/1/attempts/1']['head_sha'] = 'b'*40
+            else:
+                record = bad['actions/runs/1/artifacts?per_page=100']['artifacts'][0]
+                record['digest' if change == 'digest' else 'expired'] = 'sha256:'+'0'*64 if change == 'digest' else True
+            original = download.retrieve
+            def altered(value, **kwargs):
+                return self.retrieve_fixture(value,bad,archives,prepared_packet=True,retriever=original)
+            with self.subTest(change=change), patch.object(download,'retrieve',side_effect=altered), \
+                 patch.object(publish,'preserve',side_effect=AssertionError('public effect')):
+                with self.assertRaises(ValueError): prepared.verify(plan,self.base/f'changed-{index}')
+
+    def test_prepared_plan_changed_or_missing_packet_fails_closed(self):
+        args, plan, responses, archives, retrieve = self.prepared_fixture()
+        path = args.destination/'prepared-publication.json'
+        bad = copy.deepcopy(plan);bad['receipt']['source']='b'*40
+        path.write_bytes(prepared.encode(bad))
+        with self.assertRaisesRegex(ValueError,'plan changed'):prepared.read_plan(path)
+        with self.assertRaisesRegex(ValueError,'Missing'):prepared.read_plan(self.base/'missing.json')
+        (args.destination/'audit.zip').unlink()
+        with self.assertRaisesRegex(ValueError,'Incomplete'):prepared.inventory(args.destination)
+        bad = copy.deepcopy(plan);bad['files']['audit.zip']['sha256']='0'*64
+        bad['packet_sha256']=prepared.digest(bad['files']);bad['plan_sha256']=prepared.digest({k:v for k,v in bad.items() if k!='plan_sha256'})
+        with patch.object(download,'retrieve',side_effect=retrieve),patch.object(publish,'preserve') as emit:
+            with self.assertRaisesRegex(ValueError,'artifact bytes differ'):prepared.verify(bad,self.base/'different packet')
+            emit.assert_not_called()
+
+    def test_prepared_publication_requires_job_source_and_exact_confirmation(self):
+        args, plan, responses, archives, retrieve = self.prepared_fixture()
+        with patch.dict(os.environ,{},clear=True), patch.object(download,'retrieve') as fetch:
+            with self.assertRaisesRegex(ValueError,'digest not confirmed'):
+                prepared.publish_prepared(plan,self.base/'none','0'*64,self.source)
+            with self.assertRaisesRegex(ValueError,'trusted devel'):
+                prepared.publish_prepared(plan,self.base/'none',plan['packet_sha256'],self.source)
+            fetch.assert_not_called()
+        env=dict(CI_PUBLISH='true',GITHUB_ACTIONS='true',GITHUB_JOB='publish',
+                 GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REPOSITORY=download.REPOSITORY,
+                 GITHUB_REF='refs/heads/devel',GITHUB_RUN_ID='99',GITHUB_RUN_ATTEMPT='1',GITHUB_WORKFLOW_REF=prepared.WORKFLOW,
+                 GITHUB_SHA=self.source)
+        for key in env:
+            with self.subTest(key=key),patch.dict(os.environ,{**env,key:'wrong'},clear=True), \
+                 patch.object(download,'retrieve') as fetch:
+                with self.assertRaises(ValueError):
+                    prepared.publish_prepared(plan,self.base/'none',plan['packet_sha256'],self.source)
+                fetch.assert_not_called()
+
+    def test_later_trusted_job_publishes_only_the_original_tested_nine_files(self):
+        args, plan, responses, archives, retrieve = self.prepared_fixture()
+        originals = {name:p.read_bytes() for name,p in prepared.public_files(args.destination).items()}
+        releases,tags,mutations,api,upload = self.publication_service()
+        env=dict(CI_PUBLISH='true',GITHUB_ACTIONS='true',GITHUB_JOB='publish',
+                 GITHUB_EVENT_NAME='workflow_dispatch',GITHUB_REPOSITORY=download.REPOSITORY,
+                 GITHUB_REF='refs/heads/devel',GITHUB_RUN_ID='99',GITHUB_RUN_ATTEMPT='1',GITHUB_WORKFLOW_REF=prepared.WORKFLOW,
+                 GITHUB_SHA=self.source)
+        actual_run = subprocess.run
+        def checked_upload(command, **kwargs):
+            if command[:3] != ['gh','release','upload']:return actual_run(command,**kwargs)
+            path=Path(command[4]);self.assertEqual(path.read_bytes(),originals[path.name])
+            return upload(command,**kwargs)
+        with patch.dict(os.environ,env,clear=True),patch.object(download,'retrieve',side_effect=retrieve), \
+             patch.object(publish,'api',side_effect=api),patch.object(publish.subprocess,'run',side_effect=checked_upload), \
+             patch.object(prepared,'check_control_policy'),patch.object(prepared,'require_publisher'):
+            result=prepared.publish_prepared(plan,self.base/'later publication',plan['packet_sha256'],self.source)
+        self.assertIs(result['publication_performed'],True)
+        self.assertEqual(tags['v'+self.version],self.source)
+        self.assertEqual(len(releases['v'+self.version]['assets']),9)
+        self.assertFalse(releases['v'+self.version]['draft'])
+
+    def test_delayed_publication_receipt_binds_packet_and_successful_canonical_job(self):
+        import usb_installer as core
+        args, plan, responses, archives, retrieve = self.prepared_fixture()
+        releases,tags,mutations,api,upload = self.publication_service()
+        record = dict(packet_sha256=plan['packet_sha256'],source=self.source,build_run=1,
+                      build_attempt=1,tag='v'+self.version,
+                      publishers=[dict(run_id=1,attempt=1,source=self.source)])
+        with patch.object(publish,'api',side_effect=api),patch.object(publish.subprocess,'run',side_effect=upload):
+            publish.preserve(plan['receipt'],args.destination,publication_record=record)
+        public=releases['v'+self.version]
+        run=copy.deepcopy(responses['actions/runs/1/attempts/1'])
+        run.update(path='.github/workflows/publish-prepared.yml',event='workflow_dispatch',
+                   display_title='Prepared firmware '+plan['packet_sha256']+' (publish)')
+        jobs=copy.deepcopy(responses['actions/runs/1/attempts/1/jobs'])
+        for job in jobs['jobs']:
+            if job['name']=='verify':job.update(name='validate',conclusion='skipped')
+            else:job['conclusion']='success'
+        manifest=bundle.read_json(args.destination/'deployment/release-manifest.json')
+        client=SimpleNamespace(api=lambda path:jobs if '/jobs?' in path else run)
+        self.assertEqual(core.verify_prepared_publication(client,public,manifest),record)
+        for field,value in [('path','.github/workflows/other.yml'),('event','push'),
+                            ('head_branch','main'),('head_sha','f'*40),('display_title','other')]:
+            original=run[field];run[field]=value
+            with self.subTest(field=field),self.assertRaises(core.Refusal):
+                core.verify_prepared_publication(client,public,manifest)
+            run[field]=original
+        publisher=next(j for j in jobs['jobs'] if j['name']=='publish')
+        for conclusion in ('failure','skipped',None):
+            publisher['conclusion']=conclusion
+            with self.assertRaises(core.PublicationPending):
+                core.verify_prepared_publication(client,public,manifest)
+        publisher['conclusion']='success'
+        public['assets'][0]['digest']='sha256:'+'0'*64
+        with self.assertRaisesRegex(core.Refusal,'another packet'):
+            core.verify_prepared_publication(client,public,manifest)
+
+    def test_delayed_publisher_retry_retains_attempt_history_and_never_replaces_assets(self):
+        args,plan,responses,archives,retrieve=self.prepared_fixture()
+        releases,tags,mutations,api,upload=self.publication_service()
+        record=dict(packet_sha256=plan['packet_sha256'],source=self.source,build_run=1,
+                    build_attempt=1,tag='v'+self.version,
+                    publishers=[dict(run_id=90,attempt=1,source=self.source)])
+        with patch.object(publish,'api',side_effect=api),patch.object(publish.subprocess,'run',side_effect=upload) as uploads:
+            publish.preserve(plan['receipt'],args.destination,publication_record=record)
+            count=uploads.call_count
+            record['publishers']=[dict(run_id=90,attempt=2,source=self.source)]
+            publish.preserve(plan['receipt'],args.destination,publication_record=record)
+            self.assertEqual(uploads.call_count,count)
+        import usb_installer as core
+        history=core.prepared_body_record(releases['v'+self.version]['body'])
+        self.assertEqual([i['attempt'] for i in history['publishers']],[1,2])
+
+    def test_publisher_refuses_to_rewrite_an_existing_prepared_proof(self):
+        args, plan, responses, archives, retrieve = self.prepared_fixture()
+        path=args.destination/'ci-publication.json';path.write_text('{}')
+        with patch.object(publish,'api',side_effect=AssertionError('public effect')):
+            with self.assertRaisesRegex(ValueError,'proof differs'):
+                publish.preserve(plan['receipt'],args.destination)
 
 
 if __name__ == '__main__':

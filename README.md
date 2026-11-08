@@ -35,3 +35,5 @@ For build instructions and contributor information, see:
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 The [MIT License](LICENSE.md) applies to original contributions.
+
+Maintainers can [prepare verified firmware now and publish the same bytes later](engineering/development/prepared-publication.md), independently or through coordinated WsprryPi release orchestration.

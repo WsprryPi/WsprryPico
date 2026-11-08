@@ -187,7 +187,8 @@ def require(condition, message):
         raise Refusal(message)
 
 
-def verify_actions_provenance(run, jobs, run_id, attempt, source, branch):
+def verify_actions_provenance(run, jobs, run_id, attempt, source, branch,
+                              workflow_path='.github/workflows/software-build.yml'):
     """Bind trusted Actions API records; uploaded producer names are insufficient."""
     base = f'https://api.github.com/repos/{REPOSITORY}'
     run_url = f'{base}/actions/runs/{run_id}'
@@ -195,7 +196,7 @@ def verify_actions_provenance(run, jobs, run_id, attempt, source, branch):
             isinstance(run, dict) and type(run.get('id')) is int and run['id'] == run_id and
             type(run.get('run_attempt')) is int and run['run_attempt'] == attempt and
             run.get('head_sha') == source and run.get('head_branch') == branch and
-            run.get('path') == '.github/workflows/software-build.yml' and
+            run.get('path') == workflow_path and
             type(run.get('workflow_id')) is int and run['workflow_id'] > 0 and
             run.get('workflow_url') == f"{base}/actions/workflows/{run['workflow_id']}" and
             run.get('html_url') == f'https://github.com/{REPOSITORY}/actions/runs/{run_id}',
@@ -488,6 +489,89 @@ def verify_bundle(files, branch, schema_path=SCHEMA):
     return manifest, image
 
 
+PREPARED_MARKER = 'wsprrypico-prepared-publication/1'
+
+
+class PublicationPending(Refusal):
+    """Exact public bytes exist but no trusted delayed publisher has completed."""
+
+
+def prepared_body_record(body):
+    require(isinstance(body, str) and len(body) <= 32000, 'Invalid release body')
+    matches = re.findall(r'<!-- ' + re.escape(PREPARED_MARKER) + r'\n(.*?)\n-->', body, re.S)
+    require(len(matches) == 1, 'Missing or ambiguous prepared publication receipt')
+    value = decode(matches[0].encode())
+    require(isinstance(value, dict) and set(value) == {
+        'packet_sha256', 'source', 'build_run', 'build_attempt', 'tag', 'publishers'},
+        'Invalid prepared publication receipt shape')
+    require(re.fullmatch(HEX64, value.get('packet_sha256', '')) and
+            re.fullmatch(HEX40, value.get('source', '')) and
+            type(value['build_run']) is int and value['build_run'] > 0 and
+            type(value['build_attempt']) is int and value['build_attempt'] > 0 and
+            isinstance(value['tag'], str) and value['tag'].startswith('v') and
+            isinstance(value['publishers'], list) and 0 < len(value['publishers']) <= 16,
+            'Invalid prepared publication identity')
+    seen = set()
+    for item in value['publishers']:
+        require(isinstance(item, dict) and set(item) == {'run_id', 'attempt', 'source'} and
+                type(item['run_id']) is int and item['run_id'] > 0 and
+                type(item['attempt']) is int and item['attempt'] > 0 and
+                re.fullmatch(HEX40, item.get('source', '')) and
+                (item['run_id'], item['attempt']) not in seen, 'Invalid publisher attempt')
+        seen.add((item['run_id'], item['attempt']))
+    return value
+
+
+def public_packet_sha(release):
+    records = {}
+    for a in release['assets']:
+        require(a['name'] not in records and a['state'] == 'uploaded' and
+                type(a['size']) is int and a['size'] > 0 and
+                re.fullmatch('sha256:' + HEX64, a.get('digest', '')),
+                'Invalid public packet inventory')
+        records[a['name']] = {'bytes': a['size'], 'sha256': a['digest'][7:]}
+    require(len(records) == 9, 'Incomplete prepared packet')
+    return sha(json.dumps(records, sort_keys=True, separators=(',', ':')).encode())
+
+
+def verify_prepared_publication(client, release, manifest):
+    value = prepared_body_record(release['body'])
+    workflow = manifest['workflow']
+    require(value['source'] == manifest['source']['revision'] and
+            value['build_run'] == workflow['run_id'] and
+            value['build_attempt'] == workflow['attempt'] and
+            value['tag'] == manifest['intended_tag'] == release['tag_name'] and
+            value['packet_sha256'] == public_packet_sha(release),
+            'Prepared publication receipt belongs to another packet')
+    for item in value['publishers']:
+        run_id, attempt, source = item['run_id'], item['attempt'], item['source']
+        try:
+            run = client.api(f'actions/runs/{run_id}/attempts/{attempt}')
+            jobs = client.api(f'actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100')
+        except HttpFailure as error:
+            if error.status in (404, 410):
+                continue
+            raise
+        # Reuse all repository, URL, source and job identity checks, substituting
+        # only the expected workflow path for this separate canonical publisher.
+        require(run.get('path') == '.github/workflows/publish-prepared.yml' and
+                run.get('event') == 'workflow_dispatch' and
+                run.get('display_title') == 'Prepared firmware ' + value['packet_sha256'] + ' (publish)',
+                'Noncanonical prepared publisher')
+        verify_actions_provenance(run, jobs['jobs'], run_id, attempt, source, 'devel',
+                                  '.github/workflows/publish-prepared.yml')
+        by_name = {j['name']: j for j in jobs['jobs']}
+        require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
+                set(by_name) == {'validate', 'publish'}, 'Unexpected prepared publisher jobs')
+        if (run.get('status') == 'completed' and run.get('conclusion') == 'success' and
+                by_name['publish']['status'] == 'completed' and
+                by_name['publish']['conclusion'] == 'success' and
+                by_name['validate']['status'] == 'completed' and
+                by_name['validate']['conclusion'] == 'skipped'):
+            return value
+    raise PublicationPending('Prepared bytes await a successful canonical publisher; inspect its run and resume')
+
+
 def resolve(client, branch='devel', version=None, stable=False):
     """Resolve once through the maintained source-ordered branch bookmark."""
     require(branch in ('main', 'devel'), 'Unsupported branch')
@@ -546,6 +630,9 @@ def resolve(client, branch='devel', version=None, stable=False):
         require(index['manifest_sha256'] == sha(files['release-manifest.json']) and
                 index['source'] == manifest['source']['revision'] and
                 index['uf2'] == decode(files['ci-publication.json'])['uf2'], 'Branch metadata swap')
+    delayed = PREPARED_MARKER in release.get('body', '')
+    if delayed:
+        verify_prepared_publication(client, release, manifest)
     # A retained successful verification receipt remains usable after Actions
     # expiration. If live run metadata exists, require the whole run to pass.
     try:
@@ -567,7 +654,9 @@ def resolve(client, branch='devel', version=None, stable=False):
         by_name = {job['name']: job for job in jobs['jobs']}
         require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
                 set(by_name) == {'verify', 'publish'} and
-                all(j['status'] == 'completed' and j['conclusion'] == 'success' for j in by_name.values()) and
+                by_name['verify']['status'] == 'completed' and by_name['verify']['conclusion'] == 'success' and
+                by_name['publish']['status'] == 'completed' and
+                by_name['publish']['conclusion'] in (('success', 'skipped') if delayed else ('success',)) and
                 by_name['verify']['id'] == decode(files['ci-publication.json'])['verify_job']['id'],
                 'Required CI jobs or verification receipt disagree')
     require(release_tag_source(client, tag) == tag_source, 'Version tag changed during download')

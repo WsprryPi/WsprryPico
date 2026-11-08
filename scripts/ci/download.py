@@ -81,7 +81,8 @@ def inspection_tool():
     return {'path': path, 'sha256': bundle.sha(path), 'version': bundle.capture('picotool', 'version')}
 
 
-def retrieve(args, for_publication=False):
+def retrieve(args, for_publication=False, prepared=False):
+    bundle.require(not (for_publication and prepared), 'Select one retrieval authority')
     bundle.require(args.run > 0 and args.attempt > 0 and re.fullmatch('[0-9a-f]{40}', args.source),
                    'Invalid run/attempt/source')
     bundle.require(args.branch in ('devel', 'main', 'release'), 'Unsupported download stream')
@@ -157,8 +158,8 @@ def retrieve(args, for_publication=False):
         receipts.append({'kind': kind, 'id': artifact['id'], 'name': artifact['name'],
                          'archive_sha256': bundle.sha(archive), 'expires_at': artifact['expires_at']})
     manifest = bundle.verify(destination / 'deployment', destination / 'audit', args.source, args.version,
-                             inspect=not for_publication)
-    if for_publication:
+                             inspect=not (for_publication or prepared))
+    if for_publication or prepared:
         # The completed read-only verify job ran all linked-image tools. Bind its
         # exact immutable archives and recheck the payload before copying bytes.
         bundle.inspect_payload(destination / 'audit/consumer', 'consumer', int(manifest['update']['application_end'], 16))
@@ -173,8 +174,8 @@ def retrieve(args, for_publication=False):
                'version': args.version, 'url': run['html_url'], 'artifacts': receipts,
                'verify_job': {key:by_name['verify'][key] for key in ('id', 'status', 'conclusion')},
                'uf2': next(item for item in manifest['assets'] if item['path'].endswith('.uf2')),
-               'verified': True, 'verification': 'accepted-verify-job-and-payload' if for_publication else 'independent-linked-image'}
-    if not for_publication:
+               'verified': True, 'verification': 'accepted-verify-job-and-payload' if (for_publication or prepared) else 'independent-linked-image'}
+    if not (for_publication or prepared):
         receipt['inspection_tool'] = inspection_tool()
     if tagged:
         bundle.require(publish.tag_commit('v' + args.version) == args.source,
@@ -225,7 +226,13 @@ def retrieve_published(args):
                    receipt['url'] == f'https://github.com/{REPOSITORY}/actions/runs/{args.run}',
                    'Preserved CI receipt belongs to another build')
     bundle.require(len(receipt['artifacts']) == 2, 'Invalid preserved artifact pair')
-    bundle.require(release['body'] == publish.version_body(receipt), 'Published release identity mismatch')
+    if release['body'] != publish.version_body(receipt):
+        from usb_installer import PREPARED_MARKER, prepared_body_record
+        value = prepared_body_record(release['body'])
+        bundle.require(release['body'].split('<!-- ' + PREPARED_MARKER)[0] == publish.version_body(receipt) + '\n' and
+                       value['source'] == args.source and value['build_run'] == args.run and
+                       value['build_attempt'] == args.attempt and value['tag'] == tag,
+                       'Published release identity mismatch')
     for kind in ('deployment', 'audit'):
         records = [a for a in receipt['artifacts'] if a['kind'] == kind]
         bundle.require(len(records) == 1 and records[0]['id'] > 0 and
