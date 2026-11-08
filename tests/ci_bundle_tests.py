@@ -1352,6 +1352,23 @@ class BundleTests(unittest.TestCase):
         with self.assertRaisesRegex(core.Refusal,'another packet'):
             core.verify_prepared_publication(client,public,manifest)
 
+    def test_prepared_workflow_parses_and_keeps_validation_read_only_without_firmware_builds(self):
+        import yaml
+        workflow=yaml.load((bundle.ROOT/'.github/workflows/publish-prepared.yml').read_text(),Loader=yaml.BaseLoader)
+        self.assertEqual(set(workflow['on']),{'workflow_dispatch'})
+        self.assertEqual(workflow['on']['workflow_dispatch']['inputs']['publish']['default'],'false')
+        self.assertEqual(set(workflow['jobs']),{'validate','publish'})
+        validate=workflow['jobs']['validate'];publisher=workflow['jobs']['publish']
+        self.assertEqual(validate['permissions'],{'contents':'read','actions':'read'})
+        self.assertIn('!inputs.publish',validate['if'])
+        self.assertEqual(publisher['permissions'],{'contents':'write','actions':'read'})
+        self.assertIn("github.ref == 'refs/heads/devel'",publisher['if'])
+        self.assertIn('inputs.publish',publisher['if'])
+        for job in workflow['jobs'].values():
+            commands=[step['run'] for step in job['steps'] if 'run' in step]
+            self.assertTrue(all(isinstance(command,str) for command in commands))
+            self.assertFalse(any('setup.py' in command or 'run.py build' in command for command in commands))
+
     def test_delayed_receipt_rejects_wrong_json_types_and_ambiguous_history(self):
         import usb_installer as core
         value=dict(packet_sha256='a'*64,source='b'*40,build_run=1,build_attempt=1,tag='v1.0.0',
