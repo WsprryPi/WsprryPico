@@ -192,8 +192,7 @@ The tracked cleanup inventories record eighteen phase-10 retirements (80,171
 logical bytes) and eighteen final campaign residues selected for consolidation
 (311,116 bytes before replacement). Logical extents are not filesystem free-space
 measurements. Current instructions and necessary scorecard data were consolidated
-before retirement; saved prompts remain at immutable Git links without an archive
-copy. Four baseline holds resolved to qualified fixture retirement; firmware
+before retirement. No saved execution prompt is needed for current operation. Four baseline holds resolved to qualified fixture retirement; firmware
 CMake, exact inputs/setup, and the now-active tool-download checks remain needed.
 Active build/SDK/source worktrees, current qualification/recovery artifacts,
 installed dependencies, verifier tools, containers, and unrelated user work are

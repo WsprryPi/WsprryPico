@@ -33,7 +33,7 @@
     group.className='help-heading';
     // Keep the input's label text, native label association, and input in place.
     if(node===field) {label.textContent=node.textContent;node.replaceChildren(group);}
-    else {label.textContent=node.firstChild.textContent;node.firstChild.remove();node.prepend(group);}
+    else {if(node.firstChild.nodeType===1 && node.firstChild.classList.contains('field-caption'))group.classList.add('field-caption');label.textContent=node.firstChild.textContent;node.firstChild.remove();node.prepend(group);}
     group.append(label);help(group,topic,path);
   }
   const station = $('station-area'), wifi = $('wifi-host-area');

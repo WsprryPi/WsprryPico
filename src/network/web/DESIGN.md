@@ -352,3 +352,11 @@ The header inset follows the available page width rather than viewport units so 
 Radio pins places Si5351 I²C setup immediately after RF output engine selection and before GPS. Si5351 is named without an engineering qualifier; hardware-profile limits remain enforced and documented. Compact GPS wiring/timing and I²C editors contain controls and runtime status, with setup explanations in the corresponding manual sections. Validated UTC/PPS association has a dedicated help destination explaining the default-disabled choice and independent validation requirement.
 
 Hostname continuation opens Station Control at the top with managed disclosures collapsed, including after authentication confirms the reset. Stale Wi-Fi History cannot select the return area. Ordinary navigation and independent save-receipt recovery retain their existing behavior.
+
+### Authentication-lock tooltip
+
+A single fixed, noninteractive tooltip uses the existing notice surface, body text, field border, compact corners, and help type. It appears near an attempted authentication-locked control, within the visible viewport, without shifting layout. Native disabled state remains intact. The existing lock button is the keyboard route; a polite live region announces the exact short message. No per-field tab stops, form wrappers, scrolling overlays, animation, or new palette values are introduced.
+
+### RF and GPS field rows
+
+The RF engine/GPIO/Button row and GPS field groups share content-sized caption, control, and optional help tracks through CSS subgrid. Caption wrappers retain native labels and allow long text and the existing 44 px help targets to determine row height. Controls share the next track; inline messages occupy the following track. No fixed caption heights or individual field offsets are used. Si5351 hides the direct GPIO label and uses two columns above the existing 650 px stacking breakpoint. Native associations, values, and disabled state remain unchanged. Links inside field labels remain independent actions when controls are locked.

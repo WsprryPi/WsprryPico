@@ -1,3 +1,4 @@
+import {fixtureHttpBody} from './fixture_http_body.mjs';
 // Independent Chrome contexts -> shipped page -> production HTTP/crypto/recovery.
 // Only TCP, flash and time use deterministic fixture boundaries; no hardware/RF.
 import assert from 'node:assert/strict';
@@ -23,13 +24,7 @@ async function serve(req,res){
     const parts=[];for await(const chunk of req)parts.push(chunk);
     const response=await f.fetch(url.hostname,false,url.pathname,{method:req.method,
       headers:{'Content-Type':req.headers['content-type']||'application/json'},body:Buffer.concat(parts)});
-    const socket=f.socket;let bytes=Buffer.from(await response.arrayBuffer());
-    const expected=Number(response.headers.get('content-length'));
-    for(let pump=0;bytes.length<expected&&pump<4;++pump){
-      await f.command({op:'complete',socket});const snapshot=await f.command({op:'wire',socket});
-      const wire=Buffer.from(snapshot.wire,'hex');bytes=wire.subarray(wire.indexOf('\r\n\r\n')+4);
-    }
-    assert.equal(bytes.length,expected,'complete production response');
+    const bytes=await fixtureHttpBody(f,response);
     if(dropRetirementReply&&url.pathname.endsWith('/recovery/finish')){dropRetirementReply=false;res.destroy();return;}
     if(dropNextReply&&url.pathname.endsWith('/request')){dropNextReply=false;res.destroy();return;}
     res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);

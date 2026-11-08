@@ -4,6 +4,8 @@
 
 #include <algorithm>
 #include <cassert>
+#include <cmath>
+#include <iostream>
 #include <vector>
 
 using namespace wsprrypico::rf;
@@ -33,6 +35,13 @@ struct Capture : ReferenceCapture {
     std::uint64_t start = 0, generation = 0;
     unsigned begins = 0, finishes = 0;
     bool missing = false, starved = false;
+    int source_error_ppb = 0, timer_error_ppb = 0;
+    std::uint64_t raw_origin = 0;
+    std::uint64_t edges_at(std::uint64_t stamp) const {
+        const auto physical = (stamp - raw_origin) / (1 + timer_error_ppb / 1e9L);
+        return std::uint64_t(
+            std::floor(physical * 1'000'000.L * (1 + source_error_ppb / 1e9L) / 1e9L));
+    }
     bool begin(std::uint64_t g) override {
         start = now;
         generation = g;
@@ -44,7 +53,7 @@ struct Capture : ReferenceCapture {
     }
     ReferenceWindow finish() override {
         ++finishes;
-        return {start, now, missing ? 0 : (now - start) / 1000, 1000, generation, true};
+        return {start, now, missing ? 0 : edges_at(now) - edges_at(start), 1000, generation, true};
     }
 };
 std::uint64_t now(void* value) {
@@ -53,8 +62,108 @@ std::uint64_t now(void* value) {
 Configuration configuration() {
     return {25'000'000, Reference::ExternalXa, {}, Output::Clk0, Output::Clk2, 2};
 }
+
+void ordinary_calibration_replay() {
+    using namespace wsprrypico::time::gps;
+    constexpr std::uint64_t second = 1'000'000'000;
+    // Production owner/monitor/device and learner, synthetic peripheral only.
+    // Poll each modeled millisecond; vary start phase, independent oscillators,
+    // post-edge reads and PPS timestamp error. Do not feed a continuous five-
+    // minute capture to the learner as if ordinary sessions lasted that long.
+    for (const int oscillator : {-20'000, 0, 20'000}) {
+        for (const int timer : {-20'000, 20'000}) {
+            for (const unsigned phase_ms : {250u, 990u}) {
+                BusMemory bus;
+                Device device(bus);
+                std::uint64_t raw = second;
+                Capture capture(raw);
+                capture.source_error_ppb = oscillator;
+                capture.timer_error_ppb = timer;
+                capture.raw_origin = second;
+                assert(device.quiesce(raw + 1'000'000));
+                ReferenceMonitor monitor(configuration(), ReferencePolicy{}, device, capture, now,
+                                         &raw, true);
+                PpsCalibration learner;
+                unsigned updates = 0;
+                int minimum = 100'000, maximum = -100'000;
+                std::uint64_t last_generation = 0, paused_stamp = 0;
+                std::uint64_t minimum_span = UINT64_MAX, maximum_span = 0;
+                for (unsigned ms = phase_ms; ms <= 180'000 + phase_ms; ++ms) {
+                    const auto physical = std::uint64_t(ms) * 1'000'000;
+                    raw = second + std::uint64_t(std::llround(physical * (1 + timer / 1e9L)));
+                    if (ms == 75'250) {
+                        assert(monitor.pause(raw + 1'000'000));
+                        assert(!monitor.measuring());
+                        if (learner.synthesizer())
+                            paused_stamp = learner.synthesizer()->observed_raw_ns;
+                    }
+                    const bool paused = ms >= 75'250 && ms < 77'250;
+                    monitor.service(!paused);
+                    if (const auto measured = monitor.current();
+                        measured && measured->observed_raw_ns == raw) {
+                        const auto expected_ratio = (1 + oscillator / 1e9L) / (1 + timer / 1e9L);
+                        assert(std::fabs(measured->ratio - expected_ratio) < 200e-9L);
+                    }
+                    if (ms % 1000)
+                        continue;
+                    const auto sequence = ms / 1000;
+                    if (sequence == 120 || sequence == 121)
+                        continue; // Missing original PPS labels; no replacement.
+                    const std::int64_t pps_error = (int(sequence % 7) - 3) * 1000;
+                    const auto stamp = std::uint64_t(std::int64_t(raw) + pps_error);
+                    const auto delay = sequence % 2 ? 25'000u : 1000u;
+                    std::optional<CycleSnapshot> count;
+                    if (monitor.measuring() && stamp > capture.start) {
+                        const auto edges =
+                            capture.edges_at(raw + delay) - capture.edges_at(capture.start);
+                        count = CycleSnapshot{edges,
+                                              raw + delay,
+                                              delay + std::uint64_t(std::abs(pps_error)) + 2000,
+                                              capture.generation,
+                                              capture.begins,
+                                              true};
+                    }
+                    assert(learner.observe(
+                        {stamp, 1'800'000'000ULL * second + physical, 200'000, sequence, stamp},
+                        count, 1'000'000));
+                    if (paused && paused_stamp)
+                        assert(learner.synthesizer()->observed_raw_ns == paused_stamp);
+                    const auto estimate = learner.synthesizer();
+                    if (estimate && estimate->generation != last_generation) {
+                        last_generation = estimate->generation;
+                        ++updates;
+                        // Edge alignment and a slow raw timer can admit twelve
+                        // UTC intervals; a sixty-second continuous fit cannot
+                        // survive the ordinary session restart.
+                        assert(estimate->span_ns >= 10 * second &&
+                               estimate->span_ns <= 12 * second);
+                        assert(std::abs(estimate->oscillator_error_ppb - oscillator) < 1000);
+                        assert(std::uint32_t(std::abs(estimate->oscillator_error_ppb -
+                                                      oscillator)) < estimate->uncertainty_ppb);
+                        minimum = std::min(minimum, estimate->oscillator_error_ppb);
+                        maximum = std::max(maximum, estimate->oscillator_error_ppb);
+                        minimum_span = std::min(minimum_span, estimate->span_ns);
+                        maximum_span = std::max(maximum_span, estimate->span_ns);
+                    }
+                }
+                assert(capture.begins >= 14 && capture.finishes >= 13 && updates >= 15);
+                assert(learner.timer() && learner.timer()->span_ns >= 10 * second);
+                const auto final = *learner.synthesizer();
+                learner.lost();
+                assert(learner.synthesizer()->observed_raw_ns == final.observed_raw_ns);
+                assert(!final.fresh(final.observed_raw_ns + 61 * second, 60 * second));
+                std::cout << "ordinary-replay source_ppb=" << oscillator << " timer_ppb=" << timer
+                          << " phase_ms=" << phase_ms << " sessions=" << capture.begins
+                          << " updates=" << updates << " minimum_ppb=" << minimum
+                          << " maximum_ppb=" << maximum << " minimum_span_ns=" << minimum_span
+                          << " maximum_span_ns=" << maximum_span << '\n';
+            }
+        }
+    }
+}
 } // namespace
 int main() {
+    ordinary_calibration_replay();
     BusMemory bus;
     Device device(bus);
     auto config = configuration();

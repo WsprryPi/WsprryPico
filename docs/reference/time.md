@@ -74,7 +74,11 @@ These examples show why measuring before and after enabling automatic correction
 
 The last column gives the largest declared measurement allowance across the four measurements in each row, rounded outward separately in Hz and PPM. It includes the GPSDO reference, SDR sample-rate and frequency-estimation allowances. The ranges show variation between repeats; they are not uncertainty bounds. These are results for the tested hardware and settings, not guaranteed errors for other boards.
 
-GP2 improved beyond the measurement allowances on all three bands in both repeats. Si5351's uncorrected TCXO was already close to nominal, and its corrected results varied between repeats. For a Si5351 setup, compare the measured carrier before and after enabling automatic correction rather than assuming that enabling it improves accuracy.
+GP2 improved beyond the measurement allowances on all three bands in both repeats.
+
+The Si5351 we tested was already close to the correct frequency. Automatic correction sometimes helped and sometimes made the error worse. The results varied too much, and the remaining errors were too small to measure precisely enough, to show a consistent benefit.
+
+Measure the carrier before and after enabling automatic correction. If it doesn’t help, leave it off or use a measured manual adjustment.
 
 ## Use a trusted loopback while offline
 

@@ -277,13 +277,15 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
         return identity(surface);
     if (request.method == "GET") {
         if (auto asset = web_asset(request.path)) {
-            if (surface == SoftApSurface::BlankReadOnly && request.path != "/")
+            if (surface == SoftApSurface::BlankReadOnly && request.path != "/" &&
+                request.path != "/favicon.ico")
                 return http_error(404, "not_found");
-            if (surface == SoftApSurface::BlankReadOnly) {
+            if (surface == SoftApSurface::BlankReadOnly && request.path != "/favicon.ico") {
                 const auto state = identity(surface).body;
                 return {200,
                         "<!doctype html><meta charset=utf-8><meta name=viewport "
                         "content=\"width=device-width,initial-scale=1\"><title>WsprryPico</title>"
+                        "<link rel=icon type=\"image/x-icon\" href=\"/favicon.ico\">"
                         "<h1>WsprryPico recovery</h1><p>This device has no authenticated server "
                         "identity. This page is read-only. Provision it over encrypted BLE or "
                         "USB before entering any credential.</p><pre>" +

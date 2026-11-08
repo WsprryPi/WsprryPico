@@ -42,7 +42,7 @@ Online help needs Internet access; the setup Wi-Fi network may not provide it. O
 
 ## Open the control page
 
-Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. An IP address is a numeric network address such as `192.168.1.123`; a hostname is a name such as `wpico-60df.local`. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi.
+Once the Pico has joined your home network, use its **home-network IP address** or its reported **`.local` hostname**. An IP address is a numeric network address such as `192.168.1.123`; a hostname is a name such as `wpico-60df.local`. The setup address **192.168.4.1** works only while you are connected to the Pico's own setup Wi-Fi. After the first Wi-Fi save, **Wi-Fi/Host → Device hostname** is available there for an authenticated [hostname change](maintain.md#change-the-hostname), even before station setup.
 
 1. Connect your phone or computer to the same home network as the Pico. A wired computer on that network also works. Avoid a guest network that prevents devices from reaching each other.
 2. Find the Pico in your router's connected-device list, or use the hostname reported by the setup page. A default name looks like `wpico-60df.local`; your Pico's suffix will differ.
@@ -70,6 +70,8 @@ When you make an explicit request, a progress dialog stays open until the reques
 Status, accepted job details, schedules, frequencies, and saved settings load without signing in. Locked settings stay dimmed and cannot be edited. Saved passwords, keys, and certificates are not displayed. Use the hostname lock to authorize saves, job controls, or **Reset Pico**; reading settings does not occupy or renew a login.
 
 The unlocked icon locks this browser when you log out. It preserves drafts, accepted transmissions, and schedules; other logins keep their own access. If logout cannot be confirmed, the page reports local locking and any uncertainty about whether the login is still occupied. Closing or canceling the password dialog clears its password fields. The icon describes application access, not transport security or transmitter ownership.
+
+When controls are locked, tapping or clicking an authentication-locked field shows “Controls are locked”. Keyboard users can focus the lock beside the hostname for the same feedback. Use that lock button to sign in. Escape, moving focus, scrolling, or interacting elsewhere dismisses the message; showing it does not change settings.
 
 The hostname identifies the running device. A saved rename takes effect only after restart. The **full stable device ID** is the Pico's permanent 32-character hexadecimal identifier. It distinguishes Picos sharing a name and differs from the USB serial used by the installer. An IP address can change after reconnecting to the network. If `.local` fails, use the current IP in your router. After signing in, check the full device ID in **About this Pico / Diagnostics** and record it for later identification.
 

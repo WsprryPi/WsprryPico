@@ -49,6 +49,8 @@ std::optional<ConsumerProfile> LocalSettings::consumer_candidate() const {
         result.ssid = net->ssid;
         result.password = net->password;
         result.time_server = net->time_server;
+        if (!net->hostname.empty())
+            result.tls.hostname = net->hostname;
     }
     return result;
 }

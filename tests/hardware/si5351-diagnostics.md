@@ -1,6 +1,6 @@
 # Experimental Si5351 bench diagnostics
 
-These opt-in Pico 2 W tools run outside the production application. They use a candidate Si5351A at I²C address `0x60`, GP4 SDA, GP5 SCL, and a nominal 25 MHz reference. They implement no production engine, WTP transport, browser control, scheduling, or persistent settings. The selected integration requirements remain in the [consolidated backlog](../../engineering/development/consolidated-backlog.md#possible-future-work).
+These opt-in Pico 2 W tools run outside the production application. They use a candidate Si5351A at I²C address `0x60`, GP4 SDA, GP5 SCL, and a nominal 25 MHz reference. They implement no production engine, WTP transport, browser control, scheduling, or persistent settings. The production engine boundary and qualified profile are defined in the [Si5351 contract](../../engineering/development/si5351.md).
 
 | Tool | Command | Scope |
 | --- | --- | --- |

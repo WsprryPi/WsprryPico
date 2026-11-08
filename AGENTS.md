@@ -28,31 +28,36 @@ Changes to advertised capabilities, protocol/API schemas, descriptors, carrier s
 
 ## Repository and work-harness cleanup
 
-- For an explicit request to clean up WsprryPico or this project/repository,
-  follow [the reusable cleanup prompt](engineering/development/repository-cleanup-prompt.md).
-- Inventory deletion, rewrite, retention and hold decisions before cleanup
-  changes. Cover project artifacts in the checkout, local work areas and
-  identified Raspberry Pi harnesses; preserve user work and shared tools.
-- Documentation describes the current product in direct, impersonal language.
-  Selected future work belongs in the consolidated backlog or an issue.
-  Remove obsolete evidence and development narratives without creating an archive.
-- Operator-facing prose, especially README.md, explains current capabilities
-  and use in plain language. Replace engineering status and validation narratives
-  with capability descriptions; retain needed technical detail in engineering
-  documentation. Do not substitute engineering links for operator explanations,
-  add documentation placeholders or promise future documentation.
-- Delete completed, superseded and abandoned execution prompts and temporary
-  handoffs after consolidating any needed technical content. Repair their
-  references; do not archive them or retain them solely because a completed
-  checklist item links to them. Keep only handoffs needed for selected unfinished
-  work and genuinely reusable instructions.
-- Apply the same inventory, rewrite, reference-repair and validation process to
-  development phase and step references, including those in README.md and
-  SECURITY.md. Preserve phase/step organization only in explicitly retained,
-  currently used planning documents such as ROADMAP.md, consolidated-backlog.md
-  or an equivalent active plan. Preserve actual operating instructions and
-  technical uses of phase or step.
-- Reading or maintaining the prompt alone does not invoke cleanup.
+- Inventory exact deletion, rewrite, retention, and hold decisions before cleanup.
+  Record ownership, working state, callers, recovery duties, and validation for
+  each inspected file or group. Present the inventory before mutation; uncertain
+  items stay on hold while independent work continues.
+- Scope follows the current request. External work areas and Raspberry Pi
+  harnesses require explicit scope; another repository and shared tools remain
+  independent. Preserve user work, Git metadata, functioning dependencies,
+  current services/settings, and required deployment/recovery artifacts.
+- Use exact inspected paths. Do not use blanket wildcard deletion, create an
+  archive or permanent cleanup diary, or rewrite history to erase retired files.
+- Documentation describes current behavior in direct, impersonal language.
+  Operator prose explains capabilities, use, and meaningful limits in plain
+  language. Consolidate needed technical information in existing engineering
+  guides; do not replace operator explanations with engineering links,
+  placeholders, or promises of future documentation.
+- Preserve contracts, licensing, provenance, qualification limits, behavioral
+  tests, and necessary fixtures. Removing planning material never establishes
+  implementation or qualification. Record selected future work in an issue;
+  creating or publishing issues requires separate authorization.
+- Remove completed, superseded, and abandoned execution prompts and temporary
+  handoffs after consolidating needed technical content. Repair their references;
+  do not retain them solely because a completed item links to them.
+- Review development phase/step references in retained prose and navigation,
+  including README.md and SECURITY.md. Preserve actual operating instructions
+  and technical uses; remove obsolete execution authority and task narration.
+- Trace removed paths through Markdown links/anchors, manifests, generated-site
+  inputs, scripts, tests, and build registrations. Run documentation/link checks,
+  affected deterministic tests, and git diff --check; inspect untracked text and
+  the final diff separately. Recheck working state and report actual scope,
+  results, retained exceptions, and concrete blockers without broadening claims.
 
 ## Pico architecture
 

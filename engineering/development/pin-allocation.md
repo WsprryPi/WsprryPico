@@ -36,6 +36,8 @@ The current input adapter supports active-low/pull-up operation only. Its pin is
 
 Initial/durable configuration and explicit replacement without pins retain GP2 RF, GP14 switch, and onboard LED. Ordinary API PUT preserves saved omitted pins; send a complete default plan or use explicit replacement to reset them. See [configuration updates](configuration-updates.md). Default pin plans keep the legacy canonical serialized configuration. Nondefault plans append the pin object; older firmware rejects that extension, so downgrade requires restoring default assignments before loading an older image.
 
+Pin settings can be saved while standalone operation is suspended or a WSPR dial is absent. Hardware-only saves preserve recurrence and unrelated drafts; schedule/enable application keeps its own prerequisites. All allocation, identity/revision, storage, ownership, and output checks remain mandatory.
+
 Pin settings take effect only after reboot. Saving a changed pin plan latches JobService RF admission inhibited for the rest of the boot. Autonomous scheduling also stops pending restart. A later station edit, or restoring the original pins, cannot clear the latch. `GET /api/control/v1/config` reports saved settings while `GET /api/control/v1/pins` reports active settings. No second RF authority is introduced.
 
 Store reload rejects invalid or unsupported pin data even with a valid journal CRC. An unhealthy Store boot inhibits the RF worker; it must not generate RF on a default fallback pin. Recovery remains through the existing recovery paths.

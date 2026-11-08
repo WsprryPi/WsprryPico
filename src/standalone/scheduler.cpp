@@ -614,7 +614,7 @@ std::string Scheduler::status(const wtp::ServiceStatus* observation) const {
            ",\"wspr_pair_pending\":" + (pair_ ? "true" : "false") +
            ",\"output_active\":" + (s.output_active ? "true" : "false") + "}\n";
 }
-std::string Scheduler::command(std::string_view line) {
+std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
     if (line == "STATUS")
         return status();
     if (line == "STORAGE")
@@ -685,16 +685,24 @@ std::string Scheduler::command(std::string_view line) {
     if (config->wspr_dial_frequency_hz &&
         (!store_.config() || !store_.config()->wspr_dial_frequency_hz))
         config->enabled = false; // First Console selection also requires deliberate enablement.
-    if (config->enabled && !config->wspr_dial_frequency_hz)
+    const bool hardware_write = purpose == ConfigPurpose::Hardware;
+    if (hardware_write &&
+        (!store_.config() || config->enabled != store_.config()->enabled ||
+         config->schedules != store_.config()->schedules ||
+         config->expires_utc_s != store_.config()->expires_utc_s ||
+         config->wspr_dial_frequency_hz != store_.config()->wspr_dial_frequency_hz))
+        return error("invalid_hardware_update");
+    if (!hardware_write && config->enabled && !config->wspr_dial_frequency_hz)
         return error("standalone_frequency_required");
-    if (config->enabled && message_recovery_required())
+    if (!hardware_write && config->enabled && message_recovery_required())
         return error("message_recovery_required");
     if (const auto conflict = validate_rf_configuration(*config, store_.filters());
         !conflict.empty())
         return error(conflict);
     if (!store_.config_fits(*config))
         return error("saved_settings_too_large");
-    if (config->enabled && store_.message_schedule() && store_.message_schedule()->enabled)
+    if (!hardware_write && config->enabled && store_.message_schedule() &&
+        store_.message_schedule()->enabled)
         return error("message_schedule_enabled");
     if (!store_.healthy() ||
         ((!store_.config() || *store_.config() != *config) && !store_.save(*config)))

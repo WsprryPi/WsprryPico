@@ -8,8 +8,8 @@
 
 namespace wsprrypico::provisioning {
 namespace {
-struct Proposal {
-    ConsumerProfile profile;
+template <typename Profile> struct Proposal {
+    Profile profile;
     std::string payload;
     ~Proposal() {
         scrub(profile);
@@ -28,33 +28,46 @@ std::string HostnameSettings::readback(std::string_view boot, bool local_usb) co
     auto parsed = store_.healthy() && store_.source() == ProfileSource::ConsumerProfile
                       ? parse_consumer_profile(store_.data())
                       : std::nullopt;
+    auto network = store_.healthy() && store_.source() == ProfileSource::NetworkOnly
+                       ? parse_network_profile(store_.data())
+                       : std::nullopt;
+    const bool network_only = network && network->device_id == device_ &&
+                              runtime_.source() == RuntimeSource::NetworkOnly &&
+                              runtime_.generation() == store_.sequence();
     const bool consumer = parsed && parsed->device_id == device_;
     const bool local_blank = local_usb && runtime_.control_healthy(store_) &&
                              (runtime_.source() == RuntimeSource::Unprovisioned ||
                               runtime_.source() == RuntimeSource::NetworkOnly);
-    const auto saved = consumer ? parsed->tls.hostname : active_.empty() ? default_ : active_;
+    const auto saved = consumer       ? parsed->tls.hostname
+                       : network_only ? (network->hostname.empty() ? default_ : network->hostname)
+                       : active_.empty() ? default_
+                                         : active_;
     const bool writable =
         !default_.empty() &&
         ((consumer && runtime_.consumer_profile() && runtime_.generation() == store_.sequence()) ||
-         local_blank);
+         network_only || local_blank);
     const auto reason = !store_.healthy() ? "storage_fault"
                         : writable        ? ""
                         : consumer        ? (writable ? "" : "profile_unavailable")
                         : store_.source() == ProfileSource::NetworkOnly
-                            ? "complete_station_setup_first"
+                            ? "profile_unavailable"
                             : "credential_bound_deployment";
-    auto result =
-        "{\"schema\":\"hostname\",\"target\":" + application::target(device_, boot) +
-        ",\"saved\":" + wtp::json::quote(saved) + ",\"active\":" + wtp::json::quote(active_) +
-        ",\"default\":" + wtp::json::quote(default_) +
-        ",\"source\":" + wtp::json::quote(consumer ? "consumer_profile" : "deployment") +
-        ",\"writable\":" + (writable ? "true" : "false") +
-        ",\"reason\":" + wtp::json::quote(reason) +
-        ",\"pending_restart\":" + (saved != active_ ? "true" : "false") +
-        ",\"generation\":" + wtp::json::quote(std::to_string(store_.sequence())) +
-        ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}");
+    auto result = "{\"schema\":\"hostname\",\"target\":" + application::target(device_, boot) +
+                  ",\"saved\":" + wtp::json::quote(saved) +
+                  ",\"active\":" + wtp::json::quote(active_) +
+                  ",\"default\":" + wtp::json::quote(default_) + ",\"source\":" +
+                  wtp::json::quote(consumer       ? "consumer_profile"
+                                   : network_only ? "network_profile"
+                                                  : "deployment") +
+                  ",\"writable\":" + (writable ? "true" : "false") +
+                  ",\"reason\":" + wtp::json::quote(reason) +
+                  ",\"pending_restart\":" + (saved != active_ ? "true" : "false") +
+                  ",\"generation\":" + wtp::json::quote(std::to_string(store_.sequence())) +
+                  ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}");
     if (parsed)
         scrub(*parsed);
+    if (network)
+        scrub(*network);
     return result;
 }
 
@@ -64,12 +77,42 @@ std::string HostnameSettings::save(const std::optional<std::string>& requested, 
         return "invalid_hostname";
     if (!store_.healthy())
         return "storage_fault";
+    if (store_.source() == ProfileSource::NetworkOnly) {
+        auto parsed = parse_network_profile(store_.data());
+        if (!parsed || parsed->device_id != device_ || default_.empty() ||
+            runtime_.source() != RuntimeSource::NetworkOnly ||
+            runtime_.generation() != store_.sequence() || !platform_.safe_to_commit()) {
+            if (parsed)
+                scrub(*parsed);
+            return "hostname_unavailable";
+        }
+        Proposal<NetworkProfile> next;
+        next.profile = std::move(*parsed);
+        scrub(*parsed);
+        const auto saved = next.profile.hostname.empty() ? default_ : next.profile.hostname;
+        if (saved == *name)
+            return {};
+        next.profile.hostname = *name == default_ ? std::string{} : *name;
+        if (store_.sequence() == std::numeric_limits<std::uint64_t>::max())
+            return "generation_exhausted";
+        const auto generation = store_.sequence();
+        next.payload = serialize_network_profile(next.profile);
+        if (next.payload.empty() || !platform_.safe_to_commit() || !store_.healthy() ||
+            store_.source() != ProfileSource::NetworkOnly || store_.sequence() != generation)
+            return "hostname_unavailable";
+        const auto committed =
+            commit_setup_profile(store_, ProfileSource::NetworkOnly, next.payload);
+        const bool loaded = runtime_.load(store_, device_, BuildBundleState::Absent);
+        if (!loaded || committed == SetupCommitResult::Reconcile)
+            return "hostname_reconcile_required";
+        return committed == SetupCommitResult::Committed ? "" : "storage_fault";
+    }
     if (store_.source() != ProfileSource::ConsumerProfile)
         return "hostname_profile_read_only";
     if (default_.empty() || (!local_usb && !platform_.safe_to_commit()) ||
         runtime_.generation() != store_.sequence())
         return "hostname_unavailable";
-    Proposal previous, next;
+    Proposal<ConsumerProfile> previous, next;
     auto parsed = parse_consumer_profile(store_.data());
     if (!parsed || parsed->device_id != device_ || !runtime_.consumer_profile()) {
         if (parsed)

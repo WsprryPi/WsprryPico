@@ -13,7 +13,9 @@ std::uint64_t add(std::uint64_t left, std::uint64_t right) {
     return left > UINT64_MAX - right ? UINT64_MAX : left + right;
 }
 std::uint64_t realized_nhz(const Tone& tone) {
-    return static_cast<std::uint64_t>(std::llround(tone.achieved_hz * 1'000'000'000.L));
+    // The pinned Arm libm llround loses low-word carry for large nHz values.
+    // Round in floating point, then use the independent unsigned conversion.
+    return static_cast<std::uint64_t>(std::round(tone.achieved_hz * 1'000'000'000.L));
 }
 } // namespace
 Engine::Engine(const Configuration& configuration, Device& device, ExecutionPlatform& platform,

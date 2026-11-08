@@ -1,91 +1,13 @@
-# CI reliability and efficiency campaign
+# CI reliability and efficiency evidence
 
-This eleven-phase campaign treats reliability, safety, complete coverage, and
-independent defect detection as acceptance gates. Speed and maintenance reductions
-are optimization targets within those gates. A 50% reduction is a feasibility
-question for each metric, never a completion quota.
+The [CI execution contract](../software-build-ci.md#execution-completeness-and-local-qualification)
+defines current mandatory contexts, source-bound completion counts, fixture
+ownership, build reuse, and production source-pair validation.
 
-## Phase list
-
-Legend: ✅ complete, ⏳ in progress, ▧ not started. All eleven prompts passed
-an authoring adversarial review, correction, and reassessment. The campaign's
-substantive work and final review are complete. Delivery is gated on successful
-verification and source/artifact rebinding of the final committed head; a failed
-required result reopens the affected phase. See the [scorecard](acceptance.md)
-and [exact accounting ledger](accounting.json). Saved prompts remain accessible
-at immutable Git revisions; current operating instructions are in the
-[CI guide](../software-build-ci.md).
-
-| Phase | Purpose | Saved prompt | Execution |
-| --- | --- | --- | --- |
-| 01 | Establish the baseline and accounting | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-01-baseline.md) | ✅ Complete |
-| 02 | Make CI outcomes enforceable and observable | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-02-ci-outcomes.md) | ✅ Complete |
-| 03 | Repair process ownership and failure propagation | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-03-process-ownership.md) | ✅ Complete |
-| 04 | Qualify the session browser pilot | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-04-browser-pilot.md) | ✅ Complete |
-| 05 | Adopt the qualified browser lifecycle | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-05-browser-adoption.md) | ✅ Complete |
-| 06 | Remove scheduler dependent synchronization | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-06-synchronization.md) | ✅ Complete |
-| 07 | Close coverage and source pair gaps | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-07-coverage-and-pair.md) | ✅ Complete |
-| 08 | Consolidate demonstrably redundant build work | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-08-build-consolidation.md) | ✅ Complete |
-| 09 | Optimize isolated execution scheduling | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/1a383a993833f05ab0ea574286dc5eec8ba4d09b/engineering/development/ci-reliability-campaign/phase-09-scheduling.md) | ✅ Complete |
-| 10 | Resolve holds and repair documentation | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/61278631cbcf16c00b716e0d37e7009e2d8d3105/engineering/development/ci-reliability-campaign/phase-10-retention.md) | ✅ Complete |
-| 11 | Perform adversarial acceptance and handoff | [Prompt](https://github.com/WsprryPi/WsprryPico/blob/61278631cbcf16c00b716e0d37e7009e2d8d3105/engineering/development/ci-reliability-campaign/phase-11-final-acceptance.md) | ✅ Complete |
-
-## Shared execution contract
-
-The user's Wsprry Development Session standing authority authorizes sequential
-execution in this session, including necessary development, dependencies, Git/CI,
-and approved enforcement changes in the three Wsprry repositories. It supersedes
-preparation-only, separate routine approval, and no-CI clauses in the original
-prompts. Continue through accepted phase boundaries without another invocation.
-Preserve unrelated work, shared tools, protected history, credentials, and devices.
-No merge, publication, release, deployment, service change, or RF test is part of
-this software campaign. The independent original Pi checkout can move branches;
-explicit campaign worktrees and paired refs determine validation inputs.
-
-- Read the active prompt, current project instructions, owning implementation,
-  and [CI execution contract](../software-build-ci.md#execution-completeness-and-local-qualification).
-  Inspect and preserve current working changes before mutation.
-- Keep the one current settings/control major and strict schema/identity/limit
-  checks. WTP, transport, storage, and deployment formats remain independent.
-  Preserve crypto, framing/ACK, journals, no-write refusals, inhibition, source/
-  shipped browser paths, captures, and independently fresh reproducibility.
-- Observe readiness and fault entry before advancing logical clocks. Product
-  timing stays intact; finite watchdogs bound hangs. Register owned resources
-  before fallible work, preserve primary/cleanup errors, and confirm writer death
-  before removing profiles. No blind retries or timeout expansion for a green run.
-- Required affected checks must actually pass. Both production network and USB
-  suites are required for shared fixture/protocol changes and final acceptance;
-  use the [exact paired recipes](../software-build-ci.md#build-reuse-and-source-pairs)
-  with identified candidate sources and pinned recursive dependencies. Missing,
-  skipped, cancelled, failed, stale, or wrong-source results remain unresolved.
-- Reassess deliberate-defect sensitivity after affected changes. Existing proof
-  can be reused only for unchanged behavior. Source, run/attempt, workflow/job,
-  profile, artifacts, logs, and result counts must agree; producer names alone
-  do not establish provenance. Software checks establish no physical timing/RF
-  qualification.
-- Charge every helper, regression, activated suite, setup/transfer, companion
-  change, and retained build context. Keep physical and logical counting units
-  separate. Unused fixture retirement earns zero reduction-goal credit.
-- Preserve active build/recovery dependencies and user work. Inventory exact
-  retirement/retention decisions, consolidate useful current instructions, and
-  repair references before removing completed prompts or temporary narratives.
-  Keep unfinished handoffs reachable; use no archive copies.
-- Commit and push validated slices to the feature branches. Intermediate
-  documentation-only status/evidence updates may skip CI. The final candidate
-  must have its current required verification and source-bound artifact checks;
-  earlier artifacts cannot be relabelled after a source-identity change.
-- After each phase, report actual results/limitations, update this list, and
-  print all eleven statuses. Do not declare the campaign complete with unresolved
-  required checks or missing intended companion refs.
-
-## Campaign handoff
-
-The [scorecard](acceptance.md) preserves current assurance, reduction verdicts,
-observation limits, unsuccessful attempts, retention decisions, exact source-pair
-commands, and final-head verification requirements. The [ledger](accounting.json)
-reconciles every scoped baseline/current file and all sixteen added registrations.
-Completed prompts, intermediate reports, and superseded comparison files were
-retired after consolidating necessary data. Current Git/Actions identities and
-immutable artifact verification accompany the final delivery report. Neither
-feature branch is merged, and no release, deployment, or hardware/RF
-qualification is implied.
+The [acceptance scorecard](acceptance.md) retains assurance results, reduction
+verdicts, measurement limits, and source/artifact provenance. The
+[machine-readable accounting](accounting.json) retains the scoped baseline,
+registrations, and retention decisions. These records describe their identified
+sources; they do not grant execution authority or establish acceptance for a
+new candidate. Broad 50% reductions were not demonstrated. Software evidence
+does not establish physical timing, RF qualification, or release readiness.

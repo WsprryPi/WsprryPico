@@ -45,7 +45,7 @@ cmake --build build/pico2-w --target rf_driver_linkcheck --parallel
 
 This assembles the PIO program and links the actual driver/peripheral code into a link-only ELF. It does not generate a test UF2 or run the image. Standard firmware construction remains separate. Original driver and PIO code are MIT; the SDK keeps its own licensing and attribution.
 
-The [bench runner and target record](rf-bench.md) provide CPU measurements, software bootloader entry, and operator-directed tones received on wspr5. The normal application uses the same bounded driver. Building and fake peripheral tests do not establish calibrated frequency/spectra or general physical qualification. Current work is selected only by the [consolidated backlog](consolidated-backlog.md). Harness capture and offline analysis are reused directly; its existing WsprryPi transmitter campaign is not a Pico adapter.
+The [bench runner and target record](rf-bench.md) provide CPU measurements, software bootloader entry, and operator-directed tones received on wspr5. The normal application uses the same bounded driver. Building and fake peripheral tests do not establish calibrated frequency/spectra or general physical qualification. Harness capture and offline analysis are reused directly; its existing WsprryPi transmitter campaign is not a Pico adapter.
 
 ## Host timestamp resolution
 

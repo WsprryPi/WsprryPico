@@ -1,8 +1,9 @@
+import {fixtureHttpBody} from './fixture_http_body.mjs';
 // Shipped page/bundle -> real browser -> production HTTP/crypto/commissioning.
 // Only TCP/board/time boundaries use the existing deterministic fixture.
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import {writeFile, mkdir} from 'node:fs/promises';
+import {writeFile, readFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
 const h=new BrowserHarness();
@@ -39,19 +40,10 @@ async function serve(req,res){
         const response=await target.fetch(u.hostname,u.hostname==='192.168.4.1',u.pathname,
             {method:req.method,body:Buffer.concat(chunks),headers:{'Content-Type':req.headers['content-type']||'application/json'},
                 marker:u.pathname.startsWith('/api/owner/')?'Owner':u.pathname.startsWith('/api/bootstrap/')?'Bootstrap':'Radio'});
-        const socket=target.socket;
-        let bytes=Buffer.from(await response.arrayBuffer());
-        const expected=Number(response.headers.get('content-length'));
-        // Explicit TCP-ACK pumping of the existing bounded 100-step fixture, without
-        // increasing a production/test deadline or accepting an incomplete response.
-        for(let pump=0;bytes.length<expected && pump<4;++pump){
-            await target.command({op:'complete',socket});
-            const snapshot=await target.command({op:'wire',socket});
-            const wire=Buffer.from(snapshot.wire,'hex');bytes=wire.subarray(wire.indexOf('\r\n\r\n')+4);
-        }
-        assert.equal(bytes.length,expected,'complete production HTTP response');
+        const bytes=await fixtureHttpBody(target,response);
         requests.push({path:u.pathname,status:response.status,bytes:bytes.length});
-        if(u.pathname === "/") await writeFile(path.join(output,"root.html"),bytes);
+        if(u.pathname === "/" && response.status===200 && response.headers.get('content-type')?.startsWith('text/html'))
+            await writeFile(path.join(output,"root.html"),bytes);
         if(dropNext && u.pathname.endsWith('/request')) { dropNext=false;res.destroy();return; }
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
     }catch(error){res.writeHead(500,{'Content-Type':'text/plain'});res.end(error.message);}
@@ -342,11 +334,97 @@ try {
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Last confirmed/);
     assert.equal(await cdp.evaluate('radio.authenticated'),true,'public observation failure does not retire a valid login');
     assert.match(await cdp.evaluate('document.title'),/last confirmed/);await capture('disconnected-last-confirmed');
+    // Start at the actual blank captive portal, save Wi-Fi, and rename while
+    // the station/configuration journal is still absent.
+    failRadioRequests=false;
+    await cdp.send('Page.navigate',{url:'about:blank'});
+    await f.stop();f=await h.fixture(process.argv[2],['1'.repeat(32),'--blank']);await f.time(1000);
+    await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+    await until(()=>cdp.evaluate('!!document.getElementById("submit") && !document.getElementById("submit").disabled'),'blank captive Wi-Fi form');
+    await capture('captive-blank-setup');
+    await field('ssid','Home Net');await field('password','test-password');await click('submit');
+    await until(()=>cdp.evaluate('!document.getElementById("accepted").hidden'),'initial Wi-Fi accepted');
+    await f.command({op:'bench_network',linked:true,safe:true});await f.time(f.now+3000);await f.time(f.now+1000);
+    await until(()=>cdp.evaluate('!document.getElementById("connected").hidden'),'initial Wi-Fi committed');
+    await f.command({op:'reboot'});await f.time(f.now+1000);
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !!hostnameState'),'initial captive hostname readback');
+    assert.equal(await cdp.evaluate('location.pathname'),'/wifi-host');
+    assert.ok((await readFile(path.join(output,'root.html'))).length>0,'captive redirect preserves the retained HTML audit snapshot');
+    assert.equal(await cdp.evaluate('hostnameState.source'),'network_profile');
+    assert.equal(await cdp.evaluate('hostnameState.writable'),true);
+    assert.equal((await f.command({op:'stats'})).config_sequence,'0','station setup is not a rename prerequisite');
+    const readyClick=async id=>until(()=>cdp.evaluate(`!busy && !submissions.pending && !accessClosing && !accessLoginPending && !document.getElementById(${JSON.stringify(id)}).matches(':disabled') && (document.getElementById(${JSON.stringify(id)}).click(),true)`),'captive action available: '+id);
+    await login();await field('hostname-input','-bad.local');
+    const initialPrograms=(await f.command({op:'stats'})).profile_programs;
+    await cdp.evaluate('document.getElementById("hostname-input").focus()');await readyClick('hostname-save');
+    await until(()=>cdp.evaluate('!busy && document.getElementById("hostname-input").getAttribute("aria-invalid")==="true"'),'inline hostname validation');
+    assert.equal((await f.command({op:'stats'})).profile_programs,initialPrograms,'invalid name makes no write');
+    await capture('captive-hostname-invalid','hostname-section');
+    await field('hostname-input','PICO-A.LOCAL.');await readyClick('hostname-save');
+    await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'initial hostname saved');
+    assert.equal((await f.command({op:'stats'})).api_restarts,0,'saving does not restart the Pico');
+    assert.equal((await f.command({op:'stats'})).config_sequence,'0','saving does not configure a station');
+    await login();
+    assert.equal(await cdp.evaluate('hostnameState.saved'),'pico-a.local');
+    assert.equal(await cdp.evaluate('hostnameState.active'),'wsprrypico-0a60df.local');
+    assert.equal(await cdp.evaluate('hostnameState.pending_restart'),true);
+    await capture('captive-hostname-pending','hostname-section');
+    console.log('PASS captive hostname saved before station setup; old boot remains active');
+    await readyClick('restart');
+    await until(async()=> (await f.command({op:'stats'})).api_restarts===1,'explicit initial-setup restart');
+    await f.command({op:'reboot'});await f.time(f.now+1000);
+    await cdp.send('Page.bringToFront');
+    await cdp.evaluate('globalThis.item25ReloadMarker=true');
+    await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate('!globalThis.item25ReloadMarker && typeof busy!=="undefined" && !busy && !!hostnameState'),'new captive document after reboot');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && hostnameState?.active==="pico-a.local"'),'AP address survives hostname activation');
+    await login();await cdp.evaluate('WsprryPicoSections.reveal(document.getElementById("hostname-section"))');await capture('captive-hostname-active','hostname-section');
+    await readyClick('hostname-default');await readyClick('hostname-save');
+    await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'initial hostname default restored');
+    await login();await click('hostname-review');
+    assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
+    await field('hostname-input','pico-b.local');await readyClick('hostname-save');
+    await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'initial hostname selected again');
+    await login();
+    // A pending rename retains the existing station/Wi-Fi restart guard.
+    assert.equal(await cdp.evaluate('document.getElementById("consumer-station-settings").matches(":disabled")'),true);
+    await readyClick('restart');await until(async()=> (await f.command({op:'stats'})).api_restarts===1,'explicit second hostname restart');
+    await f.command({op:'reboot'});await f.time(f.now+1000);
+    await cdp.send('Page.bringToFront');await cdp.evaluate('globalThis.item25ReloadMarker=true');await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate('!globalThis.item25ReloadMarker && typeof busy!=="undefined" && !busy && hostnameState?.active==="pico-b.local"'),'second hostname active before station setup');
+    await login();
+    // Station application is a separate explicit transaction and preserves
+    // the selected and active name without enabling schedules.
+    await field('consumer-callsign','K1ABC');await field('consumer-locator','FN42');await field('consumer-power','30');
+    await readyClick('save-station-progress');
+    await until(()=>cdp.evaluate('!busy && savedProgress?.data.station.callsign==="K1ABC"'),'initial station progress');
+    await readyClick('apply-station-progress');
+    await until(()=>cdp.evaluate('!busy'),'initial station application settled');
+    assert.equal(await cdp.evaluate('!!consumerAttempt'),true,
+      'station application result: '+await cdp.evaluate('JSON.stringify({writeState,currentConfig,consumerAttempt,status:document.getElementById("consumer-save-status").textContent,notice:document.getElementById("notice").textContent})'));
+    await f.time(f.now+3000);await f.command({op:'activate'});await f.time(f.now+1000);
+    await f.command({op:'reboot'});await f.time(f.now+1000);
+    await cdp.send('Page.bringToFront');
+    await cdp.evaluate('globalThis.item25ReloadMarker=true');
+    await cdp.send('Page.reload');
+    await until(()=>cdp.evaluate('!globalThis.item25ReloadMarker && typeof busy!=="undefined" && !busy && !!hostnameState'),'new captive document after reboot');
+    await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !!localIdentity'),'station application reboot');
+    await login();
+    assert.equal(await cdp.evaluate('hostnameState.saved'),'pico-b.local');
+    assert.equal(await cdp.evaluate('hostnameState.active'),'pico-b.local');
+    assert.equal(await cdp.evaluate('currentConfig.station.callsign'),'K1ABC');
+    assert.equal(await cdp.evaluate('currentConfig.wifi.ssid'),'Home Net');
+    assert.equal(await cdp.evaluate('currentConfig.enabled'),false,'hostname and station saves do not enable schedules');
+    await cdp.evaluate('WsprryPicoSections.reveal(document.getElementById("hostname-section"))');
+    await capture('captive-hostname-station-applied','hostname-section');
+    console.log('PASS blank captive Wi-Fi setup, authenticated early hostname editing, explicit restart, defaults and later station preservation');
     console.log(JSON.stringify({identity_heading:true,full_id_diagnostics:true,keyboard_disclosure:true,no_diagnostics_effects:true,public_hostname_without_presentation:true,long_active_name:true,stale_agreement:true,browser:(await cdp.send('Browser.getVersion')).product,served_assets:true,real_crypto:true,
         initial_title:true,hostname_origin:true,canonical_validation:true,generation_save:true,new_boot_readback:true,
         lost_reply_no_replay:true,wrong_device_no_login:true,draft_preserved:true,cancel_countdown:true,screenshots:captures,two_device_tabs:true,zoom_200:true}));
 } catch(error) {
-    console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,600),scripts:[...document.scripts].map(s=>s.src)})`).catch(e=>e.message):null}));
+    console.error(JSON.stringify({requests:requests.slice(-30),driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,600),scripts:[...document.scripts].map(s=>s.src)})`).catch(e=>e.message):null}));
     throw error;
 }
 });}catch(error){

@@ -165,6 +165,9 @@ const utcEditors = globalThis.WsprryUtcDateTime ? ['schedule-expiry','message-st
   .map(input=>WsprryUtcDateTime.create(input,utcNowMs)) : [];
 let picoPasswordState = null, frequencyRefreshing = false, activeEditor=null;
 function radioSettingsError(error, editor = activeEditor) {
+  // Automatic time/calibration reads report errors beside their controls.
+  // They are not save results; explicit editor actions retain recovery below.
+  if (loadingSettings && ['timeout','calibration'].includes(editor)) return;
   const [section,label] = ['timeout','calibration'].includes(editor) ? ['time-calibration','Time and calibration'] :
     editor==='drive' ? ['radio-pins','Radio pins'] : ['radio-settings','WSPR Configuration'];
   notice(error.message+' Open '+label+' to read the result before another save. Your entry is preserved.',true);
@@ -792,6 +795,11 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
     const code = typeof data.error === 'string' ? data.error : data.error?.code;
     const explanation = {
       storage_fault:'Settings storage could not be verified. Resolve storage health before another save',
+      busy:'The transmitter is occupied or its output is not confirmed inactive. Check Transmitter status and wait for an idle, unowned Pico before saving',
+      target_mismatch:'The Pico identity or boot changed. Read current saved settings and review the target before another save',
+      invalid_config:'The complete settings candidate is invalid. Review the saved settings and the fields being saved',
+      invalid_hardware_update:'The hardware save could not preserve unrelated settings. Read current saved settings and review them before another save',
+      output_disable_failed:'Settings may already be saved, but output inhibition could not be verified. Review saved settings and use USB Console recovery before transmitting',
       invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
       invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',
@@ -887,6 +895,42 @@ function accessAuthenticated() {
     localIdentity ? localAuthenticated && !localLocked : accessCarrier==='certificate');
 }
 function controlsUnlocked() { return !accessLoginPending && accessAuthenticated(); }
+// Feedback eligibility is independent of native disabled state. It grants no access.
+function authenticationLockApplies(node) {
+  if(controlsUnlocked() || accessClosing || accessLoginPending || uiBusy() ||
+     !['consumer','local'].includes(accessCarrier) || !localIdentity) return false;
+  if(node===$('access-toggle'))return true;
+  if(!online)return false;
+  if(!node.closest('#station-settings-lock,#wifi-settings-lock') && node.id!=='restart' || node.readOnly)return false;
+  // Do not explain hardware/ownership, unsupported, or uncertain-save locks as authentication.
+  if(!snapshot || snapshot.job.owner_id!==null || snapshot.job.output_active!==false ||
+     !['empty','complete','aborted','missed'].includes(snapshot.job.state))return false;
+  if(node.closest('#message-settings') && (!capabilities?.message_jobs || snapshot.standalone.reboot_required))return false;
+  if(node.closest('#job-settings') && snapshot.standalone.reboot_required)return false;
+  if(node.closest('#pin-settings,#amplifier-pin-settings') && !pinChoices)return false;
+  if(node.closest('#amplifier-pin-settings') && !supportsAmplifier())return false;
+  if(node.closest('#field-access-settings') && !WsprryControl.supported('field_access',capabilities?.field_access))return false;
+  if(node.closest('#hostname-settings') && (!hostnameState?.writable || hostnameUncertain))return false;
+  if(node.closest('#consumer-network-settings,#consumer-station-settings') && (consumerAttempt || hostnameState?.pending_restart))return false;
+  if(node.closest('#logging-settings') && (!loggingSnapshot || loggingBusy))return false;
+  if(node.closest('#pico-password-settings') && !picoPasswordState)return false;
+  if(node.id==='restart')return !!capabilities?.features?.restart && !restartSent &&
+    !Boolean(operationsSnapshot&&!operationsSnapshot.reset_allowed) && !!consoleObservedMs && Date.now()-consoleObservedMs<=15000;
+  if(['hostname-save','hostname-default','hostname-review'].includes(node.id))return true;
+  if(node.matches('[data-gps]'))return WsprryControl.supported('gps',capabilities?.gps);
+  if(node.matches('[data-si]'))return WsprryControl.supported('si5351',capabilities?.si5351);
+  if(node.closest('#filter-selector-controls') && !WsprryFilters.supported(capabilities?.filter_selector))return false;
+  if(node.matches('.password-toggle')) {
+    const input=$(node.getAttribute('aria-controls'));
+    return !!input && !input.disabled && !input.readOnly;
+  }
+  if(node.type==='submit' && writeState!=='ready' && !node.closest('#consumer-network-settings'))return false;
+  if(!node.disabled)return true;
+  // Own-disabled actions retain their independent readback/feature admission.
+  if(writeState!=='ready')return false;
+  return ['save-config','save-pins','save-beacon-policy','start','message-start'].includes(node.id) && !!currentConfig;
+}
+const lockedFeedback=globalThis.WsprryLockedControls?.create({eligible:authenticationLockApplies,lock:$('access-toggle')});
 function controls(connected) {
   if(['unknown','unavailable'].includes(accessCarrier)) connected=false;
   if(accessClosing || localLocked && localIdentity && !radio) connected=false;
@@ -970,6 +1014,7 @@ function controls(connected) {
     'Save WSPR configuration stores your edits as a draft. Apply WSPR configuration makes the saved schedule active. Checking or unchecking the box alone does not change the Pico.';
   for (const id of passwordFields) setPasswordVisible(id,$(id).type === 'text');
   renderAccess(); renderSettingsRecovery();
+  lockedFeedback?.update();
 }
 const initialStation = {callsign:'N0CALL',locator:'ZZ99',power_dbm:0};
 function stationEntry(data,key) {
@@ -1922,8 +1967,8 @@ async function readHostname(token = pageIdentity.request()) {
   if (!hostnameDraft) $('hostname-input').value = d.saved;
   $('hostname-status').textContent = 'Active: ' + d.active + '. Saved: ' + d.saved + '. ' +
     (d.pending_restart ? 'Restart is required to use the new address. This page may disconnect; sign in again when the Pico returns.' :
-      d.writable ? 'The saved address is active for this boot.' : d.reason === 'complete_station_setup_first' ?
-        'Complete station setup before choosing a hostname.' : 'This engineering name requires matching replacement credentials.');
+      d.writable ? 'The saved address is active for this boot.' : d.reason === 'credential_bound_deployment' ?
+        'This engineering name requires matching replacement credentials.' : 'Hostname settings are unavailable. Read saved state before another save.');
   if (d.pending_restart) showContinuation({device:d.target.device_id,boot:d.target.boot_id,name:d.saved});
   else { $('hostname-continue').hidden=true; $('hostname-continue').href=''; }
   if (returnReceipt) {

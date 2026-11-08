@@ -1,3 +1,4 @@
+import {fixtureHttpBody} from './fixture_http_body.mjs';
 // Shipped page/bundle -> real browser -> production HTTP/crypto/commissioning.
 // Only TCP/board/time boundaries use the existing deterministic fixture.
 import assert from 'node:assert/strict';
@@ -27,17 +28,7 @@ async function serve(req,res){
         const response=await f.fetch(u.hostname,u.hostname==='192.168.4.1',u.pathname,
             {method:req.method,body:Buffer.concat(chunks),headers:{'Content-Type':req.headers['content-type']||'application/json'},
                 marker:u.pathname.startsWith('/api/owner/')?'Owner':u.pathname.startsWith('/api/bootstrap/')?'Bootstrap':'Radio'});
-        const socket=f.socket;
-        let bytes=Buffer.from(await response.arrayBuffer());
-        const expected=Number(response.headers.get('content-length'));
-        // Explicit TCP-ACK pumping of the existing bounded 100-step fixture, without
-        // increasing a production/test deadline or accepting an incomplete response.
-        for(let pump=0;bytes.length<expected && pump<4;++pump){
-            await f.command({op:'complete',socket});
-            const snapshot=await f.command({op:'wire',socket});
-            const wire=Buffer.from(snapshot.wire,'hex');bytes=wire.subarray(wire.indexOf('\r\n\r\n')+4);
-        }
-        assert.equal(bytes.length,expected,'complete production HTTP response');
+        const bytes=await fixtureHttpBody(f,response);
         requests.push({path:u.pathname,status:response.status,bytes:bytes.length});
         if(u.pathname === "/") await writeFile(path.join(output,"root.html"),bytes);
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);

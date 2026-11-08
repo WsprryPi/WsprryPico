@@ -1,10 +1,13 @@
 // Shipped page/bundle -> Chrome -> production HTTP/AEAD; time and board are synthetic.
 import assert from 'node:assert/strict';
+import {checkLockedControls} from './locked_controls_browser.mjs';
 import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkGps} from './gps_ui_checks.mjs';
+import {checkHardwareSaveIsolation} from './hardware_save_checks.mjs';
+import {checkControlAlignment} from './control_alignment_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
 import {execFileSync} from 'node:child_process';
-import {writeFile,mkdir} from 'node:fs/promises';
+import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {BrowserHarness,until,fixtureJson,navigationTransient} from './browser_harness.mjs';
 const h=new BrowserHarness();
@@ -72,9 +75,51 @@ try {
         '--headless=new','--disable-gpu','--disable-background-networking','--no-first-run','--no-default-browser-check',
         '--remote-debugging-port=0','--user-data-dir='+profile,'--proxy-server=http://127.0.0.1:'+proxyPort,
         '--proxy-bypass-list=<-loopback>','about:blank'],profile);chrome=started.browser.process;
-    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});cdp.on('Page.windowOpen',params=>helpWindows.push(params));await send('Page.enable');
+    cdp=await h.connect(started.pages[0].webSocketDebuggerUrl,{dialogs:true});cdp.on('Page.windowOpen',params=>helpWindows.push(params));cdp.on('Runtime.exceptionThrown',event=>console.error('Browser exception',JSON.stringify(event.exceptionDetails)));await send('Runtime.enable');await send('Page.enable');
     await until(()=>evaluate('!!document.documentElement').catch(navigationTransient),'active Chrome page');
     await navigate();
+    assert.equal(await evaluate(`document.querySelectorAll('link[rel="icon"]').length`),1);
+    const expectedIcon=(await readFile(new URL('../docs/_static/favicon.ico',import.meta.url))).toString('hex');
+    for(let attempt=0;attempt<2;attempt++) {
+      const icon=await evaluate(`(async()=>{const link=document.querySelector('link[rel="icon"]');
+        const response=await fetch(link.href);const bytes=new Uint8Array(await response.arrayBuffer());
+        const image=new Image();image.src=link.href;await image.decode();
+        return {status:response.status,type:response.headers.get('content-type'),cache:response.headers.get('cache-control'),
+          hex:Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join(''),width:image.naturalWidth,height:image.naturalHeight};})()`);
+      assert.equal(icon.status,200);assert.equal(icon.type,'image/x-icon');assert.equal(icon.cache,'no-store');
+      assert.equal(icon.hex,expectedIcon);assert.ok(icon.width>0&&icon.height>0);
+    }
+    pass('local shared favicon bytes, browser decoding and repeat delivery before login');
+    await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'automatic settings loaded');
+    assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'normal startup has no settings-result link');
+    if(carrier==='consumer') {await checkLockedControls({evaluate,send,key,section,login,idle,output});pass('native authentication-lock feedback, guarded pointer/touch/keyboard and cleanup');}
+    if(carrier==='consumer') {
+      // Fail the actual automatic public reads on a new document, without a save.
+      const injection=await send('Page.addScriptToEvaluateOnNewDocument',{source:`
+        const startupFetch=globalThis.fetch;
+        globalThis.fetch=(url,...args)=> ['/ntp-timeout','/rf-calibration'].some(path=>String(url).endsWith(path))
+          ? Promise.resolve(new Response(JSON.stringify({error:'Automatic settings read unavailable'}),{status:503,headers:{'Content-Type':'application/json'}})) : startupFetch(url,...args);
+      `});
+      await navigate();
+      await until(()=>evaluate('!loadingSettings && document.getElementById("ntp-timeout-status").textContent!=="Loading timeout…"'),'automatic settings settled');
+      assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'automatic read failure is not a save result');
+      assert.equal(await evaluate('document.getElementById("local-access").open'),false);
+      for(const id of ['ntp-timeout-status','rf-calibration-status'])
+        assert.match(await evaluate(`document.getElementById('${id}').textContent`),/Automatic settings read unavailable/,'failed read remains inline');
+      assert.equal(await evaluate('document.getElementById("clock").textContent.includes("Unknown")'),false,'independent current clock report survives settings failure');
+      await capture('automatic-read-failure');
+      await section('time-calibration');
+      assert.equal(await evaluate('document.activeElement===document.querySelector("#time-calibration > summary")'),true,'bookmark still focuses the section');
+      await login();
+      await click('ntp-timeout-read');await idle();
+      assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),false,'explicit failed read keeps actionable recovery');
+      await click('access-toggle');await idle(); // Retire this regression's login before the capacity scenarios.
+      await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:injection.identifier});
+      await navigate();
+      await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'automatic settings settled');
+      assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'reload clears only document-local recovery');
+      pass('automatic time/calibration read failures stay inline; explicit recovery and bookmarks remain available');
+    }
     await capture('help-status');
     await checkContextualHelp({evaluate,send,key,section,helpWindows});
     pass('native contextual help: collapsed/locked, pointer/keyboard, drafts/files/History, no application requests');
@@ -93,6 +138,8 @@ try {
       pass('native Si5351 conditional controls, validation focus, draft isolation, atomic save and direct restoration');
       await checkGps({evaluate,section,click,idle,capture,telemetryFixture:process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER?JSON.parse(execFileSync(process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER,{encoding:'utf8'})):null});
       pass('native GPS pin/timing validation focus, QLG3 receive-only protection, atomic save and separate qualification');
+      await checkControlAlignment({evaluate,send,section,output:path.join(output,'alignment')});
+      pass('content-sized RF/GPS control alignment across engines, labels, help, locks, breakpoints and zoom');
     } else if(carrier==='field') {
       await control({op:'field_clock'});
       await send('Page.bringToFront');
@@ -110,6 +157,10 @@ try {
       await idle();
       assert.match(await evaluate('document.getElementById("field-access-status").textContent'),/is off/);
       pass('AP automatic browser time, field persistence read/save, responsive field controls and status');
+      await click('access-toggle');await idle();
+      await until(()=>evaluate('!busy && online && !!settingsLoadedBoot'),'AP public observations after logout');
+      await checkLockedControls({evaluate,send,key,section,login,idle,output});
+      pass('captive AP authentication-lock feedback, guarded pointer/touch/keyboard and cleanup');
     } else {
     assert.equal(await evaluate('document.querySelectorAll("[data-operator-section][open]").length'),0);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
@@ -271,11 +322,18 @@ try {
       await checkSi5351({evaluate,section,click,idle,capture});
       await checkGps({evaluate,section,click,idle,capture});
       pass('consumer encrypted RF/GPS controls retain conditional validation, atomic saves, relocated policy readback, and lock state');
+      await checkControlAlignment({evaluate,send,section,output:path.join(output,'alignment')});
+      pass('encrypted RF/GPS control alignment across engines, labels, help, locks, breakpoints and zoom');
     }
+    await control({op:'hardware_save_review'});
+    await navigate();if(carrier!=='engineering')await login();
+    await checkHardwareSaveIsolation({evaluate,section,click,idle,capture});
+    pass('hardware saves preserve suspended no-dial recurrence and invalid WSPR drafts; LED, button, Si5351, GPS/PPS use production journals');
     const result={carrier,browser:(await send('Browser.getVersion')).product,checks,physical_device:false};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');
 } catch(error) {
-    console.error('UI failure state',await evaluate('JSON.stringify({busy,online,carrier:accessCarrier,authenticated:localAuthenticated,notice:document.getElementById("notice").textContent,field:capabilities?.field_access,context:radio?.context,hidden:document.hidden,fieldSupported:fieldTimeSupported(),focus:document.activeElement.id,open:[...document.querySelectorAll("[data-operator-section][open]")].map(e=>e.id)})').catch(()=>null));
+    console.error('UI document',cdp ? await evaluate('JSON.stringify({url:location.href,title:document.title,body:document.body?.textContent.slice(0,180),carrier:typeof accessCarrier,busy:typeof busy})').catch(()=>null) : null);
+    console.error('UI failure state',cdp ? await evaluate('JSON.stringify({busy,online,writeState,markers:document.querySelectorAll("[data-auth-locked-control]").length,carrier:accessCarrier,authenticated:localAuthenticated,notice:document.getElementById("notice").textContent,field:capabilities?.field_access,context:radio?.context,hidden:document.hidden,fieldSupported:fieldTimeSupported(),focus:document.activeElement.id,open:[...document.querySelectorAll("[data-operator-section][open]")].map(e=>e.id)})').catch(()=>null) : null);
     throw error;
 }
 });

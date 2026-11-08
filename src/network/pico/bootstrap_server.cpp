@@ -216,6 +216,10 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
             response_.static_parts = asset->parts;
             response_.content_security_policy = consumer_radio_csp();
         }
+    } else if (request.method == "GET" && request.path == "/favicon.ico" && radio_ &&
+               radio_->page_admitted(request, client_interface_)) {
+        const auto asset = web_asset(request.path);
+        response_ = {200, "", std::string(asset->type), {}, {}, asset->body, asset->parts};
     } else if (client_interface_ != ConsumerInterface::AccessPoint)
         response_ = http_error(403, "forbidden");
     else if (request.path == "/api/presentation/v1" && request.method == "GET" &&
@@ -1254,6 +1258,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                 return http_error(503, "profile_unavailable");
             }
             bootstrap_previous_network_ = *saved;
+            trial_.hostname = saved->hostname;
             provisioning::scrub(*saved);
         } else if (profile_->source() == provisioning::ProfileSource::ConsumerProfile) {
             auto saved = provisioning::parse_consumer_profile(profile_->data());

@@ -84,7 +84,7 @@ With an authorized bounded serial test driver, negotiate HELLO and send existing
 
 Use `python3 scripts/wtp_monitor.py --list`, `ls /dev/cu.usbmodem*`, and `ioreg -p IOUSB -l -w 0` to correlate device serial and interface identity. Generated filenames vary. Substitute the identified Console port in `screen` and WTP port in the monitor. A normal terminal should assert DTR; a custom client must do so explicitly. Exit screen with Control-A, backslash, then `y`.
 
-The strict WTP endpoint provides JSON decoding, response/event encoding, serialized frame-send ownership, and logical session handling. This original endpoint record does not establish physical USB/timing/RF qualification. Later results retain their exact source/image applicability; current work is selected only in the [Consolidated backlog](consolidated-backlog.md).
+The strict WTP endpoint provides JSON decoding, response/event encoding, serialized frame-send ownership, and logical session handling. This original endpoint record does not establish physical USB/timing/RF qualification. Later results retain their exact source/image applicability.
 
 ## Console INFO and WTP STATUS are different interfaces
 

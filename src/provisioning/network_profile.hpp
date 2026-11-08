@@ -14,6 +14,7 @@ struct NetworkProfile {
     std::string password;
     std::string time_server = standalone::default_time_server;
     std::string request_sha256 = {};
+    std::string hostname = {}; // Empty retains the hardware-derived default.
     bool operator==(const NetworkProfile&) const = default;
 };
 

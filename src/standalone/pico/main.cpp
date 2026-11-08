@@ -636,9 +636,11 @@ int main() {
     // independent of WLAN credentials; a persisted configured name wins below.
     if (local_identity.hostname.empty())
         local_identity.hostname = "wpico-" + identities.device_id().substr(28) + ".local";
-    const std::string deployment_hostname = tls_credentials.hostname.empty()
-                                                ? local_identity.hostname
-                                                : std::string(tls_credentials.hostname);
+    const auto* boot_network = runtime_profile.network_profile();
+    const std::string deployment_hostname =
+        boot_network && !boot_network->hostname.empty() ? boot_network->hostname
+        : tls_credentials.hostname.empty()              ? local_identity.hostname
+                                                        : std::string(tls_credentials.hostname);
     auto access_identity = local_identity;
     access_identity.hostname = deployment_hostname;
     const bool network_hostname_ready =

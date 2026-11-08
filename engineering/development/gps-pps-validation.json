@@ -2695,7 +2695,4722 @@
           "corrected_maximum_absolute_error_hz": 1.8238088572248623,
           "resolved_improvement": true
         }
+      ],
+      "load_projection_fault": {
+        "identified": "2026-11-07",
+        "scope": "Nominal-reference LOAD and policy frequency projection; no demonstrated register-planning or physical-frequency change.",
+        "math_library": "Pinned Arm GNU15.3.1 libm llround/llroundl loses low-word carry for some large integers.",
+        "target_elf_source": "79f9abb5592f7b2b6fe1ebb70d76009c81046a28",
+        "input_nhz": "28126100000000000",
+        "observed_conversion_nhz": "28126095705032704",
+        "lost_nhz": "4294967296",
+        "effective_correction_inferred_ppb": {
+          "repeat_1": -185,
+          "repeat_2": -121
+        },
+        "inference_basis": "Unaffected160m/60m reported LOAD projections plus unchanged production planning arithmetic; not recovered estimate snapshots."
+      }
+    },
+    "raw_evidence_availability": {
+      "checked": "2026-11-07",
+      "original_location": "wspr5:/home/pi/close-tone-20261103",
+      "available": false,
+      "operator_confirmed_no_other_copy": true,
+      "limitation": "Original IQ and per-job calibration endpoints, ages, and generations cannot be replayed from the retained summary."
+    }
+  },
+  "si5351_repeatability_investigation": {
+    "date": "2026-11-07",
+    "status": "software_projection_fixed; physical_repeatable_improvement_not_established",
+    "backlog_item": 21,
+    "software_source": "d8bc0994f19f2529b45ed887f4a4f12edc76ec2e",
+    "companion_source": "5594964faae51b945e57f9c3b278c47ec7b5c51c",
+    "physical_source": "9f929b27b724e096f4eb21aa17b186bb7a5fa5b2",
+    "board_serial": "1545B6EFBF78028C",
+    "device_id": "c2a3a2a314c948b50a8562a1aeb69669",
+    "system_clock_hz": 138000000,
+    "setup": "User-confirmed conducted CLK0 and GP2 through combiner and 60 dB attenuation to RSP1B; no antenna; simultaneous LBE-1421 output 1 reference; QLG3 serial GP1/PPS GP3; CLK2 loopback GP7.",
+    "private_evidence_host": "wspr5",
+    "private_evidence_directory": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-20261107",
+    "raw_evidence_scope": "Original 2026-11-03 IQ and calibration snapshots are unavailable; user confirmed no retained copy. Current captures, failed controller attempts, and restoration evidence are retained privately.",
+    "rf_budget": {
+      "planned_seconds": 336,
+      "cumulative_commanded_seconds": 336,
+      "limit_seconds": 360,
+      "tone_seconds": 12,
+      "count": 28
+    },
+    "method": "Maintained compare_carriers differential-phase analysis, eight-second interior, unchanged engineering allowances. Four balanced Si5351 off/on repeats per original band; two GP2 off/on controls at 60 m. All receiver records successful, zero clipping/overflows, verified cleanup.",
+    "measurements": [
+      {
+        "label": "si5351-r1-off-1840100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "1e8a44d7-si5351-r1-off-1840100",
+        "original_controller_success": false,
+        "recovered_after_controller_metadata_error": true,
+        "raw_sha256": "77752ac045358546decf9d4ab101a03dec74fa53a24ecfae3f630a15d4e85c42",
+        "measured_error_hz": -0.09707306922547332,
+        "total_allowance_hz": 0.0884212083747263,
+        "one_second_errors_hz": [
+          -0.09627946708019408,
+          -0.09549541625909796,
+          -0.09608455730000287,
+          -0.09439382406856112,
+          -0.09698217459339276,
+          -0.09903130654311099,
+          -0.10068836600271425,
+          -0.10072174292145064
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "2"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -71,
+          "uncertainty_ppb": 58480,
+          "observed_raw_ns": "41867261163",
+          "age_ns": "1625912837",
+          "span_ns": "10000000000",
+          "generation": "14",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 91,
+          "uncertainty_ppb": 52718,
+          "observed_raw_ns": "42867262872",
+          "age_ns": "6715007128",
+          "span_ns": "11000000000",
+          "generation": "16",
+          "fresh": true
+        },
+        "job_id": "e56bd186838545c28b8465cb5fa18dde",
+        "boot_id": "63d4b16eb748c218ef99daca2e8940e7",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.17,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794098868423123225",
+        "campaign_order": 1
+      },
+      {
+        "label": "si5351-r1-off-28126100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r1-off-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "2baed14596dc773d48e7195c5388abb6f978aa87d66c35451f3c36ec2fa7a83b",
+        "measured_error_hz": -2.047755060297561,
+        "total_allowance_hz": 0.3695683308218655,
+        "one_second_errors_hz": [
+          -2.009663027507031,
+          -2.0330969035126714,
+          -2.0342769040354938,
+          -2.0387855108838835,
+          -2.053986316264343,
+          -2.0659952498766643,
+          -2.06813317498586,
+          -2.0629892295880268
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "2"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -79,
+          "uncertainty_ppb": 57681,
+          "observed_raw_ns": "35975002372",
+          "age_ns": "1677532628",
+          "span_ns": "10000000000",
+          "generation": "14",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 19,
+          "uncertainty_ppb": 54284,
+          "observed_raw_ns": "36975002872",
+          "age_ns": "6762655128",
+          "span_ns": "11000000000",
+          "generation": "16",
+          "fresh": true
+        },
+        "job_id": "fe651fc8a26e40e4b0049b45553ddc64",
+        "boot_id": "a843f0939cacef305ee1ca26262df219",
+        "reported_load_delta_hz": "-4.294967296",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.16,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099225385278810",
+        "campaign_order": 2
+      },
+      {
+        "label": "si5351-r1-off-5366200",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r1-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "201877472ca2d5b665d7087716feaefc4cd1e3bca0156ce9c182f7229e626a4e",
+        "measured_error_hz": -0.3143152191719878,
+        "total_allowance_hz": 0.12370393497938462,
+        "one_second_errors_hz": [
+          -0.325523269925327,
+          -0.3215402240276717,
+          -0.31456985706239493,
+          -0.31852009194460607,
+          -0.30817855867479693,
+          -0.3137544902663194,
+          -0.31394316082162277,
+          -0.32109157856211823
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "2"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -91,
+          "uncertainty_ppb": 51942,
+          "observed_raw_ns": "70974994727",
+          "age_ns": "1380510273",
+          "span_ns": "11000000000",
+          "generation": "40",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -91,
+          "uncertainty_ppb": 52027,
+          "observed_raw_ns": "70974994727",
+          "age_ns": "7507937273",
+          "span_ns": "11000000000",
+          "generation": "40",
+          "fresh": true
+        },
+        "job_id": "a03fe098f05e47d097795867e63cfa75",
+        "boot_id": "a843f0939cacef305ee1ca26262df219",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099260105767506",
+        "campaign_order": 3
+      },
+      {
+        "label": "si5351-r1-on-1840100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r1-on-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "6629c80b04ecb64dd8292bc92f6f83d5391eaba5030f6bd304b5c63f26277600",
+        "measured_error_hz": -0.11026789248273872,
+        "total_allowance_hz": 0.08842252800219508,
+        "one_second_errors_hz": [
+          -0.10874275024758617,
+          -0.10852306570637893,
+          -0.10883957885772588,
+          -0.11026936999599002,
+          -0.11062988243367045,
+          -0.11174034607051908,
+          -0.11178137425429213,
+          -0.11068900252269032
+        ],
+        "frozen": {
+          "prepared_ppb": 6,
+          "prepared_source": "gps",
+          "prepared_generation": "3"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 6,
+          "uncertainty_ppb": 57645,
+          "observed_raw_ns": "24471956727",
+          "age_ns": "1697100273",
+          "span_ns": "10000000000",
+          "generation": "3",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 6,
+          "uncertainty_ppb": 57729,
+          "observed_raw_ns": "24471956727",
+          "age_ns": "7758314273",
+          "span_ns": "10000000000",
+          "generation": "3",
+          "fresh": true
+        },
+        "job_id": "0f139fea5ce14611ab0ea3c317879fcf",
+        "boot_id": "ae438f310f37225a9a768dfaa2ebbcd5",
+        "reported_load_delta_hz": "-0.011040597",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "delayed_arm": {
+          "frozen_verified": true,
+          "timer_before": {
+            "oscillator_error_ppb": -250,
+            "uncertainty_ppb": 25026,
+            "observed_raw_ns": "30471953663",
+            "age_ns": "1758317337",
+            "span_ns": "16000000000",
+            "generation": "9",
+            "fresh": true
+          },
+          "timer_after": {
+            "oscillator_error_ppb": -205,
+            "uncertainty_ppb": 13809,
+            "observed_raw_ns": "43471951727",
+            "age_ns": "1004818273",
+            "span_ns": "29000000000",
+            "generation": "22",
+            "fresh": true
+          }
+        },
+        "rf_budget_reserved_utc_ns": "1794099329084467492",
+        "campaign_order": 4
+      },
+      {
+        "label": "si5351-r1-on-28126100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r1-on-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "862faae627a933641253581eef01ea9dc126d1f4a789de60b0e95733c37e8394",
+        "measured_error_hz": -3.3226324889610055,
+        "total_allowance_hz": 0.3516037997978535,
+        "one_second_errors_hz": [
+          -3.3076480602715037,
+          -3.3082278446995588,
+          -3.3146165569889945,
+          -3.325877462450478,
+          -3.3340489082182785,
+          -3.32834713698918,
+          -3.3214276632980955,
+          -3.3308375366623295
+        ],
+        "frozen": {
+          "prepared_ppb": 45,
+          "prepared_source": "gps",
+          "prepared_generation": "53"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 45,
+          "uncertainty_ppb": 52756,
+          "observed_raw_ns": "72471942727",
+          "age_ns": "1015685273",
+          "span_ns": "11000000000",
+          "generation": "53",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 45,
+          "uncertainty_ppb": 52841,
+          "observed_raw_ns": "72471942727",
+          "age_ns": "7157269273",
+          "span_ns": "11000000000",
+          "generation": "53",
+          "fresh": true
+        },
+        "job_id": "062825858e104119b80bba0d9d6b8f27",
+        "boot_id": "ae438f310f37225a9a768dfaa2ebbcd5",
+        "reported_load_delta_hz": "-5.560641412",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099363730907402",
+        "campaign_order": 5
+      },
+      {
+        "label": "si5351-r1-on-5366200",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r1-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "e1a86f890c588a8a2c8cd9d30da4b0db313e4face0b2aeddc2d9a67e025d2855",
+        "measured_error_hz": -0.07699881349441284,
+        "total_allowance_hz": 0.12368020072833638,
+        "one_second_errors_hz": [
+          -0.0816504949276009,
+          -0.08315580812785583,
+          -0.0755721896496766,
+          -0.07542398017886853,
+          -0.0799149540201256,
+          -0.07137792844491742,
+          -0.07578636370647018,
+          -0.08696221612075306
+        ],
+        "frozen": {
+          "prepared_ppb": -45,
+          "prepared_source": "gps",
+          "prepared_generation": "81"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -45,
+          "uncertainty_ppb": 51617,
+          "observed_raw_ns": "107471932227",
+          "age_ns": "948315773",
+          "span_ns": "11000000000",
+          "generation": "81",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -45,
+          "uncertainty_ppb": 51703,
+          "observed_raw_ns": "107471932227",
+          "age_ns": "7150627773",
+          "span_ns": "11000000000",
+          "generation": "81",
+          "fresh": true
+        },
+        "job_id": "80272de59be34c0fba6c463fb18bcdd6",
+        "boot_id": "ae438f310f37225a9a768dfaa2ebbcd5",
+        "reported_load_delta_hz": "0.241479009",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099398734036457",
+        "campaign_order": 6
+      },
+      {
+        "label": "si5351-r2-on-5366200",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "e8b874eab594903b963763ecadcf4b1e54a98bc8f37176db295089ddbe48d1ec",
+        "measured_error_hz": 0.4916090406240414,
+        "total_allowance_hz": 0.12362333368823816,
+        "one_second_errors_hz": [
+          0.4946549437202634,
+          0.4915113880778108,
+          0.4905723202219292,
+          0.4909102196328945,
+          0.49341610616687603,
+          0.49371298497618454,
+          0.4892113644931442,
+          0.4876283805904791
+        ],
+        "frozen": {
+          "prepared_ppb": -150,
+          "prepared_source": "gps",
+          "prepared_generation": "3"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -150,
+          "uncertainty_ppb": 55958,
+          "observed_raw_ns": "27776274372",
+          "age_ns": "1706581628",
+          "span_ns": "10000000000",
+          "generation": "3",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -150,
+          "uncertainty_ppb": 56043,
+          "observed_raw_ns": "27776274372",
+          "age_ns": "7792803628",
+          "span_ns": "10000000000",
+          "generation": "3",
+          "fresh": true
+        },
+        "job_id": "2df62d1c48da4deebed3bbc1275ae8a6",
+        "boot_id": "9bf3bc807fbf453caa5638f1c32766ce",
+        "reported_load_delta_hz": "0.804930105",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099458366207775",
+        "campaign_order": 7
+      },
+      {
+        "label": "si5351-r2-on-28126100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-on-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "31c190e5399331d57b1a62b8c50fc40b4be66ebbc87d3550a31fe37f4609fd0d",
+        "measured_error_hz": -3.3263719990537766,
+        "total_allowance_hz": 0.3787384712938143,
+        "one_second_errors_hz": [
+          -3.2792377015499596,
+          -3.3107276815000546,
+          -3.3308460454485953,
+          -3.3286238730472633,
+          -3.3276671228259715,
+          -3.326294206770285,
+          -3.343851162214605,
+          -3.34422395474445
+        ],
+        "frozen": {
+          "prepared_ppb": 45,
+          "prepared_source": "gps",
+          "prepared_generation": "52"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 50,
+          "uncertainty_ppb": 60209,
+          "observed_raw_ns": "97776249872",
+          "age_ns": "1475717128",
+          "span_ns": "10000000000",
+          "generation": "50",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 45,
+          "uncertainty_ppb": 54217,
+          "observed_raw_ns": "98776249372",
+          "age_ns": "6621069628",
+          "span_ns": "11000000000",
+          "generation": "52",
+          "fresh": true
+        },
+        "job_id": "32c6a6a3164d4896b02425ca9a0eea83",
+        "boot_id": "9bf3bc807fbf453caa5638f1c32766ce",
+        "reported_load_delta_hz": "-5.560641412",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099528226860396",
+        "campaign_order": 8
+      },
+      {
+        "label": "si5351-r2-on-1840100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-on-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "0a363c5b5ac89873e3928698deaa63e0ef3c364dc5f055dfd3c133313fc05fee",
+        "measured_error_hz": 0.08338177130605118,
+        "total_allowance_hz": 0.08840316090566991,
+        "one_second_errors_hz": [
+          0.08401332541365036,
+          0.08312000574159129,
+          0.08265221063629724,
+          0.08389263437112504,
+          0.08297379099514046,
+          0.08418141512726152,
+          0.08311998140919741,
+          0.08314784484247184
+        ],
+        "frozen": {
+          "prepared_ppb": -100,
+          "prepared_source": "gps",
+          "prepared_generation": "86"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -100,
+          "uncertainty_ppb": 58921,
+          "observed_raw_ns": "131776237872",
+          "age_ns": "2397452128",
+          "span_ns": "10000000000",
+          "generation": "86",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -100,
+          "uncertainty_ppb": 59007,
+          "observed_raw_ns": "131776237872",
+          "age_ns": "8601710128",
+          "span_ns": "10000000000",
+          "generation": "86",
+          "fresh": true
+        },
+        "job_id": "a341ee370ce14c3e8219b6d25b42ed01",
+        "boot_id": "9bf3bc807fbf453caa5638f1c32766ce",
+        "reported_load_delta_hz": "0.184010015",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099563190388396",
+        "campaign_order": 9
+      },
+      {
+        "label": "si5351-r2-off-5366200",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "e32e25b140052fa3c8dea05f8a660e83fbc70ec9491c2aa12f9bbaf944b51cdc",
+        "measured_error_hz": -0.31447449849753184,
+        "total_allowance_hz": 0.12370395090906924,
+        "one_second_errors_hz": [
+          -0.30980174527462623,
+          -0.3152501434504984,
+          -0.3148445401218396,
+          -0.30949485669447085,
+          -0.3127809234837855,
+          -0.3187019558693578,
+          -0.3187797870137956,
+          -0.3166457275029302
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 182,
+          "uncertainty_ppb": 51528,
+          "observed_raw_ns": "36325113018",
+          "age_ns": "1602555982",
+          "span_ns": "11000000000",
+          "generation": "9",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 182,
+          "uncertainty_ppb": 51612,
+          "observed_raw_ns": "36325113018",
+          "age_ns": "7676611982",
+          "span_ns": "11000000000",
+          "generation": "9",
+          "fresh": true
+        },
+        "job_id": "7a7ab39f5850448888dfc4c3f543629a",
+        "boot_id": "4c639d74793e7ec9046f23666c579e61",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099631248363047",
+        "campaign_order": 10
+      },
+      {
+        "label": "si5351-r2-off-28126100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-off-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "22c6d9c5ff5af5763057a2eaa9850d2d89088a4affa547d482a3e6b8d8a2d921",
+        "measured_error_hz": -2.0887829020235813,
+        "total_allowance_hz": 0.3514804012668143,
+        "one_second_errors_hz": [
+          -2.1020203190713005,
+          -2.1022595241250315,
+          -2.0958171158063124,
+          -2.079840198113459,
+          -2.085330502645377,
+          -2.088484191761495,
+          -2.0844517653987964,
+          -2.076865221264825
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -165,
+          "uncertainty_ppb": 57625,
+          "observed_raw_ns": "70325098018",
+          "age_ns": "2327764982",
+          "span_ns": "10000000000",
+          "generation": "44",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -165,
+          "uncertainty_ppb": 57710,
+          "observed_raw_ns": "70325098018",
+          "age_ns": "8481265982",
+          "span_ns": "10000000000",
+          "generation": "44",
+          "fresh": true
+        },
+        "job_id": "b0268be1b7b44546bc5086473e08e080",
+        "boot_id": "4c639d74793e7ec9046f23666c579e61",
+        "reported_load_delta_hz": "-4.294967296",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099666059254450",
+        "campaign_order": 11
+      },
+      {
+        "label": "si5351-r2-off-1840100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-off-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "c44e7b6481755478e5f48218740a5b71c9aa7498650bdaceecf65bbe97673b0d",
+        "measured_error_hz": -0.10081438913306329,
+        "total_allowance_hz": 0.08842158254787158,
+        "one_second_errors_hz": [
+          -0.10288644783372547,
+          -0.10153393588200288,
+          -0.10035367252163496,
+          -0.1015438512542346,
+          -0.10172631698242185,
+          -0.10137034168803893,
+          -0.09869354195222968,
+          -0.09784623156798489
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 260,
+          "uncertainty_ppb": 53197,
+          "observed_raw_ns": "142325071727",
+          "age_ns": "962324273",
+          "span_ns": "11000000000",
+          "generation": "78",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 260,
+          "uncertainty_ppb": 53283,
+          "observed_raw_ns": "142325071727",
+          "age_ns": "7151946273",
+          "span_ns": "11000000000",
+          "generation": "78",
+          "fresh": true
+        },
+        "job_id": "1a3ac7885e3f47a7a0ef3e6bffb445ee",
+        "boot_id": "4c639d74793e7ec9046f23666c579e61",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099736732855937",
+        "campaign_order": 12
+      },
+      {
+        "label": "si5351-r3-off-1840100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r3-off-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "558ae637776f29148213fe2bd8c8c610ab6a1a24a2fcea7b15da2daa9be81dc9",
+        "measured_error_hz": -0.10141374404093995,
+        "total_allowance_hz": 0.08842164248995527,
+        "one_second_errors_hz": [
+          -0.10320918771179777,
+          -0.10285966054925666,
+          -0.10012484603782923,
+          -0.09819457149041,
+          -0.10242274195269374,
+          -0.10412125684791818,
+          -0.10218497376826008,
+          -0.10180252374010479
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 136,
+          "uncertainty_ppb": 58425,
+          "observed_raw_ns": "72857058227",
+          "age_ns": "1695507773",
+          "span_ns": "10000000000",
+          "generation": "39",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 32,
+          "uncertainty_ppb": 52413,
+          "observed_raw_ns": "73857056727",
+          "age_ns": "6776471273",
+          "span_ns": "11000000000",
+          "generation": "41",
+          "fresh": true
+        },
+        "job_id": "7078bf8e9bc4413db833030cdd0a9a85",
+        "boot_id": "cd0c4ff906dd13413bce24629c3be86b",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099841365179051",
+        "campaign_order": 13
+      },
+      {
+        "label": "si5351-r3-off-28126100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r3-off-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "4c44a3fef590f35c88fded6773504493ec0fbd9f95439fa5ad6bdade86f272a5",
+        "measured_error_hz": -2.0523565696335595,
+        "total_allowance_hz": 0.374367295661945,
+        "one_second_errors_hz": [
+          -2.0094660322045,
+          -2.0451713651244177,
+          -2.0248437857060253,
+          -2.035184585789011,
+          -2.0630375397398097,
+          -2.0754126683383447,
+          -2.080503403112232,
+          -2.079426705847254
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -117,
+          "uncertainty_ppb": 51863,
+          "observed_raw_ns": "107857042518",
+          "age_ns": "1385132482",
+          "span_ns": "11000000000",
+          "generation": "77",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -117,
+          "uncertainty_ppb": 51948,
+          "observed_raw_ns": "107857042518",
+          "age_ns": "7540193482",
+          "span_ns": "11000000000",
+          "generation": "77",
+          "fresh": true
+        },
+        "job_id": "a98aa4cc33224db8b0fb6580b2433bd8",
+        "boot_id": "cd0c4ff906dd13413bce24629c3be86b",
+        "reported_load_delta_hz": "-4.294967296",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099876118994376",
+        "campaign_order": 14
+      },
+      {
+        "label": "si5351-r3-off-5366200",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r3-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "629a97932052329fa240efd28509392ed7820b4abc9ef13e9d24661936e213cd",
+        "measured_error_hz": -0.31381073564824646,
+        "total_allowance_hz": 0.12370388452548292,
+        "one_second_errors_hz": [
+          -0.30578136724807337,
+          -0.3104571619423382,
+          -0.31144570712524455,
+          -0.3122693220037718,
+          -0.313770326762949,
+          -0.318140321177907,
+          -0.3181160110472092,
+          -0.3177589308249935
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -91,
+          "uncertainty_ppb": 51167,
+          "observed_raw_ns": "142857029727",
+          "age_ns": "1323239273",
+          "span_ns": "11000000000",
+          "generation": "95",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -91,
+          "uncertainty_ppb": 51253,
+          "observed_raw_ns": "142857029727",
+          "age_ns": "7517364273",
+          "span_ns": "11000000000",
+          "generation": "95",
+          "fresh": true
+        },
+        "job_id": "63ff1118d6a842549c01acc5b5324f03",
+        "boot_id": "cd0c4ff906dd13413bce24629c3be86b",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099911124225191",
+        "campaign_order": 15
+      },
+      {
+        "label": "si5351-r3-on-1840100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r3-on-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "3e782bf913904310b648b0215d761b12105af7f3cf9e1cc74cf9aa8d2769f34b",
+        "measured_error_hz": -0.00627179135562983,
+        "total_allowance_hz": 0.08841212724812528,
+        "one_second_errors_hz": [
+          -0.004707328444283121,
+          -0.005146816118781317,
+          -0.0062837030424134355,
+          -0.006636025886677999,
+          -0.004546839556155646,
+          -0.006003640861251824,
+          -0.009207115642368535,
+          -0.009474552650829082
+        ],
+        "frozen": {
+          "prepared_ppb": -50,
+          "prepared_source": "gps",
+          "prepared_generation": "9"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -50,
+          "uncertainty_ppb": 58289,
+          "observed_raw_ns": "51349832227",
+          "age_ns": "1727944773",
+          "span_ns": "10000000000",
+          "generation": "9",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -50,
+          "uncertainty_ppb": 58374,
+          "observed_raw_ns": "51349832227",
+          "age_ns": "7804213773",
+          "span_ns": "10000000000",
+          "generation": "9",
+          "fresh": true
+        },
+        "job_id": "3ad0b3e4d1274255bef4ebf3ea56410e",
+        "boot_id": "59c82b3f0898ad24e89b4c472c54bc4d",
+        "reported_load_delta_hz": "0.092004983",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099994378467488",
+        "campaign_order": 16
+      },
+      {
+        "label": "si5351-r3-on-28126100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r3-on-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "fe36b75f1e8c9b80bf230ef50cddefad3b7faef02a32acb98afeffe59d705c1a",
+        "measured_error_hz": 7.438129611338354,
+        "total_allowance_hz": 0.39271378934015966,
+        "one_second_errors_hz": [
+          7.4509638624751915,
+          7.439938417997553,
+          7.448257293817278,
+          7.452363893998893,
+          7.478285287574636,
+          7.404516677208221,
+          7.440844068126864,
+          7.375943427217635
+        ],
+        "frozen": {
+          "prepared_ppb": -337,
+          "prepared_source": "gps",
+          "prepared_generation": "46"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -337,
+          "uncertainty_ppb": 52780,
+          "observed_raw_ns": "86349815518",
+          "age_ns": "1438164482",
+          "span_ns": "11000000000",
+          "generation": "46",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -337,
+          "uncertainty_ppb": 52866,
+          "observed_raw_ns": "86349815518",
+          "age_ns": "7592093482",
+          "span_ns": "11000000000",
+          "generation": "46",
+          "fresh": true
+        },
+        "job_id": "425b495cf2ca48848cbe268a3dd357ee",
+        "boot_id": "59c82b3f0898ad24e89b4c472c54bc4d",
+        "reported_load_delta_hz": "9.478499052",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100029195063784",
+        "campaign_order": 17
+      },
+      {
+        "label": "si5351-r3-on-5366200",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r3-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "b6eef4ea826ccd6612091c067754f1d8e7698b19c401ccc0c42655fd07b973dd",
+        "measured_error_hz": -0.2512086155383031,
+        "total_allowance_hz": 0.1236976236248486,
+        "one_second_errors_hz": [
+          -0.2510868043736423,
+          -0.24955636806049597,
+          -0.25017912897146743,
+          -0.2507840559630381,
+          -0.25041808218998085,
+          -0.25299363273882136,
+          -0.25250794766304807,
+          -0.25378812034483644
+        ],
+        "frozen": {
+          "prepared_ppb": -13,
+          "prepared_source": "gps",
+          "prepared_generation": "73"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -13,
+          "uncertainty_ppb": 51442,
+          "observed_raw_ns": "145349793727",
+          "age_ns": "2442099273",
+          "span_ns": "11000000000",
+          "generation": "73",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -13,
+          "uncertainty_ppb": 51528,
+          "observed_raw_ns": "145349793727",
+          "age_ns": "8633759273",
+          "span_ns": "11000000000",
+          "generation": "73",
+          "fresh": true
+        },
+        "job_id": "6b8012625fbe4abb807a80f017ef0df2",
+        "boot_id": "59c82b3f0898ad24e89b4c472c54bc4d",
+        "reported_load_delta_hz": "0.069760093",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100089236839283",
+        "campaign_order": 18
+      },
+      {
+        "label": "si5351-r4-on-5366200",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "52d0da22b1a5ed8251e42da1a7b61eb465dd8bea4f6112bdc9afc8e9326f3757",
+        "measured_error_hz": 0.4862190502241788,
+        "total_allowance_hz": 0.12362387274656803,
+        "one_second_errors_hz": [
+          0.4863765906221147,
+          0.48630773826766927,
+          0.48650934975847804,
+          0.48559979661661146,
+          0.48508292270048514,
+          0.4866521760587261,
+          0.48669598449913565,
+          0.4887818556346133
+        ],
+        "frozen": {
+          "prepared_ppb": -150,
+          "prepared_source": "gps",
+          "prepared_generation": "28"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -150,
+          "uncertainty_ppb": 58316,
+          "observed_raw_ns": "49287832872",
+          "age_ns": "2156340128",
+          "span_ns": "10000000000",
+          "generation": "28",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -150,
+          "uncertainty_ppb": 58401,
+          "observed_raw_ns": "49287832872",
+          "age_ns": "8219921128",
+          "span_ns": "10000000000",
+          "generation": "28",
+          "fresh": true
+        },
+        "job_id": "df5627374279467ab65b6c1ac56bb684",
+        "boot_id": "9a4918fa50eb3eb7d41e895dd1614cbb",
+        "reported_load_delta_hz": "0.804930105",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100170806585184",
+        "campaign_order": 19
+      },
+      {
+        "label": "si5351-r4-on-28126100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-on-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "99c553a8045f79de45c98b4cd069f9bd24f0fe26f7f531ba8d95a02593a1ca5b",
+        "measured_error_hz": -2.4388245051264335,
+        "total_allowance_hz": 0.36495314053098243,
+        "one_second_errors_hz": [
+          -2.4053867738730332,
+          -2.416567864547858,
+          -2.415476345552804,
+          -2.4286818629604454,
+          -2.44804054723312,
+          -2.4584901019475183,
+          -2.4694704403795527,
+          -2.4717952589940637
+        ],
+        "frozen": {
+          "prepared_ppb": 14,
+          "prepared_source": "gps",
+          "prepared_generation": "65"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 14,
+          "uncertainty_ppb": 56571,
+          "observed_raw_ns": "109287808372",
+          "age_ns": "1568449628",
+          "span_ns": "10000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 14,
+          "uncertainty_ppb": 56657,
+          "observed_raw_ns": "109287808372",
+          "age_ns": "7713994628",
+          "span_ns": "10000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "job_id": "83346341ab0040ac932338e24a2dc6c4",
+        "boot_id": "9a4918fa50eb3eb7d41e895dd1614cbb",
+        "reported_load_delta_hz": "-4.688730824",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100230315235367",
+        "campaign_order": 20
+      },
+      {
+        "label": "si5351-r4-on-1840100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-on-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "09a531021d143b9e7e05936cc1b39c0e3d3a6646c9d4c0cfd9e26f95896b1471",
+        "measured_error_hz": -0.044984053421273984,
+        "total_allowance_hz": 0.08841599890016671,
+        "one_second_errors_hz": [
+          -0.04342945214489191,
+          -0.043960837812164755,
+          -0.04368978834855852,
+          -0.04506764002826458,
+          -0.0456824109394347,
+          -0.04629981796949778,
+          -0.04579881649630124,
+          -0.04293822409914583
+        ],
+        "frozen": {
+          "prepared_ppb": -29,
+          "prepared_source": "gps",
+          "prepared_generation": "93"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -29,
+          "uncertainty_ppb": 56555,
+          "observed_raw_ns": "144287793727",
+          "age_ns": "1508093273",
+          "span_ns": "10000000000",
+          "generation": "93",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -29,
+          "uncertainty_ppb": 56642,
+          "observed_raw_ns": "144287793727",
+          "age_ns": "7720194273",
+          "span_ns": "10000000000",
+          "generation": "93",
+          "fresh": true
+        },
+        "job_id": "2462d500a798412aa06b4d443d8d9546",
+        "boot_id": "9a4918fa50eb3eb7d41e895dd1614cbb",
+        "reported_load_delta_hz": "0.0533629",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100265310060890",
+        "campaign_order": 21
+      },
+      {
+        "label": "si5351-r4-off-5366200",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "95aa90c7d1aa3d3348f7033f7b7bc321d915a16572050f11c3eedf7ca2ffdfd4",
+        "measured_error_hz": -0.31953627272918084,
+        "total_allowance_hz": 0.1246641593089779,
+        "one_second_errors_hz": [
+          -0.29857657056237485,
+          -0.3109721925250142,
+          -0.3290514532198472,
+          -0.3068868481889808,
+          -0.3279180480286641,
+          -0.3195183175058105,
+          -0.3194498185458201,
+          -0.3212517349086852
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "6"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -72,
+          "uncertainty_ppb": 52418,
+          "observed_raw_ns": "61180461727",
+          "age_ns": "1576282273",
+          "span_ns": "11000000000",
+          "generation": "28",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -72,
+          "uncertainty_ppb": 52503,
+          "observed_raw_ns": "61180461727",
+          "age_ns": "7657468273",
+          "span_ns": "11000000000",
+          "generation": "28",
+          "fresh": true
+        },
+        "job_id": "0e9072dfdf9f4ee297196bd35ac9aa7f",
+        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100358246603969",
+        "campaign_order": 22
+      },
+      {
+        "label": "si5351-r4-off-28126100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-off-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "53b5ea1f6febeb0124a769fa3ae97e049c4e86406e45c65cb4dcac22ee0967e4",
+        "measured_error_hz": -2.0722305169958304,
+        "total_allowance_hz": 0.40513887966867845,
+        "one_second_errors_hz": [
+          -2.077704877174824,
+          -2.0092216910101115,
+          -2.1123929155569385,
+          -2.082104337805106,
+          -2.01093911657415,
+          -2.078845501734179,
+          -2.106195032862786,
+          -2.1458906508182736
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "6"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 0,
+          "uncertainty_ppb": 52492,
+          "observed_raw_ns": "108180442727",
+          "age_ns": "1669383273",
+          "span_ns": "11000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 0,
+          "uncertainty_ppb": 52577,
+          "observed_raw_ns": "108180442727",
+          "age_ns": "7796806273",
+          "span_ns": "11000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "job_id": "2ae64317bb174b18a16b55428f88b170",
+        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
+        "reported_load_delta_hz": "-4.294967296",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100405383131781",
+        "campaign_order": 23
+      },
+      {
+        "label": "si5351-r4-off-1840100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-off-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "f12684522a9da3ba87679e8efa35a66ab702417f59eff2107ea088ef62d4fe6a",
+        "measured_error_hz": -0.10087326438326727,
+        "total_allowance_hz": 0.08842158843604422,
+        "one_second_errors_hz": [
+          -0.10038162679921925,
+          -0.10073165837070519,
+          -0.10019361853062492,
+          -0.1003327080749159,
+          -0.10115757703999861,
+          -0.10175133417254756,
+          -0.10120483986213458,
+          -0.10143863264659103
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "6"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -214,
+          "uncertainty_ppb": 52249,
+          "observed_raw_ns": "191180408372",
+          "age_ns": "1525774628",
+          "span_ns": "11000000000",
+          "generation": "109",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -214,
+          "uncertainty_ppb": 52335,
+          "observed_raw_ns": "191180408372",
+          "age_ns": "7714650628",
+          "span_ns": "11000000000",
+          "generation": "109",
+          "fresh": true
+        },
+        "job_id": "c4065da495d044cebdd89a5814ac9678",
+        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100488329945878",
+        "campaign_order": 24
+      },
+      {
+        "label": "gp2-r1-off-5366200",
+        "engine": "gp2",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r1-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "0e6cac5fdea738b8373d8a201a6bbfda6678a39a2c880755132f0978fe4cdca0",
+        "measured_error_hz": -2.2908143435386705,
+        "total_allowance_hz": 0.2059074433089987,
+        "one_second_errors_hz": [
+          -2.1888085068629834,
+          -2.2252947137176875,
+          -2.259388303250887,
+          -2.284121477091901,
+          -2.304855594972139,
+          -2.3251537843249253,
+          -2.348598789736286,
+          -2.3667299445069148
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "7"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -350,
+          "uncertainty_ppb": 40162,
+          "observed_raw_ns": "13141114227",
+          "age_ns": "11555306773",
+          "span_ns": "10000000000",
+          "generation": "1",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -375,
+          "uncertainty_ppb": 33363,
+          "observed_raw_ns": "28141108727",
+          "age_ns": "1954106273",
+          "span_ns": "12000000000",
+          "generation": "4",
+          "fresh": true
+        },
+        "job_id": "ac6034011c61423ba0bfa0c1bc59ef05",
+        "boot_id": "1bb98e8524b8b6728b5931af77e7f4bb",
+        "reported_load_delta_hz": "0.002841651",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.15,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100542507892816",
+        "campaign_order": 25
+      },
+      {
+        "label": "gp2-r1-on-5366200",
+        "engine": "gp2",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r1-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "52943fdea92146cf94585d9d82945d93ca2bad05bad7ba64ff7f95ea9ae26e33",
+        "measured_error_hz": -0.5344723632641148,
+        "total_allowance_hz": 0.2052707727002963,
+        "one_second_errors_hz": [
+          -0.43292754367934094,
+          -0.47226152290011214,
+          -0.5033781230377485,
+          -0.5267111124967983,
+          -0.546295859102429,
+          -0.5704610220552127,
+          -0.5916351249113063,
+          -0.6087829290586342
+        ],
+        "frozen": {
+          "prepared_ppb": -333,
+          "prepared_source": "gps",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -400,
+          "uncertainty_ppb": 40170,
+          "observed_raw_ns": "12589762727",
+          "age_ns": "12141641273",
+          "span_ns": "10000000000",
+          "generation": "1",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -333,
+          "uncertainty_ppb": 33385,
+          "observed_raw_ns": "26589755872",
+          "age_ns": "3545910128",
+          "span_ns": "12000000000",
+          "generation": "4",
+          "fresh": true
+        },
+        "job_id": "30c041132def42f484befa2d756de7ca",
+        "boot_id": "c6e907194ff96dd33992b0ebe2d9b831",
+        "reported_load_delta_hz": "1.802156866",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100596077144360",
+        "campaign_order": 26
+      },
+      {
+        "label": "gp2-r2-on-5366200",
+        "engine": "gp2",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r2-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "eb3ad0a1a32999e089a40b489a707a5c5abecf7b7cddb7425e34c1130b43c71e",
+        "measured_error_hz": -0.16981452762826166,
+        "total_allowance_hz": 0.19883510232890114,
+        "one_second_errors_hz": [
+          -0.07466890862008313,
+          -0.11206674584565235,
+          -0.1406184458696771,
+          -0.16218835983676172,
+          -0.1815494479654376,
+          -0.20273655438762717,
+          -0.22367173404870755,
+          -0.23903670563379364
+        ],
+        "frozen": {
+          "prepared_ppb": -405,
+          "prepared_source": "gps",
+          "prepared_generation": "12"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -443,
+          "uncertainty_ppb": 20025,
+          "observed_raw_ns": "23049501872",
+          "age_ns": "1662842128",
+          "span_ns": "20000000000",
+          "generation": "11",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -405,
+          "uncertainty_ppb": 19134,
+          "observed_raw_ns": "24049502227",
+          "age_ns": "6062532773",
+          "span_ns": "21000000000",
+          "generation": "12",
+          "fresh": true
+        },
+        "job_id": "ae48ba0864894619a2c2a4a1073fcb1c",
+        "boot_id": "66e1d1053f5d37cf49954c10b7857e1b",
+        "reported_load_delta_hz": "2.187724411",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100649588286074",
+        "campaign_order": 27
+      },
+      {
+        "label": "gp2-r2-off-5366200",
+        "engine": "gp2",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r2-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "65a21b51236db7cd858487f532c934030ef4cf33c7072643bfcc1791c6b7e05a",
+        "measured_error_hz": -2.355354380710196,
+        "total_allowance_hz": 0.20609804275741642,
+        "one_second_errors_hz": [
+          -2.2531643992997488,
+          -2.289612537057053,
+          -2.322180194357486,
+          -2.3478928201776057,
+          -2.3690561688456455,
+          -2.3938723593453233,
+          -2.4135395431799793,
+          -2.4258158187336107
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "9"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -500,
+          "uncertainty_ppb": 40172,
+          "observed_raw_ns": "12445570872",
+          "age_ns": "12259826128",
+          "span_ns": "10000000000",
+          "generation": "1",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -357,
+          "uncertainty_ppb": 28597,
+          "observed_raw_ns": "28445566727",
+          "age_ns": "1669256273",
+          "span_ns": "14000000000",
+          "generation": "6",
+          "fresh": true
+        },
+        "job_id": "93650b80eb3843a3bd8e6be4fd492cce",
+        "boot_id": "d6722140a8d1d85568399d9141fc3603",
+        "reported_load_delta_hz": "0.002841651",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100703215136103",
+        "campaign_order": 28
+      }
+    ],
+    "comparison": {
+      "count": 28,
+      "comparisons": [
+        {
+          "label": "gp2-r1-on-5366200",
+          "frozen_ppb": -333,
+          "generation": "4",
+          "span_ns": "12000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": 1.78694519505275,
+          "observed_shift_hz": 1.7563419802745557,
+          "residual_hz": -0.030603214778194276,
+          "combined_allowance_hz": 0.41117821600929505,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "gp2-r2-on-5366200",
+          "frozen_ppb": -405,
+          "generation": "12",
+          "span_ns": "21000000000",
+          "readiness_span_ns": "20000000000",
+          "predicted_shift_hz": 2.1733118801913114,
+          "observed_shift_hz": 2.1855398530819343,
+          "residual_hz": 0.01222797289062294,
+          "combined_allowance_hz": 0.40493314508631756,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r1-on-1840100",
+          "frozen_ppb": 6,
+          "generation": "3",
+          "span_ns": "10000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": -0.0110405999337564,
+          "observed_shift_hz": -0.013194823257265398,
+          "residual_hz": -0.0021542233235089976,
+          "combined_allowance_hz": 0.17684373637692138,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r1-on-28126100",
+          "frozen_ppb": 45,
+          "generation": "53",
+          "span_ns": "11000000000",
+          "readiness_span_ns": "11000000000",
+          "predicted_shift_hz": -1.26567444304465,
+          "observed_shift_hz": -1.2748774286634443,
+          "residual_hz": -0.00920298561879429,
+          "combined_allowance_hz": 0.721172130619719,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r1-on-5366200",
+          "frozen_ppb": -45,
+          "generation": "81",
+          "span_ns": "11000000000",
+          "readiness_span_ns": "11000000000",
+          "predicted_shift_hz": 0.2414790108665555,
+          "observed_shift_hz": 0.23731640567757495,
+          "residual_hz": -0.004162605188980539,
+          "combined_allowance_hz": 0.247384135707721,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r2-on-1840100",
+          "frozen_ppb": -100,
+          "generation": "86",
+          "span_ns": "10000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": 0.18401001840100184,
+          "observed_shift_hz": 0.18419616043911446,
+          "residual_hz": 0.00018614203811262442,
+          "combined_allowance_hz": 0.1768247434535415,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r2-on-28126100",
+          "frozen_ppb": 45,
+          "generation": "52",
+          "span_ns": "11000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": -1.26567444304465,
+          "observed_shift_hz": -1.2375890970301953,
+          "residual_hz": 0.028085346014454782,
+          "combined_allowance_hz": 0.7302188725606287,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r2-on-5366200",
+          "frozen_ppb": -150,
+          "generation": "3",
+          "span_ns": "10000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": 0.8049301207395181,
+          "observed_shift_hz": 0.8060835391215733,
+          "residual_hz": 0.0011534183820551824,
+          "combined_allowance_hz": 0.2473272845973074,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r3-on-1840100",
+          "frozen_ppb": -50,
+          "generation": "9",
+          "span_ns": "10000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": 0.09200500460025023,
+          "observed_shift_hz": 0.09514195268531012,
+          "residual_hz": 0.00313694808505989,
+          "combined_allowance_hz": 0.17683376973808054,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r3-on-28126100",
+          "frozen_ppb": -337,
+          "generation": "46",
+          "span_ns": "11000000000",
+          "readiness_span_ns": "11000000000",
+          "predicted_shift_hz": 9.478498894254127,
+          "observed_shift_hz": 9.490486180971914,
+          "residual_hz": 0.011987286717786816,
+          "combined_allowance_hz": 0.7670810850021046,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r3-on-5366200",
+          "frozen_ppb": -13,
+          "generation": "73",
+          "span_ns": "11000000000",
+          "readiness_span_ns": "11000000000",
+          "predicted_shift_hz": 0.0697606009068878,
+          "observed_shift_hz": 0.06260212010994337,
+          "residual_hz": -0.007158480796944436,
+          "combined_allowance_hz": 0.24740150815033152,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r4-on-1840100",
+          "frozen_ppb": -29,
+          "generation": "93",
+          "span_ns": "10000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": 0.05336290154752415,
+          "observed_shift_hz": 0.055889210961993285,
+          "residual_hz": 0.002526309414469137,
+          "combined_allowance_hz": 0.17683758733621094,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r4-on-28126100",
+          "frozen_ppb": 14,
+          "generation": "65",
+          "span_ns": "10000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": -0.3937653944872845,
+          "observed_shift_hz": -0.36659398813060307,
+          "residual_hz": 0.027171406356681416,
+          "combined_allowance_hz": 0.7700920201996608,
+          "agrees_with_combined_allowance": true
+        },
+        {
+          "label": "si5351-r4-on-5366200",
+          "frozen_ppb": -150,
+          "generation": "28",
+          "span_ns": "10000000000",
+          "readiness_span_ns": "10000000000",
+          "predicted_shift_hz": 0.8049301207395181,
+          "observed_shift_hz": 0.8057553229533596,
+          "residual_hz": 0.0008252022138415249,
+          "combined_allowance_hz": 0.24828803205554592,
+          "agrees_with_combined_allowance": true
+        }
+      ],
+      "groups": [
+        {
+          "engine": "gp2",
+          "frequency_hz": 5366200,
+          "baseline_count": 2,
+          "corrected_count": 2,
+          "best_baseline_absolute_lower_hz": 2.084906900229672,
+          "worst_corrected_absolute_upper_hz": 0.7397431359644111,
+          "improvement_resolved": true
+        },
+        {
+          "engine": "si5351",
+          "frequency_hz": 1840100,
+          "baseline_count": 4,
+          "corrected_count": 4,
+          "best_baseline_absolute_lower_hz": 0.008651860850747012,
+          "worst_corrected_absolute_upper_hz": 0.1986904204849338,
+          "improvement_resolved": false
+        },
+        {
+          "engine": "si5351",
+          "frequency_hz": 5366200,
+          "baseline_count": 4,
+          "corrected_count": 4,
+          "best_baseline_absolute_lower_hz": 0.19010685112276354,
+          "worst_corrected_absolute_upper_hz": 0.6152323743122796,
+          "improvement_resolved": false
+        },
+        {
+          "engine": "si5351",
+          "frequency_hz": 28126100,
+          "baseline_count": 4,
+          "corrected_count": 4,
+          "best_baseline_absolute_lower_hz": 1.667091637327152,
+          "worst_corrected_absolute_upper_hz": 7.830843400678514,
+          "improvement_resolved": false
+        }
       ]
+    },
+    "production_observation_replay": {
+      "observations": 1468,
+      "unpaired": [
+        [
+          "63d4b16eb748c218ef99daca2e8940e7",
+          50
+        ],
+        [
+          "a843f0939cacef305ee1ca26262df219",
+          45
+        ],
+        [
+          "9bf3bc807fbf453caa5638f1c32766ce",
+          36
+        ],
+        [
+          "9bf3bc807fbf453caa5638f1c32766ce",
+          104
+        ],
+        [
+          "9bf3bc807fbf453caa5638f1c32766ce",
+          139
+        ],
+        [
+          "4c639d74793e7ec9046f23666c579e61",
+          168
+        ],
+        [
+          "cd0c4ff906dd13413bce24629c3be86b",
+          81
+        ]
+      ],
+      "transmission_records": 28,
+      "checks": [
+        {
+          "label": "gp2-r1-on-5366200",
+          "selected_ppb": -333,
+          "generation": "4",
+          "replay": {
+            "ppb": -333,
+            "raw_ns": "26589755872",
+            "span_ns": "12000000000",
+            "uncertainty_ppb": 33335
+          },
+          "transmission": {
+            "boot": "c6e907194ff96dd33992b0ebe2d9b831",
+            "record_monotonic_ns": "31697815000",
+            "age_at_arm_ns": "5108059128",
+            "job": "30c041132def42f484befa2d756de7ca",
+            "source": "gps",
+            "ppb": "-333",
+            "generation": "4",
+            "observed_raw_ns": "26589755872",
+            "uncertainty_ppb": "33378"
+          },
+          "match": true
+        },
+        {
+          "label": "gp2-r2-on-5366200",
+          "selected_ppb": -405,
+          "generation": "12",
+          "replay": {
+            "ppb": -405,
+            "raw_ns": "24049502227",
+            "span_ns": "21000000000",
+            "uncertainty_ppb": 19049
+          },
+          "transmission": {
+            "boot": "66e1d1053f5d37cf49954c10b7857e1b",
+            "record_monotonic_ns": "31668351000",
+            "age_at_arm_ns": "7618848773",
+            "job": "ae48ba0864894619a2c2a4a1073fcb1c",
+            "source": "gps",
+            "ppb": "-405",
+            "generation": "12",
+            "observed_raw_ns": "24049502227",
+            "uncertainty_ppb": "19127"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-1840100",
+          "selected_ppb": 6,
+          "generation": "3",
+          "replay": {
+            "ppb": 6,
+            "raw_ns": "24471956727",
+            "span_ns": "10000000000",
+            "uncertainty_ppb": 57621
+          },
+          "transmission": {
+            "boot": "ae438f310f37225a9a768dfaa2ebbcd5",
+            "record_monotonic_ns": "46587768000",
+            "age_at_arm_ns": "22115811273",
+            "job": "0f139fea5ce14611ab0ea3c317879fcf",
+            "source": "gps",
+            "ppb": "6",
+            "generation": "3",
+            "observed_raw_ns": "24471956727",
+            "uncertainty_ppb": "57722"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-28126100",
+          "selected_ppb": 45,
+          "generation": "53",
+          "replay": {
+            "ppb": 45,
+            "raw_ns": "72471942727",
+            "span_ns": "11000000000",
+            "uncertainty_ppb": 52741
+          },
+          "transmission": {
+            "boot": "ae438f310f37225a9a768dfaa2ebbcd5",
+            "record_monotonic_ns": "81238225000",
+            "age_at_arm_ns": "8766282273",
+            "job": "062825858e104119b80bba0d9d6b8f27",
+            "source": "gps",
+            "ppb": "45",
+            "generation": "53",
+            "observed_raw_ns": "72471942727",
+            "uncertainty_ppb": "52833"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-5366200",
+          "selected_ppb": -45,
+          "generation": "81",
+          "replay": {
+            "ppb": -45,
+            "raw_ns": "107471932227",
+            "span_ns": "11000000000",
+            "uncertainty_ppb": 51603
+          },
+          "transmission": {
+            "boot": "ae438f310f37225a9a768dfaa2ebbcd5",
+            "record_monotonic_ns": "116242014000",
+            "age_at_arm_ns": "8770081773",
+            "job": "80272de59be34c0fba6c463fb18bcdd6",
+            "source": "gps",
+            "ppb": "-45",
+            "generation": "81",
+            "observed_raw_ns": "107471932227",
+            "uncertainty_ppb": "51695"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-1840100",
+          "selected_ppb": -100,
+          "generation": "86",
+          "replay": {
+            "ppb": -100,
+            "raw_ns": "131776237872",
+            "span_ns": "10000000000",
+            "uncertainty_ppb": 58887
+          },
+          "transmission": {
+            "boot": "9bf3bc807fbf453caa5638f1c32766ce",
+            "record_monotonic_ns": "142000437000",
+            "age_at_arm_ns": "10224199128",
+            "job": "a341ee370ce14c3e8219b6d25b42ed01",
+            "source": "gps",
+            "ppb": "-100",
+            "generation": "86",
+            "observed_raw_ns": "131776237872",
+            "uncertainty_ppb": "59000"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-28126100",
+          "selected_ppb": 45,
+          "generation": "52",
+          "replay": {
+            "ppb": 45,
+            "raw_ns": "98776249372",
+            "span_ns": "11000000000",
+            "uncertainty_ppb": 54125
+          },
+          "transmission": {
+            "boot": "9bf3bc807fbf453caa5638f1c32766ce",
+            "record_monotonic_ns": "107035532000",
+            "age_at_arm_ns": "8259282628",
+            "job": "32c6a6a3164d4896b02425ca9a0eea83",
+            "source": "gps",
+            "ppb": "45",
+            "generation": "52",
+            "observed_raw_ns": "98776249372",
+            "uncertainty_ppb": "54210"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-5366200",
+          "selected_ppb": -150,
+          "generation": "3",
+          "replay": {
+            "ppb": -150,
+            "raw_ns": "27776274372",
+            "span_ns": "10000000000",
+            "uncertainty_ppb": 55934
+          },
+          "transmission": {
+            "boot": "9bf3bc807fbf453caa5638f1c32766ce",
+            "record_monotonic_ns": "37174085000",
+            "age_at_arm_ns": "9397810628",
+            "job": "2df62d1c48da4deebed3bbc1275ae8a6",
+            "source": "gps",
+            "ppb": "-150",
+            "generation": "3",
+            "observed_raw_ns": "27776274372",
+            "uncertainty_ppb": "56036"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-1840100",
+          "selected_ppb": -50,
+          "generation": "9",
+          "replay": {
+            "ppb": -50,
+            "raw_ns": "51349832227",
+            "span_ns": "10000000000",
+            "uncertainty_ppb": 58265
+          },
+          "transmission": {
+            "boot": "59c82b3f0898ad24e89b4c472c54bc4d",
+            "record_monotonic_ns": "60761002000",
+            "age_at_arm_ns": "9411169773",
+            "job": "3ad0b3e4d1274255bef4ebf3ea56410e",
+            "source": "gps",
+            "ppb": "-50",
+            "generation": "9",
+            "observed_raw_ns": "51349832227",
+            "uncertainty_ppb": "58367"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-28126100",
+          "selected_ppb": -337,
+          "generation": "46",
+          "replay": {
+            "ppb": -337,
+            "raw_ns": "86349815518",
+            "span_ns": "11000000000",
+            "uncertainty_ppb": 52760
+          },
+          "transmission": {
+            "boot": "59c82b3f0898ad24e89b4c472c54bc4d",
+            "record_monotonic_ns": "95579971000",
+            "age_at_arm_ns": "9230155482",
+            "job": "425b495cf2ca48848cbe268a3dd357ee",
+            "source": "gps",
+            "ppb": "-337",
+            "generation": "46",
+            "observed_raw_ns": "86349815518",
+            "uncertainty_ppb": "52859"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-5366200",
+          "selected_ppb": -13,
+          "generation": "73",
+          "replay": {
+            "ppb": -13,
+            "raw_ns": "145349793727",
+            "span_ns": "11000000000",
+            "uncertainty_ppb": 51408
+          },
+          "transmission": {
+            "boot": "59c82b3f0898ad24e89b4c472c54bc4d",
+            "record_monotonic_ns": "155619768000",
+            "age_at_arm_ns": "10269974273",
+            "job": "6b8012625fbe4abb807a80f017ef0df2",
+            "source": "gps",
+            "ppb": "-13",
+            "generation": "73",
+            "observed_raw_ns": "145349793727",
+            "uncertainty_ppb": "51521"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-1840100",
+          "selected_ppb": -29,
+          "generation": "93",
+          "replay": {
+            "ppb": -29,
+            "raw_ns": "144287793727",
+            "span_ns": "10000000000",
+            "uncertainty_ppb": 56534
+          },
+          "transmission": {
+            "boot": "9a4918fa50eb3eb7d41e895dd1614cbb",
+            "record_monotonic_ns": "153633855000",
+            "age_at_arm_ns": "9346061273",
+            "job": "2462d500a798412aa06b4d443d8d9546",
+            "source": "gps",
+            "ppb": "-29",
+            "generation": "93",
+            "observed_raw_ns": "144287793727",
+            "uncertainty_ppb": "56634"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-28126100",
+          "selected_ppb": 14,
+          "generation": "65",
+          "replay": {
+            "ppb": 14,
+            "raw_ns": "109287808372",
+            "span_ns": "10000000000",
+            "uncertainty_ppb": 56549
+          },
+          "transmission": {
+            "boot": "9a4918fa50eb3eb7d41e895dd1614cbb",
+            "record_monotonic_ns": "118636787000",
+            "age_at_arm_ns": "9348978628",
+            "job": "83346341ab0040ac932338e24a2dc6c4",
+            "source": "gps",
+            "ppb": "14",
+            "generation": "65",
+            "observed_raw_ns": "109287808372",
+            "uncertainty_ppb": "56649"
+          },
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-5366200",
+          "selected_ppb": -150,
+          "generation": "28",
+          "replay": {
+            "ppb": -150,
+            "raw_ns": "49287832872",
+            "span_ns": "10000000000",
+            "uncertainty_ppb": 58286
+          },
+          "transmission": {
+            "boot": "9a4918fa50eb3eb7d41e895dd1614cbb",
+            "record_monotonic_ns": "59126047000",
+            "age_at_arm_ns": "9838214128",
+            "job": "df5627374279467ab65b6c1ac56bb684",
+            "source": "gps",
+            "ppb": "-150",
+            "generation": "28",
+            "observed_raw_ns": "49287832872",
+            "uncertainty_ppb": "58393"
+          },
+          "match": true
+        }
+      ]
+    },
+    "independent_exact_fraction_count_calculation": [
+      {
+        "label": "si5351-r1-on-1840100",
+        "selected_ppb": 6,
+        "independent": {
+          "start": {
+            "seq": 15,
+            "raw": 14471957663,
+            "utc": 1794099297000000000,
+            "edges": 1061344,
+            "count_raw": 14472043000,
+            "bound": 88337,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 25,
+            "raw": 24471956727,
+            "utc": 1794099307000000000,
+            "edges": 11061342,
+            "count_raw": 24472040000,
+            "bound": 86273,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 9999998,
+          "pps_raw_span_ns": 9999999064,
+          "counter_raw_span_ns": 9999997000,
+          "utc_span_ns": 10000000000,
+          "count_only_ppb": -200.0,
+          "timestamp_normalization_ppb": 206.4000206400062,
+          "normalized_ppb": 6.400020640006192
+        }
+      },
+      {
+        "label": "si5351-r1-on-28126100",
+        "selected_ppb": 45,
+        "independent": {
+          "start": {
+            "seq": 62,
+            "raw": 61471945727,
+            "utc": 1794099344000000000,
+            "edges": 467568,
+            "count_raw": 61472036000,
+            "bound": 93273,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 73,
+            "raw": 72471942727,
+            "utc": 1794099355000000000,
+            "edges": 11467561,
+            "count_raw": 72472025500,
+            "bound": 85273,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 10999993,
+          "pps_raw_span_ns": 10999997000,
+          "counter_raw_span_ns": 10999989500,
+          "utc_span_ns": 11000000000,
+          "count_only_ppb": -636.3636363636364,
+          "timestamp_normalization_ppb": 681.8183987605377,
+          "normalized_ppb": 45.454762396901295
+        }
+      },
+      {
+        "label": "si5351-r1-on-5366200",
+        "selected_ppb": -45,
+        "independent": {
+          "start": {
+            "seq": 97,
+            "raw": 96471934727,
+            "utc": 1794099379000000000,
+            "edges": 807391,
+            "count_raw": 96472018000,
+            "bound": 85273,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 108,
+            "raw": 107471932227,
+            "utc": 1794099390000000000,
+            "edges": 11807386,
+            "count_raw": 107472011000,
+            "bound": 80773,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 10999995,
+          "pps_raw_span_ns": 10999997500,
+          "counter_raw_span_ns": 10999993000,
+          "utc_span_ns": 11000000000,
+          "count_only_ppb": -454.54545454545456,
+          "timestamp_normalization_ppb": 409.0909834711217,
+          "normalized_ppb": -45.45447107433283
+        }
+      },
+      {
+        "label": "si5351-r2-on-1840100",
+        "selected_ppb": -100,
+        "independent": {
+          "start": {
+            "seq": 119,
+            "raw": 121776240872,
+            "utc": 1794099543000000000,
+            "edges": 330249,
+            "count_raw": 121776325000,
+            "bound": 86128,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 129,
+            "raw": 131776237872,
+            "utc": 1794099553000000000,
+            "edges": 10330263,
+            "count_raw": 131776337000,
+            "bound": 101128,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 10000014,
+          "pps_raw_span_ns": 9999997000,
+          "counter_raw_span_ns": 10000012000,
+          "utc_span_ns": 10000000000,
+          "count_only_ppb": 1400.0,
+          "timestamp_normalization_ppb": -1500.00029999964,
+          "normalized_ppb": -100.00029999964
+        }
+      },
+      {
+        "label": "si5351-r2-on-28126100",
+        "selected_ppb": 45,
+        "independent": {
+          "start": {
+            "seq": 85,
+            "raw": 87776252872,
+            "utc": 1794099509000000000,
+            "edges": 156573,
+            "count_raw": 87776348000,
+            "bound": 97128,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 96,
+            "raw": 98776249372,
+            "utc": 1794099520000000000,
+            "edges": 11156573,
+            "count_raw": 98776344000,
+            "bound": 96628,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 11000000,
+          "pps_raw_span_ns": 10999996500,
+          "counter_raw_span_ns": 10999996000,
+          "utc_span_ns": 11000000000,
+          "count_only_ppb": 0.0,
+          "timestamp_normalization_ppb": 45.454561983477085,
+          "normalized_ppb": 45.454561983477085
+        }
+      },
+      {
+        "label": "si5351-r2-on-5366200",
+        "selected_ppb": -150,
+        "independent": {
+          "start": {
+            "seq": 17,
+            "raw": 17776278872,
+            "utc": 1794099439000000000,
+            "edges": 1053739,
+            "count_raw": 17776352500,
+            "bound": 76128,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 27,
+            "raw": 27776274372,
+            "utc": 1794099449000000000,
+            "edges": 11053743,
+            "count_raw": 27776353500,
+            "bound": 81628,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 10000004,
+          "pps_raw_span_ns": 9999995500,
+          "counter_raw_span_ns": 10000001000,
+          "utc_span_ns": 10000000000,
+          "count_only_ppb": 400.0,
+          "timestamp_normalization_ppb": -550.0001649999836,
+          "normalized_ppb": -150.0001649999835
+        }
+      },
+      {
+        "label": "si5351-r3-on-1840100",
+        "selected_ppb": -50,
+        "independent": {
+          "start": {
+            "seq": 39,
+            "raw": 41349835727,
+            "utc": 1794099975000000000,
+            "edges": 66461,
+            "count_raw": 41349924000,
+            "bound": 90273,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 49,
+            "raw": 51349832227,
+            "utc": 1794099985000000000,
+            "edges": 10066461,
+            "count_raw": 51349921000,
+            "bound": 90773,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 10000000,
+          "pps_raw_span_ns": 9999996500,
+          "counter_raw_span_ns": 9999997000,
+          "utc_span_ns": 10000000000,
+          "count_only_ppb": 0.0,
+          "timestamp_normalization_ppb": -50.0000150000045,
+          "normalized_ppb": -50.0000150000045
+        }
+      },
+      {
+        "label": "si5351-r3-on-28126100",
+        "selected_ppb": -337,
+        "independent": {
+          "start": {
+            "seq": 73,
+            "raw": 75349822727,
+            "utc": 1794100009000000000,
+            "edges": 159544,
+            "count_raw": 75349907500,
+            "bound": 87273,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 84,
+            "raw": 86349815518,
+            "utc": 1794100020000000000,
+            "edges": 11159545,
+            "count_raw": 86349905000,
+            "bound": 91482,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 11000001,
+          "pps_raw_span_ns": 10999992791,
+          "counter_raw_span_ns": 10999997500,
+          "utc_span_ns": 11000000000,
+          "count_only_ppb": 90.9090909090909,
+          "timestamp_normalization_ppb": -428.09104530168383,
+          "normalized_ppb": -337.18195439259296
+        }
+      },
+      {
+        "label": "si5351-r3-on-5366200",
+        "selected_ppb": -13,
+        "independent": {
+          "start": {
+            "seq": 130,
+            "raw": 134349797372,
+            "utc": 1794100068000000000,
+            "edges": 332357,
+            "count_raw": 134349878500,
+            "bound": 83628,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 141,
+            "raw": 145349793727,
+            "utc": 1794100079000000000,
+            "edges": 11332354,
+            "count_raw": 145349872000,
+            "bound": 80273,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 10999997,
+          "pps_raw_span_ns": 10999996355,
+          "counter_raw_span_ns": 10999993500,
+          "utc_span_ns": 11000000000,
+          "count_only_ppb": -272.72727272727275,
+          "timestamp_normalization_ppb": 259.545537128148,
+          "normalized_ppb": -13.181735599124755
+        }
+      },
+      {
+        "label": "si5351-r4-on-1840100",
+        "selected_ppb": -29,
+        "independent": {
+          "start": {
+            "seq": 133,
+            "raw": 134287796518,
+            "utc": 1794100246000000000,
+            "edges": 1240418,
+            "count_raw": 134287876500,
+            "bound": 82482,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 143,
+            "raw": 144287793727,
+            "utc": 1794100256000000000,
+            "edges": 11240417,
+            "count_raw": 144287873000,
+            "bound": 81273,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 9999999,
+          "pps_raw_span_ns": 9999997209,
+          "counter_raw_span_ns": 9999996500,
+          "utc_span_ns": 10000000000,
+          "count_only_ppb": -100.0,
+          "timestamp_normalization_ppb": 70.90001772500621,
+          "normalized_ppb": -29.099982274993796
+        }
+      },
+      {
+        "label": "si5351-r4-on-28126100",
+        "selected_ppb": 14,
+        "independent": {
+          "start": {
+            "seq": 98,
+            "raw": 99287811727,
+            "utc": 1794100211000000000,
+            "edges": 1736402,
+            "count_raw": 99287886500,
+            "bound": 77273,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 108,
+            "raw": 109287808372,
+            "utc": 1794100221000000000,
+            "edges": 11736412,
+            "count_raw": 109287893000,
+            "bound": 86628,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 10000010,
+          "pps_raw_span_ns": 9999996645,
+          "counter_raw_span_ns": 10000006500,
+          "utc_span_ns": 10000000000,
+          "count_only_ppb": 1000.0,
+          "timestamp_normalization_ppb": -985.5003449247758,
+          "normalized_ppb": 14.4996550752242
+        }
+      },
+      {
+        "label": "si5351-r4-on-5366200",
+        "selected_ppb": -150,
+        "independent": {
+          "start": {
+            "seq": 40,
+            "raw": 39287836872,
+            "utc": 1794100151000000000,
+            "edges": 1044508,
+            "count_raw": 39287931000,
+            "bound": 97128,
+            "nominal": 1000000000000000
+          },
+          "end": {
+            "seq": 50,
+            "raw": 49287832872,
+            "utc": 1794100161000000000,
+            "edges": 11044494,
+            "count_raw": 49287914500,
+            "bound": 84128,
+            "nominal": 1000000000000000
+          },
+          "count_delta": 9999986,
+          "pps_raw_span_ns": 9999996000,
+          "counter_raw_span_ns": 9999983500,
+          "utc_span_ns": 10000000000,
+          "count_only_ppb": -1400.0,
+          "timestamp_normalization_ppb": 1250.0003125005155,
+          "normalized_ppb": -149.99968749948437
+        }
+      }
+    ],
+    "restoration": {
+      "verified": true,
+      "full_flash_sha256": "636c5a9de30fe5e417e038715ac113e384eedda18dec942aae7438e897931d51",
+      "source": "9f929b27b724",
+      "saved_semantics_equal": true,
+      "same_board_installer_reference_verified": true,
+      "job": {
+        "boot_id": "a89273a82839d2f79ef7b022fab0c782",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      }
+    },
+    "gpsdo_restoration": {
+      "verified": true,
+      "state": {
+        "serial": "0673ED0FA107",
+        "f1": 10000000,
+        "f2": 10000000,
+        "out1": true,
+        "out2": true,
+        "pps1": false,
+        "fll": false,
+        "out1low": true,
+        "out2low": true
+      },
+      "satellite_lock": true,
+      "pll_lock": true,
+      "antenna_ok": true
+    },
+    "ci": {
+      "pico_pr_preview": {
+        "run": "https://github.com/WsprryPi/WsprryPico/actions/runs/42431631967",
+        "source": "98a3a85594ef39512456f861b70377a5dea0a308",
+        "status": "passed",
+        "scope": "Synthetic PR merge snapshot; RF implementation/tests equal d8bc0994. Newer devel installer/docs/dependency-pin/completion-policy changes are present. 234 CTests, 27 execution records, 13 native browser records.",
+        "different_files": [
+          "docs/maintain.md",
+          "engineering/development/usb-installer.md",
+          "scripts/ci/ctest-completion-policy.json",
+          "scripts/ci/inputs.json",
+          "scripts/usb_installer.py",
+          "tests/usb_installer_tests.py"
+        ]
+      },
+      "selected_source_pair": {
+        "run": "https://github.com/WsprryPi/WsprryPi/actions/runs/42431769713",
+        "status": "all_jobs_passed",
+        "network": "wtp-network-loopback passed, including runtime, interop, config, routing, source-selection, and browser gates",
+        "usb": "wtp-usb-management-pair passed, actual candidate driver and production Pi pair"
+      },
+      "unsupported_optional_dispatch": {
+        "run": "https://github.com/WsprryPi/WsprryPico/actions/runs/42433041183",
+        "status": "refused_before_tests",
+        "reason": "Canonical artifact input policy does not admit workflow_dispatch on feature branches; no policy relaxation or merge performed."
+      }
+    },
+    "limitations": [
+      "Current physical image is the original lifecycle-branch image, not the divergent RC.2 candidate. RF/time/selection sources match the RC.2 baseline; the new projection fix is supported by exact Arm instruction emulation and production-engine register decoding, not a candidate deployment.",
+      "Recorded observations explain selected estimate variation, and predicted correction shifts agree with measured changes. Counter endpoint error, PPS timestamp jitter, and idle-to-transmit oscillator variation are not uniquely separated by this campaign.",
+      "Short 10\u201311 second independent Si5351 windows are sensitive to endpoint/count quantization; this is a demonstrated contributor mechanism, not exclusive historical causation or proof that longer spans alone solve the issue.",
+      "No Si5351 band resolves the unchanged worst-corrected-upper versus best-baseline-lower improvement criterion. The 160 m baseline is too close to zero for the current allowance to resolve improvement.",
+      "Actual physical synthesizer PLL/multisynth register bytes are unavailable through the current management interface. Independent decoding covers production Device writes on the host; physical shifts check sign and once-only realization."
+    ],
+    "original_developer_bundle": {
+      "path": "/home/pi/.local/state/wsprrypi-qualification/pico-bench-20261107/lifecycle-feature-bundle-20261107",
+      "uf2": "WsprryPico-0.0.0-devel-pico2_w.uf2",
+      "uf2_sha256": "43cf47135d55f7f264930bb2c03a7864fe47d9fd50c39cbe4a94e11b48b62e62",
+      "same_board_transaction": "/home/pi/.local/state/wsprrypico-usb/1545B6EFBF78028C-zi3dk31f/transaction.json"
+    },
+    "final_services": {
+      "wsprrypi": "inactive",
+      "sdrplay": "active",
+      "receiver_capture_processes": 0,
+      "changed_by_campaign": false
+    },
+    "engine_settings": {
+      "gp2": {
+        "gpio": 2,
+        "drive_ma": 4
+      },
+      "si5351": {
+        "output": "CLK0",
+        "drive_ma": 8,
+        "reference_hz": 25000000,
+        "reference": "external_xa",
+        "loopback": "CLK2",
+        "capture_gpio": 7,
+        "i2c_sda_gpio": 4,
+        "i2c_scl_gpio": 5
+      }
+    },
+    "build_dependencies": {
+      "pico_sdk": "079c6f39023649b154152db30f1d781e884879bc",
+      "arm_gcc": "15.3.1",
+      "picotool": "6f6458d792b93685a11423b244a585eaa99eafcf",
+      "mbedtls": "0bebf8b8c7f07abe3571ded48a11aa907a1ffb20",
+      "harness": "62aa6e2ffa904a10b674bb1792a3bd66ba8afea6"
+    },
+    "restoration_tools": {
+      "installer_source": "1a01cabd34f6ef70593f68e9ab4035b124d01112",
+      "scope": "Read-only independent lifecycle installer tool; no branch integration",
+      "host_picotool_version": "2.3.1"
+    },
+    "restoration_verified_utc": "2026-11-08T01:20:10Z",
+    "measurement_ordering": "Chronological campaign order from the durable pre-ARM RF-budget reservation event. Reservation timestamps are not calibrated RF launch timestamps.",
+    "bounded_closure_record": "si5351_bounded_closure_20261108"
+  },
+  "si5351_existing_wiring_counter_diagnostic_20261107": {
+    "date_local": "2026-11-07",
+    "diagnostic_source": "c1f96a5e3af3c42304b374929b43c3ec2b3470f5",
+    "source_scope": "RAM-only fixture; final analyzer successor changes transition classification and terminology, not deployed firmware.",
+    "board_serial": "1545B6EFBF78028C",
+    "system_clock_hz": 138000000,
+    "engine": "No RF jobs; Si5351 CLK2 1 MHz integer PLLA900/MS900 reference, CLK0/1 disabled",
+    "pins": {
+      "clock": 7,
+      "pps": 3,
+      "serial_rx": 1
+    },
+    "pps_endpoint_allowance_us": 10,
+    "scope": "Conditional count-window evidence, not calibrated RF improvement; shared hardware counter and source variation within read delay remain unresolved.",
+    "captures": {
+      "quiet-first": {
+        "pulses": 301,
+        "max_gap_us": 9,
+        "load_writes": 12001,
+        "health_before": {
+          "uart_errors": 30,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "health_deltas": {
+          "uart_errors": 0,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "transcript_sha256": "2acffe920f65a2c4c2894d9886b186ac438f79041b9ce2a4c54920ac49aba0e7",
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -550.0,
+            "maximum_ppb": 500.0,
+            "peak_to_peak_ppb": 1050.0,
+            "sample_stdev_ppb": 224.73483736714425,
+            "maximum_half_interval_ppb": 2800.0000000112
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -166.66666666666666,
+            "maximum_ppb": 66.66666666666667,
+            "peak_to_peak_ppb": 233.33333333333331,
+            "sample_stdev_ppb": 72.77565730583473,
+            "maximum_half_interval_ppb": 916.6666333337407
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -63.33333333333333,
+            "minimum_ppb": -108.33333333333333,
+            "maximum_ppb": 8.333333333333334,
+            "peak_to_peak_ppb": 116.66666666666666,
+            "sample_stdev_ppb": 47.72607021092118,
+            "maximum_half_interval_ppb": 458.333336111162
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -63.333333333333336,
+            "maximum_ppb": -63.333333333333336,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 89.99999577777817
+          }
+        ],
+        "production_observations": 301,
+        "incoherent_count_observations": 10,
+        "production_windows": [
+          {
+            "span_s": 10,
+            "available": 28,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 535.4999058000376,
+            "quiet_interior_windows": 13,
+            "loaded_interior_windows": 8,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 30,
+            "available": 8,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 116.66665972222465,
+            "quiet_interior_windows": 1,
+            "loaded_interior_windows": 0,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 60,
+            "available": 3,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 41.666666666666664,
+            "quiet_interior_windows": 0,
+            "loaded_interior_windows": 0,
+            "transition_windows": 3
+          }
+        ]
+      },
+      "loaded-first": {
+        "pulses": 301,
+        "max_gap_us": 9,
+        "load_writes": 18077,
+        "health_before": {
+          "uart_errors": 0,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "health_deltas": {
+          "uart_errors": 0,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "transcript_sha256": "e47666615961bdf4f2c62464253ee5867b0ccbcfaab481e29a8bb81f227a0d8d",
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -400.0,
+            "maximum_ppb": 300.0,
+            "peak_to_peak_ppb": 700.0,
+            "sample_stdev_ppb": 206.3364064911429,
+            "maximum_half_interval_ppb": 2750.000500011
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -183.33333333333334,
+            "maximum_ppb": 33.333333333333336,
+            "peak_to_peak_ppb": 216.66666666666669,
+            "sample_stdev_ppb": 60.24640760767093,
+            "maximum_half_interval_ppb": 933.333311111526
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -63.33333333333333,
+            "minimum_ppb": -141.66666666666666,
+            "maximum_ppb": 8.333333333333334,
+            "peak_to_peak_ppb": 150.0,
+            "sample_stdev_ppb": 53.87743291748204,
+            "maximum_half_interval_ppb": 466.66665000005185
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -63.333333333333336,
+            "maximum_ppb": -63.333333333333336,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 89.99999577777817
+          }
+        ],
+        "production_observations": 301,
+        "incoherent_count_observations": 9,
+        "production_windows": [
+          {
+            "span_s": 10,
+            "available": 28,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 585.4998330501335,
+            "quiet_interior_windows": 8,
+            "loaded_interior_windows": 13,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 30,
+            "available": 8,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 99.99999999999999,
+            "quiet_interior_windows": 0,
+            "loaded_interior_windows": 1,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 60,
+            "available": 3,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 39.24997320557699,
+            "quiet_interior_windows": 0,
+            "loaded_interior_windows": 0,
+            "transition_windows": 3
+          }
+        ]
+      }
+    },
+    "restoration": {
+      "verified": true,
+      "serial": "1545B6EFBF78028C",
+      "source": "922935f0097ed3014f8f20bef4bb0c9289645422",
+      "firmware": "0.1.0-ci.42429358845.1",
+      "full_flash_sha256": "6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906",
+      "flash_rewritten": false,
+      "saved_semantics_equal": true,
+      "job": {
+        "boot_id": "3ea79e1574e55c0a9e758e9bfbf8bb99",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "bundle_uf2_sha256": "e2609c2830294e197d7ae67c8bf157a5ff2ab2e9e996a6b73cb4fb6bb7c7f6dd"
+    },
+    "attempts": [
+      {
+        "attempt": 0,
+        "result": "Unconfigured-profile preflight bug; no RAM load; original semantics verified."
+      },
+      {
+        "attempt": 1,
+        "result": "301-edge capture refused for aggregate UART errors; original restored with no flash rewrite. Retained privately, not qualification."
+      },
+      {
+        "attempt": 2,
+        "result": "Both complete captures accepted with zero UART/drop/rejection deltas during capture; startup counters retained."
+      }
+    ],
+    "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage1-20261107",
+    "external_gpio_test": "Built and SRAM-validated only; not connected or physically run."
+  },
+  "gpsdo_gpio_diagnostic_20261108": {
+    "fixture_source": "9c0092aae381fa68b8b61a9b0840703e1ab81df5",
+    "fixture_uf2_sha256": "25bfb68a7f1d81c97f392ccc6a1b34ea029cc71fdc271ff53e6da46e5421b937",
+    "serial": "1545B6EFBF78028C",
+    "system_clock_hz": 138000000,
+    "clock_gp": 9,
+    "pps_gp": 11,
+    "gpsdo_serial": "0673ED0FA107",
+    "gpsdo_firmware": "1.9",
+    "gpsdo_utility_sha256": "97ca1f8c6737c19901edc853848eea5a39a3d8dc3d1a8c387f1ecc45cea3cff2",
+    "physical_routing_verified": true,
+    "routing_scope": "Digital clock/PPS pin binding; does not independently certify ground-lead continuity, input voltage/waveform, source accuracy, or common-source zero relative jitter.",
+    "routing_matrix": [
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "slow2",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": true,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "slow1",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 22,
+        "gp9_polled_rises": 22,
+        "gp11_polled_rises": 11,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": true,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "slowboth",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 22,
+        "gp9_polled_rises": 22,
+        "gp11_polled_rises": 11,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": true,
+          "out2": true,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "fast2both",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 2199999,
+        "gp9_polled_rises": 955735,
+        "gp11_polled_rises": 11,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": true,
+          "out2": true,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "pps",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 2,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": true,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      }
+    ],
+    "combined_guard": [
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "clock_edges": 0,
+        "approximate_clock_hz": 0.0,
+        "maximum_gap_us": 1,
+        "pins": {
+          "8": {
+            "rises": 0,
+            "falls": 0
+          },
+          "9": {
+            "rises": 0,
+            "falls": 0
+          },
+          "10": {
+            "rises": 0,
+            "falls": 0
+          },
+          "11": {
+            "rises": 0,
+            "falls": 0
+          },
+          "12": {
+            "rises": 0,
+            "falls": 0
+          },
+          "13": {
+            "rises": 0,
+            "falls": 0
+          }
+        },
+        "scope": "Digital routing only; no independent ground-lead continuity, voltage, waveform, or metrology qualification.",
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "duration_us": 2200000,
+        "clock_edges": 2199998,
+        "approximate_clock_hz": 999999.0909090909,
+        "maximum_gap_us": 1,
+        "pins": {
+          "8": {
+            "rises": 0,
+            "falls": 0
+          },
+          "9": {
+            "rises": 955738,
+            "falls": 955738
+          },
+          "10": {
+            "rises": 0,
+            "falls": 0
+          },
+          "11": {
+            "rises": 2,
+            "falls": 2
+          },
+          "12": {
+            "rises": 0,
+            "falls": 0
+          },
+          "13": {
+            "rises": 0,
+            "falls": 0
+          }
+        },
+        "phase": "combined",
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": true,
+          "out2": true,
+          "pps1": true,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "clock_edges": 0,
+        "approximate_clock_hz": 0.0,
+        "maximum_gap_us": 1,
+        "pins": {
+          "8": {
+            "rises": 0,
+            "falls": 0
+          },
+          "9": {
+            "rises": 0,
+            "falls": 0
+          },
+          "10": {
+            "rises": 0,
+            "falls": 0
+          },
+          "11": {
+            "rises": 0,
+            "falls": 0
+          },
+          "12": {
+            "rises": 0,
+            "falls": 0
+          },
+          "13": {
+            "rises": 0,
+            "falls": 0
+          }
+        },
+        "scope": "Digital routing only; no independent ground-lead continuity, voltage, waveform, or metrology qualification.",
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      }
+    ],
+    "capture": {
+      "qualification": "REFUSED: two missing production GPS observations; second capture not started",
+      "metadata": {
+        "pulses": 301,
+        "observations": 299,
+        "coherent": 1,
+        "max_gap_us": 10,
+        "restored": 1,
+        "first_loaded": 0,
+        "load_writes": 12001
+      },
+      "missing_sequences": [
+        97,
+        98
+      ],
+      "gap_before_sequence": 96,
+      "gap_after_sequence": 99,
+      "reference_health_samples": 23,
+      "reference_health_all_good": true,
+      "uart_drop_capture_error_deltas": {
+        "uart_errors": 0,
+        "dropped": 0,
+        "capture_rejections": 0
+      },
+      "rejected_sentences": 0,
+      "transcript_sha256": "fddbecc15373cebd2d3157b6c9f0fc9058a6fc8d59809b8061c94a163594e105",
+      "independent_only_summaries": [
+        {
+          "span_s": 10,
+          "windows": 30,
+          "mean_ppb": -6.666666666666667,
+          "minimum_ppb": -550.0,
+          "maximum_ppb": 400.0,
+          "peak_to_peak_ppb": 950.0,
+          "sample_stdev_ppb": 219.2201433818704,
+          "maximum_half_interval_ppb": 2800.0008000112
+        },
+        {
+          "span_s": 30,
+          "windows": 10,
+          "mean_ppb": -6.666666666666665,
+          "minimum_ppb": -166.66666666666666,
+          "maximum_ppb": 183.33333333333334,
+          "peak_to_peak_ppb": 350.0,
+          "sample_stdev_ppb": 105.46779977852698,
+          "maximum_half_interval_ppb": 933.333222222637
+        },
+        {
+          "span_s": 60,
+          "windows": 5,
+          "mean_ppb": -6.666666666666666,
+          "minimum_ppb": -75.0,
+          "maximum_ppb": 33.333333333333336,
+          "peak_to_peak_ppb": 108.33333333333334,
+          "sample_stdev_ppb": 42.24597285212192,
+          "maximum_half_interval_ppb": 466.6666722222741
+        },
+        {
+          "span_s": 300,
+          "windows": 1,
+          "mean_ppb": -6.666666666666667,
+          "minimum_ppb": -6.666666666666667,
+          "maximum_ppb": -6.666666666666667,
+          "peak_to_peak_ppb": 0.0,
+          "sample_stdev_ppb": null,
+          "maximum_half_interval_ppb": 89.99999955555595
+        }
+      ],
+      "independent_only_scope": "Valid301 GPIO/PWM endpoints; this does not convert the refused whole production capture into acceptance. Conditional10us perPPS endpoint retained.",
+      "native_production_replay": {
+        "scope": "Offline production learner replay of original observations, including gap/reset. Not acceptance of the refused whole capture or device-produced calibration metadata. Nominal clock1MHz, fixture edge offset0, actual observation uncertainty200000ns retained.",
+        "updates": 235,
+        "minimum_ppb": -169,
+        "maximum_ppb": 235,
+        "all_values_within_own_bound": true
+      },
+      "native_replay_scope": "Uses original299 observations unchanged, zero edge offset and actual200000ns observation uncertainty. Missing records left absent; production learner resets its acquisition across gap.235 overlapping updates are not independent repeats or device-reported estimates. Clock source is GPSDO, not Si5351 TCXO."
+    },
+    "restoration": {
+      "verified": true,
+      "serial": "1545B6EFBF78028C",
+      "source": "922935f0097ed3014f8f20bef4bb0c9289645422",
+      "firmware": "0.1.0-ci.42429358845.1",
+      "full_flash_sha256": "6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906",
+      "flash_rewritten": false,
+      "saved_semantics_equal": true,
+      "job": {
+        "boot_id": "6636ae3fc63ba2b8f6a6186e42485be0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "bundle_uf2_sha256": "e2609c2830294e197d7ae67c8bf157a5ff2ab2e9e996a6b73cb4fb6bb7c7f6dd"
+    },
+    "gpsdo_disabled_final": {
+      "serial": "0673ED0FA107",
+      "f1": 5,
+      "f2": 1000000,
+      "out1": false,
+      "out2": false,
+      "pps1": false,
+      "fll": false,
+      "out1low": true,
+      "out2low": true
+    },
+    "original_gpsdo_rf_configuration_restoration": "Deferred while GPIO leads remain connected; no automatic return to enabled10MHz outputs.",
+    "clk0_gp2_rf_jobs_s": 0,
+    "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage2-20261108",
+    "item21": "Historical stage result: no RF-improvement qualification or production calibration-policy change. Current closure is recorded in si5351_bounded_closure_20261108."
+  },
+  "gpsdo_pairing_trace_20261108": {
+    "instrumented_source": "38c3f997384e4abbce29efb70249f5327376ee29",
+    "instrumented_ram_uf2_sha256": "0f51ad3b49372e5308a9186625d2c679e421a2ceb814a1d2f9478ba5baa42d12",
+    "serial": "1545B6EFBF78028C",
+    "system_clock_hz": 138000000,
+    "pins": {
+      "clock": 9,
+      "pps": 11,
+      "qlg3_pps_observer": 3,
+      "qlg3_serial": 1
+    },
+    "refused_capture": {
+      "label": "quiet-first-1",
+      "accepted": false,
+      "trace": {
+        "qualification": "not_evaluated",
+        "valid": true,
+        "samples": 3029,
+        "maximum_sample_gap_ns": 100031000,
+        "maximum_work_us": 5822,
+        "error_sample_counts": {
+          "none": 2993,
+          "unpaired_utc": 18,
+          "pairing_acquisition": 18
+        },
+        "auxiliary_pps_pulses": 303,
+        "qlg3_minus_primary_phase_ns": [
+          -11000,
+          15000
+        ]
+      },
+      "late_rmc_delay_bounds_ns": [
+        [
+          1206904000,
+          1206912000
+        ],
+        [
+          1200385000,
+          1200393000
+        ]
+      ],
+      "old_profile_ms": [
+        600,
+        1200
+      ],
+      "each_event": [
+        "unpaired_utc",
+        "pairing_acquisition",
+        "two_missing_observations"
+      ],
+      "cause": "Observed label arrivals outside the fixture receiver profile. Reproduced through production pairing; no retrospective attribution for older uninstrumented gaps.",
+      "uart_drop_rejected_capture_error_deltas": 0,
+      "maximum_pps_irq_latency_ns": 1855
+    },
+    "fixture_fix": {
+      "source": "df8de6a08617d6e40bde83f63969cfb29880c641",
+      "profile_ms": [
+        600,
+        1250
+      ],
+      "maximum_window_width_ms": 650,
+      "measured_1206_912_ms_regression": "accepts consecutive observations",
+      "beyond_1250_001_ms_regression": "refused",
+      "production_policy_changed": false,
+      "rf_allowances_changed": false,
+      "older_refusals_reclassified": false
+    },
+    "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage3-20261108",
+    "interpretation": "Identifies this fixture pairing-gap cause; does not establish Si5351 RF improvement or uniquely separate PPS/count acquisition error from physical source variation.",
+    "fresh_profile_captures": {
+      "source": "df8de6a08617d6e40bde83f63969cfb29880c641",
+      "ram_uf2_sha256": "09ec61e52ead06a7fb46741af02b799045f64c022db826abfc5ab7046b2ae3dd",
+      "runs": [
+        {
+          "label": "quiet-first-1",
+          "accepted": true,
+          "raw_sha256": "c92b2367fdef624abb59d87309ed326fb664e979c5326b47f428a1b741fec168",
+          "first_loaded": false,
+          "pulses": 301,
+          "production_observations_inside_capture": 301,
+          "production_observations_outside_capture": 2,
+          "production_observations_total": 303,
+          "maximum_poll_gap_us": 10,
+          "load_writes": 12000,
+          "health_before": {
+            "uart_errors": 101,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_deltas": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_after": {
+            "uart_errors": 101,
+            "dropped": 0,
+            "capture_rejections": 0,
+            "maximum_irq_latency_ns": "1855",
+            "capture_error_bound_ns": "5210"
+          },
+          "trace": {
+            "qualification": "not_evaluated",
+            "valid": true,
+            "samples": 3030,
+            "maximum_sample_gap_ns": 100024000,
+            "maximum_work_us": 5826,
+            "error_sample_counts": {
+              "pairing_acquisition": 2,
+              "none": 3028
+            },
+            "observation_stalls": [],
+            "auxiliary_pps_pulses": 303,
+            "qlg3_minus_primary_phase_ns": [
+              -11000,
+              15000
+            ]
+          },
+          "incoherent_sequences": [
+            29,
+            78,
+            99,
+            129,
+            135,
+            200,
+            211,
+            246
+          ],
+          "independent_summaries": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "mean_ppb": -10.0,
+              "minimum_ppb": -600.0,
+              "maximum_ppb": 550.0,
+              "peak_to_peak_ppb": 1150.0,
+              "sample_stdev_ppb": 311.6695863161543,
+              "maximum_half_interval_ppb": 2800.0010000111997
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "mean_ppb": -9.999999999999998,
+              "minimum_ppb": -100.0,
+              "maximum_ppb": 183.33333333333334,
+              "peak_to_peak_ppb": 283.33333333333337,
+              "sample_stdev_ppb": 86.13798863695247,
+              "maximum_half_interval_ppb": 933.3333777781926
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "mean_ppb": -10.0,
+              "minimum_ppb": -41.666666666666664,
+              "maximum_ppb": 41.666666666666664,
+              "peak_to_peak_ppb": 83.33333333333333,
+              "sample_stdev_ppb": 34.56073558887953,
+              "maximum_half_interval_ppb": 466.6666555556074
+            },
+            {
+              "span_s": 300,
+              "windows": 1,
+              "mean_ppb": -10.0,
+              "minimum_ppb": -10.0,
+              "maximum_ppb": -10.0,
+              "peak_to_peak_ppb": 0.0,
+              "sample_stdev_ppb": null,
+              "maximum_half_interval_ppb": 93.33333266666708
+            }
+          ],
+          "comparisons": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "available": 30,
+              "midpoint_inside_independent_brackets": 29,
+              "maximum_absolute_midpoint_difference_ppb": 785.4997409502851,
+              "outside_midpoint_windows": [
+                {
+                  "available": true,
+                  "span_s": 10,
+                  "first_pps": 100,
+                  "last_pps": 110,
+                  "loaded": true,
+                  "production_estimate_ppb": 235.49974095028495,
+                  "acquisition_difference_ppb": [
+                    35.49974095028495,
+                    1535.499740950285
+                  ],
+                  "acquisition_difference_midpoint_ppb": 785.4997409502851,
+                  "consistent_with_independent_brackets": false,
+                  "pps_timestamp_difference_change_ns": [
+                    -645,
+                    15355
+                  ]
+                }
+              ]
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "available": 10,
+              "midpoint_inside_independent_brackets": 10,
+              "maximum_absolute_midpoint_difference_ppb": 128.49991495842545,
+              "outside_midpoint_windows": []
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "available": 5,
+              "midpoint_inside_independent_brackets": 5,
+              "maximum_absolute_midpoint_difference_ppb": 33.33333333333333,
+              "outside_midpoint_windows": []
+            }
+          ],
+          "learner_replay": {
+            "scope": "Offline unchanged production learner with original observations, gaps, timestamps and count bindings; scope label is not a device boot identifier. Generations are replay outputs, not device-reported calibrations.",
+            "updates": 249,
+            "minimum_ppb": -169,
+            "maximum_ppb": 185,
+            "minimum_uncertainty_ppb": 6950,
+            "maximum_uncertainty_ppb": 42115,
+            "minimum_span_ns": 10000000000,
+            "maximum_span_ns": 60000000000
+          }
+        },
+        {
+          "label": "loaded-first-2",
+          "accepted": true,
+          "raw_sha256": "4dc7d09602320dd8ea5f5105ab2e4f95d2b2c2498d9da27df3a6c554d1c472e4",
+          "first_loaded": true,
+          "pulses": 301,
+          "production_observations_inside_capture": 301,
+          "production_observations_outside_capture": 1,
+          "production_observations_total": 302,
+          "maximum_poll_gap_us": 10,
+          "load_writes": 18011,
+          "health_before": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_deltas": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_after": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0,
+            "maximum_irq_latency_ns": "1855",
+            "capture_error_bound_ns": "5710"
+          },
+          "trace": {
+            "qualification": "not_evaluated",
+            "valid": true,
+            "samples": 3022,
+            "maximum_sample_gap_ns": 100022000,
+            "maximum_work_us": 5811,
+            "error_sample_counts": {
+              "none": 3022
+            },
+            "observation_stalls": [],
+            "auxiliary_pps_pulses": 303,
+            "qlg3_minus_primary_phase_ns": [
+              -11000,
+              16000
+            ]
+          },
+          "incoherent_sequences": [
+            16,
+            82,
+            133,
+            226,
+            230,
+            250
+          ],
+          "independent_summaries": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "mean_ppb": 0.0,
+              "minimum_ppb": -600.0,
+              "maximum_ppb": 700.0,
+              "peak_to_peak_ppb": 1300.0,
+              "sample_stdev_ppb": 355.98333940092544,
+              "maximum_half_interval_ppb": 2850.0005000113997
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "mean_ppb": -3.552713678800501e-16,
+              "minimum_ppb": -200.0,
+              "maximum_ppb": 233.33333333333334,
+              "peak_to_peak_ppb": 433.33333333333337,
+              "sample_stdev_ppb": 128.86015005270224,
+              "maximum_half_interval_ppb": 949.9999888893111
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "mean_ppb": -2.1316282072803005e-15,
+              "minimum_ppb": -33.333333333333336,
+              "maximum_ppb": 83.33333333333333,
+              "peak_to_peak_ppb": 116.66666666666666,
+              "sample_stdev_ppb": 47.14045207910317,
+              "maximum_half_interval_ppb": 466.66669444449633
+            },
+            {
+              "span_s": 300,
+              "windows": 1,
+              "mean_ppb": 0.0,
+              "minimum_ppb": 0.0,
+              "maximum_ppb": 0.0,
+              "peak_to_peak_ppb": 0.0,
+              "sample_stdev_ppb": null,
+              "maximum_half_interval_ppb": 93.33333333333374
+            }
+          ],
+          "comparisons": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "available": 30,
+              "midpoint_inside_independent_brackets": 30,
+              "maximum_absolute_midpoint_difference_ppb": 785.4997588503136,
+              "outside_midpoint_windows": []
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "available": 10,
+              "midpoint_inside_independent_brackets": 10,
+              "maximum_absolute_midpoint_difference_ppb": 204.83341371656485,
+              "outside_midpoint_windows": []
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "available": 5,
+              "midpoint_inside_independent_brackets": 5,
+              "maximum_absolute_midpoint_difference_ppb": 100.0,
+              "outside_midpoint_windows": []
+            }
+          ],
+          "learner_replay": {
+            "scope": "Offline unchanged production learner with original observations, gaps, timestamps and count bindings; scope label is not a device boot identifier. Generations are replay outputs, not device-reported calibrations.",
+            "updates": 251,
+            "minimum_ppb": -260,
+            "maximum_ppb": 150,
+            "minimum_uncertainty_ppb": 6950,
+            "maximum_uncertainty_ppb": 41743,
+            "minimum_span_ns": 10000000000,
+            "maximum_span_ns": 60000000000
+          }
+        }
+      ],
+      "conditional_pps_endpoint_allowance_us": 10,
+      "scope": "Continuity/health accepted; independent and production midpoint comparisons retain actual discrepancies. No RF qualification or uniquely identified physical cause.",
+      "private_evidence_directory": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage3-20261108/profile-1250-01",
+      "restoration": {
+        "verified": true,
+        "serial": "1545B6EFBF78028C",
+        "source": "922935f0097ed3014f8f20bef4bb0c9289645422",
+        "firmware": "0.1.0-ci.42429358845.1",
+        "full_flash_sha256": "6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906",
+        "flash_rewritten": false,
+        "saved_semantics_equal": true,
+        "job": {
+          "boot_id": "d1d26b0eff10d95a051e3478a459c6a7",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        },
+        "bundle_uf2_sha256": "e2609c2830294e197d7ae67c8bf157a5ff2ab2e9e996a6b73cb4fb6bb7c7f6dd"
+      },
+      "campaign": {
+        "success": true,
+        "failure": null,
+        "cleanup_error": null,
+        "rf_commanded_seconds": 0,
+        "ram_only": true,
+        "serial": "1545B6EFBF78028C"
+      },
+      "gpsdo_disabled_final": {
+        "serial": "0673ED0FA107",
+        "f1": 5,
+        "f2": 1000000,
+        "out1": false,
+        "out2": false,
+        "pps1": false,
+        "fll": false,
+        "out1low": true,
+        "out2low": true
+      },
+      "late_arrival_coverage": "Neither fresh capture reproduced an arrival beyond1200ms. Native production-pairing regression covers the measured1206.912ms boundary; fresh hardware records qualify continuity and health under the updated profile."
+    },
+    "software_validation": {
+      "pico_feature_source": "df8de6a08617d6e40bde83f63969cfb29880c641",
+      "pico_preview_source": "1b9c6b87fbab2dbdd49ffa3ac5074bb13b67da86",
+      "pico_preview_base": "7d841b75df34fe01139d38af2a92a9eacb3afd20",
+      "pico_ci": "https://github.com/WsprryPi/WsprryPico/actions/runs/42486702825",
+      "pico_result": "success",
+      "pico_ctest": {
+        "registered": 234,
+        "passed": 234,
+        "skipped": 0
+      },
+      "pico_execution_records": 27,
+      "pico_required_contexts": 18,
+      "pico_native_browser_contexts": 13,
+      "preview_difference": "Thirteen installer/prepared-publication/docs/pin/completion-policy files from the newer base; production RF/GPS, fixture and analysis implementation match feature source. Preview not merged into feature.",
+      "pi_source": "0a794eeb3eeddbf3fdbb74bcc04ca9f84c8fe030",
+      "pi_ref": "devel",
+      "pi_ci": "https://github.com/WsprryPi/WsprryPi/actions/runs/42487195354",
+      "pi_result": "success",
+      "pi_jobs": [
+        {
+          "name": "Choose validation scope",
+          "conclusion": "success"
+        },
+        {
+          "name": "ubuntu-gcc13-release",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-simulated-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict-i2c-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15-intel)",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-usb-management-pair",
+          "conclusion": "success"
+        },
+        {
+          "name": "non-hardware-validation",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15)",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-network-loopback",
+          "conclusion": "success"
+        }
+      ],
+      "source_pair_dispatch_command": "gh workflow run debian-non-hardware.yml --repo WsprryPi/WsprryPi --ref devel -f pico_ref=df8de6a08617d6e40bde83f63969cfb29880c641",
+      "production_suites": [
+        "wtp-network-runtime-test",
+        "wtp-network-interop-test",
+        "wtp-config-interop-test",
+        "wtp-usb-pair-client-build",
+        "wtp-usb-management-test",
+        "WsprryPi-UI/tests/wtp_usb_pair_test.js"
+      ],
+      "final_source_difference": "Successor changes only consolidated-backlog.md, gps-pps-validation.md and gps-pps-validation.json; no implementation/test differences from selected Pico feature source.",
+      "git_boundary": "Pico codex/rc.2 stays unmerged, PR19 draft/no auto-merge. Former Pi5594964 is retained in devel following external merge; deleted Pi CI branch not recreated. Original Pi worktree/user changes untouched.",
+      "local_checks": {
+        "analysis_unittest_cases": 26,
+        "gps_focused_ctests": 5,
+        "private_controller_cases": 8,
+        "ram_builds": [
+          "external audited deploy",
+          "internal Si5351"
+        ],
+        "strict_sphinx": "passed",
+        "documentation_local_targets": 1754,
+        "documentation_errors": 0,
+        "git_diff_check": "passed"
+      }
+    }
+  },
+  "si5351_bounded_closure_20261108": {
+    "schema": "item21-bounded-gate/1",
+    "outcome": "resolution_limited_investigation_complete",
+    "runs": [
+      {
+        "label": "quiet-first-1",
+        "raw_sha256": "c92b2367fdef624abb59d87309ed326fb664e979c5326b47f428a1b741fec168",
+        "available_comparisons": 45,
+        "midpoint_bracket_discrepancies": 1,
+        "declared_interval_overlaps": 45,
+        "observed_raw_interval_overlaps": 45,
+        "discrepant_windows": [
+          {
+            "available": true,
+            "span_s": 10,
+            "first_pps": 100,
+            "last_pps": 110,
+            "loaded": true,
+            "production_estimate_ppb": 235.49974095028495,
+            "acquisition_difference_ppb": [
+              35.49974095028495,
+              1535.499740950285
+            ],
+            "acquisition_difference_midpoint_ppb": 785.4997409502851,
+            "consistent_with_independent_brackets": false,
+            "reconstruction_bounds": {
+              "declared_production": {
+                "production_error_bounds_ppb": [
+                  -41641.613482485955,
+                  42112.76647329981
+                ],
+                "acquisition_difference_bounds_ppb": [
+                  -41841.613482485955,
+                  43412.76647329981
+                ],
+                "overlaps_independent_brackets": true
+              },
+              "observed_raw_pps": {
+                "production_error_bounds_ppb": [
+                  -3137.226578949379,
+                  2137.23700192329
+                ],
+                "acquisition_difference_bounds_ppb": [
+                  -3337.226578949379,
+                  3437.23700192329
+                ],
+                "overlaps_independent_brackets": true
+              },
+              "scope": "Existing endpoint allowances and one-count quantization; conservative correlated-endpoint enclosure, not a confidence interval. Observed-raw-PPS enclosure shares hardware and is conditional, not certified source accuracy."
+            },
+            "pps_timestamp_difference_change_ns": [
+              -645,
+              15355
+            ]
+          }
+        ],
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": -10.0,
+            "minimum_ppb": -600.0,
+            "maximum_ppb": 550.0,
+            "peak_to_peak_ppb": 1150.0,
+            "sample_stdev_ppb": 311.6695863161543,
+            "maximum_half_interval_ppb": 2800.0010000111997
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -9.999999999999998,
+            "minimum_ppb": -100.0,
+            "maximum_ppb": 183.33333333333334,
+            "peak_to_peak_ppb": 283.33333333333337,
+            "sample_stdev_ppb": 86.13798863695247,
+            "maximum_half_interval_ppb": 933.3333777781926
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -10.0,
+            "minimum_ppb": -41.666666666666664,
+            "maximum_ppb": 41.666666666666664,
+            "peak_to_peak_ppb": 83.33333333333333,
+            "sample_stdev_ppb": 34.56073558887953,
+            "maximum_half_interval_ppb": 466.6666555556074
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": -10.0,
+            "minimum_ppb": -10.0,
+            "maximum_ppb": -10.0,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 93.33333266666708
+          }
+        ]
+      },
+      {
+        "label": "loaded-first-2",
+        "raw_sha256": "4dc7d09602320dd8ea5f5105ab2e4f95d2b2c2498d9da27df3a6c554d1c472e4",
+        "available_comparisons": 45,
+        "midpoint_bracket_discrepancies": 0,
+        "declared_interval_overlaps": 45,
+        "observed_raw_interval_overlaps": 45,
+        "discrepant_windows": [],
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": 0.0,
+            "minimum_ppb": -600.0,
+            "maximum_ppb": 700.0,
+            "peak_to_peak_ppb": 1300.0,
+            "sample_stdev_ppb": 355.98333940092544,
+            "maximum_half_interval_ppb": 2850.0005000113997
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -3.552713678800501e-16,
+            "minimum_ppb": -200.0,
+            "maximum_ppb": 233.33333333333334,
+            "peak_to_peak_ppb": 433.33333333333337,
+            "sample_stdev_ppb": 128.86015005270224,
+            "maximum_half_interval_ppb": 949.9999888893111
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -2.1316282072803005e-15,
+            "minimum_ppb": -33.333333333333336,
+            "maximum_ppb": 83.33333333333333,
+            "peak_to_peak_ppb": 116.66666666666666,
+            "sample_stdev_ppb": 47.14045207910317,
+            "maximum_half_interval_ppb": 466.66669444449633
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": 0.0,
+            "minimum_ppb": 0.0,
+            "maximum_ppb": 0.0,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 93.33333333333374
+          }
+        ]
+      }
+    ],
+    "ordinary_modeled_controls": [
+      {
+        "source_ppb": -20000,
+        "timer_ppb": -20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -20500,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": -20000,
+        "timer_ppb": -20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 22,
+        "minimum_ppb": -20500,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 12000000000
+      },
+      {
+        "source_ppb": -20000,
+        "timer_ppb": 20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -20400,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": -20000,
+        "timer_ppb": 20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -20400,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": -20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": -20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 22,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 12000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": 20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": 20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": -20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": -20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 22,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 12000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": 20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": 20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      }
+    ],
+    "original_recorded_replay": {
+      "observations": 1468,
+      "checks": [
+        {
+          "label": "gp2-r1-on-5366200",
+          "kind": "timer",
+          "estimate_ppb": -333,
+          "generation": 4,
+          "span_ns": 12000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "gp2-r2-on-5366200",
+          "kind": "timer",
+          "estimate_ppb": -405,
+          "generation": 12,
+          "span_ns": 21000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": 6,
+          "generation": 3,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": 45,
+          "generation": 53,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -45,
+          "generation": 81,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": -100,
+          "generation": 86,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": 45,
+          "generation": 52,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -150,
+          "generation": 3,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": -50,
+          "generation": 9,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": -337,
+          "generation": 46,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -13,
+          "generation": 73,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": -29,
+          "generation": 93,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": 14,
+          "generation": 65,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -150,
+          "generation": 28,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        }
+      ]
+    },
+    "rf_resolution": [
+      {
+        "frequency_hz": 1840100,
+        "best_baseline_absolute_lower_ppb": 4.701842753517207,
+        "largest_corrected_allowance_ppb": 48.053110158249595,
+        "residual_budget_ppb": -43.35126740473239,
+        "meaning": "With the retained allowances, every corrected absolute error must be below the baseline lower bound minus its own allowance; using the largest allowance gives the tightest required repeat. Negative means even zero error cannot establish improvement for that repeat."
+      },
+      {
+        "frequency_hz": 5366200,
+        "best_baseline_absolute_lower_ppb": 35.426717439298486,
+        "largest_corrected_allowance_ppb": 23.05125109478748,
+        "residual_budget_ppb": 12.375466344511004,
+        "meaning": "With the retained allowances, every corrected absolute error must be below the baseline lower bound minus its own allowance; using the largest allowance gives the tightest required repeat. Negative means even zero error cannot establish improvement for that repeat."
+      },
+      {
+        "frequency_hz": 28126100,
+        "best_baseline_absolute_lower_ppb": 59.272051131410045,
+        "largest_corrected_allowance_ppb": 13.962610861092,
+        "residual_budget_ppb": 45.30944027031805,
+        "meaning": "With the retained allowances, every corrected absolute error must be below the baseline lower bound minus its own allowance; using the largest allowance gives the tightest required repeat. Negative means even zero error cannot establish improvement for that repeat."
+      }
+    ],
+    "uncertainty_derivation": {
+      "normalized_count": "N * S / T",
+      "count_bounds": "[N-1, N+1]",
+      "pps_span_bounds": "[S - 1.001*(u_a+u_b), S + 1.001*(u_a+u_b)]",
+      "count_time_span_bounds": "[T - 1.001*(v_a+v_b), T + 1.001*(v_a+v_b)]",
+      "normalized_bounds": "[(N-1)*(S-u)/(T+v), (N+1)*(S+u)/(T-v)]",
+      "difference_bounds": "[normalized_low-independent_high, normalized_high-independent_low] / (nominal_hz*UTC_span_s) * 1e9",
+      "note": "All bounds use preexisting endpoint metadata and the production 1.001 scale allowance. No physical allowance was relaxed. Cartesian enclosures do not require endpoint independence; shared hardware prevents an external accuracy claim."
+    },
+    "candidate_selected": null,
+    "decision": "The tested arithmetic/session paths do not expose a demonstrated defect. Finer PPS capture and longer acquisition remain plausible, but their physical benefit is not resolved by the retained observer bounds and the continuous-history results do not qualify an ordinary-runtime policy change. No candidate is selected; stop at the authorized resolution-limited gate without starting acquisition or RF campaigns. This does not establish that a different experiment using the same hardware could not succeed.",
+    "not_proven": "No claim of universal impossibility, unique physical noise attribution, or improved RF repeatability.",
+    "hardware": {
+      "pico_occupied_minutes": 0,
+      "acquisition_runs": 0,
+      "rf_jobs": 0,
+      "commanded_rf_seconds": 0,
+      "device_accessed": false,
+      "firmware_loaded": false,
+      "gpsdo_accessed": false,
+      "state": "No device/service/reference/settings changes; previous handback is historical evidence, not a fresh live-state verification.",
+      "planned_acquisition_session_ceiling_minutes": 60,
+      "planned_acquisition_records_ceiling": 6,
+      "planned_rf_session_ceiling_minutes": 60,
+      "planned_rf_tone_count": 28,
+      "planned_rf_seconds": 336,
+      "rf_seconds_hard_cap": 360
+    },
+    "evidence_files": {
+      "original-replay.txt": "5daa534cec3f24bc277aa7acce28eeb2738aa0fc8350a854583f16fe3f353003",
+      "ordinary-replay.log": "205dca3ca3893799b9e82698a0c2000ec41adf2927b6307b2b0aa007452e9a62"
+    },
+    "date": "2026-11-08",
+    "backlog_item": 21,
+    "private_evidence_directory": "/Users/lbussy/GitHub/WsprryPico/build/rc2-item21-final/evidence",
+    "validation": {
+      "analysis_unittest_cases": 28,
+      "analysis_command": "/Users/lbussy/GitHub/WsprryPi-Qualification-Harness/.venv/bin/python tests/rf_correction_analysis_tests.py",
+      "native_command": "ctest --test-dir build/rc2-item21/host -R \"^(reference_monitor|gps)$\" --no-tests=error --output-on-failure",
+      "native_passed": 2,
+      "original_replay_command": "/usr/bin/clang++ -std=c++20 -Isrc build/rc2-item21/evidence/replay_counts.cpp src/time/gps_calibration.cpp src/time/gps.cpp -o build/rc2-item21-final/evidence/replay_counts; build/rc2-item21-final/evidence/replay_counts < build/rc2-item21/evidence/replay-input.txt",
+      "source_pair_dispatch": "gh workflow run debian-non-hardware.yml --repo WsprryPi/WsprryPi --ref devel -f pico_ref=2938a3351de00b482a6d83134de496cfb353a803",
+      "pico_ci": "https://github.com/WsprryPi/WsprryPico/actions/runs/42491630528",
+      "pi_ci": "https://github.com/WsprryPi/WsprryPi/actions/runs/42491647088",
+      "pi_source": "88fe1855e63e0c42ca8d2e822f29526a74789592",
+      "status": "passed",
+      "superseded_runs": {
+        "cancelled": [
+          42491210431,
+          42491524201,
+          42491223143
+        ],
+        "reason": "Replaced by final reviewed source; not used as validation passes."
+      },
+      "native_build_command": "cmake --build build/rc2-item21/host --target reference_monitor_tests gps_tests --parallel 4",
+      "docs_build_command": "make -C docs html",
+      "docs_link_command": "docs/.venv/bin/python scripts/check_documentation.py",
+      "docs_markdown_sources": 88,
+      "docs_html_pages": 21,
+      "docs_local_targets": 1743,
+      "docs_errors": 0,
+      "diff_check": "git diff --check passed",
+      "pico_status": "success",
+      "pico_preview_source": "f2f4a4fb81a0d3a0ee7c2e401fb89999aea95971",
+      "pico_preview_difference_files": [
+        ".github/workflows/publish-prepared.yml",
+        "README.md",
+        "docs/maintain.md",
+        "engineering/development/prepared-publication.md",
+        "engineering/development/usb-installer.md",
+        "scripts/ci/ctest-completion-policy.json",
+        "scripts/ci/download.py",
+        "scripts/ci/inputs.json",
+        "scripts/ci/prepared.py",
+        "scripts/ci/publish.py",
+        "scripts/usb_installer.py",
+        "tests/ci_bundle_tests.py",
+        "tests/usb_installer_tests.py"
+      ],
+      "pico_ctest_registered": 234,
+      "pico_ctest_passed": 234,
+      "pico_ctest_skipped": 0,
+      "pico_execution_records": 27,
+      "pico_native_browser_contexts": 13,
+      "pico_preview_scope": "Synthetic base overlay only; all source/analysis/fixture/runtime regression files match feature2938a335. No feature/base merge performed.",
+      "pico_required_contexts": 18,
+      "pi_status": "success",
+      "pi_jobs": [
+        {
+          "name": "Choose validation scope",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict-i2c-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-network-loopback",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-simulated-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-usb-management-pair",
+          "conclusion": "success"
+        },
+        {
+          "name": "ubuntu-gcc13-release",
+          "conclusion": "success"
+        },
+        {
+          "name": "non-hardware-validation",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15)",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15-intel)",
+          "conclusion": "success"
+        }
+      ],
+      "required_network_and_usb": "passed through production paths for exact feature2938a335/Pi88fe1855",
+      "final_source_difference": "Documentation-only successor changes consolidated-backlog.md, gps-pps-validation.md, gps-pps-validation.json, removes superseded si5351-correction-repeatability-prompt.md and updates fixture README.md. All implementation/tests match2938a335.",
+      "git_boundary": "Pico codex/rc.2 only; PR19 draft/no auto-merge; no feature/base merge or publication. Pi and Pi-Docs source/worktrees untouched."
+    },
+    "analysis_and_test_source": "2938a3351de00b482a6d83134de496cfb353a803",
+    "adversarial_review": [
+      {
+        "finding": "Midpoint comparison omitted recorded production endpoint uncertainty.",
+        "disposition": "Added complete enclosures alongside unchanged midpoint/flag; retained original hashes, allowances and refusals. Injected out-of-bounds count bias still fails."
+      },
+      {
+        "finding": "A slow raw timer and edge alignment can admit twelve UTC intervals in a twelve-raw-second session.",
+        "disposition": "Host lifecycle test uses actual monitor and permits ten through twelve, never sixty; original physical ten/eleven-second records remain unchanged."
+      },
+      {
+        "finding": "Finite-window and PPS synthetic counts initially used inconsistent source-error models.",
+        "disposition": "Unified physical counter model and added independent expected source/timer ratio check; all twelve modeled controls pass."
+      },
+      {
+        "finding": "Earlier checklist heading removal left two broken anchors.",
+        "disposition": "Repaired link targets without restoring the heading or changing checklist layout."
+      },
+      {
+        "finding": "Wide declared bounds do not prove that improvement is impossible or identify physical jitter distribution.",
+        "disposition": "Closure explicitly resolution-limited; plausible finer/longer acquisition remains unqualified, not disproved. No second candidate or hardware campaign started."
+      },
+      {
+        "finding": "Previous restoration evidence could be mistaken for live device verification.",
+        "disposition": "No device accessed; previous handback is identified as historical and no current hardware state claimed."
+      }
+    ],
+    "second_assessment": "All actionable source/test/link findings closed. Exact final code passed Pico preview verification, all nine Pi jobs, and both actual source-pair suites. No production firmware, allowance, historical observation, feature availability or RF criterion changed. Bounded resolution-limited closure; hardware phases not entered.",
+    "retained_discrepancy_inputs": {
+      "count_delta": 10000000,
+      "production_pps_raw_span_ns": 10000013355,
+      "count_read_raw_span_ns": 10000011000,
+      "summed_pps_endpoint_allowance_ns": 400000,
+      "summed_count_endpoint_allowance_ns": 17355,
+      "production_scale_allowance": "1001/1000",
+      "independent_count_delta_bounds": [
+        9999987,
+        10000002
+      ],
+      "independent_raw_pps_span_bounds_ns": [
+        9999998000,
+        10000014000
+      ],
+      "nominal_hz": 1000000,
+      "utc_span_s": 10
     }
   }
 }

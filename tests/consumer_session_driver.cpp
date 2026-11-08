@@ -407,9 +407,12 @@ struct Driver {
         engineering.api.progress_settings(engineering_progress);
         check(engineering.store.save(*standalone::parse_config(network_test::config)));
         const auto* consumer = runtime.consumer_profile();
-        const auto hostname =
-            consumer ? consumer->tls.hostname : std::string("wsprrypico-0a60df.local");
-        if (consumer) {
+        const auto* network_profile = runtime.network_profile();
+        const auto hostname = consumer ? consumer->tls.hostname
+                              : network_profile && !network_profile->hostname.empty()
+                                  ? network_profile->hostname
+                                  : std::string("wsprrypico-0a60df.local");
+        {
             hostname_settings.emplace(profiles, runtime, hostname_platform, p.device_id, hostname,
                                       "wsprrypico-0a60df.local");
             f.api.hostname_settings(*hostname_settings);
@@ -534,6 +537,23 @@ struct Driver {
             radio.admission(runtime.control_healthy(profiles) &&
                             runtime.consumer_browser_selected(profiles));
             poll_server();
+            return "{}";
+        }
+        if (op == "hardware_save_review") {
+            // Host-only reproduction of an older saved schedule preference
+            // without a dial. No device, clock qualification or RF is involved.
+            for (auto* fixture : {&f, &engineering}) {
+                check(fixture->scheduler.idle());
+                auto config = standalone::parse_config(network_test::config);
+                check(config.has_value());
+                config->enabled = true;
+                config->wspr_dial_frequency_hz.reset();
+                check(fixture->store.save(*config));
+                std::destroy_at(&fixture->scheduler);
+                std::construct_at(&fixture->scheduler, fixture->store, fixture->service);
+                check(fixture->scheduler.command("STOP").find("\"suspended\":true") !=
+                      std::string::npos);
+            }
             return "{}";
         }
         if (op == "message_review") {

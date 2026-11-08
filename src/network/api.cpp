@@ -1636,13 +1636,29 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         return http_error(400, conflict);
     if (!store_.config_fits(*validated))
         return http_error(413, "saved_settings_too_large");
-    if (validated->enabled && scheduler_.message_recovery_required())
-        return http_error(409, "message_recovery_required");
-    if (validated->enabled && store_.message_schedule() && store_.message_schedule()->enabled)
-        return http_error(409, "message_schedule_enabled");
-    if (validated->enabled && !validated->wspr_dial_frequency_hz)
-        return http_error(400, "standalone_frequency_required");
+    // Only a closed hardware patch can preserve an existing recurrence whose
+    // prerequisites are absent (for example a legacy enabled schedule without
+    // a dial). Validate the entire hardware candidate; never activate recurrence.
     const auto existing = effective_config();
+    const bool hardware_write =
+        store_.config() && existing &&
+        (hardware_resource ||
+         (config_update && json::fields(*root->get("config"), {}, {"pins", "si5351", "gps"})));
+    if (hardware_write) {
+        auto unchanged = *validated;
+        unchanged.pins = existing->pins;
+        unchanged.si5351 = existing->si5351;
+        unchanged.gps = existing->gps;
+        if (unchanged != *existing)
+            return http_error(400, "invalid_hardware_update");
+    }
+    if (!hardware_write && validated->enabled && scheduler_.message_recovery_required())
+        return http_error(409, "message_recovery_required");
+    if (!hardware_write && validated->enabled && store_.message_schedule() &&
+        store_.message_schedule()->enabled)
+        return http_error(409, "message_schedule_enabled");
+    if (!hardware_write && validated->enabled && !validated->wspr_dial_frequency_hz)
+        return http_error(400, "standalone_frequency_required");
     const bool station_changed = !existing || existing->callsign != validated->callsign ||
                                  existing->locator != validated->locator ||
                                  existing->power_dbm != validated->power_dbm;
@@ -1695,7 +1711,9 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
              : !encoding::wspr_type1_from_station(validated->callsign, validated->locator,
                                                   validated->power_dbm)))
         return http_error(400, "unsupported_station_encoding");
-    auto response = scheduler_.command("CONFIG " + candidate);
+    auto response = scheduler_.command(
+        "CONFIG " + candidate, hardware_write ? standalone::Scheduler::ConfigPurpose::Hardware
+                                              : standalone::Scheduler::ConfigPurpose::General);
     auto value = json::parse(response);
     if (!value || value->get("ok")->raw != "true") {
         if (value && value->get("error") &&

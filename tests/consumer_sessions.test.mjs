@@ -266,6 +266,41 @@ await run('distinct sessions retain one transmitter owner after logout',async f=
   assert.equal((await command(a,'LOAD',{job_id:job,profile:'rf-events/1',mode:'tone',total_duration_ns:'1000000000',events:[{offset_ns:'0',duration_ns:'1000000000',rf_on:true,frequency_nhz:'3570100000000000'}],allow_frequency_adjustment:false})).status,200);
   await a.logout();const status=await (await b.request('status')).json();assert.equal(status.job.state,'loaded');assert.equal(status.job.owner_id,session);
 });
+await run('suspended no-dial hardware preserves recurrence across lost reply, stale saves, expiry and reboot',async f=>{
+  await f.command({op:'hardware_save_review'});
+  const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
+  const original=await a.request('config'),config=(await original.json()).config;
+  const app=await (await a.request('application')).json();
+  assert.equal(app.recurrence.enabled,true);assert.equal(app.recurrence.suspended,true);
+  assert.equal(app.recurrence.schedule_dial_frequency_nhz,'0');
+  const pins={...config.pins,button_gp:15};
+  const update={schema:'config-update',target:app.target,mode:'merge',config:{pins}};
+  const fetcher=a.fetcher;let sent=0;
+  a.fetcher=async(p,o)=>{const response=await fetcher(p,o);if(p.endsWith('/request')){sent++;throw Error('hardware reply lost after commit');}return response;};
+  await assert.rejects(a.request('config/update','POST',update,original.headers.get('etag')),/lost/);
+  assert.equal(sent,1);assert.equal(a.authenticated,false);
+  const read=await b.request('config');assert.deepEqual((await read.json()).config,{...config,pins});
+  assert.deepEqual((await (await b.request('application')).json()).recurrence,app.recurrence);
+  assert.equal((await b.request('config/update','POST',update,original.headers.get('etag'))).status,412);
+  const before=(await f.command({op:'stats'})).config_sequence;
+  await f.command({op:'flash_failure',fail:true});
+  const failed={...update,config:{pins:{...pins,button_gp:16}}};
+  assert.equal((await b.request('config/update','POST',failed,read.headers.get('etag'))).status,503);
+  assert.equal((await f.command({op:'stats'})).config_sequence,before);
+  await f.command({op:'flash_failure',fail:false});
+  await f.command({op:'reboot'});await f.time(3000);
+  const c=f.client();await f.login(c);
+  const recovered=await c.request('config');assert.deepEqual((await recovered.json()).config,{...config,pins});
+  const current=await (await c.request('application')).json();
+  assert.equal(current.recurrence.schedule_dial_frequency_nhz,'0');assert.equal(current.recurrence.enabled,true);
+  assert.equal((await c.request('config/update','POST',update,recovered.headers.get('etag'))).status,409,'old boot refuses before mutation');
+  const latest=await c.request('config'),sequence=(await f.command({op:'stats'})).config_sequence;
+  c.now=()=>3000; // Keep client keys so the server must refuse the expired mutation.
+  await f.time(30*60*1000+4000);
+  assert.equal(c.authenticated,true);
+  await assert.rejects(c.request('config/update','POST',{...update,target:current.target},latest.headers.get('etag')),/expired|session|authentication|log.?in/i);
+  assert.equal((await f.command({op:'stats'})).config_sequence,sequence);
+});
 await run('failed save and lost reply retain bounded abandoned session without mutation replay',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
   let original=await a.request('config');const app=await (await a.request('application')).json();

@@ -1,6 +1,6 @@
 # Browser pages
 
-Use one control document with two areas and same-document History navigation. `/station` and `/wifi-host` are reloadable area links; fragments select allowlisted sections or retain their existing save-receipt meanings. This avoids another authentication slot, retains all DOM drafts, and shares flash-backed document/scripts. Fresh admitted LAN root selects Station Control. Fresh committed-consumer AP root selects Wi-Fi/Host using the accepted connection classification. Blank/network-only AP keeps Wi-Fi-first commissioning, with station commissioning separately linked. No connection inference comes from a browser URL. Area selection grants no API authority. Existing identity/presentation and cryptographic schemas stay frozen.
+Use one control document with two areas and same-document History navigation. `/station` and `/wifi-host` are reloadable area links; fragments select allowlisted sections or retain their existing save-receipt meanings. This avoids another authentication slot, retains all DOM drafts, and shares flash-backed document/scripts. Fresh admitted LAN root selects Station Control. Fresh committed-consumer AP root selects Wi-Fi/Host using the accepted connection classification. Blank AP uses Wi-Fi-first commissioning. Wi-Fi-only and completed station profiles share the authenticated control page; station details remain optional. No connection inference comes from a browser URL. Area selection grants no API authority. Existing identity/presentation and cryptographic schemas stay frozen.
 
 ## Field, summary, and action ownership
 
@@ -66,7 +66,7 @@ Normal public settings reads and confirmed saves show no recovery panel or stale
 
 Setup receipt controls appear only for a pending request, beside the matching form. A completed result can retain a brief inline status, while Check saved result and reconnection instructions disappear. Receipt checking never resubmits the request. Moving the presentation nodes changes no API, crypto, profile, carrier, or journal contract.
 
-Station identity is inside WSPR Configuration; its legacy bookmark remains an alias. The saved draft summary carries the authoritative Type 1/2/3 plan. Time and calibration is a separate managed section. Timeout, calibration, and amplifier timing load with the page; their read actions are conditional recovery controls. Selector readback keeps its concise saved/active status and omits raw boot JSON.
+Station identity is inside WSPR Configuration; its legacy bookmark remains an alias. The saved draft summary carries the authoritative Type 1/2/3 plan. Time and calibration is a separate managed section. Timeout, calibration, and amplifier timing load with the page; their read actions are conditional recovery controls. Automatic timeout and calibration read errors stay beside their controls without a top-level save-result link. Explicit failed reads and unconfirmed saves retain that recovery link. Transmitter status independently reports current clock and transmission observations. Selector readback keeps its concise saved/active status and omits raw boot JSON.
 
 ## Submission authority and feedback
 
@@ -110,3 +110,45 @@ Every Sphinx HTML build, including RTD publication, checks emitted help URLs aga
 Time and calibration contains the consolidated NTP timeout label and the GPS daylight policy, labelled Automatic beacon schedule. The relocated policy retains the GPS editor's field identity, lock state, validation, and configuration transaction; its Save RF output settings action saves the complete RF/GPS draft and requires explicit restart. Radio pins places Si5351 I²C setup immediately after RF engine selection, followed by GPS controls. Wiring explanations are in the operator manual and linked through section-specific help. Shared editors keep their full explanatory presentation by default; the Pico requests compact presentation explicitly.
 
 The hostname continuation link targets `/station`. A validated hostname-return receipt overrides stale presentation History on arrival and selects Station Control at the top with all managed disclosures collapsed. Public readback cannot confirm the reset or consume that receipt. Authenticated readback confirms device identity, a new boot, and the intended saved/active hostname before clearing it and restoring the same collapsed top presentation. Save receipts retain their separate recovery presentation.
+
+## Authentication-lock feedback
+
+The admitted Station Control and Wi-Fi/Host pages display “Controls are locked” beside an authentication-locked field or action when it is attempted with a pointer or touch. Native disabled state and the existing request guards remain authoritative. Feedback does not sign in, submit, change values, or issue requests. Busy, unsupported, owner-only, unsafe-output, conditional-field, and pending-readback restrictions retain their own eligibility and are not relabelled as authentication failures. Blank public commissioning has no authentication lock and retains its existing controls.
+
+Disabled fields remain outside ordinary keyboard navigation. Focusing the existing, named Unlock controls button provides equivalent tooltip and polite live feedback without adding a tab stop for every field. Activating that button retains its existing explicit sign-in action. Escape, subsequent focus movement, outside interaction, scrolling, navigation, and unlock dismiss feedback; pointer feedback also expires after six seconds. The focused keyboard hint remains until dismissal. A single tooltip and live region serve dynamically generated controls and preserve existing accessible descriptions. Hit transparency applies only to eligible disabled controls; there are no form wrappers or scrolling overlays. A captured locked pointer gesture cannot activate a control if it unlocks before release.
+
+Browser fixtures complete streamed responses through the existing 100-step ACK interface with a size-derived finite burst bound, progress checks, and exact Content-Length validation. This adapts the test carrier to the served asset size without changing production HTTP limits or deadlines.
+
+## Control-row alignment
+
+Radio pins and GPS groups use shared, content-sized caption, control, and optional inline-help tracks. The RF engine, RF GPIO, and Button controls align in Direct GPIO mode. Si5351 removes the direct GPIO field from layout and shares the row between engine and Button. GPS labels, including units and help icons, wrap within the shared caption track without displacing individual controls. The existing 650 px breakpoint stacks the fields; zoom and inline validation use natural row sizing rather than fixed label heights. Native labels, form associations, settings keys, units, and serialized values are preserved.
+
+The focused native geometry runner uses the production page and handler fixture:
+
+```sh
+node tests/control_alignment_browser.mjs /absolute/path/to/consumer_bootstrap_driver build/control-alignment verify
+```
+
+Set `CHROME_BIN` as described in the [browser validation guide](README.md#browser-interface-checks). `verify` checks complete rows, caption bounds, hidden columns, form associations, inline errors, breakpoints, and zoom. The optional `baseline` mode records measurements and renders before an edit; it does not assert alignment and does not qualify acceptance. The regular consumer and certificate section suites run the geometry checks as well.
+
+## Shared site icon
+
+The manual and firmware use `docs/_static/favicon.ico`, unchanged from
+WsprryPi-Docs revision `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`.
+Attribution is retained in the public credits and third-party notices. Sphinx
+resolves the icon relative to each documentation page, including nested pages
+and Read the Docs version/language prefixes.
+
+The asset generator embeds the same binary bytes once as immutable flash data.
+All independently served station, setup, owner, and recovery documents reference
+`/favicon.ico`. The route returns `image/x-icon` with the exact binary length,
+without authentication or session creation, under the existing Host/interface
+admission rules. Captive probes redirect to the AP origin before local assets
+are fetched. Unknown routes and trailing slashes retain their existing handling.
+The existing `Cache-Control: no-store` policy applies to the icon, so repeat
+requests retrieve the current firmware asset. No Internet request is needed.
+
+Production route tests compare delivered bytes with the canonical file. Native
+browser section tests verify the sole icon link, exact bytes, image decoding,
+and repeat delivery before login on consumer, certificate, and configured AP
+pages. Physical operating-system captive viewers may omit site icons.

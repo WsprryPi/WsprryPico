@@ -16,6 +16,8 @@ class OperatorAssets(unittest.TestCase):
         self.root = pathlib.Path(self.scratch.name)
         (self.root / 'scripts').mkdir()
         shutil.copy2(ROOT / 'scripts/build_operator_assets.mjs', self.root / 'scripts/build_operator_assets.mjs')
+        (self.root / 'docs/_static').mkdir(parents=True)
+        shutil.copy2(ROOT / 'docs/_static/favicon.ico', self.root / 'docs/_static/favicon.ico')
         for directory in ('web', 'bootstrap_web'):
             target = self.root / 'src/network' / directory
             target.mkdir(parents=True)
@@ -28,6 +30,34 @@ class OperatorAssets(unittest.TestCase):
             [sys.executable, str(ROOT / 'scripts/generate_web_assets.py'),
              str(self.root), str(self.root / 'assets.cpp')] + ([] if version is None else [version]) + ([] if documentation is None else [documentation]),
             text=True, capture_output=True, check=False)
+
+    def test_shared_icon_identity_and_binary_embedding(self):
+        import hashlib
+        import re
+        import struct
+        icon = (self.root / 'docs/_static/favicon.ico').read_bytes()
+        # Unmodified WsprryPi-Docs asset, provenance retained in THIRD_PARTY_NOTICES.
+        self.assertEqual(hashlib.sha256(icon).hexdigest(),
+                         '1b783462a82fc344b01efbc79f168f1075986d8d5b88d0d28540ad1cc8acb3cc')
+        reserved, kind, count = struct.unpack_from('<HHH', icon)
+        self.assertEqual((reserved, kind), (0, 1))
+        self.assertGreater(count, 0)
+        for entry in range(count):
+            size, offset = struct.unpack_from('<II', icon, 6 + entry * 16 + 8)
+            self.assertGreater(size, 0)
+            self.assertGreaterEqual(offset, 6 + count * 16)
+            self.assertLessEqual(offset + size, len(icon))
+        result = self.generate()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        generated = (self.root / 'assets.cpp').read_text()
+        binary = generated.split('constexpr char favicon_bytes[] = "', 1)[1].split('";', 1)[0]
+        self.assertEqual(bytes(int(value, 16) for value in re.findall(r'\\x([0-9a-f]{2})', binary)), icon)
+        self.assertEqual(generated.count('constexpr char favicon_bytes[]'), 1)
+        self.assertIn('img-src \'self\' data:', generated)
+
+    def test_invalid_icon_refused(self):
+        (self.root / 'docs/_static/favicon.ico').write_bytes(b'<html>fallback</html>')
+        self.assertNotEqual(self.generate().returncode, 0)
 
     def test_fresh_assets_embed(self):
         result = self.generate()

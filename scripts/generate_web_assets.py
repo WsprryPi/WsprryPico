@@ -15,7 +15,7 @@ web = root / 'src/network/web'
 # Minified artifacts are maintained by the existing pinned npm build. Verify
 # exact source/output identity here so ordinary CMake remains Python-only.
 groups = {
-    'app.min.js': ['submission.js', 'control-contract.js', 'si5351.js', 'gps.js', 'udp-logging.js', 'operations.js', 'standalone-frequency.js', 'rf-calibration.js', 'amplifier-enable.js', 'amplifier-timing.js', 'filter-selector.js', 'gpio-drive.js', 'ntp-timeout.js', 'saved-progress.js', 'utc-datetime.js', 'message-schedule.js', 'app.js'],
+    'app.min.js': ['locked-controls.js', 'submission.js', 'control-contract.js', 'si5351.js', 'gps.js', 'udp-logging.js', 'operations.js', 'standalone-frequency.js', 'rf-calibration.js', 'amplifier-enable.js', 'amplifier-timing.js', 'filter-selector.js', 'gpio-drive.js', 'ntp-timeout.js', 'saved-progress.js', 'utc-datetime.js', 'message-schedule.js', 'app.js'],
     'config-validation.min.js': ['config-validation.js'],
     'device-presentation.min.js': ['device-presentation.js'],
     'organization.min.js': ['organization.js'],
@@ -101,7 +101,7 @@ csp = "default-src 'self'; style-src 'sha256-" + hash_for(css) + "'; script-src 
 radio_policy = ("default-src 'none'; connect-src 'self'; style-src 'sha256-" + hash_for(css) +
                 "'; script-src 'sha256-" + hash_for(radio_js) + "' 'sha256-" + hash_for(js) +
                 "' 'sha256-" + hash_for(owner_key_js) + "' 'sha256-" + hash_for(validation) + "' 'sha256-" + hash_for(presentation) + "' 'sha256-" + hash_for(organization) +
-                "'; img-src data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+                "'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 bootstrap_policy = ("default-src 'none'; script-src 'self' " +
                     ' '.join("'sha256-" + hash_for(script) + "'"
                              for script in (bootstrap_js, owner_key_js, owner_js, recovery_js)) + "; "
@@ -144,6 +144,12 @@ for name, text, marker in [
         source += f'constexpr char {identifier}[] = R"{marker}({chunk}){marker}";\n'
     if name != 'radio_js' and (name.endswith('_js') or name == 'js'):
         source += f'constexpr std::string_view {name}_parts[] = {{' + ', '.join(literal_names[name]) + '};\n'
+# One canonical binary asset shared by Sphinx and both firmware surfaces.
+icon = (root / 'docs/_static/favicon.ico').read_bytes()
+if not icon.startswith(b'\x00\x00\x01\x00') or len(icon) >= 65536:
+    raise ValueError('Invalid or oversized favicon')
+source += 'constexpr char favicon_bytes[] = "' + ''.join(f'\\x{byte:02x}' for byte in icon) + '";\n'
+source += f'constexpr std::string_view favicon{{favicon_bytes, {len(icon)}}};\n'
 documents = '''
 WebAsset script_asset(std::span<const std::string_view> parts) {
     return parts.size() == 1 ? WebAsset{parts.front(), "text/javascript; charset=utf-8"}
@@ -175,6 +181,7 @@ std::optional<WebAsset> consumer_radio_asset() {
 std::string_view web_csp() { return csp; }
 std::optional<WebAsset> web_asset(std::string_view path) {
     if (path == "/" || path == "/index.html" || path == "/radio" || path == "/station" || path == "/wifi-host" || path == "/owner.html") return WebAsset{html, "text/html; charset=utf-8", html_parts};
+    if (path == "/favicon.ico") return WebAsset{favicon, "image/x-icon"};
     if (path == "/style.css") return WebAsset{css, "text/css; charset=utf-8"};
     if (path == "/config-validation.js") return WebAsset{validation, "text/javascript; charset=utf-8"};
     if (path == "/device-presentation.js") return WebAsset{presentation, "text/javascript; charset=utf-8"};
@@ -185,6 +192,7 @@ std::optional<WebAsset> web_asset(std::string_view path) {
 std::string_view bootstrap_csp() { return bootstrap_policy; }
 std::optional<WebAsset> bootstrap_asset(std::string_view path) {
     if (path == "/index.html") return WebAsset{bootstrap_html, "text/html; charset=utf-8", bootstrap_parts};
+    if (path == "/favicon.ico") return WebAsset{favicon, "image/x-icon"};
     if (path == "/style.css") return WebAsset{bootstrap_css, "text/css; charset=utf-8"};
     if (path == "/bundle.js") return script_asset(bootstrap_js_parts);
     if (path == "/recovery.html") return WebAsset{recovery_html, "text/html; charset=utf-8", recovery_parts};

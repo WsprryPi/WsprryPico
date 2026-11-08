@@ -49,6 +49,118 @@ struct Member {
         return r;
     }
 };
+void suspended_hardware_without_dial() {
+    unsigned cases = 0;
+    for (const bool suspended : {false, true})
+        for (const bool dial : {false, true})
+            for (const bool enabled : {false, true})
+                for (const bool schedules : {false, true}) {
+                    Member m;
+                    auto initial = *m.f.store.config();
+                    initial.enabled = enabled;
+                    initial.manual_correction_ppb = 77;
+                    initial.ntp_rf_calibration = true;
+                    initial.ntp_timeout_s = 120;
+                    initial.gpio_drive_ma = 8;
+                    initial.amplifier_timing = {123, 456};
+                    initial.expires_utc_s = 1'900'000'000;
+                    initial.wspr_dial_frequency_hz =
+                        dial ? std::optional<std::uint32_t>(14'095'600) : std::nullopt;
+                    if (!schedules)
+                        initial.schedules.clear();
+                    const bool initial_saved = m.f.store.save(initial);
+                    if (enabled && !schedules) {
+                        REQUIRE(!initial_saved); // Enabled empty schedules are not a legal durable
+                                                 // state.
+                        std::cout
+                            << "hardware matrix enabled-empty-schedules initialization refused\n";
+                        ++cases;
+                        continue;
+                    }
+                    REQUIRE(initial_saved);
+                    if (suspended)
+                        REQUIRE(m.scheduler.command("STOP").find("\"suspended\":true") !=
+                                std::string::npos);
+                    const auto active = m.scheduler.active_pins();
+                    const auto watermark = m.f.store.watermark();
+                    auto pins = initial.pins;
+                    pins.button = 15;
+                    pins.indicator = hardware::PinPlan::Indicator::External;
+                    pins.indicator_gp = 6;
+                    auto stale = m.hardware(pins);
+                    const auto first = m.call(stale);
+                    REQUIRE(first.status == 200);
+                    auto expected = initial;
+                    expected.pins = pins;
+                    REQUIRE(m.f.store.config() == expected);
+                    REQUIRE(m.call(stale).status == 412);
+                    auto patch = [&](std::string fields) {
+                        auto r = request("POST", "/api/control/v1/config/update",
+                                         "{\"schema\":\"config-update\",\"target\":" +
+                                             application::target(std::string(32, 'a'),
+                                                                 m.f.service.status().boot_id) +
+                                             ",\"mode\":\"merge\",\"config\":" + fields + "}");
+                        r.headers["if-match"] = m.api.revision();
+                        return m.call(r);
+                    };
+                    hardware::Si5351Settings si;
+                    si.synthesis = {25'000'000,
+                                    rf::si5351::Reference::ExternalXa,
+                                    {},
+                                    rf::si5351::Output::Clk0,
+                                    rf::si5351::Output::Clk2,
+                                    2};
+                    si.loopback_input = 7;
+                    hardware::GpsSettings gps;
+                    gps.enabled = true;
+                    pins.engine = hardware::PinPlan::Engine::I2c;
+                    pins.rf.reset();
+                    pins.i2c_pair = 1;
+                    const auto second = patch("{\"pins\":" + hardware::serialize_plan(pins, true) +
+                                              ",\"si5351\":" + hardware::serialize_si5351(si) +
+                                              ",\"gps\":" + hardware::serialize_gps(gps) + "}");
+                    REQUIRE(second.status == 200);
+                    expected.pins = pins;
+                    expected.si5351 = si;
+                    expected.gps = gps;
+                    REQUIRE(m.f.store.config() == expected);
+                    const auto revision = m.api.revision();
+                    gps.pps_gp = 7;
+                    REQUIRE(patch("{\"gps\":" + hardware::serialize_gps(gps) + "}").status == 400);
+                    REQUIRE(m.api.revision() == revision && m.f.store.config() == expected);
+                    if (!dial && enabled) {
+                        REQUIRE(patch("{\"enabled\":true}").status == 400);
+                        REQUIRE(patch("{\"enabled\":true,\"pins\":" +
+                                      hardware::serialize_plan(pins, true) + "}")
+                                    .status == 400);
+                        REQUIRE(
+                            m.scheduler.command("CONFIG " + standalone::serialize_config(expected))
+                                .find("standalone_frequency_required") != std::string::npos);
+                        REQUIRE(m.api.revision() == revision && m.f.store.config() == expected);
+                    }
+                    // A/B/A never clears pending restart or changes the boot allocation.
+                    REQUIRE(patch("{\"pins\":" + hardware::serialize_plan(initial.pins, true) +
+                                  ",\"si5351\":null,\"gps\":null}")
+                                .status == 200);
+                    REQUIRE(m.f.store.config() == initial);
+                    REQUIRE(m.scheduler.active_pins() == active &&
+                            m.scheduler.hardware_restart_required());
+                    const auto status_text = m.scheduler.status();
+                    const auto state = wtp::json::parse(status_text);
+                    REQUIRE(state && state->get("suspended")->boolean() == suspended);
+                    REQUIRE(!m.f.service.activity().owned && !m.f.service.activity().output_active);
+                    REQUIRE(m.f.store.watermark() == watermark);
+                    standalone::Store reboot(m.f.flash);
+                    REQUIRE(reboot.load() && reboot.config() == initial &&
+                            reboot.watermark() == watermark);
+                    std::cout << "hardware matrix suspended=" << suspended << " dial=" << dial
+                              << " enabled=" << enabled << " schedules=" << schedules
+                              << " PUT=200 merge=200 conflict=400 stale=412 restored=200 "
+                                 "durable=unchanged\n";
+                    ++cases;
+                }
+    REQUIRE(cases == 16);
+}
 void readings_and_scoped_saves() {
     Member m;
     auto enabled = *m.f.store.config();
@@ -188,6 +300,11 @@ void rejection_is_atomic() {
 }
 void ownership_and_pending_changes() {
     Member m;
+    auto saved = *m.f.store.config();
+    saved.enabled = true;
+    saved.wspr_dial_frequency_hz.reset();
+    REQUIRE(m.f.store.save(saved));
+    REQUIRE(m.scheduler.command("STOP").find("\"suspended\":true") != std::string::npos);
     auto r = request("PUT", "/api/control/v1/network", "{\"enabled\":false}");
     r.headers["if-match"] = m.api.revision();
     REQUIRE(m.call(r).status == 200);
@@ -218,6 +335,11 @@ void ownership_and_pending_changes() {
                                        m.f.clock.snapshot().utc_now_ns + 3'000'000'000, 1000})
                 .ok);
     REQUIRE(m.call(m.station()).status == 409);
+    REQUIRE(m.call(m.hardware()).status == 409);
+    m.f.clock.now += 3'000'000'000;
+    m.f.service.poll();
+    REQUIRE(m.f.service.status().state == wtp::State::Running);
+    REQUIRE(m.call(m.hardware()).status == 409);
     REQUIRE(m.f.flash.bytes == flash);
 }
 void saved_active_and_failures() {
@@ -407,6 +529,7 @@ int main(int argc, char** argv) {
         std::cout << "}\n";
         return 0;
     }
+    suspended_hardware_without_dial();
     readings_and_scoped_saves();
     authentication_and_revisions();
     rejection_is_atomic();

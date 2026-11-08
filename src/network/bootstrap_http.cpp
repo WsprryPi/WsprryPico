@@ -30,7 +30,7 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
         (recovery_page &&
          (request.path == "/recovery.html" || request.path == "/recovery-bundle.js")) ||
         ((setup_enabled || owner_page) && request.path == "/") || request.path == "/style.css" ||
-        request.path == "/bundle.js" ||
+        request.path == "/bundle.js" || request.path == "/favicon.ico" ||
         (owner_page &&
          (request.path == "/owner-bundle.js" || request.path == "/owner-key-bundle.js"))) {
         const auto path = request.path == "/station" || request.path == "/radio" ? "/owner.html"
@@ -54,7 +54,8 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
             200,
             "<!doctype html><html lang=\"en\"><meta charset=utf-8><meta name=viewport "
             "content=\"width=device-width,initial-scale=1\"><title>WsprryPico "
-            "recovery</title><link rel=stylesheet href='/style.css'><body>"
+            "recovery</title><link rel=icon type=\"image/x-icon\" href=\"/favicon.ico\"><link "
+            "rel=stylesheet href='/style.css'><body>"
             "<header><strong>WsprryPico</strong><span>Recovery</span></header><main>"
             "<h1>Setup is unavailable</h1><p>This profile provides device identity "
             "and USB Console recovery.</p><p>Connect this Pico to a computer with "

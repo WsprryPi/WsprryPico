@@ -136,7 +136,15 @@ ConsumerCommitResult commit_consumer_claim(ProfileStore& store, ConsumerClaimSlo
     profile.locator = values.locator;
     profile.power_dbm = values.power_dbm;
     profile.request_sha256 = network::bootstrap_digest(request);
-    const auto hostname = platform.local_hostname();
+    std::string hostname{platform.local_hostname()};
+    if (binding.source == ProfileSource::NetworkOnly) {
+        auto saved = parse_network_profile(store.data());
+        if (!saved || saved->device_id != binding.device_id)
+            return {};
+        if (!saved->hostname.empty())
+            hostname = saved->hostname;
+        scrub(*saved);
+    }
     const auto canonical_hostname = network::canonical_local_hostname(hostname);
     if (!canonical_hostname || *canonical_hostname != hostname)
         return {};

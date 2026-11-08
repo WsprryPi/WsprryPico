@@ -87,3 +87,17 @@ header .documentation-help:has(svg):hover{color:#fff}
 @media(max-width:650px){.header-actions{align-self:stretch;justify-content:space-between;gap:.5rem}header #area-nav{gap:.25rem 1rem;min-width:0}header #area-nav a{font-size:1rem}}
 
 .transmitter-actions .help-heading>button{margin:0}
+
+/* Native disabled controls remain authoritative; only authentication hit targets pass through. */
+[data-auth-locked-control]{pointer-events:none}
+.locked-control-tooltip{position:fixed;z-index:10;width:max-content;max-width:calc(100% - 2rem);padding:.5rem .75rem;border:1px solid #687e90;border-radius:4px;background:#e7eef4;color:#25313d;font-size:.875rem;line-height:1.5;overflow-wrap:anywhere;pointer-events:none}
+
+/* Each visual row shares content-sized caption, control and optional help tracks. */
+.control-grid{row-gap:.4rem}
+.control-grid>label{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:.4rem;min-width:0;margin:0}
+.control-grid>label[hidden]{display:none}
+.control-grid .field-caption{grid-row:1;display:flex;align-items:center;align-self:stretch;min-width:0}
+.control-grid .field-caption>span{min-width:0}
+.control-grid>label>input,.control-grid>label>select{grid-row:2;min-width:0;margin:0}
+.control-grid>label>small,.control-grid>label>.field-result{grid-row:3}
+@media(min-width:651px){.rf-pin-fields:has(>#direct-rf-pin[hidden]){grid-template-columns:repeat(2,minmax(0,1fr))}}

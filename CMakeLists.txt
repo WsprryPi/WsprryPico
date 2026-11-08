@@ -57,7 +57,7 @@ if(WSPRRY_PICO_BUILD_FIRMWARE)
 endif()
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/index.html src/network/web/style.css src/network/web/app.js src/network/web/udp-logging.js
-    src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
+    src/network/web/locked-controls.js src/network/web/organization.js src/network/web/device-presentation.js src/network/web/config-validation.js
     src/network/web/saved-progress.js src/network/web/gpio-drive.js src/network/web/utc-datetime.js src/network/web/message-schedule.js
     src/network/web/si5351.js src/network/web/gps.js src/network/web/rf-calibration.js src/network/web/amplifier-enable.js src/network/web/amplifier-timing.js src/network/web/filter-selector.js src/network/web/standalone-frequency.js
     src/network/bootstrap_web/index.html src/network/bootstrap_web/style.css
@@ -69,7 +69,7 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     src/network/web/app.min.js src/network/web/config-validation.min.js
     src/network/web/device-presentation.min.js src/network/web/organization.min.js
     src/network/web/asset-build.json scripts/build_operator_assets.mjs
-    scripts/generate_web_assets.py)
+    scripts/generate_web_assets.py docs/_static/favicon.ico)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     engineering/protocol/control-policy.json engineering/protocol/control-1.schema.json
     engineering/protocol/wtp-1.schema.json
