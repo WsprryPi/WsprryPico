@@ -15,7 +15,7 @@ class Validator(SchemaValidator):
         self.definition = SCHEMA['$defs'][family]
     def errors(self, instance, schema=None, path='$'):
         selected = self.definition if schema is None else schema
-        # JSON Schema anyOf is used only for nullable disjoint core fields.
+        # Nullable core fields and overlapping complete/partial update shapes.
         if 'anyOf' in selected:
             if any(not self.errors(instance, variant, path) for variant in selected['anyOf']):
                 return []

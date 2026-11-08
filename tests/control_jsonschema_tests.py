@@ -98,6 +98,19 @@ valid('application', {'contract': 'Wsprry-Control/1', 'schema': 'hardware',
                       'target': hardware['target'], 'pins': pins})
 valid('config-update', {'contract': 'Wsprry-Control/1', 'schema': 'config-update',
                         'target': hardware['target'], 'mode': 'merge', 'config': {'pins': pins}})
+# Complete initialization is also a valid merge: the full shape is a subset
+# of the partial shape, so these alternatives deliberately use anyOf.
+complete_update = {'contract': 'Wsprry-Control/1', 'schema': 'config-update',
+                   'target': hardware['target'], 'mode': 'merge',
+                   'config': {'enabled': False,
+                              'station': {'callsign': 'AA0NT', 'locator': 'EM18', 'power_dbm': 37},
+                              'wifi': {'ssid': 'test-network', 'password': 'test-password'},
+                              'schedules': []}}
+valid('config-update', complete_update)
+for field, value in [('enabled', 1), ('schedules', {}), ('unknown', True)]:
+    bad = copy.deepcopy(complete_update)
+    bad['config'][field] = value
+    invalid('config-update', bad)
 valid('progress', {'contract': 'Wsprry-Control/1', 'schema': 'progress',
                    'target': hardware['target'], 'request_id': '1' * 32, 'fields': {'pins': pins}})
 for key in ['saved', 'active']:
