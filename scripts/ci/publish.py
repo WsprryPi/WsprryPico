@@ -119,7 +119,7 @@ def version_body(receipt):
             "The original deployment and linked-image audit archives are preserved unchanged.\n")
 
 
-def preserve(receipt, destination):
+def preserve(receipt, destination, publication_record=None):
     """Draft until complete; retries may only add missing draft assets."""
     kind = bundle.version_kind(receipt['version'])
     bundle.require(kind != 'testing' and receipt['branch'] in ('main', 'devel', 'release'),
@@ -136,7 +136,12 @@ def preserve(receipt, destination):
     proof = dict(receipt, schema='wsprrypico-ci-publication/1', repository=REPOSITORY,
                  tag=tag, manifest_sha256=bundle.sha(destination / 'deployment/release-manifest.json'))
     proof_path = destination / 'ci-publication.json'
-    proof_path.write_text(json.dumps(proof, indent=2, sort_keys=True) + '\n')
+    proof_bytes = (json.dumps(proof, indent=2, sort_keys=True) + '\n').encode()
+    if proof_path.exists():
+        bundle.require(not proof_path.is_symlink() and proof_path.read_bytes() == proof_bytes,
+                       'Retained publication proof differs; return to preparation')
+    else:
+        proof_path.write_bytes(proof_bytes)
     files = {path.name:path for path in (destination / 'deployment').iterdir()}
     files.update({path.name:path for path in
                   (destination / 'deployment.zip', destination / 'audit.zip', proof_path)})
@@ -147,6 +152,32 @@ def preserve(receipt, destination):
     else:
         ensure_tag(tag, receipt['source'])
     release = find_version_release(tag)
+    if publication_record is not None:
+        from usb_installer import PREPARED_MARKER, prepared_body_record
+        previous = None
+        if release is not None and release['body'] != body:
+            previous = prepared_body_record(release['body'])
+            bundle.require(release['body'].split('<!-- ' + PREPARED_MARKER)[0] == body + '\n',
+                           'Prepared release body differs')
+            bundle.require(all(previous[k] == publication_record[k] for k in previous if k != 'publishers'),
+                           'Existing prepared release identifies another packet')
+        value = dict(publication_record)
+        value['publishers'] = list(previous['publishers']) if previous else []
+        for item in publication_record['publishers']:
+            if item not in value['publishers']:
+                value['publishers'].append(item)
+        bundle.require(len(value['publishers']) <= 16, 'Publisher attempt history exhausted')
+        body += '\n<!-- ' + PREPARED_MARKER + '\n' + json.dumps(value, sort_keys=True) + '\n-->\n'
+        prepared_body_record(body)
+        if release is not None:
+            bundle.require(release['tag_name'] == tag and release['prerelease'] is prerelease and
+                           release['name'] == name, 'Existing prepared release identity differs')
+            existing = asset_inventory(release)
+            bundle.require(set(existing) <= set(files), 'Unexpected prepared release assets')
+            for filename, asset in existing.items():
+                check_asset(asset, files[filename])
+            if release['body'] != body:
+                release = api('releases/' + str(release['id']), 'PATCH', {'body': body})
     if release is None:
         release = api('releases', 'POST', {'tag_name': tag, 'target_commitish': receipt['source'],
                       'name': name, 'body': body, 'draft': True, 'prerelease': prerelease, 'make_latest': 'false'})

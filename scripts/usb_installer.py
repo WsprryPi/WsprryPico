@@ -187,7 +187,8 @@ def require(condition, message):
         raise Refusal(message)
 
 
-def verify_actions_provenance(run, jobs, run_id, attempt, source, branch):
+def verify_actions_provenance(run, jobs, run_id, attempt, source, branch,
+                              workflow_path='.github/workflows/software-build.yml'):
     """Bind trusted Actions API records; uploaded producer names are insufficient."""
     base = f'https://api.github.com/repos/{REPOSITORY}'
     run_url = f'{base}/actions/runs/{run_id}'
@@ -195,7 +196,7 @@ def verify_actions_provenance(run, jobs, run_id, attempt, source, branch):
             isinstance(run, dict) and type(run.get('id')) is int and run['id'] == run_id and
             type(run.get('run_attempt')) is int and run['run_attempt'] == attempt and
             run.get('head_sha') == source and run.get('head_branch') == branch and
-            run.get('path') == '.github/workflows/software-build.yml' and
+            run.get('path') == workflow_path and
             type(run.get('workflow_id')) is int and run['workflow_id'] > 0 and
             run.get('workflow_url') == f"{base}/actions/workflows/{run['workflow_id']}" and
             run.get('html_url') == f'https://github.com/{REPOSITORY}/actions/runs/{run_id}',
@@ -488,6 +489,90 @@ def verify_bundle(files, branch, schema_path=SCHEMA):
     return manifest, image
 
 
+PREPARED_MARKER = 'wsprrypico-prepared-publication/1'
+
+
+class PublicationPending(Refusal):
+    """Exact public bytes exist but no trusted delayed publisher has completed."""
+
+
+def prepared_body_record(body):
+    require(isinstance(body, str) and len(body) <= 32000, 'Invalid release body')
+    matches = re.findall(r'<!-- ' + re.escape(PREPARED_MARKER) + r'\n(.*?)\n-->', body, re.S)
+    require(len(matches) == 1, 'Missing or ambiguous prepared publication receipt')
+    value = decode(matches[0].encode())
+    require(isinstance(value, dict) and set(value) == {
+        'packet_sha256', 'source', 'build_run', 'build_attempt', 'tag', 'publishers'},
+        'Invalid prepared publication receipt shape')
+    require(isinstance(value['packet_sha256'], str) and
+            re.fullmatch(HEX64, value['packet_sha256']) and
+            isinstance(value['source'], str) and re.fullmatch(HEX40, value['source']) and
+            type(value['build_run']) is int and value['build_run'] > 0 and
+            type(value['build_attempt']) is int and value['build_attempt'] > 0 and
+            isinstance(value['tag'], str) and value['tag'].startswith('v') and
+            isinstance(value['publishers'], list) and 0 < len(value['publishers']) <= 16,
+            'Invalid prepared publication identity')
+    seen = set()
+    for item in value['publishers']:
+        require(isinstance(item, dict) and set(item) == {'run_id', 'attempt', 'source'} and
+                type(item['run_id']) is int and item['run_id'] > 0 and
+                type(item['attempt']) is int and item['attempt'] > 0 and
+                isinstance(item['source'], str) and re.fullmatch(HEX40, item['source']) and
+                (item['run_id'], item['attempt']) not in seen, 'Invalid publisher attempt')
+        seen.add((item['run_id'], item['attempt']))
+    return value
+
+
+def public_packet_sha(release):
+    records = {}
+    for a in release['assets']:
+        require(a['name'] not in records and a['state'] == 'uploaded' and
+                type(a['size']) is int and a['size'] > 0 and
+                isinstance(a.get('digest'), str) and re.fullmatch('sha256:' + HEX64, a['digest']),
+                'Invalid public packet inventory')
+        records[a['name']] = {'bytes': a['size'], 'sha256': a['digest'][7:]}
+    require(len(records) == 9, 'Incomplete prepared packet')
+    return sha(json.dumps(records, sort_keys=True, separators=(',', ':')).encode())
+
+
+def verify_prepared_publication(client, release, manifest):
+    value = prepared_body_record(release['body'])
+    workflow = manifest['workflow']
+    require(value['source'] == manifest['source']['revision'] and
+            value['build_run'] == workflow['run_id'] and
+            value['build_attempt'] == workflow['attempt'] and
+            value['tag'] == manifest['intended_tag'] == release['tag_name'] and
+            value['packet_sha256'] == public_packet_sha(release),
+            'Prepared publication receipt belongs to another packet')
+    for item in value['publishers']:
+        run_id, attempt, source = item['run_id'], item['attempt'], item['source']
+        try:
+            run = client.api(f'actions/runs/{run_id}/attempts/{attempt}')
+            jobs = client.api(f'actions/runs/{run_id}/attempts/{attempt}/jobs?per_page=100')
+        except HttpFailure as error:
+            if error.status in (404, 410):
+                continue
+            raise
+        # Reuse all repository, URL, source and job identity checks, substituting
+        # only the expected workflow path for this separate canonical publisher.
+        require(run.get('path') == '.github/workflows/publish-prepared.yml' and
+                run.get('event') == 'workflow_dispatch' and
+                run.get('display_title') == 'Prepared firmware ' + value['packet_sha256'] + ' (publish)',
+                'Noncanonical prepared publisher')
+        verify_actions_provenance(run, jobs['jobs'], run_id, attempt, source, 'devel',
+                                  '.github/workflows/publish-prepared.yml')
+        by_name = {j['name']: j for j in jobs['jobs']}
+        require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
+                set(by_name) == {'validate', 'publish'}, 'Unexpected prepared publisher jobs')
+        if (run.get('status') == 'completed' and run.get('conclusion') == 'success' and
+                by_name['publish']['status'] == 'completed' and
+                by_name['publish']['conclusion'] == 'success' and
+                by_name['validate']['status'] == 'completed' and
+                by_name['validate']['conclusion'] == 'skipped'):
+            return value
+    raise PublicationPending('Prepared bytes await a successful canonical publisher; inspect its run and resume')
+
+
 def resolve(client, branch='devel', version=None, stable=False):
     """Resolve once through the maintained source-ordered branch bookmark."""
     require(branch in ('main', 'devel'), 'Unsupported branch')
@@ -546,6 +631,9 @@ def resolve(client, branch='devel', version=None, stable=False):
         require(index['manifest_sha256'] == sha(files['release-manifest.json']) and
                 index['source'] == manifest['source']['revision'] and
                 index['uf2'] == decode(files['ci-publication.json'])['uf2'], 'Branch metadata swap')
+    delayed = PREPARED_MARKER in release.get('body', '')
+    if delayed:
+        verify_prepared_publication(client, release, manifest)
     # A retained successful verification receipt remains usable after Actions
     # expiration. If live run metadata exists, require the whole run to pass.
     try:
@@ -567,7 +655,9 @@ def resolve(client, branch='devel', version=None, stable=False):
         by_name = {job['name']: job for job in jobs['jobs']}
         require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
                 set(by_name) == {'verify', 'publish'} and
-                all(j['status'] == 'completed' and j['conclusion'] == 'success' for j in by_name.values()) and
+                by_name['verify']['status'] == 'completed' and by_name['verify']['conclusion'] == 'success' and
+                by_name['publish']['status'] == 'completed' and
+                by_name['publish']['conclusion'] in (('success', 'skipped') if delayed else ('success',)) and
                 by_name['verify']['id'] == decode(files['ci-publication.json'])['verify_job']['id'],
                 'Required CI jobs or verification receipt disagree')
     require(release_tag_source(client, tag) == tag_source, 'Version tag changed during download')
@@ -728,6 +818,17 @@ def remember_local(directory, record, *, root=None):
     save_bytes(image_path, files['WsprryPico-0.0.0-devel-pico2_w.uf2'])
     save_json(reference, {'schema': 'wsprrypico-local-reference/1', 'serial': serial,
                          'uf2_sha256': record['uf2_sha256'], 'manifest': decode(files['local-build.json'])})
+
+
+def installed_public(directory, snapshot, branch):
+    """A retained verified bundle identifies old bytes independently of editable tags."""
+    files = read_bundle(directory)
+    require('local-build.json' not in files, 'A public baseline needs its original verified public bundle')
+    manifest, image = verify_bundle(files, branch)
+    require(manifest['firmware_version'] == snapshot['firmware'] and
+            manifest['source']['revision'][:12] == snapshot['source_revision'],
+            'Supplied installed public bundle does not identify the running firmware')
+    return files, manifest, image
 
 
 def resolve_installed(client, version):
@@ -1482,11 +1583,11 @@ def device_lock(serial):
             Path.home() / 'Library/Caches/WsprryPico/locks')
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     require(not root.is_symlink(), 'Unsafe lock directory')
-    fd = os.open(root / (serial + '.lock'), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o660)
-    if os.fstat(fd).st_uid == os.getuid():
-        os.fchmod(fd, 0o660 if platform.system() == 'Linux' else 0o600)
+    fd = open_device_lock(root / (serial + '.lock'))
     try:
         require(stat.S_ISREG(os.fstat(fd).st_mode), 'Unsafe device lock')
+        if os.fstat(fd).st_uid == os.getuid():
+            os.fchmod(fd, 0o660 if platform.system() == 'Linux' else 0o600)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError as error:
@@ -1494,6 +1595,19 @@ def device_lock(serial):
         yield
     finally:
         os.close(fd)
+
+
+def open_device_lock(path):
+    # Linux protected_regular refuses O_CREAT on a foreign existing file in a
+    # shared sticky directory. Never recreate, unlink, or chmod a foreign lock.
+    flags = os.O_RDWR | os.O_NOFOLLOW
+    try:
+        return os.open(path, flags)
+    except FileNotFoundError:
+        try:
+            return os.open(path, flags | os.O_CREAT | os.O_EXCL, 0o660)
+        except FileExistsError:
+            return os.open(path, flags)
 
 
 def private_directory(path):
@@ -1652,8 +1766,8 @@ def erase_transaction(args):
             'Erasing firmware and all saved data requires --device SERIAL --board pico2_w --yes')
     with device_lock(args.device):
         board = selected(args.device)
-        # A running image may only prepare a manual BOOTSEL handoff. Do not
-        # reset it, stop a job, or read/copy credential-bearing flash.
+        # Software maintenance is opt-in. Legacy/manual preparation remains
+        # available; neither route stops a job or copies credential-bearing flash.
         if board['mode'] == 'application':
             snapshot = public_snapshot(board)
             admit_snapshot(snapshot)
@@ -1676,7 +1790,33 @@ def erase_transaction(args):
         path = directory / 'transaction.json'
         save_json(path, record)
         if board['mode'] == 'application':
-            return dict(record, transaction=str(path))
+            if not getattr(args, 'software_bootsel', False):
+                return dict(record, transaction=str(path))
+            try:
+                record.update(stage='entering_bootsel', preflight_target=snapshot['target'],
+                              preflight_revision=snapshot['revision'])
+                save_json(path, record)  # Reset intent must survive a lost ACK or controller.
+                with Management(board) as management:
+                    management.enter_bootsel(snapshot)
+                deadline = time.monotonic() + 15
+                while time.monotonic() < deadline:
+                    matches = [d for d in discover() if d['serial'] == args.device and d['mode'] == 'bootsel']
+                    if matches:
+                        require(len(matches) == 1 and matches[0]['parent'] == board['parent'],
+                                'BOOTSEL device/port changed')
+                        break
+                    time.sleep(.1)
+                else:
+                    raise Refusal('Guarded BOOTSEL transition unconfirmed; no flash was erased. '
+                                  'Inspect the selected board and use the retained recovery transaction; do not repeat reset blindly.')
+            except BaseException as error:
+                record.update(failure_stage=record['stage'], stage='failed', recovery_required=True,
+                              failure_reason=str(error), erase_verified=False)
+                try:
+                    save_json(path, record)
+                except OSError:
+                    record['record_write_failed'] = True
+                raise TransactionFailure(str(error), record, path, error) from error
         return finish_erase(args, record, path)
 
 
@@ -1695,7 +1835,8 @@ def transaction(args, files, manifest, image, client=None):
         require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
         root = private_directory(args.state_dir)
         prune_transactions(root)
-        if 'local-build.json' in files or getattr(args, 'installed_bundle', None) is not None:
+        if 'local-build.json' in files or (getattr(args, 'installed_bundle', None) is not None and
+                                         (Path(args.installed_bundle) / 'local-build.json').is_file()):
             require(not (root / ('.local-reference-' + serial + '.json')).is_symlink() and
                     not (root / ('.local-image-' + serial + '.uf2')).is_symlink(),
                     'Unsafe local reference destination')
@@ -1742,12 +1883,21 @@ def transaction(args, files, manifest, image, client=None):
                             save_bytes(installed / name, data)
                         verify_linked_identity(tool, installed / candidate_asset(old_files, old_manifest)['path'], old_manifest)
                 else:
-                    require(getattr(args, 'installed_bundle', None) is None,
-                            '--installed-bundle is only for an installed local development image')
                     require(version_kind(old_version) in ('ci', 'prerelease', 'stable'),
                             'Unsupported installed firmware; retain backup and recover deliberately')
-                    old_files, old_manifest, old_image = ((files, manifest, image) if old_version == manifest['firmware_version'] and
-                                                        'local-build.json' not in files else resolve_installed(client, old_version))
+                    if getattr(args, 'installed_bundle', None) is not None:
+                        old_files, old_manifest, old_image = installed_public(args.installed_bundle, snapshot, args.branch)
+                        installed = directory / 'installed'
+                        installed.mkdir(mode=0o700)
+                        for name, data in old_files.items():
+                            save_bytes(installed / name, data)
+                        verify_linked_identity(tool, installed / candidate_asset(old_files, old_manifest)['path'], old_manifest)
+                    else:
+                        old_files, old_manifest, old_image = ((files, manifest, image) if old_version == manifest['firmware_version'] and
+                                                            'local-build.json' not in files else resolve_installed(client, old_version))
+                    require(old_manifest['source']['revision'][:12] == snapshot['source_revision'],
+                            'Installed public tag/source changed; retain the original verified bundle and '
+                            'supply it independently with --installed-bundle. No reset or firmware write was requested.')
                 require(old_manifest['update']['application_end'] != '103ec000' or manifest['update']['application_end'] == '103ec000',
                         'Rollback would overwrite the UDP journal reservation; a reviewed settings-preserving migration is required')
                 old_source, new_source = old_manifest['source']['revision'], manifest['source']['revision']
@@ -1823,7 +1973,7 @@ def transaction(args, files, manifest, image, client=None):
                                int(old_manifest['update']['application_end'], 16)-0x10000000] ==
                         b'\xff' * (int(old_manifest['update']['application_end'], 16)-int(manifest['update']['application_end'], 16)),
                         'Newly reserved storage is not erased; migration is unsupported')
-                if getattr(args, 'installed_bundle', None) is not None:
+                if old_version == '0.0.0-devel' and getattr(args, 'installed_bundle', None) is not None:
                     for suffix, maximum in (('json', 65536), ('uf2', MAX_DOWNLOAD)):
                         previous = root / (('.local-reference-' if suffix == 'json' else '.local-image-') + serial + '.' + suffix)
                         if previous.exists():
@@ -1951,7 +2101,10 @@ def saved_semantics(snapshot):
             'calibration': snapshot['calibration']['saved'],
             'message_schedule': (snapshot.get('message_schedule') or {}).get('saved'),
             'watermark_utc_ns': snapshot['status']['standalone']['watermark_utc_ns'],
-            'suspended': snapshot['status']['standalone']['suspended']}
+            # With no saved schedule, suspension is a derived startup/maintenance
+            # observation, not durable operator state. Configured schedules keep
+            # their strict saved suspension comparison.
+            'suspended': snapshot['status']['standalone']['suspended'] if config is not None else None}
 
 
 def admit_snapshot(snapshot):
@@ -2332,7 +2485,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     choice.add_argument('--local-build', type=Path, help='Explicit developer source checkout to compile with existing pinned tools')
     choice.add_argument('--local-bundle', type=Path, help='Explicit previously built developer bundle')
     parser.add_argument('--installed-bundle', type=Path,
-                        help='Original developer bundle for the running local image; upgrade verifies flash before repairing its reference')
+                        help='Original verified public or developer bundle for the running image; upgrade verifies its actual flash independently of editable tags')
     parser.add_argument('--local-variant', choices=('normal','inhibited','si5351-engineering'), help='Explicit developer firmware engine; inhibited never drives RF; si5351-engineering enables unqualified Si5351 output')
     parser.add_argument('--build-dir', type=Path, help='New developer build directory; never reused')
     parser.add_argument('--source-revision', help='Require this exact full local source HEAD')
@@ -2340,6 +2493,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
     parser.add_argument('--device', help='Physical USB serial; required for unattended operations')
     parser.add_argument('--board', choices=('pico2_w',), help='Confirm the actual BOOTSEL board is Pico 2 W')
     parser.add_argument('--yes', action='store_true', help='Confirm the explicit install, upgrade, recovery or destructive erase operation')
+    parser.add_argument('--software-bootsel', action='store_true',
+                        help='Erase only: use guarded idle software maintenance instead of manual BOOTSEL')
     parser.add_argument('--replace-unidentified-application', action='store_true',
                         help='Initial installation only: explicitly replace unknown application bytes, requiring erased saved state')
     parser.add_argument('--picotool', help='Existing executable; an explicit path never triggers a fallback download')
@@ -2356,6 +2511,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
     os.umask(0o077)
     managed_tool, recovery_pending = None, False
     try:
+        require(not args.software_bootsel or args.operation == 'erase',
+                '--software-bootsel is only supported for erase')
         if args.terminal_ui:
             terminal_section('WsprryPico USB installer')
             terminal_paragraph({'install': 'Install firmware', 'upgrade': 'Upgrade firmware',

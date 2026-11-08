@@ -109,3 +109,7 @@ Record the full stable device ID, connection method (browser, USB, or network co
 ## Preserve diagnostic logging settings
 
 [USB logging](usb.md#usb-diagnostic-logging) and [UDP logging](udp.md) have independent saved settings. Ordinary restarts, unrelated saves, and compatible USB-installer upgrades preserve both; factory reset clears both. Before installing different firmware, disable UDP export and read it back. Use the [USB installer](install.md#preserve-settings-during-an-update), retain the exact installation bundle, and follow any compatibility refusal. Do not erase the Pico to bypass a refusal.
+
+### Unattended erase
+
+For a supported, idle Pico with no enabled schedule, `erase --software-bootsel --device SERIAL --board pico2_w --yes --json-only` uses guarded USB maintenance to enter BOOTSEL without pressing its button. This deliberately destroys firmware and all saved flash data, verifies blank flash, and leaves the board in BOOTSEL. Keep a verified firmware bundle before erasing. A refused or unconfirmed transition retains recovery instructions; inspect the selected board before continuing. Firmware that cannot respond to guarded maintenance still needs physical BOOTSEL recovery.
