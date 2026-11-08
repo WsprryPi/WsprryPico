@@ -2,11 +2,11 @@
 
 Status: ✅ complete; ⏳ in progress; ▧ not started.
 
-1. ⏳ **Add Pico RF qualification support to the Qualification Harness.** Implement the production Pico adapter and four configurations: direct GPIO and Si5351, each with and without GPS/PPS. Cover finite tones, WSPR, QRSS, FSKCW, and DFCW, bounded capture, failure handling, verified RF shutdown, and settings restoration. Complete deterministic and production-path software validation. [Phase 1 execution prompt](pico-rf-harness-phase-1-prompt.md).
+1. ✅ **Add Pico RF qualification support to the Qualification Harness.** The production Pico USB route covers direct GPIO and Si5351, each with and without GPS/PPS, explicit correction subcases, TONE, WSPR, QRSS, FSKCW, and DFCW, bounded capture, failure handling, verified shutdown, and settings preservation. Required deterministic and production-path software validation passed. [Pico RF qualification guide](pico-rf-qualification.md). [Harness PR #19](https://github.com/WsprryPi/WsprryPi-Qualification-Harness/pull/19), [Pico PR #22](https://github.com/WsprryPi/WsprryPico/pull/22).
 2. ▧ **Prepare and qualify the exact RC.2 firmware artifact.** Retain the exact versioned firmware bundle and provenance, run Pico installation/preservation acceptance, and execute the four-configuration RF campaign against those exact bytes. Retain source, board, engine, clock, GPS/PPS, correction, receiver-path, analysis, and restoration evidence. [Phase 2 execution prompt](pico-rc2-qualification-phase-2-prompt.md).
 3. ▧ **Review results and publish RC.2.** Resolve actionable findings, finalize release notes and documented limits, validate the retained publication packet, and publish the tested artifact through the owning release workflow. Verify public download and installer resolution against the published bytes. [Phase 3 execution prompt](pico-rc2-publication-phase-3-prompt.md).
 
-Phase 1 is in progress. Phases 2 and 3 remain separate tasks.
+Phase 1 is complete on the `codex/pico-rf-harness` branches, with the two PRs unmerged. Its completed execution prompt is retired in favor of the maintained guide. Phases 2 and 3 are not started.
 
 ## Final disposition of former item 21
 
