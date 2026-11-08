@@ -34,7 +34,8 @@ Build with `-DTRUTH_PRODUCTION_CAPTURE=ON` to run the actual
 GP3 PPS / GP7 CLK2 allocation. Core 0 handles production GPS pairing and
 counter-at-PPS snapshots. Core 1 owns production reference capture and also
 brackets each electrical PPS edge independently by polling the same counter.
-The counter is continuous for 301 edges; this diagnostic does not reproduce
+The linker reserves separate 16 KiB core-0 and 8 KiB core-1 stacks in main SRAM,
+with the heap ending below both stacks. The counter is continuous for 301 edges; this diagnostic does not reproduce
 the normal application's twelve-second reference-monitor restarts or an RF job.
 CLK0 and CLK1 remain disabled. The diagnostic CLK2 plan is the existing
 integer PLLA 900 MHz / MS2 900 plan, rather than the production PLLB plan.
@@ -55,7 +56,14 @@ python3 tests/hardware/si5351-reference-truth/analyze_production.py private/tran
 ```
 
 The analyzer refuses incomplete captures, missing USB load, wrong pin/source
-bindings, UART/capture loss, incoherent snapshots, and failed register restoration.
+bindings, UART/capture loss during the defined capture, and failed register
+restoration. Core launch and a three-second UART settling interval precede the
+health baseline; startup counters remain visible and no counter is reset. A
+nonzero error increment during capture refuses acceptance. Production count
+snapshots may legitimately refuse a concurrent publication. Those observations
+remain in the report; windows with incoherent endpoints are marked unavailable
+rather than fabricating counts or shifting the window. PPS sequence/UTC
+continuity and coherent count-session identity remain mandatory.
 It compares nonoverlapping 10-, 30-, and 60-second production reconstructions
 against independent counts spanning the *same* electrical edges. Actual oscillator
 movement and physical PPS jitter are common to both measurements and cancel in
@@ -81,9 +89,11 @@ receives PPS from the same source, with common ground and verified input levels.
 Original Si5351 CLK2-to-GP7 and QLG3 PPS-to-GP3 leads can remain connected.
 The external variant performs no Si5351 I2C setup or writes. QLG3 serial on
 GP1 remains available for consecutive UTC labels; this test does not qualify
-association of the substituted PPS for normal UTC operation. A zero independent
-PPS allowance applies only to the known clock-to-PPS ratio of the common source,
-not to absolute UTC accuracy. Only one input pair is selected per build.
+association of the substituted PPS for normal UTC operation. The GPSDO provides a known nominal clock-to-PPS ratio; using the same enclosure
+does not establish zero relative jitter or phase coherence. Independent frequency
+intervals retain the conditional 10 us PPS endpoint allowance for this source too.
+The same-edge acquisition comparison cancels actual PPS jitter without requiring
+that assumption. This does not certify absolute UTC or source accuracy. Only one input pair is selected per build.
 Disconnect the GPIO leads before changing the reference outputs to RF test
 frequencies. This mode is test equipment, not an ordinary firmware upgrade.
 

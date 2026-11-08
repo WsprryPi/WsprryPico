@@ -12,7 +12,7 @@ from rf_analysis.pps_windows import analyze_windows, compare_production
 
 def analyze(text):
     info = re.findall(
-        r"^INFO serial=([0-9a-fA-F]{16}) clock_hz=(\d+) ram_only=1 pps_gp=(\d+) input_gp=(\d+) seconds=300 source=(si5351|known_ratio) production=1$",
+        r"^INFO serial=([0-9a-fA-F]{16}) clock_hz=(\d+) ram_only=1 pps_gp=(\d+) input_gp=(\d+) seconds=300 source=(si5351|known_ratio) production=1 input_only=1$",
         text,
         re.M,
     )
@@ -67,8 +67,16 @@ def analyze(text):
     if len(records) != observations or len(status) != 1:
         raise ValueError("Incomplete production evidence")
     status = json.loads(status[0])
-    if status["uart_errors"] != 0 or status["dropped"] != 0:
-        raise ValueError("UART/capture records lost")
+    baseline = re.findall(r"^GPS_BASELINE_STATUS (.+)$", text, re.M)
+    if len(baseline) != 1:
+        raise ValueError("Missing pre-capture UART health")
+    baseline = json.loads(baseline[0])
+    deltas = {
+        k: status[k] - baseline[k]
+        for k in ("uart_errors", "dropped", "capture_rejections")
+    }
+    if any(v != 0 for v in deltas.values()):
+        raise ValueError("UART/capture records lost during defined capture")
     return dict(
         serial=serial,
         source=source,
@@ -78,6 +86,10 @@ def analyze(text):
         restored=True,
         first_loaded=bool(first_loaded),
         load_writes=writes,
+        health_before={
+            k: baseline[k] for k in ("uart_errors", "dropped", "capture_rejections")
+        },
+        health_deltas=deltas,
         health={
             k: status[k]
             for k in (
@@ -88,9 +100,7 @@ def analyze(text):
                 "capture_error_bound_ns",
             )
         },
-        independent=analyze_windows(
-            pulses, pps_endpoint_us=10 if source == "si5351" else 0
-        ),
+        independent=analyze_windows(pulses, pps_endpoint_us=10),
         production=compare_production(pulses, records, first_loaded=bool(first_loaded)),
     )
 

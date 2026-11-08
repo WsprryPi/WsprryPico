@@ -250,10 +250,12 @@ int main() {
     uart_set_fifo_enabled(uart0, true);
     gpio_set_function(1, GPIO_FUNC_UART);
     gpio_set_oeover(1, GPIO_OVERRIDE_LOW);
+#endif
+    // Establish input-only pads before INFO, including the later GP9/GP11 build.
     gpio_init(pps_gp);
     gpio_set_dir(pps_gp, GPIO_IN);
     gpio_disable_pulls(pps_gp);
-#endif
+    gpio_set_oeover(pps_gp, GPIO_OVERRIDE_LOW);
     if (!external_reference) {
         i2c_init(i2c0, 100000);
         gpio_set_function(4, GPIO_FUNC_I2C);
@@ -261,12 +263,12 @@ int main() {
         gpio_pull_up(4);
         gpio_pull_up(5);
     }
-#if !TRUTH_PRODUCTION_CAPTURE
     gpio_init(input_gp);
     gpio_set_dir(input_gp, GPIO_IN);
     gpio_disable_pulls(input_gp);
     gpio_set_oeover(input_gp, GPIO_OVERRIDE_LOW);
     gpio_set_input_enabled(input_gp, true);
+#if !TRUTH_PRODUCTION_CAPTURE
     hw_write_masked(&io_bank0_hw->io[input_gp].ctrl,
                     GPIO_FUNC_PWM << IO_BANK0_GPIO0_CTRL_FUNCSEL_LSB,
                     IO_BANK0_GPIO0_CTRL_FUNCSEL_BITS);
@@ -287,11 +289,17 @@ int main() {
             if (!strcmp(command, "INFO")) {
                 char serial[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
                 pico_get_unique_board_id_string(serial, sizeof(serial));
-                printf("INFO serial=%s clock_hz=%lu ram_only=1 pps_gp=%u input_gp=%u seconds=300 "
-                       "source=%s production=%u\n",
-                       serial, (unsigned long)clock_get_hz(clk_sys), pps_gp, input_gp,
-                       external_reference ? "known_ratio" : "si5351",
-                       unsigned(TRUTH_PRODUCTION_CAPTURE));
+                printf(
+                    "INFO serial=%s clock_hz=%lu ram_only=1 pps_gp=%u input_gp=%u seconds=300 "
+                    "source=%s production=%u input_only=%u\n",
+                    serial, (unsigned long)clock_get_hz(clk_sys), pps_gp, input_gp,
+                    external_reference ? "known_ratio" : "si5351",
+                    unsigned(TRUTH_PRODUCTION_CAPTURE),
+                    unsigned(!gpio_get_dir(input_gp) && !gpio_get_dir(pps_gp) &&
+                             ((io_bank0_hw->io[input_gp].ctrl & IO_BANK0_GPIO0_CTRL_OEOVER_BITS) >>
+                              IO_BANK0_GPIO0_CTRL_OEOVER_LSB) == GPIO_OVERRIDE_LOW &&
+                             ((io_bank0_hw->io[pps_gp].ctrl & IO_BANK0_GPIO0_CTRL_OEOVER_BITS) >>
+                              IO_BANK0_GPIO0_CTRL_OEOVER_LSB) == GPIO_OVERRIDE_LOW));
                 fflush(stdout);
             } else if (!strcmp(command, "TEST"))
 #if TRUTH_PRODUCTION_CAPTURE

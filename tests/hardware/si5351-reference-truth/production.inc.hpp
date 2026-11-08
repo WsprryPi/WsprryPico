@@ -8,7 +8,8 @@ struct ProductionObservation {
 };
 ProductionObservation observations[320];
 unsigned observation_count = 0;
-std::atomic<bool> capture_done{false}, capture_stop{false}, load_phase{false}, worker_done{false};
+std::atomic<bool> capture_done{false}, capture_stop{false}, load_phase{false}, worker_done{false},
+    capture_armed{false};
 unsigned truth_count = 0;
 std::uint64_t capture_start = 0;
 bool initial_load = false, production_coherent = true;
@@ -21,6 +22,14 @@ void observe_production(const wsprrypico::time::gps::Observation& pps, void*) {
         pps, production_gps.cycle().value_or(wsprrypico::time::gps::CycleSnapshot{})};
 }
 void capture_worker() {
+    while (!capture_armed.load(std::memory_order_acquire) &&
+           !capture_stop.load(std::memory_order_acquire))
+        tight_loop_contents();
+    if (capture_stop.load(std::memory_order_acquire)) {
+        capture_done.store(true, std::memory_order_release);
+        worker_done.store(true, std::memory_order_release);
+        return;
+    }
     production_coherent = production_counter.begin(1);
     previous_count = 0;
     previous_us = 0;
@@ -77,16 +86,30 @@ void test_production(bool loaded) {
     gps.minimum_message_delay_ms = 600;
     gps.maximum_message_delay_ms = 1200;
     production_gps.cycle_capture(+[] { return production_counter.pps_snapshot(); });
-    if (!production_counter.open(pins, settings) || !production_gps.open(pins, settings, gps)) {
-        production_gps.close();
-        production_counter.close();
-        printf("END_PRODUCTION error=open restored=%u\n", unsigned(restore()));
+    if (!production_counter.open(pins, settings)) {
+        printf("END_PRODUCTION error=counter_open restored=%u\n", unsigned(restore()));
         return;
     }
+    // Complete the ROM core-launch handshake before enabling GPS UART ingress.
+    multicore_launch_core1(capture_worker);
+    if (!production_gps.open(pins, settings, gps)) {
+        capture_stop.store(true, std::memory_order_release);
+        multicore_reset_core1();
+        production_counter.close();
+        printf("END_PRODUCTION error=gps_open restored=%u\n", unsigned(restore()));
+        return;
+    }
+    // UART setup can begin in the middle of an existing character/sentence.
+    // Retain startup health, then measure deltas over the defined capture.
+    const auto settling = time_us_64();
+    while (time_us_64() - settling < 3000000ULL)
+        production_gps.poll(time_us_64() * 1000, observe_production, nullptr);
+    const auto baseline_status = production_gps.status(time_us_64() * 1000);
+    observation_count = 0;
     capture_start = time_us_64();
     initial_load = loaded;
     load_phase.store(loaded, std::memory_order_release);
-    multicore_launch_core1(capture_worker);
+    capture_armed.store(true, std::memory_order_release);
     unsigned writes = 0;
     auto next_load = capture_start + 10000;
     constexpr char load[] = "LOAD 0123456789012345678901234567890123456789012345678901234567\n";
@@ -139,6 +162,7 @@ void test_production(bool loaded) {
                (unsigned long long)o.count.plan_generation, (unsigned long long)o.count.capture_id);
     }
     // Status is private evidence: it can contain receiver position.
+    printf("GPS_BASELINE_STATUS %s\n", baseline_status.c_str());
     printf("GPS_STATUS %s\n", status.c_str());
     printf("END_PRODUCTION pulses=%u observations=%u coherent=%u max_gap_us=%llu "
            "restored=%u first_loaded=%u load_writes=%u\n",

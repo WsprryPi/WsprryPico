@@ -130,6 +130,7 @@ def compare_production(
         "capture",
     }
     selected, outside = [], 0
+    binding, last_coherent = None, None
     for o in observations:
         if (
             set(o) != keys
@@ -155,16 +156,31 @@ def compare_production(
             raise ValueError("Unmatched production PPS inside capture")
         if (
             len(matches) != 1
-            or o["coherent"] != 1
-            or not o["plan"]
-            or not o["capture"]
-            or not 0
-            <= o["count_raw_ns"] - o["raw_ns"]
-            <= o["count_bound_ns"]
-            <= 1_000_000
+            or o["coherent"] not in (0, 1)
+            or (
+                o["coherent"] == 1
+                and (
+                    not o["plan"]
+                    or not o["capture"]
+                    or not 0
+                    <= o["count_raw_ns"] - o["raw_ns"]
+                    <= o["count_bound_ns"]
+                    <= 1_000_000
+                )
+            )
         ):
             raise ValueError("Ambiguous or incoherent production capture")
         p = matches[0]
+        if o["coherent"]:
+            candidate_binding = (o["plan"], o["capture"])
+            if binding is not None and candidate_binding != binding:
+                raise ValueError("Changed count-session binding")
+            if last_coherent is not None and (
+                o["count_raw_ns"] <= last_coherent["count_raw_ns"]
+                or o["edges"] <= last_coherent["edges"]
+            ):
+                raise ValueError("Reversed coherent count endpoint")
+            binding, last_coherent = candidate_binding, o
         if selected:
             prior, prior_p = selected[-1]
             if (
@@ -172,9 +188,16 @@ def compare_production(
                 or p[0] != prior_p[0] + 1
                 or o["utc_ns"] - prior["utc_ns"] != 1_000_000_000
                 or o["raw_ns"] <= prior["raw_ns"]
-                or o["count_raw_ns"] <= prior["count_raw_ns"]
-                or o["edges"] <= prior["edges"]
-                or (o["plan"], o["capture"]) != (prior["plan"], prior["capture"])
+                or (
+                    o["coherent"]
+                    and prior["coherent"]
+                    and (
+                        o["count_raw_ns"] <= prior["count_raw_ns"]
+                        or o["edges"] <= prior["edges"]
+                        or (o["plan"], o["capture"])
+                        != (prior["plan"], prior["capture"])
+                    )
+                )
             ):
                 raise ValueError("Discontinuous production observation window")
         selected.append((o, p))
@@ -185,6 +208,24 @@ def compare_production(
         for start in range(0, len(selected) - seconds, seconds):
             a, pa = selected[start]
             b, pb = selected[start + seconds]
+            phase = pa[0] // 60
+            loaded = (
+                (first_loaded ^ bool(phase & 1)) if (pb[0] - 1) // 60 == phase else None
+            )
+            if not a["coherent"] or not b["coherent"]:
+                rows.append(
+                    dict(
+                        span_s=seconds,
+                        first_pps=pa[0],
+                        last_pps=pb[0],
+                        loaded=loaded,
+                        available=False,
+                        reason="incoherent_endpoint",
+                    )
+                )
+                continue
+            if (a["plan"], a["capture"]) != (b["plan"], b["capture"]):
+                raise ValueError("Changed count-session binding")
             normalized = Fraction(
                 (b["edges"] - a["edges"]) * (b["raw_ns"] - a["raw_ns"]),
                 b["count_raw_ns"] - a["count_raw_ns"],
@@ -202,6 +243,7 @@ def compare_production(
             )
             rows.append(
                 dict(
+                    available=True,
                     span_s=seconds,
                     first_pps=pa[0],
                     last_pps=pb[0],
@@ -223,6 +265,14 @@ def compare_production(
     return dict(
         observations=len(selected),
         outside_capture=outside,
+        incoherent_sequences=[o["seq"] for o, p in selected if not o["coherent"]],
+        pps_timestamp_errors=[
+            dict(
+                pps=p[0],
+                error_ns=[o["raw_ns"] - p[2] * 1000, o["raw_ns"] - p[1] * 1000],
+            )
+            for o, p in selected
+        ],
         windows=rows,
         scope="Same-edge acquisition difference; physical PPS/oscillator changes cancel. Independent brackets remain conditional on coherent count extension and input identity.",
     )

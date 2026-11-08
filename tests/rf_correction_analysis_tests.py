@@ -158,7 +158,11 @@ class Tests(unittest.TestCase):
         bad = rows[:100]+rows[101:]
         with self.assertRaises(ValueError):
             compare_production(pulses,bad)
-        for field,value in (('coherent',0),('plan',0),('capture',0),('count_bound_ns',1)):
+        refused = [dict(r) for r in rows];refused[50]['coherent'] = 0
+        analyzed = compare_production(pulses,refused)
+        self.assertEqual(analyzed['incoherent_sequences'],[51])
+        self.assertTrue(any(not r['available'] for r in analyzed['windows']))
+        for field,value in (('coherent',2),('plan',0),('capture',0),('count_bound_ns',1)):
             bad = [dict(r) for r in rows];bad[50][field] = value
             with self.assertRaises(ValueError):
                 compare_production(pulses,bad)
@@ -171,7 +175,7 @@ class Tests(unittest.TestCase):
         module = importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
         pulses = self.bracketed_pulses()
         observations = self.production_observations(pulses)
-        lines = ['INFO serial=1545B6EFBF78028C clock_hz=138000000 ram_only=1 pps_gp=3 input_gp=7 seconds=300 source=si5351 production=1']
+        lines = ['INFO serial=1545B6EFBF78028C clock_hz=138000000 ram_only=1 pps_gp=3 input_gp=7 seconds=300 source=si5351 production=1 input_only=1']
         lines += ['LOAD x']*10800
         lines += ['BEGIN_PRODUCTION first_loaded=0 pattern=alternating_60pps']
         lines += ['PULSE i=%d raw_low=%d raw_high=%d count_low=%d count_high=%d'%p for p in pulses]
@@ -179,13 +183,20 @@ class Tests(unittest.TestCase):
         health = dict(uart_errors=0,dropped=0,capture_rejections=0,
                       maximum_irq_latency_ns='5000',capture_error_bound_ns='6000',
                       position=dict(latitude_e7=123,longitude_e7=456))
-        lines += ['GPS_STATUS '+json.dumps(health), 'END_PRODUCTION pulses=301 observations=301 coherent=1 max_gap_us=1 restored=1 first_loaded=0 load_writes=10800']
+        lines += ['GPS_BASELINE_STATUS '+json.dumps(health),'GPS_STATUS '+json.dumps(health), 'END_PRODUCTION pulses=301 observations=301 coherent=1 max_gap_us=1 restored=1 first_loaded=0 load_writes=10800']
         text = '\n'.join(lines)+'\n'
         result = module.analyze(text)
         self.assertNotIn('latitude',json.dumps(result))
         self.assertNotIn('longitude',json.dumps(result))
+        known = text.replace('pps_gp=3 input_gp=7','pps_gp=11 input_gp=9').replace('source=si5351','source=known_ratio')
+        self.assertEqual(module.analyze(known)['independent']['pps_endpoint_allowance_us'],10)
+        startup = text.replace('"uart_errors": 0','"uart_errors": 90')
+        self.assertEqual(module.analyze(startup)['health_deltas']['uart_errors'],0)
+        during_capture = startup.replace('GPS_STATUS {"uart_errors": 90','GPS_STATUS {"uart_errors": 91')
+        with self.assertRaises(ValueError):
+            module.analyze(during_capture)
         for bad in (text.replace('restored=1','restored=0'), text.replace('input_gp=7','input_gp=9'),
-                    text.replace('coherent=1','coherent=0',1), text.replace('LOAD x\n','',1),
+                    text.replace('coherent=1','coherent=2',1), text.replace('LOAD x\n','',1),
                     text.replace('observations=301','observations=300')):
             with self.assertRaises(ValueError):
                 module.analyze(bad)

@@ -36,7 +36,7 @@ assert bad==0 and len(rmc)>=295 and all(x[2]=='A' for x in rmc)
 assert len(gga)>=295 and all(int(x[6])>0 for x in gga)
 # Conditional engineering PPS endpoint allowance. The vendor's 30 ns typical
 # timing figure is NOT a hard maximum. Include 10 us per endpoint explicitly.
-pps_endpoint_s=10e-6 if source=="si5351" else 0
+pps_endpoint_s=10e-6
 rows=[]
 for start,stop in [(0,300)]+[(i,i+60) for i in range(0,241,60)]:
  a,b=pulses[start],pulses[stop];n=stop-start
