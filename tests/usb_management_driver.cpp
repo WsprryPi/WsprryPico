@@ -1,6 +1,7 @@
 // Hardware-free production-pair harness. stdin/stdout carry only UMP1 bytes;
 // adapters use volatile in-process flash and no network or Pico SDK facilities.
 #include "network/local_usb_api.hpp"
+#include "network_diagnostics_fixture.hpp"
 #include "provisioning/local_settings.hpp"
 #include "standalone/dry_run_engine.hpp"
 #include "time/utc_discipline.hpp"
@@ -82,12 +83,11 @@ struct Network : network::NetworkControl {
     bool enabled = false;
     std::optional<bool> pending;
     std::string status() const override {
-        return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
-               ",\"link_status\":0,\"ipv4\":\"0.0.0.0\"}";
+        return network_diagnostics_fixture(enabled);
     }
     std::string operations_status() const override {
         return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
-               ",\"link_status\":0,\"ipv4\":\"0.0.0.0\",\"configured_hostname\":\"\","
+               ",\"link_status\":0,\"ipv4\":\"0.0.0.0\",\"configured_hostname\":\"pico-usb.local\","
                "\"mdns_state\":\"unconfigured\",\"mdns_reason\":\"\"}";
     }
     bool set_enabled(bool value) override {

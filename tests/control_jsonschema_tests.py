@@ -20,6 +20,10 @@ def documents(driver, *args):
     return values
 
 def validator(family):
+    if family == 'network-diagnostics':
+        schema = json.loads((ROOT / 'engineering/protocol/network-diagnostics.schema.json').read_text())
+        Draft202012Validator.check_schema(schema)
+        return Draft202012Validator(schema)
     return Draft202012Validator({'$defs': SCHEMA['$defs'], '$ref': '#/$defs/' + family})
 
 def valid(family, value):
@@ -35,6 +39,29 @@ for family, value in zip(['capabilities', 'config-read', 'status', 'management']
     invalid(family, {**value, 'unknown': True})
     invalid(family, {**value, 'contract': 'Wsprry-Control/2'})
 caps, config, status, management = core
+# Status carries the same full canonical local name as the production network
+# adapter, including before station commissioning. A bare-label fixture hid the
+# previous schema mismatch from the actual HTTP and USB producer checks.
+assert status['network']['configured_hostname'] == 'wsprrypico-test.local'
+for hostname in ['', 'pico-c.local', 'a.local', 'a' * 63 + '.local']:
+    value = copy.deepcopy(status)
+    value['network']['configured_hostname'] = hostname
+    valid('status', value)
+for hostname in ['pico-c', 'a' * 64 + '.local', '-pico.local', 'pico-.local',
+                 'Pico.local', 'pico.local.', 'pico.other.local', 'pico.local\n',
+                 'pico\\local', None, 1]:
+    value = copy.deepcopy(status)
+    value['network']['configured_hostname'] = hostname
+    invalid('status', value)
+if len(sys.argv) > 6:
+    for network in documents(sys.argv[6], '--diagnostic-samples'):
+        valid('network-diagnostics', network)
+        assert network['configured_hostname'] == 'pico-a.local'
+        for key in ['ntp_observations', 'ntp_rate', 'ntp_learning', 'ntp_pool', 'memory']:
+            bad = copy.deepcopy(network); bad.pop(key); invalid('network-diagnostics', bad)
+        bad = copy.deepcopy(network); bad['unknown'] = True; invalid('network-diagnostics', bad)
+        bad = copy.deepcopy(network); bad['ntp_rate']['qualified'] = 1; invalid('network-diagnostics', bad)
+        bad = copy.deepcopy(network); bad['softap_netif']['unknown'] = True; invalid('network-diagnostics', bad)
 for path, bad in [(('gpio_drive', 'values'), [None]), (('amplifier_enable', 'default_pin'), {}), (('wtp', 'profiles'), [None]), (('wtp', 'frequency_ranges'), [{}]), (('message_jobs', 'modes'), [None])]:
     value = copy.deepcopy(caps)
     assert path[0] in value, 'Sample must exercise optional message capability'

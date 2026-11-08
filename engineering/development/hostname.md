@@ -18,6 +18,8 @@ The full local hostname is required: one **1–63 character ASCII LDH label** pl
 
 WTP full device ID, station MAC, MAC-derived default, saved hostname, boot-active hostname, and actually advertised hostname remain separate. The AP SSID, BLE name, default/local password, retained owners/clients, station details, schedules, experimental flags, pin plan, STOP state, and watermark do not change in a rename. DNS-SD remains a destination hint; it supplies neither identity nor trust.
 
+The status resource's `network.configured_hostname` contains the full canonical `.local` name, including before station commissioning, or an empty string when no name is available. A bare label is not a canonical status hostname.
+
 ## Durable transaction, trust, and boot
 
 `GET/PUT /api/control/v1/hostname` implements stable schema `hostname` within `Wsprry-Control/1`. Ordinary configuration merges omit this separate profile authority and preserve it. The strict PUT contains exactly `contract`, `schema`, a full member/device/boot `target`, and `hostname` (full name or `null` for the hardware-derived default). It requires a current `If-Match` revision and the existing authenticated same-origin carrier. There is no hostname reset inferred from omission. Canonical no-ops consume neither entropy nor a profile generation. Actual changes consume a journal generation; A/B/A never revives an old revision.

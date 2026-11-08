@@ -78,6 +78,8 @@ with the maintained `validate-complete-test` route before interpreting results.
 A compiler source revision does not establish the installed firmware bytes;
 exact-artifact qualification must bind the retained installer bundle separately.
 
+The [network diagnostic schema](../protocol/network-diagnostics.schema.json) describes the full platform network observations carried by `ntp-observations`. It is separate from the shared control-resource schema and preserves the independent μChrony diagnostic identifiers. Campaign validators check the selected source's exact diagnostic schema and reject missing fields, unknown fields and malformed nested observations.
+
 Software fixture success, rehearsal, and synthetic IQ establish no physical
 USB, RP2350 timing, installed-image, or RF acceptance. Live results are specific
 to the recorded board, engine, band, modes, clock/correction state, receiver,
