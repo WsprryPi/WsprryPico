@@ -146,7 +146,12 @@ void check_wiring() {
         gpio_set_oeover(gp, GPIO_OVERRIDE_LOW);
         gpio_pull_down(gp);
     }
-    gpio_set_function(input_gp, GPIO_FUNC_PWM);
+    // gpio_set_function also resets OEOVER. Change only FUNCSEL so the
+    // forced input override survives both mux transitions, including while
+    // an external signal is connected.
+    hw_write_masked(&io_bank0_hw->io[input_gp].ctrl,
+                    GPIO_FUNC_PWM << IO_BANK0_GPIO0_CTRL_FUNCSEL_LSB,
+                    IO_BANK0_GPIO0_CTRL_FUNCSEL_BITS);
     auto config = pwm_get_default_config();
     pwm_config_set_clkdiv_mode(&config, PWM_DIV_B_RISING);
     pwm_init(slice, &config, false);
@@ -180,7 +185,9 @@ void check_wiring() {
     pwm_set_enabled(slice, false);
     edges += uint16_t(pwm_get_counter(slice) - prior_count);
     const auto elapsed = time_us_64() - start;
-    gpio_set_function(input_gp, GPIO_FUNC_SIO);
+    hw_write_masked(&io_bank0_hw->io[input_gp].ctrl,
+                    GPIO_FUNC_SIO << IO_BANK0_GPIO0_CTRL_FUNCSEL_LSB,
+                    IO_BANK0_GPIO0_CTRL_FUNCSEL_BITS);
     bool input_only = true;
     for (unsigned gp = 8; gp <= 13; ++gp) {
         gpio_disable_pulls(gp);
