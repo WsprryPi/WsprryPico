@@ -5842,5 +5842,476 @@
     ],
     "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage1-20261107",
     "external_gpio_test": "Built and SRAM-validated only; not connected or physically run."
+  },
+  "gpsdo_gpio_diagnostic_20261108": {
+    "fixture_source": "9c0092aae381fa68b8b61a9b0840703e1ab81df5",
+    "fixture_uf2_sha256": "25bfb68a7f1d81c97f392ccc6a1b34ea029cc71fdc271ff53e6da46e5421b937",
+    "serial": "1545B6EFBF78028C",
+    "system_clock_hz": 138000000,
+    "clock_gp": 9,
+    "pps_gp": 11,
+    "gpsdo_serial": "0673ED0FA107",
+    "gpsdo_firmware": "1.9",
+    "gpsdo_utility_sha256": "97ca1f8c6737c19901edc853848eea5a39a3d8dc3d1a8c387f1ecc45cea3cff2",
+    "physical_routing_verified": true,
+    "routing_scope": "Digital clock/PPS pin binding; does not independently certify ground-lead continuity, input voltage/waveform, source accuracy, or common-source zero relative jitter.",
+    "routing_matrix": [
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "slow2",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": true,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "slow1",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 22,
+        "gp9_polled_rises": 22,
+        "gp11_polled_rises": 11,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": true,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "slowboth",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 22,
+        "gp9_polled_rises": 22,
+        "gp11_polled_rises": 11,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": true,
+          "out2": true,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 10,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "fast2both",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 2199999,
+        "gp9_polled_rises": 955735,
+        "gp11_polled_rises": 11,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": true,
+          "out2": true,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "pps",
+        "duration_us": 2200000,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 2,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": true,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200001,
+        "gp9_hardware_edges": 0,
+        "gp9_polled_rises": 0,
+        "gp11_polled_rises": 0,
+        "neighbour_transitions": 0,
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      }
+    ],
+    "combined_guard": [
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "clock_edges": 0,
+        "approximate_clock_hz": 0.0,
+        "maximum_gap_us": 1,
+        "pins": {
+          "8": {
+            "rises": 0,
+            "falls": 0
+          },
+          "9": {
+            "rises": 0,
+            "falls": 0
+          },
+          "10": {
+            "rises": 0,
+            "falls": 0
+          },
+          "11": {
+            "rises": 0,
+            "falls": 0
+          },
+          "12": {
+            "rises": 0,
+            "falls": 0
+          },
+          "13": {
+            "rises": 0,
+            "falls": 0
+          }
+        },
+        "scope": "Digital routing only; no independent ground-lead continuity, voltage, waveform, or metrology qualification.",
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "duration_us": 2200000,
+        "clock_edges": 2199998,
+        "approximate_clock_hz": 999999.0909090909,
+        "maximum_gap_us": 1,
+        "pins": {
+          "8": {
+            "rises": 0,
+            "falls": 0
+          },
+          "9": {
+            "rises": 955738,
+            "falls": 955738
+          },
+          "10": {
+            "rises": 0,
+            "falls": 0
+          },
+          "11": {
+            "rises": 2,
+            "falls": 2
+          },
+          "12": {
+            "rises": 0,
+            "falls": 0
+          },
+          "13": {
+            "rises": 0,
+            "falls": 0
+          }
+        },
+        "phase": "combined",
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": true,
+          "out2": true,
+          "pps1": true,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      },
+      {
+        "phase": "off",
+        "duration_us": 2200000,
+        "clock_edges": 0,
+        "approximate_clock_hz": 0.0,
+        "maximum_gap_us": 1,
+        "pins": {
+          "8": {
+            "rises": 0,
+            "falls": 0
+          },
+          "9": {
+            "rises": 0,
+            "falls": 0
+          },
+          "10": {
+            "rises": 0,
+            "falls": 0
+          },
+          "11": {
+            "rises": 0,
+            "falls": 0
+          },
+          "12": {
+            "rises": 0,
+            "falls": 0
+          },
+          "13": {
+            "rises": 0,
+            "falls": 0
+          }
+        },
+        "scope": "Digital routing only; no independent ground-lead continuity, voltage, waveform, or metrology qualification.",
+        "gpsdo_state": {
+          "serial": "0673ED0FA107",
+          "f1": 5,
+          "f2": 1000000,
+          "out1": false,
+          "out2": false,
+          "pps1": false,
+          "fll": false,
+          "out1low": true,
+          "out2low": true
+        }
+      }
+    ],
+    "capture": {
+      "qualification": "REFUSED: two missing production GPS observations; second capture not started",
+      "metadata": {
+        "pulses": 301,
+        "observations": 299,
+        "coherent": 1,
+        "max_gap_us": 10,
+        "restored": 1,
+        "first_loaded": 0,
+        "load_writes": 12001
+      },
+      "missing_sequences": [
+        97,
+        98
+      ],
+      "gap_before_sequence": 96,
+      "gap_after_sequence": 99,
+      "reference_health_samples": 23,
+      "reference_health_all_good": true,
+      "uart_drop_capture_error_deltas": {
+        "uart_errors": 0,
+        "dropped": 0,
+        "capture_rejections": 0
+      },
+      "rejected_sentences": 0,
+      "transcript_sha256": "fddbecc15373cebd2d3157b6c9f0fc9058a6fc8d59809b8061c94a163594e105",
+      "independent_only_summaries": [
+        {
+          "span_s": 10,
+          "windows": 30,
+          "mean_ppb": -6.666666666666667,
+          "minimum_ppb": -550.0,
+          "maximum_ppb": 400.0,
+          "peak_to_peak_ppb": 950.0,
+          "sample_stdev_ppb": 219.2201433818704,
+          "maximum_half_interval_ppb": 2800.0008000112
+        },
+        {
+          "span_s": 30,
+          "windows": 10,
+          "mean_ppb": -6.666666666666665,
+          "minimum_ppb": -166.66666666666666,
+          "maximum_ppb": 183.33333333333334,
+          "peak_to_peak_ppb": 350.0,
+          "sample_stdev_ppb": 105.46779977852698,
+          "maximum_half_interval_ppb": 933.333222222637
+        },
+        {
+          "span_s": 60,
+          "windows": 5,
+          "mean_ppb": -6.666666666666666,
+          "minimum_ppb": -75.0,
+          "maximum_ppb": 33.333333333333336,
+          "peak_to_peak_ppb": 108.33333333333334,
+          "sample_stdev_ppb": 42.24597285212192,
+          "maximum_half_interval_ppb": 466.6666722222741
+        },
+        {
+          "span_s": 300,
+          "windows": 1,
+          "mean_ppb": -6.666666666666667,
+          "minimum_ppb": -6.666666666666667,
+          "maximum_ppb": -6.666666666666667,
+          "peak_to_peak_ppb": 0.0,
+          "sample_stdev_ppb": null,
+          "maximum_half_interval_ppb": 89.99999955555595
+        }
+      ],
+      "independent_only_scope": "Valid301 GPIO/PWM endpoints; this does not convert the refused whole production capture into acceptance. Conditional10us perPPS endpoint retained.",
+      "native_production_replay": {
+        "scope": "Offline production learner replay of original observations, including gap/reset. Not acceptance of the refused whole capture or device-produced calibration metadata. Nominal clock1MHz, fixture edge offset0, actual observation uncertainty200000ns retained.",
+        "updates": 235,
+        "minimum_ppb": -169,
+        "maximum_ppb": 235,
+        "all_values_within_own_bound": true
+      },
+      "native_replay_scope": "Uses original299 observations unchanged, zero edge offset and actual200000ns observation uncertainty. Missing records left absent; production learner resets its acquisition across gap.235 overlapping updates are not independent repeats or device-reported estimates. Clock source is GPSDO, not Si5351 TCXO."
+    },
+    "restoration": {
+      "verified": true,
+      "serial": "1545B6EFBF78028C",
+      "source": "922935f0097ed3014f8f20bef4bb0c9289645422",
+      "firmware": "0.1.0-ci.42429358845.1",
+      "full_flash_sha256": "6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906",
+      "flash_rewritten": false,
+      "saved_semantics_equal": true,
+      "job": {
+        "boot_id": "6636ae3fc63ba2b8f6a6186e42485be0",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "bundle_uf2_sha256": "e2609c2830294e197d7ae67c8bf157a5ff2ab2e9e996a6b73cb4fb6bb7c7f6dd"
+    },
+    "gpsdo_disabled_final": {
+      "serial": "0673ED0FA107",
+      "f1": 5,
+      "f2": 1000000,
+      "out1": false,
+      "out2": false,
+      "pps1": false,
+      "fll": false,
+      "out1low": true,
+      "out2low": true
+    },
+    "original_gpsdo_rf_configuration_restoration": "Deferred while GPIO leads remain connected; no automatic return to enabled10MHz outputs.",
+    "clk0_gp2_rf_jobs_s": 0,
+    "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage2-20261108",
+    "item21": "In progress; no RF-improvement qualification or production calibration-policy change."
   }
 }

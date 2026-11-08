@@ -124,16 +124,38 @@ before restoring any RF-frequency output configuration.
 
 Before either external-reference capture, `CHECK` observes GP8 through GP13
 for 2.2 seconds. All six pads are forced input-only with weak pulldowns during
-the check; no test pin drives a signal. A hardware PWM counter counts GP9
-rising edges independently of the GPIO polling scan. Check both outputs/PPS
-off, OUT2 alone at 1 MHz, off again, OUT1 PPS alone, and off again. Require
-only GP9 to receive the hardware-counted 1 MHz clock and only GP11 to receive
-two or three PPS edges; neighbouring pins and the inactive input must stay
-quiet. `rf_analysis.wiring.analyze_wiring` refuses missing, misplaced, swapped,
-wrong-frequency, incomplete, or incoherent observations. GPIO polling counts
-locate activity; they do not measure a fast signal's frequency. Missing signals
-stop the session before a long capture. This verifies digital routing, not
-independent ground-lead continuity, voltage, ringing, or certified source timing.
-Keep GPSDO frequency outputs and PPS disabled before loading/restoring the
+the check; no test pin drives a signal. Function selection changes preserve
+the forced input override. A hardware PWM counter counts GP9 rising edges;
+the separate GPIO polling scan locates activity on neighbouring pins. GPIO
+polling does not measure a fast signal's frequency. Missing or incoherent
+signals stop the session before a long capture. This verifies digital routing,
+not independent ground-lead continuity, voltage, ringing, or source metrology.
+
+Isolated output tests are useful only after establishing the equipment's actual
+gating. The `rf_analysis.wiring.analyze_wiring` isolated phases require the
+inactive input and neighbouring pins to stay quiet. Do not infer physical output
+state from configuration readback alone.
+
+On LBE-1421 serial `0673ED0FA107`, firmware 1.9, requests through the retained
+control utility behave as follows: the reported OUT2-only enable produces no
+signal on either connected input, while the reported OUT1-only enable produces
+both programmed frequencies. This was established with distinguishable 5 Hz
+OUT1 and 10 Hz OUT2 signals and direct GPIO polling; both-enable also produces
+both signals. This observation is specific to the tested unit, firmware, and
+utility; it does not establish a general firmware defect or independent gates.
+
+For this unit, explicitly request both frequency-enable bits and PPS mode.
+Physical OUT1 must then carry PPS and physical OUT2 must carry 1 MHz. Require
+an all-off check, a combined check, and another all-off check before capture.
+The combined check requires GP9 hardware count divided by the measured 2.2 s
+interval to fall between 995,000 and 1,005,000 Hz, GP11 to contain two or three
+rising edges and one to three falling edges, and GP8/GP10/GP12/GP13 to remain
+quiet. Both all-off checks require zero hardware edges and zero GPIO transitions.
+Retain the commanded settings, raw counts, input-only readback, polling gaps,
+and observed pin bindings together. This routing guard is not a frequency
+accuracy qualification. PPS mode must be established physically because its
+software flag alone does not prove that it overrides the OUT1 frequency.
+
+Keep GPSDO frequency enables and PPS disabled before loading/restoring the
 ordinary image. With GPIO leads still attached, leave the GPSDO disabled;
 restore the original RF output configuration only after lead removal.

@@ -203,6 +203,85 @@ adjacent JSON records sanitized measurements and capture hashes. The
 [diagnostic instructions](../../tests/hardware/si5351-reference-truth/README.md)
 define tomorrow's disabled-output wiring and preservation requirements.
 
+### GPSDO GPIO routing diagnostic, 2026-11-08
+
+Pico C used RAM fixture `9c0092aae381fa68b8b61a9b0840703e1ab81df5`, at
+138 MHz, with LBE-1421 `0673ED0FA107` firmware 1.9 on GP9 clock / GP11 PPS.
+Original GP7 CLK2, GP3 QLG3 PPS, and GP1 serial remained connected. The user
+confirmed both-ended connections and supplied a photo showing GP9 and its
+adjacent ground. Electrical probes subsequently verified both intended signal
+bindings; no user wiring change was required.
+
+The retained GPSDO utility's enable labels did not establish independent physical
+output gating on this unit. Setting OUT1 to 5 Hz and OUT2 to 10 Hz distinguished
+the paths without relying on the PWM frequency counter. Every probe lasted
+2.2 seconds with input-only pads and quiet GP8/GP10/GP12/GP13:
+
+| Requested frequency enables / PPS | GP9 hardware edges | GP11 polled rising edges |
+| --- | --- | --- |
+| Both off / PPS off | 0 | 0 |
+| OUT2 only / PPS off | 0 | 0 |
+| OUT1 only / PPS off | 22 | 11 |
+| Both on / PPS off | 22 | 11 |
+| Both on, OUT2 changed to 1 MHz / PPS off | 2,199,999 | 11 |
+| Both off / PPS on | 0 | 2 |
+| Both on, OUT2 1 MHz / PPS on, separate combined guard | 2,199,998 | 2 |
+
+All interleaved all-off controls were quiet. The 5/10 Hz GPIO polling counts
+independently establish the cable/pin bindings and show that the requested
+OUT1-only state produces both programmed signals, while OUT2-only produces
+neither. This is an observed utility/device interaction, not a diagnosed general
+firmware defect. The corrected bench controller explicitly requests both
+frequency enables and PPS, then verifies actual 1 MHz on GP9 and PPS on GP11.
+Status readback alone is insufficient. No third-party repository was edited.
+The [fixture instructions](../../tests/hardware/si5351-reference-truth/README.md)
+record this unit-specific setup and its digital-validation limits.
+
+An initial all-off probe correctly refused `input_only=0`: the fixture's SDK
+function switch cleared its forced-input override. No GPSDO output had been
+enabled. The successor changes only FUNCSEL and preserves the override; later
+probes report input-only operation with a 1 us maximum polling gap. That refused
+attempt, subsequent missing-clock probes under the earlier enable configuration,
+and a mutation-free bundle-directory preflight refusal remain separate evidence.
+None is counted as a calibration pass.
+
+The simultaneous off/combined/off guard passed. The following quiet-first
+five-minute capture retained all 301 independent PPS/count endpoints, maximum
+poll gap 10 us, 12,001 USB load writes, and zero new UART, dropped-record, or
+capture-rejection errors. Twenty-three reference-state checks, including start,
+15-second checks, and end, retained antenna/satellite/PLL health and expected
+source settings. However, the production GPS observation sequence jumps from
+96 to 99 with the corresponding three-second UTC/raw interval: observations
+97 and 98 are absent. The full production analyzer therefore refused continuity,
+and the second capture did not start. No missing observations were fabricated,
+no window was shifted to hide the gap, and the cause of the emission gap remains
+unestablished by the retained final health counters.
+
+Independent-only analysis remains separately useful: ten-second midpoint values
+span -550 to +400 ppb, sixty-second values -75 to +33.33 ppb, and the full
+300-second value is -6.67 ppb with an outward-rounded conditional half interval
+of 90.01 ppb. These retain the explicit 10 us allowance per PPS endpoint and
+count/edge brackets; they do not certify source accuracy or accept the refused
+production capture. Native replay through the unchanged production learner uses
+all original 299 observations, retaining the gap and its acquisition reset. It
+produces 235 overlapping count-based updates spanning -169 to +235 ppb, all
+within their own declared bounds. These are offline replay outputs for the
+GPSDO input, not device-reported Si5351 calibrations or independent experimental
+repeats. Shared counter errors, source relative jitter, and post-edge read-delay
+variation remain unresolved. No production calibration policy or RF-improvement
+criterion changed; item 21 remains in progress.
+
+Final handback verified original CI image `0.1.0-ci.42429358845.1`, source
+`922935f0097ed3014f8f20bef4bb0c9289645422`, equal saved semantics, idle/empty/
+unowned/inactive output, and unchanged full flash SHA-256
+`6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906`.
+No flash rewrite or CLK0/GP2 RF job occurred. Both GPSDO frequency enables and
+PPS are verified off. Test frequencies 5 Hz / 1 MHz remain configured but disabled;
+restoration of the original enabled RF-reference configuration is deferred while
+GPIO leads remain attached. Private transcripts, tools, exact original bundles,
+backups, refused attempts, and sanitized scalar analysis remain under
+`/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage2-20261108`.
+
 ### Earlier conducted GPS/PPS observations
 
 GPS-only startup collected 90 samples with networking disabled and zero NTP observations admitted from boot: 83 samples had valid UTC/PPS pairing, 82 selected GPS and 62 had both independent calibration estimates fresh. Four physical production Pi USB resource reads returned 200. A host USB time submission did not replace the selected GPS source. Maximum observed IRQ latency was 29.674 µs; the maximum reported corrected capture bound was 9.712 µs. These local timestamp results do not establish receiver absolute accuracy.
