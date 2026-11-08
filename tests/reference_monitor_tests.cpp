@@ -35,6 +35,13 @@ struct Capture : ReferenceCapture {
     std::uint64_t start = 0, generation = 0;
     unsigned begins = 0, finishes = 0;
     bool missing = false, starved = false;
+    int source_error_ppb = 0, timer_error_ppb = 0;
+    std::uint64_t raw_origin = 0;
+    std::uint64_t edges_at(std::uint64_t stamp) const {
+        const auto physical = (stamp - raw_origin) / (1 + timer_error_ppb / 1e9L);
+        return std::uint64_t(
+            std::floor(physical * 1'000'000.L * (1 + source_error_ppb / 1e9L) / 1e9L));
+    }
     bool begin(std::uint64_t g) override {
         start = now;
         generation = g;
@@ -46,7 +53,7 @@ struct Capture : ReferenceCapture {
     }
     ReferenceWindow finish() override {
         ++finishes;
-        return {start, now, missing ? 0 : (now - start) / 1000, 1000, generation, true};
+        return {start, now, missing ? 0 : edges_at(now) - edges_at(start), 1000, generation, true};
     }
 };
 std::uint64_t now(void* value) {
@@ -70,6 +77,9 @@ void ordinary_calibration_replay() {
                 Device device(bus);
                 std::uint64_t raw = second;
                 Capture capture(raw);
+                capture.source_error_ppb = oscillator;
+                capture.timer_error_ppb = timer;
+                capture.raw_origin = second;
                 assert(device.quiesce(raw + 1'000'000));
                 ReferenceMonitor monitor(configuration(), ReferencePolicy{}, device, capture, now,
                                          &raw, true);
@@ -89,6 +99,11 @@ void ordinary_calibration_replay() {
                     }
                     const bool paused = ms >= 75'250 && ms < 77'250;
                     monitor.service(!paused);
+                    if (const auto measured = monitor.current();
+                        measured && measured->observed_raw_ns == raw) {
+                        const auto expected_ratio = (1 + oscillator / 1e9L) / (1 + timer / 1e9L);
+                        assert(std::fabs(measured->ratio - expected_ratio) < 200e-9L);
+                    }
                     if (ms % 1000)
                         continue;
                     const auto sequence = ms / 1000;
@@ -99,12 +114,8 @@ void ordinary_calibration_replay() {
                     const auto delay = sequence % 2 ? 25'000u : 1000u;
                     std::optional<CycleSnapshot> count;
                     if (monitor.measuring() && stamp > capture.start) {
-                        const auto start_physical = (capture.start - second) / (1 + timer / 1e9L);
-                        const auto read_physical = physical + delay / (1 + timer / 1e9L);
-                        const auto frequency = 1'000'000.L * (1 + oscillator / 1e9L);
                         const auto edges =
-                            std::uint64_t(std::floor(read_physical * frequency / second)) -
-                            std::uint64_t(std::floor(start_physical * frequency / second));
+                            capture.edges_at(raw + delay) - capture.edges_at(capture.start);
                         count = CycleSnapshot{edges,
                                               raw + delay,
                                               delay + std::uint64_t(std::abs(pps_error)) + 2000,
