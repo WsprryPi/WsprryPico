@@ -2,9 +2,37 @@
 #include "rf/si5351_engine.hpp"
 
 #include <algorithm>
+#include <bit>
 #include <cassert>
+#include <cmath>
 #include <iostream>
 #include <utility>
+
+#if !defined(__APPLE__)
+namespace {
+// Model the pinned Arm libm's observed llround/llroundl carry loss above 2^53.
+// The target ELF was independently exercised in an instruction emulator. A
+// host's correct libm otherwise hides this defect in LOAD/policy projections.
+long long target_llround(long double value) {
+    const auto magnitude = std::fabs(value);
+    assert(std::isfinite(value) && magnitude < 0x1p63L);
+    if (magnitude < 0x1p53L)
+        return static_cast<long long>(std::round(value));
+    const auto bits = std::bit_cast<std::uint64_t>(static_cast<double>(magnitude));
+    const auto shift = unsigned((bits >> 52) & 0x7ff) - 1023 - 52;
+    const auto high = std::uint64_t((bits >> 32) & 0xfffff) | 0x100000;
+    const auto low = std::uint32_t(bits);
+    const auto result = (high << (32 + shift)) | std::uint32_t(low << shift);
+    return value < 0 ? -static_cast<long long>(result) : static_cast<long long>(result);
+}
+} // namespace
+extern "C" long long llroundl(long double value) noexcept {
+    return target_llround(value);
+}
+extern "C" long long llround(double value) noexcept {
+    return target_llround(value);
+}
+#endif
 
 using namespace wsprrypico;
 using namespace wsprrypico::rf::si5351;
@@ -193,6 +221,42 @@ void replace_complete_transmit_plan() {
         assert(f.device.reference_enabled(true, f.platform.now + 10'000'000));
     }
 }
+void reported_register_frequency() {
+    const auto ratio = [](const auto& registers, unsigned offset) {
+        const auto p1 = ((registers[offset + 2] & 3u) << 16) |
+                        (registers[offset + 3] << 8) | registers[offset + 4];
+        const auto p2 = ((registers[offset + 5] & 15u) << 16) |
+                        (registers[offset + 6] << 8) | registers[offset + 7];
+        const auto p3 = ((registers[offset + 5] >> 4) << 16) |
+                        (registers[offset] << 8) | registers[offset + 1];
+        assert(p3);
+        return (p1 + 512.L + static_cast<long double>(p2) / p3) / 128;
+    };
+    for (const auto hz : {1'840'100ULL, 5'366'200ULL, 28'126'100ULL, 70'400'000ULL}) {
+        for (const auto correction : {-185, -121, 0, 121, 185}) {
+            Fixture f;
+            auto value = job();
+            for (auto& event : value.events)
+                if (event.rf_on)
+                    event.frequency_nhz = hz * 1'000'000'000;
+            assert(f.engine.set_frequency_correction_ppb(correction));
+            const auto result = f.engine.prepare(value);
+            assert(result.accepted);
+            // Decode what the production Device actually wrote, independently
+            // of the planner's cached achieved_hz and nHz conversion.
+            const auto& registers = f.bus.registers;
+            const auto r = 1u << ((registers[44] >> 4) & 7u);
+            const auto frequency = ratio(registers, 26) * 25'000'000 /
+                                   ratio(registers, 42) / r;
+            auto reported = *value.events[0].frequency_nhz;
+            for (const auto& adjustment : result.adjustments)
+                if (adjustment.event_index == 0)
+                    reported = adjustment.realized_frequency_nhz;
+            assert(std::fabs(reported / 1'000'000'000.L - frequency) < 0.000001L);
+            assert(std::fabs(frequency * (1 + correction / 1e9L) - hz) < 0.0011L);
+        }
+    }
+}
 void finite_execution(bool keyed) {
     Fixture f;
     const auto start = f.start(job(keyed));
@@ -219,6 +283,7 @@ void finite_execution(bool keyed) {
 }
 } // namespace
 int main() {
+    reported_register_frequency();
     replace_complete_transmit_plan();
     {
         Fixture f;

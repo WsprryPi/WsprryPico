@@ -2695,7 +2695,28 @@
           "corrected_maximum_absolute_error_hz": 1.8238088572248623,
           "resolved_improvement": true
         }
-      ]
+      ],
+      "load_projection_fault": {
+        "identified": "2026-11-07",
+        "scope": "Nominal-reference LOAD and policy frequency projection; no demonstrated register-planning or physical-frequency change.",
+        "math_library": "Pinned Arm GNU15.3.1 libm llround/llroundl loses low-word carry for some large integers.",
+        "target_elf_source": "79f9abb5592f7b2b6fe1ebb70d76009c81046a28",
+        "input_nhz": "28126100000000000",
+        "observed_conversion_nhz": "28126095705032704",
+        "lost_nhz": "4294967296",
+        "effective_correction_inferred_ppb": {
+          "repeat_1": -185,
+          "repeat_2": -121
+        },
+        "inference_basis": "Unaffected160m/60m reported LOAD projections plus unchanged production planning arithmetic; not recovered estimate snapshots."
+      }
+    },
+    "raw_evidence_availability": {
+      "checked": "2026-11-07",
+      "original_location": "wspr5:/home/pi/close-tone-20261103",
+      "available": false,
+      "operator_confirmed_no_other_copy": true,
+      "limitation": "Original IQ and per-job calibration endpoints, ages, and generations cannot be replayed from the retained summary."
     }
   }
 }
