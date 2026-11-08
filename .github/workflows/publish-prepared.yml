@@ -33,7 +33,7 @@ jobs:
       contents: read
       actions: read
     concurrency:
-      group: prepared-firmware-publication
+      group: prepared-firmware-validation
       cancel-in-progress: false
       queue: max
     env:
@@ -70,7 +70,11 @@ jobs:
       contents: write
       actions: read
     concurrency:
-      group: prepared-firmware-publication
+      group: >-
+        firmware-publication-${{
+        fromJSON(inputs.prepared_plan).receipt.branch == 'release' &&
+        format('refs/tags/v{0}', fromJSON(inputs.prepared_plan).receipt.version) ||
+        format('refs/heads/{0}', fromJSON(inputs.prepared_plan).receipt.branch) }}
       cancel-in-progress: false
       queue: max
     env:

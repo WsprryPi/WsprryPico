@@ -1364,6 +1364,11 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(publisher['permissions'],{'contents':'write','actions':'read'})
         self.assertIn("github.ref == 'refs/heads/devel'",publisher['if'])
         self.assertIn('inputs.publish',publisher['if'])
+        group=publisher['concurrency']['group']
+        self.assertIn('firmware-publication-',group)
+        self.assertIn("format('refs/tags/v{0}',",group)
+        self.assertIn("format('refs/heads/{0}',",group)
+        self.assertNotEqual(validate['concurrency']['group'],group)
         for job in workflow['jobs'].values():
             commands=[step['run'] for step in job['steps'] if 'run' in step]
             self.assertTrue(all(isinstance(command,str) for command in commands))
