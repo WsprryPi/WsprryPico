@@ -6313,5 +6313,488 @@
     "clk0_gp2_rf_jobs_s": 0,
     "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage2-20261108",
     "item21": "In progress; no RF-improvement qualification or production calibration-policy change."
+  },
+  "gpsdo_pairing_trace_20261108": {
+    "instrumented_source": "38c3f997384e4abbce29efb70249f5327376ee29",
+    "instrumented_ram_uf2_sha256": "0f51ad3b49372e5308a9186625d2c679e421a2ceb814a1d2f9478ba5baa42d12",
+    "serial": "1545B6EFBF78028C",
+    "system_clock_hz": 138000000,
+    "pins": {
+      "clock": 9,
+      "pps": 11,
+      "qlg3_pps_observer": 3,
+      "qlg3_serial": 1
+    },
+    "refused_capture": {
+      "label": "quiet-first-1",
+      "accepted": false,
+      "trace": {
+        "qualification": "not_evaluated",
+        "valid": true,
+        "samples": 3029,
+        "maximum_sample_gap_ns": 100031000,
+        "maximum_work_us": 5822,
+        "error_sample_counts": {
+          "none": 2993,
+          "unpaired_utc": 18,
+          "pairing_acquisition": 18
+        },
+        "auxiliary_pps_pulses": 303,
+        "qlg3_minus_primary_phase_ns": [
+          -11000,
+          15000
+        ]
+      },
+      "late_rmc_delay_bounds_ns": [
+        [
+          1206904000,
+          1206912000
+        ],
+        [
+          1200385000,
+          1200393000
+        ]
+      ],
+      "old_profile_ms": [
+        600,
+        1200
+      ],
+      "each_event": [
+        "unpaired_utc",
+        "pairing_acquisition",
+        "two_missing_observations"
+      ],
+      "cause": "Observed label arrivals outside the fixture receiver profile. Reproduced through production pairing; no retrospective attribution for older uninstrumented gaps.",
+      "uart_drop_rejected_capture_error_deltas": 0,
+      "maximum_pps_irq_latency_ns": 1855
+    },
+    "fixture_fix": {
+      "source": "df8de6a08617d6e40bde83f63969cfb29880c641",
+      "profile_ms": [
+        600,
+        1250
+      ],
+      "maximum_window_width_ms": 650,
+      "measured_1206_912_ms_regression": "accepts consecutive observations",
+      "beyond_1250_001_ms_regression": "refused",
+      "production_policy_changed": false,
+      "rf_allowances_changed": false,
+      "older_refusals_reclassified": false
+    },
+    "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage3-20261108",
+    "interpretation": "Identifies this fixture pairing-gap cause; does not establish Si5351 RF improvement or uniquely separate PPS/count acquisition error from physical source variation.",
+    "fresh_profile_captures": {
+      "source": "df8de6a08617d6e40bde83f63969cfb29880c641",
+      "ram_uf2_sha256": "09ec61e52ead06a7fb46741af02b799045f64c022db826abfc5ab7046b2ae3dd",
+      "runs": [
+        {
+          "label": "quiet-first-1",
+          "accepted": true,
+          "raw_sha256": "c92b2367fdef624abb59d87309ed326fb664e979c5326b47f428a1b741fec168",
+          "first_loaded": false,
+          "pulses": 301,
+          "production_observations_inside_capture": 301,
+          "production_observations_outside_capture": 2,
+          "production_observations_total": 303,
+          "maximum_poll_gap_us": 10,
+          "load_writes": 12000,
+          "health_before": {
+            "uart_errors": 101,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_deltas": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_after": {
+            "uart_errors": 101,
+            "dropped": 0,
+            "capture_rejections": 0,
+            "maximum_irq_latency_ns": "1855",
+            "capture_error_bound_ns": "5210"
+          },
+          "trace": {
+            "qualification": "not_evaluated",
+            "valid": true,
+            "samples": 3030,
+            "maximum_sample_gap_ns": 100024000,
+            "maximum_work_us": 5826,
+            "error_sample_counts": {
+              "pairing_acquisition": 2,
+              "none": 3028
+            },
+            "observation_stalls": [],
+            "auxiliary_pps_pulses": 303,
+            "qlg3_minus_primary_phase_ns": [
+              -11000,
+              15000
+            ]
+          },
+          "incoherent_sequences": [
+            29,
+            78,
+            99,
+            129,
+            135,
+            200,
+            211,
+            246
+          ],
+          "independent_summaries": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "mean_ppb": -10.0,
+              "minimum_ppb": -600.0,
+              "maximum_ppb": 550.0,
+              "peak_to_peak_ppb": 1150.0,
+              "sample_stdev_ppb": 311.6695863161543,
+              "maximum_half_interval_ppb": 2800.0010000111997
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "mean_ppb": -9.999999999999998,
+              "minimum_ppb": -100.0,
+              "maximum_ppb": 183.33333333333334,
+              "peak_to_peak_ppb": 283.33333333333337,
+              "sample_stdev_ppb": 86.13798863695247,
+              "maximum_half_interval_ppb": 933.3333777781926
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "mean_ppb": -10.0,
+              "minimum_ppb": -41.666666666666664,
+              "maximum_ppb": 41.666666666666664,
+              "peak_to_peak_ppb": 83.33333333333333,
+              "sample_stdev_ppb": 34.56073558887953,
+              "maximum_half_interval_ppb": 466.6666555556074
+            },
+            {
+              "span_s": 300,
+              "windows": 1,
+              "mean_ppb": -10.0,
+              "minimum_ppb": -10.0,
+              "maximum_ppb": -10.0,
+              "peak_to_peak_ppb": 0.0,
+              "sample_stdev_ppb": null,
+              "maximum_half_interval_ppb": 93.33333266666708
+            }
+          ],
+          "comparisons": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "available": 30,
+              "midpoint_inside_independent_brackets": 29,
+              "maximum_absolute_midpoint_difference_ppb": 785.4997409502851,
+              "outside_midpoint_windows": [
+                {
+                  "available": true,
+                  "span_s": 10,
+                  "first_pps": 100,
+                  "last_pps": 110,
+                  "loaded": true,
+                  "production_estimate_ppb": 235.49974095028495,
+                  "acquisition_difference_ppb": [
+                    35.49974095028495,
+                    1535.499740950285
+                  ],
+                  "acquisition_difference_midpoint_ppb": 785.4997409502851,
+                  "consistent_with_independent_brackets": false,
+                  "pps_timestamp_difference_change_ns": [
+                    -645,
+                    15355
+                  ]
+                }
+              ]
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "available": 10,
+              "midpoint_inside_independent_brackets": 10,
+              "maximum_absolute_midpoint_difference_ppb": 128.49991495842545,
+              "outside_midpoint_windows": []
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "available": 5,
+              "midpoint_inside_independent_brackets": 5,
+              "maximum_absolute_midpoint_difference_ppb": 33.33333333333333,
+              "outside_midpoint_windows": []
+            }
+          ],
+          "learner_replay": {
+            "scope": "Offline unchanged production learner with original observations, gaps, timestamps and count bindings; scope label is not a device boot identifier. Generations are replay outputs, not device-reported calibrations.",
+            "updates": 249,
+            "minimum_ppb": -169,
+            "maximum_ppb": 185,
+            "minimum_uncertainty_ppb": 6950,
+            "maximum_uncertainty_ppb": 42115,
+            "minimum_span_ns": 10000000000,
+            "maximum_span_ns": 60000000000
+          }
+        },
+        {
+          "label": "loaded-first-2",
+          "accepted": true,
+          "raw_sha256": "4dc7d09602320dd8ea5f5105ab2e4f95d2b2c2498d9da27df3a6c554d1c472e4",
+          "first_loaded": true,
+          "pulses": 301,
+          "production_observations_inside_capture": 301,
+          "production_observations_outside_capture": 1,
+          "production_observations_total": 302,
+          "maximum_poll_gap_us": 10,
+          "load_writes": 18011,
+          "health_before": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_deltas": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0
+          },
+          "health_after": {
+            "uart_errors": 0,
+            "dropped": 0,
+            "capture_rejections": 0,
+            "maximum_irq_latency_ns": "1855",
+            "capture_error_bound_ns": "5710"
+          },
+          "trace": {
+            "qualification": "not_evaluated",
+            "valid": true,
+            "samples": 3022,
+            "maximum_sample_gap_ns": 100022000,
+            "maximum_work_us": 5811,
+            "error_sample_counts": {
+              "none": 3022
+            },
+            "observation_stalls": [],
+            "auxiliary_pps_pulses": 303,
+            "qlg3_minus_primary_phase_ns": [
+              -11000,
+              16000
+            ]
+          },
+          "incoherent_sequences": [
+            16,
+            82,
+            133,
+            226,
+            230,
+            250
+          ],
+          "independent_summaries": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "mean_ppb": 0.0,
+              "minimum_ppb": -600.0,
+              "maximum_ppb": 700.0,
+              "peak_to_peak_ppb": 1300.0,
+              "sample_stdev_ppb": 355.98333940092544,
+              "maximum_half_interval_ppb": 2850.0005000113997
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "mean_ppb": -3.552713678800501e-16,
+              "minimum_ppb": -200.0,
+              "maximum_ppb": 233.33333333333334,
+              "peak_to_peak_ppb": 433.33333333333337,
+              "sample_stdev_ppb": 128.86015005270224,
+              "maximum_half_interval_ppb": 949.9999888893111
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "mean_ppb": -2.1316282072803005e-15,
+              "minimum_ppb": -33.333333333333336,
+              "maximum_ppb": 83.33333333333333,
+              "peak_to_peak_ppb": 116.66666666666666,
+              "sample_stdev_ppb": 47.14045207910317,
+              "maximum_half_interval_ppb": 466.66669444449633
+            },
+            {
+              "span_s": 300,
+              "windows": 1,
+              "mean_ppb": 0.0,
+              "minimum_ppb": 0.0,
+              "maximum_ppb": 0.0,
+              "peak_to_peak_ppb": 0.0,
+              "sample_stdev_ppb": null,
+              "maximum_half_interval_ppb": 93.33333333333374
+            }
+          ],
+          "comparisons": [
+            {
+              "span_s": 10,
+              "windows": 30,
+              "available": 30,
+              "midpoint_inside_independent_brackets": 30,
+              "maximum_absolute_midpoint_difference_ppb": 785.4997588503136,
+              "outside_midpoint_windows": []
+            },
+            {
+              "span_s": 30,
+              "windows": 10,
+              "available": 10,
+              "midpoint_inside_independent_brackets": 10,
+              "maximum_absolute_midpoint_difference_ppb": 204.83341371656485,
+              "outside_midpoint_windows": []
+            },
+            {
+              "span_s": 60,
+              "windows": 5,
+              "available": 5,
+              "midpoint_inside_independent_brackets": 5,
+              "maximum_absolute_midpoint_difference_ppb": 100.0,
+              "outside_midpoint_windows": []
+            }
+          ],
+          "learner_replay": {
+            "scope": "Offline unchanged production learner with original observations, gaps, timestamps and count bindings; scope label is not a device boot identifier. Generations are replay outputs, not device-reported calibrations.",
+            "updates": 251,
+            "minimum_ppb": -260,
+            "maximum_ppb": 150,
+            "minimum_uncertainty_ppb": 6950,
+            "maximum_uncertainty_ppb": 41743,
+            "minimum_span_ns": 10000000000,
+            "maximum_span_ns": 60000000000
+          }
+        }
+      ],
+      "conditional_pps_endpoint_allowance_us": 10,
+      "scope": "Continuity/health accepted; independent and production midpoint comparisons retain actual discrepancies. No RF qualification or uniquely identified physical cause.",
+      "private_evidence_directory": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage3-20261108/profile-1250-01",
+      "restoration": {
+        "verified": true,
+        "serial": "1545B6EFBF78028C",
+        "source": "922935f0097ed3014f8f20bef4bb0c9289645422",
+        "firmware": "0.1.0-ci.42429358845.1",
+        "full_flash_sha256": "6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906",
+        "flash_rewritten": false,
+        "saved_semantics_equal": true,
+        "job": {
+          "boot_id": "d1d26b0eff10d95a051e3478a459c6a7",
+          "state": "empty",
+          "output_active": false,
+          "owner_id": null,
+          "job_id": null,
+          "terminal_records": []
+        },
+        "bundle_uf2_sha256": "e2609c2830294e197d7ae67c8bf157a5ff2ab2e9e996a6b73cb4fb6bb7c7f6dd"
+      },
+      "campaign": {
+        "success": true,
+        "failure": null,
+        "cleanup_error": null,
+        "rf_commanded_seconds": 0,
+        "ram_only": true,
+        "serial": "1545B6EFBF78028C"
+      },
+      "gpsdo_disabled_final": {
+        "serial": "0673ED0FA107",
+        "f1": 5,
+        "f2": 1000000,
+        "out1": false,
+        "out2": false,
+        "pps1": false,
+        "fll": false,
+        "out1low": true,
+        "out2low": true
+      },
+      "late_arrival_coverage": "Neither fresh capture reproduced an arrival beyond1200ms. Native production-pairing regression covers the measured1206.912ms boundary; fresh hardware records qualify continuity and health under the updated profile."
+    },
+    "software_validation": {
+      "pico_feature_source": "df8de6a08617d6e40bde83f63969cfb29880c641",
+      "pico_preview_source": "1b9c6b87fbab2dbdd49ffa3ac5074bb13b67da86",
+      "pico_preview_base": "7d841b75df34fe01139d38af2a92a9eacb3afd20",
+      "pico_ci": "https://github.com/WsprryPi/WsprryPico/actions/runs/42486702825",
+      "pico_result": "success",
+      "pico_ctest": {
+        "registered": 234,
+        "passed": 234,
+        "skipped": 0
+      },
+      "pico_execution_records": 27,
+      "pico_required_contexts": 18,
+      "pico_native_browser_contexts": 13,
+      "preview_difference": "Thirteen installer/prepared-publication/docs/pin/completion-policy files from the newer base; production RF/GPS, fixture and analysis implementation match feature source. Preview not merged into feature.",
+      "pi_source": "0a794eeb3eeddbf3fdbb74bcc04ca9f84c8fe030",
+      "pi_ref": "devel",
+      "pi_ci": "https://github.com/WsprryPi/WsprryPi/actions/runs/42487195354",
+      "pi_result": "success",
+      "pi_jobs": [
+        {
+          "name": "Choose validation scope",
+          "conclusion": "success"
+        },
+        {
+          "name": "ubuntu-gcc13-release",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-simulated-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict-i2c-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15-intel)",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-usb-management-pair",
+          "conclusion": "success"
+        },
+        {
+          "name": "non-hardware-validation",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15)",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-network-loopback",
+          "conclusion": "success"
+        }
+      ],
+      "source_pair_dispatch_command": "gh workflow run debian-non-hardware.yml --repo WsprryPi/WsprryPi --ref devel -f pico_ref=df8de6a08617d6e40bde83f63969cfb29880c641",
+      "production_suites": [
+        "wtp-network-runtime-test",
+        "wtp-network-interop-test",
+        "wtp-config-interop-test",
+        "wtp-usb-pair-client-build",
+        "wtp-usb-management-test",
+        "WsprryPi-UI/tests/wtp_usb_pair_test.js"
+      ],
+      "final_source_difference": "Successor changes only consolidated-backlog.md, gps-pps-validation.md and gps-pps-validation.json; no implementation/test differences from selected Pico feature source.",
+      "git_boundary": "Pico codex/rc.2 stays unmerged, PR19 draft/no auto-merge. Former Pi5594964 is retained in devel following external merge; deleted Pi CI branch not recreated. Original Pi worktree/user changes untouched.",
+      "local_checks": {
+        "analysis_unittest_cases": 26,
+        "gps_focused_ctests": 5,
+        "private_controller_cases": 8,
+        "ram_builds": [
+          "external audited deploy",
+          "internal Si5351"
+        ],
+        "strict_sphinx": "passed",
+        "documentation_local_targets": 1754,
+        "documentation_errors": 0,
+        "git_diff_check": "passed"
+      }
+    }
   }
 }
