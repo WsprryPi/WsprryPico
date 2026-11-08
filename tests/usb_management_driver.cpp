@@ -85,6 +85,11 @@ struct Network : network::NetworkControl {
         return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
                ",\"link_status\":0,\"ipv4\":\"0.0.0.0\"}";
     }
+    std::string operations_status() const override {
+        return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
+               ",\"link_status\":0,\"ipv4\":\"0.0.0.0\",\"configured_hostname\":\"\","
+               "\"mdns_state\":\"unconfigured\",\"mdns_reason\":\"\"}";
+    }
     bool set_enabled(bool value) override {
         enabled = value;
         return true;

@@ -20,6 +20,12 @@ process/browser ownership, isolated scheduling, verified build reuse, and both
 production source-pair recipes. Its source-bound completion policy governs
 canonical acceptance; a local optional-dependency subset does not satisfy it.
 
+## RF qualification
+
+The [Pico RF qualification guide](pico-rf-qualification.md) describes the distinct
+Harness target, engine/GPS/correction matrix, setup boundaries, and evidence.
+Software checks remain separate from an exact-artifact physical campaign.
+
 ## Deterministic validation
 
 Build and run the hardware-free portable core on a supported host:
