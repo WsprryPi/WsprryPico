@@ -294,6 +294,16 @@ static void active(PicoNetwork& network) {
 }
 int main(int argc, char** argv) {
     static_assert(MEMP_NUM_IGMP_GROUP == 4);
+    if (argc == 2 && std::string_view(argv[1]) == "--diagnostic-samples") {
+        wsprrypico::time::UtcDiscipline clock([](void*) { return now_us * 1000; }, nullptr);
+        PicoNetwork network(clock, "pico-a.local");
+        std::cout << network.status() << '\n';
+        wsprrypico::standalone::Config config;
+        config.ntp_ipv4 = "203.0.113.123";
+        assert(network.start(config));
+        std::cout << network.status() << '\n';
+        return 0;
+    }
     if (argc == 2) {
         const std::string mode(argv[1]);
         assert(mode == "mac-error" || mode == "mac-invalid");

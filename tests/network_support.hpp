@@ -120,7 +120,7 @@ struct Network : network::NetworkControl {
     std::string operations_status() const override {
         return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
                ",\"link_status\":3,\"ipv4\":\"127.0.0.1\",\"configured_hostname\":\"wsprrypico-"
-               "test\","
+               "test.local\","
                "\"mdns_state\":\"active\",\"mdns_reason\":\"\"}";
     }
     std::string status() const override {

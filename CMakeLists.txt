@@ -576,10 +576,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME config_updates COMMAND config_update_tests)
     add_test(NAME config_update_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/config_update_schema_tests.py $<TARGET_FILE:config_update_tests>)
-    add_test(NAME control_jsonschema COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/control_jsonschema_tests.py $<TARGET_FILE:control_contract_tests>
-        $<TARGET_FILE:application_resource_tests> $<TARGET_FILE:amplifier_enable_tests>
-        $<TARGET_FILE:filter_selector_tests> $<TARGET_FILE:wspr_resource_tests>)
     add_test(NAME application_schema COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/application_schema_tests.py $<TARGET_FILE:application_resource_tests>)
 
@@ -766,6 +762,15 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME http_server_tests COMMAND http_server_tests)
     include(cmake/network_host_tests.cmake)
     include(cmake/mdns_host_tests.cmake)
+    set(control_network_samples)
+    if(TARGET network_adapter_tests)
+        set(control_network_samples $<TARGET_FILE:network_adapter_tests>)
+    endif()
+    add_test(NAME control_jsonschema COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/control_jsonschema_tests.py $<TARGET_FILE:control_contract_tests>
+        $<TARGET_FILE:application_resource_tests> $<TARGET_FILE:amplifier_enable_tests>
+        $<TARGET_FILE:filter_selector_tests> $<TARGET_FILE:wspr_resource_tests>
+        ${control_network_samples})
     set(WSPRRY_PICO_TEST_CYW43_PATH "" CACHE PATH "Optional installed pinned CYW43 for TX regression")
     if(NOT WSPRRY_PICO_TEST_CYW43_PATH AND WSPRRY_PICO_TEST_LWIP_PATH)
         get_filename_component(sdk_lib "${WSPRRY_PICO_TEST_LWIP_PATH}" DIRECTORY)
