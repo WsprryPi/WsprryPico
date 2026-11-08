@@ -105,6 +105,60 @@ def analyze_windows(pulses, *, nominal_hz=1_000_000, pps_endpoint_us=10):
     )
 
 
+def _outward(interval):
+    return [
+        math.nextafter(float(interval[0]), -math.inf),
+        math.nextafter(float(interval[1]), math.inf),
+    ]
+
+
+def _reconstruction_bounds(a, b, pa, pb, scale, nominal_counts):
+    """Conservative enclosures, with no independence/averaging assumption.
+
+    Retain the production learner's existing 1.001 endpoint scale allowance.
+    The conditional enclosure instead uses observed raw PPS brackets; it shares
+    the timer/counter with the comparison and is not an external accuracy test.
+    Correlated endpoints are enclosed by their Cartesian product, not cancelled.
+    """
+    count = b["edges"] - a["edges"]
+    pps_span = b["raw_ns"] - a["raw_ns"]
+    count_span = b["count_raw_ns"] - a["count_raw_ns"]
+    pps_error = (a["uncertainty_ns"] + b["uncertainty_ns"]) * Fraction(1001, 1000)
+    count_error = (a["count_bound_ns"] + b["count_bound_ns"]) * Fraction(1001, 1000)
+    if pps_span <= pps_error or count_span <= count_error:
+        raise ValueError("Endpoint uncertainty spans the reconstruction interval")
+    count_interval = (count - 1, count + 1)
+    denominator = (count_span - count_error, count_span + count_error)
+    independent = (pb[3] - pa[4] - 1, pb[4] - pa[3] + 1)
+
+    def enclose(numerator):
+        if numerator[0] <= 0:
+            raise ValueError("Nonpositive PPS span")
+        normalized = (
+            count_interval[0] * numerator[0] / denominator[1],
+            count_interval[1] * numerator[1] / denominator[0],
+        )
+        return dict(
+            production_error_bounds_ppb=_outward(
+                tuple((v - nominal_counts) * scale for v in normalized)
+            ),
+            acquisition_difference_bounds_ppb=_outward(
+                (
+                    (normalized[0] - independent[1]) * scale,
+                    (normalized[1] - independent[0]) * scale,
+                )
+            ),
+            overlaps_independent_brackets=normalized[0] <= independent[1]
+            and normalized[1] >= independent[0],
+        )
+
+    return dict(
+        declared_production=enclose((pps_span - pps_error, pps_span + pps_error)),
+        observed_raw_pps=enclose(((pb[1] - pa[2]) * 1000, (pb[2] - pa[1]) * 1000)),
+        scope="Existing endpoint allowances and one-count quantization; conservative correlated-endpoint enclosure, not a confidence interval. Observed-raw-PPS enclosure shares hardware and is conditional, not certified source accuracy.",
+    )
+
+
 def compare_production(
     pulses, observations, *, first_loaded=False, nominal_hz=1_000_000
 ):
@@ -260,6 +314,9 @@ def compare_production(
                     consistent_with_independent_brackets=difference[0]
                     <= 0
                     <= difference[1],
+                    reconstruction_bounds=_reconstruction_bounds(
+                        a, b, pa, pb, scale, nominal_hz * seconds
+                    ),
                     pps_timestamp_difference_change_ns=[
                         (b["raw_ns"] - pb[2] * 1000) - (a["raw_ns"] - pa[1] * 1000),
                         (b["raw_ns"] - pb[1] * 1000) - (a["raw_ns"] - pa[2] * 1000),

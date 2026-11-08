@@ -5,7 +5,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from rf_analysis.carrier_repeatability import compare_carriers
-from rf_analysis.pps_windows import analyze_windows, compare_production
+from rf_analysis.pps_windows import analyze_windows, compare_production, _reconstruction_bounds
 from rf_analysis.wiring import analyze_wiring
 from rf_analysis.pairing import diagnose_pairing
 from analyze_rf_drift import fit_drift
@@ -210,6 +210,42 @@ class Tests(unittest.TestCase):
         result = compare_production(pulses,self.production_observations(pulses,timestamp_error=True))
         self.assertTrue(any(not r['consistent_with_independent_brackets'] for r in result['windows']))
         self.assertGreater(max(abs(r['acquisition_difference_midpoint_ppb']) for r in result['windows']),500)
+
+    def test_reconstruction_encloses_retained_discrepancy_without_hiding_midpoint(self):
+        from fractions import Fraction
+        # Retained quiet-first PPS100..110: 10M counts, 2355ns normalization
+        # difference. Independent count delta is 9,999,987..10,000,002.
+        a=dict(edges=100975524,raw_ns=110634365145,count_raw_ns=110634373500,
+               uncertainty_ns=200000,count_bound_ns=9855)
+        b=dict(edges=110975524,raw_ns=120634378500,count_raw_ns=120634384500,
+               uncertainty_ns=200000,count_bound_ns=7500)
+        pa=(100,110634365,110634373,100975517,100975524)
+        pb=(110,120634371,120634379,110975512,110975518)
+        result=_reconstruction_bounds(a,b,pa,pb,Fraction(100),10000000)
+        full=result['declared_production']['acquisition_difference_bounds_ppb']
+        self.assertLess(full[0],-41800)
+        self.assertGreater(full[1],43400)
+        self.assertTrue(result['declared_production']['overlaps_independent_brackets'])
+        self.assertTrue(result['observed_raw_pps']['overlaps_independent_brackets'])
+        # This remains a midpoint discrepancy: adding full intervals does not
+        # change the original arithmetic or its comparison result.
+        midpoint=Fraction(10000000*10000013355,10000011000)
+        self.assertAlmostEqual(float((midpoint-10000002)*100),35.49974095028495)
+        with self.assertRaises(ValueError):
+            _reconstruction_bounds(a,dict(b,count_raw_ns=a['count_raw_ns']+1),
+                                   pa,pb,Fraction(100),10000000)
+
+    def test_reconstruction_bounds_do_not_accept_unexplained_count_bias(self):
+        pulses=self.bracketed_pulses()
+        rows=self.production_observations(pulses)
+        for row in rows:
+            row.update(count_raw_ns=row['raw_ns'],count_bound_ns=1000,
+                       uncertainty_ns=1000,edges=row['edges']-50)
+        rows[10]['edges']+=100 # 10ppm count error, exceeding endpoint bounds.
+        first=compare_production(pulses,rows)['windows'][0]
+        self.assertFalse(first['consistent_with_independent_brackets'])
+        self.assertFalse(first['reconstruction_bounds']['declared_production']['overlaps_independent_brackets'])
+        self.assertFalse(first['reconstruction_bounds']['observed_raw_pps']['overlaps_independent_brackets'])
 
     def test_same_edge_comparison_refuses_missing_or_unbound_records(self):
         pulses = self.bracketed_pulses()
