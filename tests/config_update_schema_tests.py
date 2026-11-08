@@ -7,6 +7,10 @@ from control_schema_support import Validator
 check=Validator('config-update')
 base={'contract':'Wsprry-Control/1','schema':'config-update','target':{'scope':'member','device_id':'a'*32,'boot_id':'0'*31+'1'},'mode':'merge','config':{'allow_unqualified_frequency':False}}
 cases=[('explicit_false',base,True,200),('explicit_zero',{**base,'config':{'expires_utc_s':0}},True,200)]
+complete={**base,'config':{'enabled':False,'station':{'callsign':'AA0NT','locator':'EM18','power_dbm':37},'wifi':{'ssid':'test-network','password':'test-password'},'schedules':[]}}
+cases.append(('complete_merge',complete,True,200))
+for name,patch in [('complete_extra',{'unknown':True}),('complete_wrong_boolean',{'enabled':1}),('complete_wrong_schedules',{'schedules':{}})]:
+    cases.append((name,{**complete,'config':{**complete['config'],**patch}},False,400))
 for name,patch in [('unknown_mode',{'mode':'replace'}),('unknown_type',{'schema':'unsupported'}),('unknown_contract',{'contract':'Wsprry-Control/2'}),('extra',{'extra':1}),('empty_patch',{'config':{}}),('storage_version',{'config':{'version':1}}),('wrong_boolean',{'config':{'enabled':1}})]:
     cases.append((name,{**base,**patch},False,400))
 for name,request,valid,status in cases:
