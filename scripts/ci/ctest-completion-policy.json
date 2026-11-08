@@ -258,7 +258,7 @@
     },
     "usb_installer_tests": {
       "kind": "unittest",
-      "count": 120,
+      "count": 131,
       "entrypoint": "tests/usb_installer_tests.py"
     },
     "usb_inventory_tests": {

@@ -866,6 +866,62 @@ class InstallerTests(unittest.TestCase):
             self.assertNotIn('before.bin', json.dumps(record))
 
 
+class SavedSuspensionSemanticsTests(unittest.TestCase):
+    def test_unconfigured_maintenance_runtime_flag_is_not_saved_state(self):
+        snapshot={'config':{'config':None},'progress':{'fields':{},'draft_revision':'0'},
+                  'hostname':{'saved':'lifecycle-test.local'},'frequency':{'frequency_hz':None},
+                  'calibration':{'saved':None},
+                  'status':{'standalone':{'watermark_utc_ns':'0','suspended':True}}}
+        before=installer.saved_semantics(snapshot)
+        snapshot['status']['standalone']['suspended']=False
+        self.assertEqual(installer.saved_semantics(snapshot),before)
+        snapshot['config']['config']={'enabled':False}
+        configured=installer.saved_semantics(snapshot)
+        snapshot['status']['standalone']['suspended']=True
+        self.assertNotEqual(installer.saved_semantics(snapshot),configured)
+
+
+class InstalledPublicBundleTests(unittest.TestCase):
+    def test_retained_original_bytes_are_independent_of_same_version_candidate(self):
+        files, manifest, image = fixture(modern=True)
+        snapshot = {'firmware': manifest['firmware_version'],
+                    'source_revision': manifest['source']['revision'][:12]}
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            for name, data in files.items(): (directory/name).write_bytes(data)
+            actual = installer.installed_public(directory, snapshot, 'devel')
+            self.assertEqual(actual[2], installer.verify_bundle(files, 'devel')[1])
+            snapshot['source_revision'] = 'f'*12
+            with self.assertRaises(installer.Refusal):
+                installer.installed_public(directory, snapshot, 'devel')
+            snapshot['source_revision'] = manifest['source']['revision'][:12]
+            uf2_name = installer.candidate_asset(files, manifest)['path']
+            (directory/uf2_name).write_bytes(files[uf2_name]+b'changed')
+            with self.assertRaises(installer.Refusal):
+                installer.installed_public(directory, snapshot, 'devel')
+
+    def test_equal_version_changed_source_refuses_before_reset(self):
+        files, manifest, _ = fixture(modern=True)
+        image = installer.verify_bundle(files, 'devel')[1]
+        snapshot = {'firmware': manifest['firmware_version'], 'source_revision': 'f'*12}
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            args = SimpleNamespace(operation='upgrade', device=SERIAL, board='pico2_w',
+                                   branch='devel', picotool='fixture', state_dir=root)
+            board = {'serial':SERIAL, 'parent':'fixed', 'mode':'application', 'ports':{}}
+            with patch.object(installer, 'private_directory', return_value=root), \
+                 patch.object(installer, 'device_lock', lambda _:contextlib.nullcontext()), \
+                 patch.object(installer, 'selected', return_value=board), \
+                 patch.object(installer, 'Picotool', return_value=SimpleNamespace(identity={})), patch.object(installer, 'verify_linked_identity'), \
+                 patch.object(installer, 'public_snapshot', return_value=snapshot), \
+                 patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management') as management, \
+                 self.assertRaises(installer.TransactionFailure) as caught:
+                installer.transaction(args, files, manifest, image, Network())
+            management.assert_not_called()
+            self.assertIn('tag/source changed', str(caught.exception))
+            self.assertFalse(caught.exception.result['recovery_required'])
+
+
 class InstalledBundleHandoffTests(unittest.TestCase):
     """Exercise a local deployment followed by a public upgrade through the real transaction."""
 
@@ -1332,6 +1388,86 @@ class EraseTests(unittest.TestCase):
         self.board['mode'] = 'bootsel'
         self.args.transaction = Path(result['transaction'])
         self.assertTrue(installer.recover_transaction(self.args)['erase_verified'])
+
+    def test_software_erase_persists_reset_intent_and_verifies_same_board(self):
+        self.board['mode'] = 'application'
+        self.args.software_bootsel = True
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        test = self
+        class Maintenance:
+            def __init__(self, board): pass
+            def __enter__(self): return self
+            def __exit__(self, *_): pass
+            def enter_bootsel(self, value):
+                test.assertEqual(value, snapshot)
+                records = [installer.decode(p.read_bytes()) for p in test.root.glob('*/transaction.json')]
+                test.assertEqual(records[-1]['stage'], 'entering_bootsel')
+                test.assertEqual(records[-1]['preflight_revision'], snapshot['revision'])
+                test.board['mode'] = 'bootsel'
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+             patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management', Maintenance):
+            result = installer.erase_transaction(self.args)
+        self.assertTrue(result['erase_verified'])
+        self.assertFalse(result['manual_bootsel_required'])
+        self.assertEqual(self.flash, b'\xff' * installer.FLASH_SIZE)
+
+    def test_software_erase_reset_intent_failure_never_resets(self):
+        self.board['mode'] = 'application'
+        self.args.software_bootsel = True
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        real_save = installer.save_json
+        def fail_intent(path, record):
+            if record['stage'] == 'entering_bootsel': raise OSError('disk full')
+            real_save(path, record)
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+             patch.object(installer, 'admit_snapshot'), patch.object(installer, 'save_json', side_effect=fail_intent), \
+             patch.object(installer, 'Management') as management, self.assertRaises(installer.TransactionFailure):
+            installer.erase_transaction(self.args)
+        management.assert_not_called()
+        self.assertFalse(self.calls)
+
+    def test_software_erase_unconfirmed_reset_retains_recovery_without_flash(self):
+        self.board['mode'] = 'application'
+        self.args.software_bootsel = True
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+             patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management'), \
+             patch.object(installer.time, 'monotonic', side_effect=[0, 16]), \
+             self.assertRaises(installer.TransactionFailure) as caught:
+            installer.erase_transaction(self.args)
+        self.assertTrue(caught.exception.result['recovery_required'])
+        self.assertFalse(self.calls)
+
+    def test_software_erase_wrong_port_and_duplicate_identity_never_flash(self):
+        snapshot = {'target': {'device_id': installer.device_id(SERIAL)},
+                    'revision': 'revision-fixture', 'config': {'config': {'enabled': False}}}
+        for duplicate in (False, True):
+            self.board.update(mode='application', parent='same-port')
+            self.args.software_bootsel = True
+            test = self
+            class Maintenance:
+                def __init__(self, board): pass
+                def __enter__(self): return self
+                def __exit__(self, *_): pass
+                def enter_bootsel(self, _):
+                    test.board['mode'] = 'bootsel'
+                    if not duplicate: test.board['parent'] = 'wrong-port'
+            def discovery():
+                return [self.board, dict(self.board)] if duplicate and self.board['mode']=='bootsel' else [self.board]
+            with patch.object(installer, 'public_snapshot', return_value=snapshot), \
+                 patch.object(installer, 'admit_snapshot'), patch.object(installer, 'Management', Maintenance), \
+                 patch.object(installer, 'discover', side_effect=discovery), self.assertRaises(installer.TransactionFailure):
+                installer.erase_transaction(self.args)
+            self.assertFalse(self.calls)
+
+    def test_software_bootsel_flag_is_erase_only_json_refusal(self):
+        code, result = self.cli(['discover', '--software-bootsel'])
+        self.assertEqual(code, 2)
+        self.assertFalse(result['ok'])
+        self.assertFalse(self.calls)
 
     def prepare_wait(self):
         self.board['mode'] = 'application'
@@ -2096,6 +2232,47 @@ class ControlSnapshotTransitionTests(unittest.TestCase):
     def test_unknown_contract_refuses_without_legacy_capture(self):
         with self.assertRaisesRegex(installer.Refusal, 'Unknown control contract'):
             self.capture(upgrade=True, wrong=True)
+
+
+class SharedDeviceLockTests(unittest.TestCase):
+    def test_existing_lock_opens_without_create_and_preserves_inode(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'shared.lock'
+            path.write_text('foreign owner metadata')
+            identity = path.stat().st_ino
+            original = os.open
+            def protected_open(name, flags, *args):
+                if Path(name).exists() and flags & os.O_CREAT:
+                    raise PermissionError('protected_regular')
+                return original(name, flags, *args)
+            with patch.object(installer.os, 'open', side_effect=protected_open):
+                fd = installer.open_device_lock(path)
+                os.close(fd)
+            self.assertEqual(path.stat().st_ino, identity)
+            self.assertEqual(path.read_text(), 'foreign owner metadata')
+
+    def test_concurrent_first_creator_reopens_without_replacing_lock(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'shared.lock'
+            original = os.open
+            def raced_open(name, flags, *args):
+                if flags & os.O_CREAT:
+                    path.write_text('concurrent owner')
+                return original(name, flags, *args)
+            with patch.object(installer.os, 'open', side_effect=raced_open):
+                fd = installer.open_device_lock(path)
+                os.close(fd)
+            self.assertEqual(path.read_text(), 'concurrent owner')
+
+    def test_symlink_lock_never_opens_or_changes_target(self):
+        with tempfile.TemporaryDirectory() as directory:
+            target = Path(directory) / 'target'
+            target.write_text('retained')
+            path = Path(directory) / 'shared.lock'
+            path.symlink_to(target)
+            with self.assertRaises(OSError):
+                installer.open_device_lock(path)
+            self.assertEqual(target.read_text(), 'retained')
 
 
 if __name__ == '__main__':
