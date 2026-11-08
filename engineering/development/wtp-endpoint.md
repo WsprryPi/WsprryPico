@@ -74,4 +74,4 @@ python3 scripts/wtp_probe.py /dev/IDENTIFIED_WTP_PORT --run
 
 The probe asserts DTR and performs only HELLO, CAPS, GET_CLOCK, STATUS, and PING, with five-second timeouts and schema/identity checks. It neither LOADs nor ARMs a job. Do not run a second monitor on the same WTP port. Record board, firmware SHA-256/revision, host OS, physical setup, actual engine, and clock state, no transmitting mode, and actual results. Flashing and RF operations are outside this procedure. Host probing is a bounded protocol observation, not general USB conformance, physical clock, or RF qualification.
 
-Standalone timing, network/browser/provisioning adapters, and USB management/time share application services. Their accepted records retain their own evidence scope. Current work is selected only in the [consolidated backlog](consolidated-backlog.md).
+Standalone timing, network/browser/provisioning adapters, and USB management/time share application services. Their accepted records retain their own evidence scope.

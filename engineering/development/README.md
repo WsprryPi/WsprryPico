@@ -1,6 +1,6 @@
 # Development guide
 
-The [project contract](../../CONTRACT.md) and [architecture](../architecture.md) define the portable application, transport, and Pico adapter boundaries. The [consolidated backlog](consolidated-backlog.md) is the sole selected work list. The reusable [repository and work-harness cleanup instructions](repository-cleanup-prompt.md) define inventory, preservation, prose, and validation requirements for explicit cleanup requests.
+The [project contract](../../CONTRACT.md) and [architecture](../architecture.md) define the portable application, transport, and Pico adapter boundaries. Standing [repository and work-harness cleanup policy](../../AGENTS.md#repository-and-work-harness-cleanup) defines inventory, preservation, reference repair, and validation within the requested scope.
 
 ## Build inputs and layout
 

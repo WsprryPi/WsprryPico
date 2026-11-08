@@ -14,7 +14,7 @@ Updates preserve omitted settings, validate the complete candidate, and require 
 
 A schedule has one recurrence authority. Controller-owned recurrence compiles and submits each complete job through WTP. It does not implicitly enable the member's saved schedule. Member-owned recurrence uses local saved settings and submits complete jobs through the same JobService as remote work. Pico's standalone `enabled` and Pi's local transmit reservation have distinct meanings; an idle interval does not establish availability for another owner.
 
-Individual jobs fit the member's advertised limits even when recurrence has no expiry. Packet arrival never determines symbol boundaries. Lease expiry while loaded aborts the unarmed job and relinquishes ownership. Armed or running jobs retain the finite-job terminal extension. Controller loss does not prove inactive output, select another endpoint, replay work, or start a replacement schedule. Uncertain outcomes require reconciliation. Durable controller/member schedule transfer is unavailable; selected work is in the [TODO list](development/consolidated-backlog.md).
+Individual jobs fit the member's advertised limits even when recurrence has no expiry. Packet arrival never determines symbol boundaries. Lease expiry while loaded aborts the unarmed job and relinquishes ownership. Armed or running jobs retain the finite-job terminal extension. Controller loss does not prove inactive output, select another endpoint, replay work, or start a replacement schedule. Uncertain outcomes require reconciliation. Durable controller/member schedule transfer is unavailable; advanced scheduling is handled by WsprryPi.
 
 ## Hardware and RF authority
 

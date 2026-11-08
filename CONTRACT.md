@@ -111,8 +111,8 @@ The [shared transmitter/fleet contract](engineering/transmitter-application-cont
 defines member/controller domains and recurrence authority. Each member owns
 local hardware, validation, timing, cleanup, ownership and persistence. Current
 Pico resources implement a bounded foundation; full cross-application parity
-is not claimed. Selected work is maintained only in the
-[consolidated backlog](engineering/development/consolidated-backlog.md).
+is not claimed. Durable controller/member schedule transfer is unavailable;
+WsprryPi owns advanced scheduling.
 
 ## Licensing
 
