@@ -7,11 +7,46 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from rf_analysis.carrier_repeatability import compare_carriers
 from rf_analysis.pps_windows import analyze_windows, compare_production
 from rf_analysis.wiring import analyze_wiring
+from rf_analysis.pairing import diagnose_pairing
 from analyze_rf_drift import fit_drift
 from compare_rf_clocks import compare
 from predict_rf_spurs import alias, corrected_increment, simulate
 
 class Tests(unittest.TestCase):
+    def pairing_text(self):
+        rows=['BEGIN_PAIRING_TRACE samples=41 valid=1 period_ns=100000000 max_work_us=250']
+        for i in range(41):
+            observations = 0 if i<10 else 1 if i<40 else 2
+            error = 'unpaired_utc' if 20<=i<30 else 'pairing_acquisition' if 30<=i<40 else 'none'
+            rows.append('PAIRING i=%d raw_ns=%d candidate_utc_ns=%d candidate_raw_ns=%d candidate_pps_ns=%d observation_raw_ns=%d observations=%d rejected=0 uart_errors=0 dropped=0 capture_rejections=0 flags=15 error=%s'%(i,10**9+i*100000000,1800000000000000000,10**9+i//10*1000000000,10**9+i//10*1000000000,10**9,observations,error))
+        return '\n'.join(rows+['END_PAIRING_TRACE'])+'\n'
+    def test_pairing_trace_explains_stall_without_accepting_capture(self):
+        import json
+        result=diagnose_pairing(self.pairing_text())
+        self.assertEqual(result['qualification'],'not_evaluated')
+        self.assertEqual(result['samples'],41)
+        self.assertEqual(result['maximum_sample_gap_ns'],100000000)
+        self.assertEqual(len(result['observation_stalls']),1)
+        self.assertIn('unpaired_utc',result['observation_stalls'][0]['errors'])
+        self.assertIn('pairing_acquisition',result['observation_stalls'][0]['errors'])
+        self.assertNotIn('latitude',json.dumps(result))
+        self.assertIsNone(diagnose_pairing('old capture without trace'))
+        self.assertFalse(diagnose_pairing(self.pairing_text().replace('valid=1','valid=0'))['valid'])
+        aux=['BEGIN_AUX_PPS gp=3 pulses=5 valid=1']
+        primary=[]
+        for i in range(5):
+            raw=1000000*(i+1)
+            aux.append('AUX_PPS i=%d raw_low_us=%d raw_high_us=%d'%(i,raw,raw+1))
+            primary.append('PULSE i=%d raw_low=%d raw_high=%d count_low=0 count_high=1'%(i,raw+50000,raw+50001))
+        combined='\n'.join(aux+['END_AUX_PPS']+primary)+'\n'+self.pairing_text()
+        phase=diagnose_pairing(combined)
+        self.assertEqual(phase['auxiliary_pps_pulses'],5)
+        self.assertEqual(phase['qlg3_minus_primary_phase_ns'],[-50001000,-49999000])
+        with self.assertRaises(ValueError):diagnose_pairing(combined.replace('pulses=5','pulses=6'))
+    def test_pairing_trace_refuses_missing_malformed_and_reversed_records(self):
+        text=self.pairing_text()
+        for bad in (text.replace('samples=41','samples=40'),text.replace('END_PAIRING_TRACE',''),text.replace('flags=15','flags=16',1),text.replace('error=none','error=unknown',1),text.replace('uart_errors=0','uart_errors=true',1),text.replace('i=1 raw_ns=1100000000','i=1 raw_ns=900000000'),text.replace('observations=2','observations=0'),text.replace('dropped=0','dropped=4294967296',1)):
+            with self.assertRaises(ValueError):diagnose_pairing(bad)
     def wiring_text(self, phase):
         rows=['CHECK duration_us=2200000 clock_edges=%d max_gap_us=9 coherent=1 input_only=1' % (2200000 if phase=='clock' else 0)]
         for gp in range(8,14):

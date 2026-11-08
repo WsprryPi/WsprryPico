@@ -329,6 +329,13 @@ int main() {
     gpio_set_dir(pps_gp, GPIO_IN);
     gpio_disable_pulls(pps_gp);
     gpio_set_oeover(pps_gp, GPIO_OVERRIDE_LOW);
+    if (external_reference) {
+        // Observe the already-connected QLG3 PPS for receiver phase comparison.
+        gpio_init(3);
+        gpio_set_dir(3, GPIO_IN);
+        gpio_disable_pulls(3);
+        gpio_set_oeover(3, GPIO_OVERRIDE_LOW);
+    }
     if (!external_reference) {
         i2c_init(i2c0, 100000);
         gpio_set_function(4, GPIO_FUNC_I2C);

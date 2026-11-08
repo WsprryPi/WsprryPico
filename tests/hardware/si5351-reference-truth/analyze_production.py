@@ -8,9 +8,15 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "src"))
 from rf_analysis.pps_windows import analyze_windows, compare_production
+from rf_analysis.pairing import diagnose_pairing
 
 
 def analyze(text):
+    trace = diagnose_pairing(text)
+    if trace is not None and (
+        not trace["valid"] or trace["maximum_sample_gap_ns"] > 250_000_000
+    ):
+        raise ValueError("Incomplete or stalled pairing diagnostic trace")
     info = re.findall(
         r"^INFO serial=([0-9a-fA-F]{16}) clock_hz=(\d+) ram_only=1 pps_gp=(\d+) input_gp=(\d+) seconds=300 source=(si5351|known_ratio) production=1 input_only=1$",
         text,
@@ -54,6 +60,12 @@ def analyze(text):
         )
     ]
     records = []
+    if trace is not None and (
+        not pulses
+        or trace["first_raw_ns"] > pulses[0][1] * 1000 + 100_000_000
+        or trace["last_raw_ns"] < pulses[-1][2] * 1000
+    ):
+        raise ValueError("Pairing trace does not cover the independent PPS interval")
     for line in text.splitlines():
         if line.startswith("PROD "):
             tokens = line[5:].split()
@@ -102,8 +114,15 @@ def analyze(text):
         },
         independent=analyze_windows(pulses, pps_endpoint_us=10),
         production=compare_production(pulses, records, first_loaded=bool(first_loaded)),
+        pairing_trace=trace,
     )
 
 
 if __name__ == "__main__":
-    print(json.dumps(analyze(Path(sys.argv[1]).read_text()), indent=2))
+    if sys.argv[1:2] == ["--pairing-diagnostics"]:
+        result = diagnose_pairing(Path(sys.argv[2]).read_text())
+        if result is None:
+            raise ValueError("Missing pairing diagnostic trace")
+    else:
+        result = analyze(Path(sys.argv[1]).read_text())
+    print(json.dumps(result, indent=2))

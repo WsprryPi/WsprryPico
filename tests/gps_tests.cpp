@@ -4,6 +4,7 @@
 #include "time/controller_time.hpp"
 #include "time/gps.hpp"
 #include "time/gps_calibration.hpp"
+#include "time/gps_pairing_diagnostic.hpp"
 #include "time/ntp_client.hpp"
 #include "time/utc_discipline.hpp"
 
@@ -16,6 +17,28 @@
 
 using namespace wsprrypico::time::gps;
 namespace {
+void pairing_trace() {
+    const std::string status =
+        R"({"serial_present":true,"pps_present":true,"time_valid":false,"position_valid":false,"satellites":8,"observation_raw_ns":"90000000000","age_ns":"0","position":null,"candidate_utc_ns":"1800000000000000000","candidate_raw_ns":"92105000000","candidate_pps_raw_ns":"92000000000","observations":96,"rejected_sentences":0,"dropped":0,"uart_errors":0,"irq_latency_ns":"0","maximum_irq_latency_ns":"0","capture_error_bound_ns":"0","capture_rejections":0,"error":"unpaired_utc"})";
+    const auto value = pairing_diagnostic(status, 93'000'000'000);
+    assert(value && value->raw_ns == 93'000'000'000 && value->observations == 96);
+    assert(value->candidate_raw_ns - value->candidate_pps_ns == 105'000'000);
+    assert(value->flags == 3 && pairing_diagnostic_errors[value->error] == "unpaired_utc");
+    for (const auto& replacement :
+         {std::string("-1"), std::string("4294967296"), std::string("1.5"), std::string("true"),
+          std::string("\"96\"")}) {
+        auto bad = status;
+        bad.replace(bad.find("\"observations\":96"), 17, "\"observations\":" + replacement);
+        assert(!pairing_diagnostic(bad, 1));
+    }
+    auto bad = status;
+    bad.replace(bad.find("unpaired_utc"), 12, "unknown_error");
+    assert(!pairing_diagnostic(bad, 1));
+    assert(!pairing_diagnostic("[]", 1) && !pairing_diagnostic("{", 1));
+    bad = status;
+    bad.replace(bad.find("\"pps_present\":true"), 18, "\"pps_present\":1");
+    assert(!pairing_diagnostic(bad, 1));
+}
 std::string sentence(std::string_view body) {
     unsigned check = 0;
     for (const auto c : body)
@@ -198,6 +221,29 @@ void late_label_pairing() {
     }
     assert(calibration.timer() && calibration.timer()->span_ns >= 10 * second);
     assert(std::abs(calibration.timer()->oscillator_error_ppb - 10'000) <= 1);
+    // One out-of-window RMC can suppress two emitted observations: its own
+    // label is refused and the next valid label only reacquires pairing.
+    Pairer one_late_label(policy);
+    captured = 0;
+    unsigned emitted = 0;
+    for (unsigned i = 1; i <= 6; ++i) {
+        while (captured < i + 1) {
+            ++captured;
+            assert(one_late_label.pulse({captured * second, 1000, captured}));
+        }
+        m.utc_ns = (1'800'000'000ULL + i) * second;
+        m.received_raw_ns = i * second + (i == 3 ? 1'250'000'000 : 1'050'000'000);
+        const auto observation = one_late_label.message(m);
+        if (observation) {
+            assert(i == 2 || i == 5 || i == 6);
+            ++emitted;
+        }
+        if (i == 3)
+            assert(!observation && one_late_label.error() == "unpaired_utc");
+        if (i == 4)
+            assert(!observation && one_late_label.error() == "pairing_acquisition");
+    }
+    assert(emitted == 3);
     policy.minimum_message_delay_ns = 0;
     assert(!valid(policy)); // A window spanning multiple seconds is not qualified.
     policy.maximum_message_delay_ns = 999'000'000;
@@ -471,6 +517,7 @@ void arbitration() {
 }
 } // namespace
 int main() {
+    pairing_trace();
     parser();
     pairing();
     late_label_pairing();

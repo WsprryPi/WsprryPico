@@ -159,3 +159,35 @@ software flag alone does not prove that it overrides the OUT1 frequency.
 Keep GPSDO frequency enables and PPS disabled before loading/restoring the
 ordinary image. With GPIO leads still attached, leave the GPSDO disabled;
 restore the original RF output configuration only after lead removal.
+
+### Pairing continuity diagnostics
+
+Production-capture mode records the existing internal GPS status at most ten
+times per second into a fixed 3,200-record buffer. The 64-byte records retain
+candidate UTC, original serial/PPS timestamps, observation and error counters,
+validity flags, and the current pairing error. They contain no coordinates or
+locator. This uses the unchanged production adapter and pairing policy; no
+production resource or callback is added. Buffer exhaustion, an unexpected
+status shape, or trace sampling gaps above 250 ms refuse qualification. The
+maximum status decoding time is reported to account for this additional workload.
+The trace's interval must cover the complete independent PPS capture.
+
+On external-input builds, the existing QLG3 PPS on GP3 is also observed through
+input-only GPIO polling. Its raw brackets permit comparison of the two receivers'
+PPS phase and the RMC arrival windows without changing wiring or assuming their
+relative phase. These auxiliary observations do not supply UTC labels or replace
+missing production observations.
+
+Inspect a refused capture without accepting it:
+
+```sh
+python3 tests/hardware/si5351-reference-truth/analyze_production.py \
+  --pairing-diagnostics private/transcript.txt
+```
+
+This command reports state changes and observation stalls with
+`qualification=not_evaluated`. The normal analysis command still requires the
+original complete observation continuity and all other capture gates. A single
+out-of-window RMC can cause two missing observations: its own label is refused,
+and the following valid label only reacquires pairing. A host reproducer covers
+that behavior; a diagnostic trace is needed to attribute an actual bench gap.
