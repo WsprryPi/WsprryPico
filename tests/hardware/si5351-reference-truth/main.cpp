@@ -8,15 +8,34 @@
 #include "hardware/structs/io_bank0.h"
 #include "hardware/uart.h"
 #include "pico/bootrom.h"
+#include "pico/stdio/driver.h"
+#include "pico/stdio_usb.h"
 #include "pico/stdlib.h"
 #include "pico/unique_id.h"
+#include "tusb.h"
 
 #include <algorithm>
+#if TRUTH_PRODUCTION_CAPTURE
+#include "production.hpp"
+#endif
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 
 namespace {
+#ifndef TRUTH_INPUT_GP
+#define TRUTH_INPUT_GP 7
+#endif
+#ifndef TRUTH_PPS_GP
+#define TRUTH_PPS_GP 3
+#endif
+#ifndef TRUTH_EXTERNAL_REFERENCE
+#define TRUTH_EXTERNAL_REFERENCE 0
+#endif
+constexpr unsigned input_gp = TRUTH_INPUT_GP, pps_gp = TRUTH_PPS_GP;
+constexpr bool external_reference = TRUTH_EXTERNAL_REFERENCE;
+static_assert(input_gp <= 27 && pps_gp <= 27 && (input_gp & 1) && (pps_gp & 1));
+static_assert(((input_gp >> 1) & 7) != ((pps_gp >> 1) & 7));
 constexpr uint8_t address = 0x60;
 uint8_t original[188]{};
 bool prepared = false, used = false;
@@ -32,6 +51,8 @@ bool write(uint8_t reg, uint8_t value) {
            read(reg, &observed, 1) && observed == value;
 }
 bool off() {
+    if (external_reference)
+        return true; // External inputs never configure or write the Si5351.
     // Try both independent output-control mechanisms even after a failed write.
     const bool mask = write(3, 0xff);
     const bool power = write(18, 0x80);
@@ -45,12 +66,14 @@ bool restore() {
                              30, 31, 32, 33, 58, 59, 60, 61, 62, 63, 64, 65, 149};
     for (auto reg : regs)
         ok = write(reg, original[reg]) && ok;
-    // The original mask/power combination was checked to keep all outputs disabled.
+    // The original mask/power combination was checked to keep CLK0 and CLK1 disabled.
     ok = write(3, original[3]) && ok;
     prepared = false;
     return ok;
 }
 bool setup() {
+    if (external_reference)
+        return true;
     // Keep each 100 kHz read comfortably inside the 10 ms transaction deadline.
     for (unsigned reg = 0; reg < sizeof(original); reg += 16) {
         const auto count = sizeof(original) - reg < 16 ? sizeof(original) - reg : 16;
@@ -102,7 +125,7 @@ struct Pulse {
     Endpoint low, high;
 };
 Pulse pulses[301];
-char nmea[240000];
+char nmea[TRUTH_PRODUCTION_CAPTURE ? 1 : 240000];
 unsigned nmea_size = 0;
 uint slice;
 uint16_t previous_count;
@@ -112,7 +135,7 @@ Endpoint snapshot() {
     Endpoint s{};
     s.before_us = time_us_64();
     const uint16_t count_low = pwm_get_counter(slice);
-    s.high = gpio_get(3);
+    s.high = gpio_get(pps_gp);
     const uint16_t count_high = pwm_get_counter(slice);
     s.after_us = time_us_64() + 1;
     if (previous_us && s.after_us - previous_us >= 400)
@@ -126,7 +149,7 @@ Endpoint snapshot() {
     s.count_high = extended_count;
     return s;
 }
-void test() {
+void test(bool loaded) {
     if (used) {
         puts("ERROR one_test_per_boot");
         return;
@@ -137,7 +160,7 @@ void test() {
         printf("END error=setup restored=%d\n", clean);
         return;
     }
-    if (!write(18, 0x4c) || !write(3, 0xfb)) {
+    if (!external_reference && (!write(18, 0x4c) || !write(3, 0xfb))) {
         const bool clean = restore();
         printf("END error=enable restored=%d\n", clean);
         return;
@@ -164,11 +187,24 @@ void test() {
     uart_get_hw(uart0)->rsr = 0;
     const auto start = time_us_64();
     Endpoint prior = snapshot();
+    unsigned load_writes = 0;
+    auto next_load = start + 10000;
+    constexpr char load[] = "LOAD 0123456789012345678901234567890123456789012345678901234567\n";
+    static_assert(sizeof(load) - 1 == 64);
     while (count < 301 && time_us_64() - start < 310000000ULL && coherent) {
         Endpoint current = snapshot();
         if (current.high && !prior.high)
             pulses[count++] = {prior, current};
         prior = current;
+        // One writer on core 0. Background USB service can only drain this
+        // queue. A full queue skips the load; it never waits for the host.
+        if (loaded && current.after_us >= next_load) {
+            next_load = current.after_us + 10000;
+            if (stdio_usb_connected() && tud_cdc_write_available() >= sizeof(load) - 1) {
+                stdio_usb.out_chars(load, sizeof(load) - 1);
+                ++load_writes;
+            }
+        }
         // Bounded draining: one byte per pass keeps count extension independent
         // of a long UART FIFO or USB print operation. Retain exact NMEA bytes.
         if (uart_is_readable(uart0)) {
@@ -195,43 +231,55 @@ void test() {
     fwrite(nmea, 1, nmea_size, stdout);
     puts("\nNMEA_END");
     printf("END pulses=%u coherent=%d max_gap_us=%llu uart_errors=%u nmea_bytes=%u restored=%d "
-           "first_error_us=%llu error_bits=%u\n",
+           "first_error_us=%llu error_bits=%u loaded=%u load_writes=%u\n",
            count, coherent, (unsigned long long)max_gap, uart_errors, nmea_size, clean,
-           (unsigned long long)first_error_us, error_bits);
+           (unsigned long long)first_error_us, error_bits, unsigned(loaded), load_writes);
     fflush(stdout);
 }
+#if TRUTH_PRODUCTION_CAPTURE
+#include "production.inc.hpp"
+#endif
 } // namespace
 int main() {
     set_sys_clock_khz(138000, true);
     stdio_init_all();
+#if !TRUTH_PRODUCTION_CAPTURE
     uart_init(uart0, 9600);
     uart_set_hw_flow(uart0, false, false);
     uart_set_format(uart0, 8, 1, UART_PARITY_NONE);
     uart_set_fifo_enabled(uart0, true);
     gpio_set_function(1, GPIO_FUNC_UART);
     gpio_set_oeover(1, GPIO_OVERRIDE_LOW);
-    gpio_init(3);
-    gpio_set_dir(3, GPIO_IN);
-    gpio_disable_pulls(3);
-    i2c_init(i2c0, 100000);
-    gpio_set_function(4, GPIO_FUNC_I2C);
-    gpio_set_function(5, GPIO_FUNC_I2C);
-    gpio_pull_up(4);
-    gpio_pull_up(5);
-    gpio_init(7);
-    gpio_set_dir(7, GPIO_IN);
-    gpio_disable_pulls(7);
-    gpio_set_oeover(7, GPIO_OVERRIDE_LOW);
-    gpio_set_input_enabled(7, true);
-    hw_write_masked(&io_bank0_hw->io[7].ctrl, GPIO_FUNC_PWM << IO_BANK0_GPIO0_CTRL_FUNCSEL_LSB,
+    gpio_init(pps_gp);
+    gpio_set_dir(pps_gp, GPIO_IN);
+    gpio_disable_pulls(pps_gp);
+#endif
+    if (!external_reference) {
+        i2c_init(i2c0, 100000);
+        gpio_set_function(4, GPIO_FUNC_I2C);
+        gpio_set_function(5, GPIO_FUNC_I2C);
+        gpio_pull_up(4);
+        gpio_pull_up(5);
+    }
+#if !TRUTH_PRODUCTION_CAPTURE
+    gpio_init(input_gp);
+    gpio_set_dir(input_gp, GPIO_IN);
+    gpio_disable_pulls(input_gp);
+    gpio_set_oeover(input_gp, GPIO_OVERRIDE_LOW);
+    gpio_set_input_enabled(input_gp, true);
+    hw_write_masked(&io_bank0_hw->io[input_gp].ctrl,
+                    GPIO_FUNC_PWM << IO_BANK0_GPIO0_CTRL_FUNCSEL_LSB,
                     IO_BANK0_GPIO0_CTRL_FUNCSEL_BITS);
-    slice = pwm_gpio_to_slice_num(7);
+#endif
+    slice = pwm_gpio_to_slice_num(input_gp);
     const auto boot = time_us_64();
     char command[24]{};
     unsigned size = 0;
     while (time_us_64() - boot < 400000000ULL) {
+#if !TRUTH_PRODUCTION_CAPTURE
         while (uart_is_readable(uart0))
             (void)uart_get_hw(uart0)->dr;
+#endif
         int c = getchar_timeout_us(1000);
         if (c == PICO_ERROR_TIMEOUT || c == '\r')
             continue;
@@ -239,11 +287,24 @@ int main() {
             if (!strcmp(command, "INFO")) {
                 char serial[PICO_UNIQUE_BOARD_ID_SIZE_BYTES * 2 + 1];
                 pico_get_unique_board_id_string(serial, sizeof(serial));
-                printf("INFO serial=%s clock_hz=%lu ram_only=1 pps_gp=3 input_gp=7 seconds=300\n",
-                       serial, (unsigned long)clock_get_hz(clk_sys));
+                printf("INFO serial=%s clock_hz=%lu ram_only=1 pps_gp=%u input_gp=%u seconds=300 "
+                       "source=%s production=%u\n",
+                       serial, (unsigned long)clock_get_hz(clk_sys), pps_gp, input_gp,
+                       external_reference ? "known_ratio" : "si5351",
+                       unsigned(TRUTH_PRODUCTION_CAPTURE));
                 fflush(stdout);
             } else if (!strcmp(command, "TEST"))
-                test();
+#if TRUTH_PRODUCTION_CAPTURE
+                test_production(false);
+#else
+                test(false);
+#endif
+            else if (!strcmp(command, "TEST LOAD"))
+#if TRUTH_PRODUCTION_CAPTURE
+                test_production(true);
+#else
+                test(true);
+#endif
             else if (!strcmp(command, "BOOTSEL"))
                 break;
             else

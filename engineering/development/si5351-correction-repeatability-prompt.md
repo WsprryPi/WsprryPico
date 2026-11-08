@@ -330,3 +330,27 @@ Operate with minimal interruption.
 * At completion, provide a concise summary of work performed, verification evidence, Git state, deployed devices, and outstanding issues.
 
 Default operating principle: If the action is necessary for the assigned task, within the explicitly authorized scope, technically reversible or reasonably safe, and not prohibited by a higher-priority policy, proceed without asking.
+
+## Current staged continuation
+
+The operator authorized existing-wiring work before connecting the GPSDO directly
+to GPIO. Pico C is currently available with CLK2 on GP7, QLG3 PPS on GP3, and
+the same conducted RF termination. Do not connect the GPSDO to Pico GPIO in this
+stage. The optional later known-ratio arrangement uses GP9 / physical pin 12 for
+1 MHz and GP11 / physical pin 15 for PPS, with common ground; original GP7/GP3
+leads can remain connected. Confirm actual input levels and selected input pair
+before enabling those external outputs. GPIO leads must be disconnected before
+changing those GPSDO outputs to RF reference frequencies.
+
+Use the RAM-only [reference-truth fixture](../../tests/hardware/si5351-reference-truth/README.md)
+with its production-capture comparison. Preserve the board's **current** image,
+settings, and exact original bundle, independently of the earlier campaign's
+image. Two 301-edge runs reverse the sixty-edge quiet/USB-load pattern. Compare
+actual production PPS/count reconstruction with independent brackets of the
+same electrical edges at 10/30/60-second spans; keep transition windows and all
+failures visible. These captures command no CLK0 or GP2 RF. Restore and verify
+the exact original flash and saved semantics before releasing the board.
+
+The direct-GPSDO test remains a separate, unperformed stage until the operator
+connects and confirms that arrangement. Diagnostic builds and host checks do
+not establish that physical qualification. Continue on `codex/rc.2`; do not merge.
