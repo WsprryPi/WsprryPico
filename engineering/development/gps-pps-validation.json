@@ -5606,7 +5606,8 @@
       "host_picotool_version": "2.3.1"
     },
     "restoration_verified_utc": "2026-11-08T01:20:10Z",
-    "measurement_ordering": "Chronological campaign order from the durable pre-ARM RF-budget reservation event. Reservation timestamps are not calibrated RF launch timestamps."
+    "measurement_ordering": "Chronological campaign order from the durable pre-ARM RF-budget reservation event. Reservation timestamps are not calibrated RF launch timestamps.",
+    "bounded_closure_record": "si5351_bounded_closure_20261108"
   },
   "si5351_existing_wiring_counter_diagnostic_20261107": {
     "date_local": "2026-11-07",
@@ -6312,7 +6313,7 @@
     "original_gpsdo_rf_configuration_restoration": "Deferred while GPIO leads remain connected; no automatic return to enabled10MHz outputs.",
     "clk0_gp2_rf_jobs_s": 0,
     "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage2-20261108",
-    "item21": "In progress; no RF-improvement qualification or production calibration-policy change."
+    "item21": "Historical stage result: no RF-improvement qualification or production calibration-policy change. Current closure is recorded in si5351_bounded_closure_20261108."
   },
   "gpsdo_pairing_trace_20261108": {
     "instrumented_source": "38c3f997384e4abbce29efb70249f5327376ee29",
@@ -6795,6 +6796,621 @@
         "documentation_errors": 0,
         "git_diff_check": "passed"
       }
+    }
+  },
+  "si5351_bounded_closure_20261108": {
+    "schema": "item21-bounded-gate/1",
+    "outcome": "resolution_limited_investigation_complete",
+    "runs": [
+      {
+        "label": "quiet-first-1",
+        "raw_sha256": "c92b2367fdef624abb59d87309ed326fb664e979c5326b47f428a1b741fec168",
+        "available_comparisons": 45,
+        "midpoint_bracket_discrepancies": 1,
+        "declared_interval_overlaps": 45,
+        "observed_raw_interval_overlaps": 45,
+        "discrepant_windows": [
+          {
+            "available": true,
+            "span_s": 10,
+            "first_pps": 100,
+            "last_pps": 110,
+            "loaded": true,
+            "production_estimate_ppb": 235.49974095028495,
+            "acquisition_difference_ppb": [
+              35.49974095028495,
+              1535.499740950285
+            ],
+            "acquisition_difference_midpoint_ppb": 785.4997409502851,
+            "consistent_with_independent_brackets": false,
+            "reconstruction_bounds": {
+              "declared_production": {
+                "production_error_bounds_ppb": [
+                  -41641.613482485955,
+                  42112.76647329981
+                ],
+                "acquisition_difference_bounds_ppb": [
+                  -41841.613482485955,
+                  43412.76647329981
+                ],
+                "overlaps_independent_brackets": true
+              },
+              "observed_raw_pps": {
+                "production_error_bounds_ppb": [
+                  -3137.226578949379,
+                  2137.23700192329
+                ],
+                "acquisition_difference_bounds_ppb": [
+                  -3337.226578949379,
+                  3437.23700192329
+                ],
+                "overlaps_independent_brackets": true
+              },
+              "scope": "Existing endpoint allowances and one-count quantization; conservative correlated-endpoint enclosure, not a confidence interval. Observed-raw-PPS enclosure shares hardware and is conditional, not certified source accuracy."
+            },
+            "pps_timestamp_difference_change_ns": [
+              -645,
+              15355
+            ]
+          }
+        ],
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": -10.0,
+            "minimum_ppb": -600.0,
+            "maximum_ppb": 550.0,
+            "peak_to_peak_ppb": 1150.0,
+            "sample_stdev_ppb": 311.6695863161543,
+            "maximum_half_interval_ppb": 2800.0010000111997
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -9.999999999999998,
+            "minimum_ppb": -100.0,
+            "maximum_ppb": 183.33333333333334,
+            "peak_to_peak_ppb": 283.33333333333337,
+            "sample_stdev_ppb": 86.13798863695247,
+            "maximum_half_interval_ppb": 933.3333777781926
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -10.0,
+            "minimum_ppb": -41.666666666666664,
+            "maximum_ppb": 41.666666666666664,
+            "peak_to_peak_ppb": 83.33333333333333,
+            "sample_stdev_ppb": 34.56073558887953,
+            "maximum_half_interval_ppb": 466.6666555556074
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": -10.0,
+            "minimum_ppb": -10.0,
+            "maximum_ppb": -10.0,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 93.33333266666708
+          }
+        ]
+      },
+      {
+        "label": "loaded-first-2",
+        "raw_sha256": "4dc7d09602320dd8ea5f5105ab2e4f95d2b2c2498d9da27df3a6c554d1c472e4",
+        "available_comparisons": 45,
+        "midpoint_bracket_discrepancies": 0,
+        "declared_interval_overlaps": 45,
+        "observed_raw_interval_overlaps": 45,
+        "discrepant_windows": [],
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": 0.0,
+            "minimum_ppb": -600.0,
+            "maximum_ppb": 700.0,
+            "peak_to_peak_ppb": 1300.0,
+            "sample_stdev_ppb": 355.98333940092544,
+            "maximum_half_interval_ppb": 2850.0005000113997
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -3.552713678800501e-16,
+            "minimum_ppb": -200.0,
+            "maximum_ppb": 233.33333333333334,
+            "peak_to_peak_ppb": 433.33333333333337,
+            "sample_stdev_ppb": 128.86015005270224,
+            "maximum_half_interval_ppb": 949.9999888893111
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -2.1316282072803005e-15,
+            "minimum_ppb": -33.333333333333336,
+            "maximum_ppb": 83.33333333333333,
+            "peak_to_peak_ppb": 116.66666666666666,
+            "sample_stdev_ppb": 47.14045207910317,
+            "maximum_half_interval_ppb": 466.66669444449633
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": 0.0,
+            "minimum_ppb": 0.0,
+            "maximum_ppb": 0.0,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 93.33333333333374
+          }
+        ]
+      }
+    ],
+    "ordinary_modeled_controls": [
+      {
+        "source_ppb": -20000,
+        "timer_ppb": -20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -20500,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": -20000,
+        "timer_ppb": -20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 22,
+        "minimum_ppb": -20500,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 12000000000
+      },
+      {
+        "source_ppb": -20000,
+        "timer_ppb": 20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -20400,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": -20000,
+        "timer_ppb": 20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -20400,
+        "maximum_ppb": -19636,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": -20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": -20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 22,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 12000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": 20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 0,
+        "timer_ppb": 20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": -400,
+        "maximum_ppb": 364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": -20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": -20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 22,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 12000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": 20000,
+        "phase_ms": 250,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      },
+      {
+        "source_ppb": 20000,
+        "timer_ppb": 20000,
+        "phase_ms": 990,
+        "sessions": 16,
+        "updates": 21,
+        "minimum_ppb": 19600,
+        "maximum_ppb": 20364,
+        "minimum_span_ns": 10000000000,
+        "maximum_span_ns": 11000000000
+      }
+    ],
+    "original_recorded_replay": {
+      "observations": 1468,
+      "checks": [
+        {
+          "label": "gp2-r1-on-5366200",
+          "kind": "timer",
+          "estimate_ppb": -333,
+          "generation": 4,
+          "span_ns": 12000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "gp2-r2-on-5366200",
+          "kind": "timer",
+          "estimate_ppb": -405,
+          "generation": 12,
+          "span_ns": 21000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": 6,
+          "generation": 3,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": 45,
+          "generation": 53,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r1-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -45,
+          "generation": 81,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": -100,
+          "generation": 86,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": 45,
+          "generation": 52,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r2-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -150,
+          "generation": 3,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": -50,
+          "generation": 9,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": -337,
+          "generation": 46,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r3-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -13,
+          "generation": 73,
+          "span_ns": 11000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-1840100",
+          "kind": "si5351",
+          "estimate_ppb": -29,
+          "generation": 93,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-28126100",
+          "kind": "si5351",
+          "estimate_ppb": 14,
+          "generation": 65,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        },
+        {
+          "label": "si5351-r4-on-5366200",
+          "kind": "si5351",
+          "estimate_ppb": -150,
+          "generation": 28,
+          "span_ns": 10000000000,
+          "original_timestamp_match": true,
+          "match": true
+        }
+      ]
+    },
+    "rf_resolution": [
+      {
+        "frequency_hz": 1840100,
+        "best_baseline_absolute_lower_ppb": 4.701842753517207,
+        "largest_corrected_allowance_ppb": 48.053110158249595,
+        "residual_budget_ppb": -43.35126740473239,
+        "meaning": "With the retained allowances, every corrected absolute error must be below the baseline lower bound minus its own allowance; using the largest allowance gives the tightest required repeat. Negative means even zero error cannot establish improvement for that repeat."
+      },
+      {
+        "frequency_hz": 5366200,
+        "best_baseline_absolute_lower_ppb": 35.426717439298486,
+        "largest_corrected_allowance_ppb": 23.05125109478748,
+        "residual_budget_ppb": 12.375466344511004,
+        "meaning": "With the retained allowances, every corrected absolute error must be below the baseline lower bound minus its own allowance; using the largest allowance gives the tightest required repeat. Negative means even zero error cannot establish improvement for that repeat."
+      },
+      {
+        "frequency_hz": 28126100,
+        "best_baseline_absolute_lower_ppb": 59.272051131410045,
+        "largest_corrected_allowance_ppb": 13.962610861092,
+        "residual_budget_ppb": 45.30944027031805,
+        "meaning": "With the retained allowances, every corrected absolute error must be below the baseline lower bound minus its own allowance; using the largest allowance gives the tightest required repeat. Negative means even zero error cannot establish improvement for that repeat."
+      }
+    ],
+    "uncertainty_derivation": {
+      "normalized_count": "N * S / T",
+      "count_bounds": "[N-1, N+1]",
+      "pps_span_bounds": "[S - 1.001*(u_a+u_b), S + 1.001*(u_a+u_b)]",
+      "count_time_span_bounds": "[T - 1.001*(v_a+v_b), T + 1.001*(v_a+v_b)]",
+      "normalized_bounds": "[(N-1)*(S-u)/(T+v), (N+1)*(S+u)/(T-v)]",
+      "difference_bounds": "[normalized_low-independent_high, normalized_high-independent_low] / (nominal_hz*UTC_span_s) * 1e9",
+      "note": "All bounds use preexisting endpoint metadata and the production 1.001 scale allowance. No physical allowance was relaxed. Cartesian enclosures do not require endpoint independence; shared hardware prevents an external accuracy claim."
+    },
+    "candidate_selected": null,
+    "decision": "The tested arithmetic/session paths do not expose a demonstrated defect. Finer PPS capture and longer acquisition remain plausible, but their physical benefit is not resolved by the retained observer bounds and the continuous-history results do not qualify an ordinary-runtime policy change. No candidate is selected; stop at the authorized resolution-limited gate without starting acquisition or RF campaigns. This does not establish that a different experiment using the same hardware could not succeed.",
+    "not_proven": "No claim of universal impossibility, unique physical noise attribution, or improved RF repeatability.",
+    "hardware": {
+      "pico_occupied_minutes": 0,
+      "acquisition_runs": 0,
+      "rf_jobs": 0,
+      "commanded_rf_seconds": 0,
+      "device_accessed": false,
+      "firmware_loaded": false,
+      "gpsdo_accessed": false,
+      "state": "No device/service/reference/settings changes; previous handback is historical evidence, not a fresh live-state verification.",
+      "planned_acquisition_session_ceiling_minutes": 60,
+      "planned_acquisition_records_ceiling": 6,
+      "planned_rf_session_ceiling_minutes": 60,
+      "planned_rf_tone_count": 28,
+      "planned_rf_seconds": 336,
+      "rf_seconds_hard_cap": 360
+    },
+    "evidence_files": {
+      "original-replay.txt": "5daa534cec3f24bc277aa7acce28eeb2738aa0fc8350a854583f16fe3f353003",
+      "ordinary-replay.log": "205dca3ca3893799b9e82698a0c2000ec41adf2927b6307b2b0aa007452e9a62"
+    },
+    "date": "2026-11-08",
+    "backlog_item": 21,
+    "private_evidence_directory": "/Users/lbussy/GitHub/WsprryPico/build/rc2-item21-final/evidence",
+    "validation": {
+      "analysis_unittest_cases": 28,
+      "analysis_command": "/Users/lbussy/GitHub/WsprryPi-Qualification-Harness/.venv/bin/python tests/rf_correction_analysis_tests.py",
+      "native_command": "ctest --test-dir build/rc2-item21/host -R \"^(reference_monitor|gps)$\" --no-tests=error --output-on-failure",
+      "native_passed": 2,
+      "original_replay_command": "/usr/bin/clang++ -std=c++20 -Isrc build/rc2-item21/evidence/replay_counts.cpp src/time/gps_calibration.cpp src/time/gps.cpp -o build/rc2-item21-final/evidence/replay_counts; build/rc2-item21-final/evidence/replay_counts < build/rc2-item21/evidence/replay-input.txt",
+      "source_pair_dispatch": "gh workflow run debian-non-hardware.yml --repo WsprryPi/WsprryPi --ref devel -f pico_ref=2938a3351de00b482a6d83134de496cfb353a803",
+      "pico_ci": "https://github.com/WsprryPi/WsprryPico/actions/runs/42491630528",
+      "pi_ci": "https://github.com/WsprryPi/WsprryPi/actions/runs/42491647088",
+      "pi_source": "88fe1855e63e0c42ca8d2e822f29526a74789592",
+      "status": "passed",
+      "superseded_runs": {
+        "cancelled": [
+          42491210431,
+          42491524201,
+          42491223143
+        ],
+        "reason": "Replaced by final reviewed source; not used as validation passes."
+      },
+      "native_build_command": "cmake --build build/rc2-item21/host --target reference_monitor_tests gps_tests --parallel 4",
+      "docs_build_command": "make -C docs html",
+      "docs_link_command": "docs/.venv/bin/python scripts/check_documentation.py",
+      "docs_markdown_sources": 88,
+      "docs_html_pages": 21,
+      "docs_local_targets": 1743,
+      "docs_errors": 0,
+      "diff_check": "git diff --check passed",
+      "pico_status": "success",
+      "pico_preview_source": "f2f4a4fb81a0d3a0ee7c2e401fb89999aea95971",
+      "pico_preview_difference_files": [
+        ".github/workflows/publish-prepared.yml",
+        "README.md",
+        "docs/maintain.md",
+        "engineering/development/prepared-publication.md",
+        "engineering/development/usb-installer.md",
+        "scripts/ci/ctest-completion-policy.json",
+        "scripts/ci/download.py",
+        "scripts/ci/inputs.json",
+        "scripts/ci/prepared.py",
+        "scripts/ci/publish.py",
+        "scripts/usb_installer.py",
+        "tests/ci_bundle_tests.py",
+        "tests/usb_installer_tests.py"
+      ],
+      "pico_ctest_registered": 234,
+      "pico_ctest_passed": 234,
+      "pico_ctest_skipped": 0,
+      "pico_execution_records": 27,
+      "pico_native_browser_contexts": 13,
+      "pico_preview_scope": "Synthetic base overlay only; all source/analysis/fixture/runtime regression files match feature2938a335. No feature/base merge performed.",
+      "pico_required_contexts": 18,
+      "pi_status": "success",
+      "pi_jobs": [
+        {
+          "name": "Choose validation scope",
+          "conclusion": "success"
+        },
+        {
+          "name": "strict-i2c-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-network-loopback",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-simulated-profile",
+          "conclusion": "success"
+        },
+        {
+          "name": "wtp-usb-management-pair",
+          "conclusion": "success"
+        },
+        {
+          "name": "ubuntu-gcc13-release",
+          "conclusion": "success"
+        },
+        {
+          "name": "non-hardware-validation",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15)",
+          "conclusion": "success"
+        },
+        {
+          "name": "macos-si5351-profile (macos-15-intel)",
+          "conclusion": "success"
+        }
+      ],
+      "required_network_and_usb": "passed through production paths for exact feature2938a335/Pi88fe1855",
+      "final_source_difference": "Documentation-only successor changes consolidated-backlog.md, gps-pps-validation.md, gps-pps-validation.json, removes superseded si5351-correction-repeatability-prompt.md and updates fixture README.md. All implementation/tests match2938a335.",
+      "git_boundary": "Pico codex/rc.2 only; PR19 draft/no auto-merge; no feature/base merge or publication. Pi and Pi-Docs source/worktrees untouched."
+    },
+    "analysis_and_test_source": "2938a3351de00b482a6d83134de496cfb353a803",
+    "adversarial_review": [
+      {
+        "finding": "Midpoint comparison omitted recorded production endpoint uncertainty.",
+        "disposition": "Added complete enclosures alongside unchanged midpoint/flag; retained original hashes, allowances and refusals. Injected out-of-bounds count bias still fails."
+      },
+      {
+        "finding": "A slow raw timer and edge alignment can admit twelve UTC intervals in a twelve-raw-second session.",
+        "disposition": "Host lifecycle test uses actual monitor and permits ten through twelve, never sixty; original physical ten/eleven-second records remain unchanged."
+      },
+      {
+        "finding": "Finite-window and PPS synthetic counts initially used inconsistent source-error models.",
+        "disposition": "Unified physical counter model and added independent expected source/timer ratio check; all twelve modeled controls pass."
+      },
+      {
+        "finding": "Earlier checklist heading removal left two broken anchors.",
+        "disposition": "Repaired link targets without restoring the heading or changing checklist layout."
+      },
+      {
+        "finding": "Wide declared bounds do not prove that improvement is impossible or identify physical jitter distribution.",
+        "disposition": "Closure explicitly resolution-limited; plausible finer/longer acquisition remains unqualified, not disproved. No second candidate or hardware campaign started."
+      },
+      {
+        "finding": "Previous restoration evidence could be mistaken for live device verification.",
+        "disposition": "No device accessed; previous handback is identified as historical and no current hardware state claimed."
+      }
+    ],
+    "second_assessment": "All actionable source/test/link findings closed. Exact final code passed Pico preview verification, all nine Pi jobs, and both actual source-pair suites. No production firmware, allowance, historical observation, feature availability or RF criterion changed. Bounded resolution-limited closure; hardware phases not entered.",
+    "retained_discrepancy_inputs": {
+      "count_delta": 10000000,
+      "production_pps_raw_span_ns": 10000013355,
+      "count_read_raw_span_ns": 10000011000,
+      "summed_pps_endpoint_allowance_ns": 400000,
+      "summed_count_endpoint_allowance_ns": 17355,
+      "production_scale_allowance": "1001/1000",
+      "independent_count_delta_bounds": [
+        9999987,
+        10000002
+      ],
+      "independent_raw_pps_span_bounds_ns": [
+        9999998000,
+        10000014000
+      ],
+      "nominal_hz": 1000000,
+      "utc_span_s": 10
     }
   }
 }

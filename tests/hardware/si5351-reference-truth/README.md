@@ -202,3 +202,7 @@ must fit inside it. Labels beyond that profile remain refused. Previous
 captures retain their refusal; only fresh captures use the measured profile.
 This bench setting does not change production defaults, persisted settings,
 measurement allowances, or RF qualification criteria.
+
+### Midpoint and complete endpoint comparisons
+
+Analysis retains the original `acquisition_difference_ppb` midpoint-versus-count-bracket interval and `consistent_with_independent_brackets` flag. `reconstruction_bounds` separately reports an enclosure using the recorded production PPS/count endpoint allowances and one-count quantization, plus a conditional enclosure using the independently polled raw PPS brackets. Both retain the production learner's existing 1.001 scale allowance. Bounds use exact rational arithmetic and outward conversion without an independence or statistical averaging assumption. Their overlap flags are diagnostic; they do not replace capture continuity/health gates, reclassify a refused capture, validate shared hardware, or establish carrier improvement. A midpoint can remain outside its narrow comparison while the complete endpoint enclosure overlaps it.
