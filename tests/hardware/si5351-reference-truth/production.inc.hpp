@@ -131,7 +131,9 @@ void test_production(bool loaded) {
     gps.enabled = gps.pairing_qualified = true;
     gps.pps_gp = pps_gp;
     gps.minimum_message_delay_ms = 600;
-    gps.maximum_message_delay_ms = 1200;
+    // Target trace measured valid QLG3 labels as late as 1206.912 ms.
+    // Keep a unique (<1s-wide) receiver profile and require fresh captures.
+    gps.maximum_message_delay_ms = 1250;
     production_gps.cycle_capture(+[] { return production_counter.pps_snapshot(); });
     if (!production_counter.open(pins, settings)) {
         printf("END_PRODUCTION error=counter_open restored=%u\n", unsigned(restore()));

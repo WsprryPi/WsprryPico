@@ -244,6 +244,28 @@ void late_label_pairing() {
             assert(!observation && one_late_label.error() == "pairing_acquisition");
     }
     assert(emitted == 3);
+    auto measured_profile = policy;
+    measured_profile.maximum_message_delay_ns = 1'250'000'000;
+    assert(valid(measured_profile));
+    Pairer measured_receiver(measured_profile);
+    captured = emitted = 0;
+    for (unsigned i = 1; i <= 6; ++i) {
+        while (captured < i + 1) {
+            ++captured;
+            assert(measured_receiver.pulse({captured * second, 100'000, captured}));
+        }
+        m.utc_ns = (1'800'000'000ULL + i) * second;
+        m.received_raw_ns = i * second + (i == 3 ? 1'206'912'000 : 1'050'000'000);
+        if (const auto observation = measured_receiver.message(m)) {
+            assert(observation->sequence == i);
+            ++emitted;
+        }
+    }
+    assert(emitted == 5);
+    m.utc_ns = *m.utc_ns + second;
+    assert(measured_receiver.pulse({8 * second, 100'000, 8}));
+    m.received_raw_ns = 7 * second + 1'250'001'000;
+    assert(!measured_receiver.message(m) && measured_receiver.error() == "unpaired_utc");
     policy.minimum_message_delay_ns = 0;
     assert(!valid(policy)); // A window spanning multiple seconds is not qualified.
     policy.maximum_message_delay_ns = 999'000'000;

@@ -191,3 +191,14 @@ original complete observation continuity and all other capture gates. A single
 out-of-window RMC can cause two missing observations: its own label is refused,
 and the following valid label only reacquires pairing. A host reproducer covers
 that behavior; a diagnostic trace is needed to attribute an actual bench gap.
+
+The current fixture uses a 600–1,250 ms RMC arrival profile for the tested QLG3
+serial stream. The instrumented target trace measured refused labels at
+1,200.39 and 1,206.912 ms under the previous 1,200 ms ceiling, followed by
+pairing acquisition. Simultaneously polled QLG3/GPSDO PPS brackets agreed
+within 15 us; UART/capture error counters stayed zero. The 650 ms window still
+selects at most one one-second PPS edge, and the entire endpoint uncertainty
+must fit inside it. Labels beyond that profile remain refused. Previous
+captures retain their refusal; only fresh captures use the measured profile.
+This bench setting does not change production defaults, persisted settings,
+measurement allowances, or RF qualification criteria.
