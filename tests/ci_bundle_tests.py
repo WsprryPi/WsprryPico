@@ -1352,6 +1352,22 @@ class BundleTests(unittest.TestCase):
         with self.assertRaisesRegex(core.Refusal,'another packet'):
             core.verify_prepared_publication(client,public,manifest)
 
+    def test_delayed_receipt_rejects_wrong_json_types_and_ambiguous_history(self):
+        import usb_installer as core
+        value=dict(packet_sha256='a'*64,source='b'*40,build_run=1,build_attempt=1,tag='v1.0.0',
+                   publishers=[dict(run_id=9,attempt=1,source='c'*40)])
+        def parse(record):
+            return core.prepared_body_record('<!-- '+core.PREPARED_MARKER+'\n'+json.dumps(record)+'\n-->')
+        self.assertEqual(parse(value),value)
+        for field,wrong in [('packet_sha256',7),('source',[]),('build_run',True),
+                            ('publishers',None),('tag',{}),('extra','unexpected')]:
+            changed=copy.deepcopy(value);changed[field]=wrong
+            with self.subTest(field=field),self.assertRaises(core.Refusal):parse(changed)
+        changed=copy.deepcopy(value);changed['publishers'][0]['source']=42
+        with self.assertRaises(core.Refusal):parse(changed)
+        changed=copy.deepcopy(value);changed['publishers']*=2
+        with self.assertRaises(core.Refusal):parse(changed)
+
     def test_delayed_publisher_retry_retains_attempt_history_and_never_replaces_assets(self):
         args,plan,responses,archives,retrieve=self.prepared_fixture()
         releases,tags,mutations,api,upload=self.publication_service()

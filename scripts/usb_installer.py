@@ -504,8 +504,9 @@ def prepared_body_record(body):
     require(isinstance(value, dict) and set(value) == {
         'packet_sha256', 'source', 'build_run', 'build_attempt', 'tag', 'publishers'},
         'Invalid prepared publication receipt shape')
-    require(re.fullmatch(HEX64, value.get('packet_sha256', '')) and
-            re.fullmatch(HEX40, value.get('source', '')) and
+    require(isinstance(value['packet_sha256'], str) and
+            re.fullmatch(HEX64, value['packet_sha256']) and
+            isinstance(value['source'], str) and re.fullmatch(HEX40, value['source']) and
             type(value['build_run']) is int and value['build_run'] > 0 and
             type(value['build_attempt']) is int and value['build_attempt'] > 0 and
             isinstance(value['tag'], str) and value['tag'].startswith('v') and
@@ -516,7 +517,7 @@ def prepared_body_record(body):
         require(isinstance(item, dict) and set(item) == {'run_id', 'attempt', 'source'} and
                 type(item['run_id']) is int and item['run_id'] > 0 and
                 type(item['attempt']) is int and item['attempt'] > 0 and
-                re.fullmatch(HEX40, item.get('source', '')) and
+                isinstance(item['source'], str) and re.fullmatch(HEX40, item['source']) and
                 (item['run_id'], item['attempt']) not in seen, 'Invalid publisher attempt')
         seen.add((item['run_id'], item['attempt']))
     return value
@@ -527,7 +528,7 @@ def public_packet_sha(release):
     for a in release['assets']:
         require(a['name'] not in records and a['state'] == 'uploaded' and
                 type(a['size']) is int and a['size'] > 0 and
-                re.fullmatch('sha256:' + HEX64, a.get('digest', '')),
+                isinstance(a.get('digest'), str) and re.fullmatch('sha256:' + HEX64, a['digest']),
                 'Invalid public packet inventory')
         records[a['name']] = {'bytes': a['size'], 'sha256': a['digest'][7:]}
     require(len(records) == 9, 'Incomplete prepared packet')
