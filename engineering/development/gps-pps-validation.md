@@ -135,6 +135,74 @@ Software source `d8bc0994f19f2529b45ed887f4a4f12edc76ec2e` and companion `559496
 
 The shared installer first completed a preserving same-image transaction using the exact retained original lifecycle developer bundle. Restoration loaded only that verified original full-board backup, compared all 4 MiB byte-for-byte (SHA-256 `636c5a9de30fe5e417e038715ac113e384eedda18dec942aae7438e897931d51`), verified the same-board installer reference, and checked original saved semantics. The original unconfigured state and `lifecycle-test.local` hostname were restored with idle, empty, unowned, inactive output. CLK0 was register-disabled after the final Si5351 job. GPSDO `0673ED0FA107` returned to its exact original enabled 10 MHz outputs and drive/mode settings. The retained original bundle is `/home/pi/.local/state/wsprrypi-qualification/pico-bench-20261107/lifecycle-feature-bundle-20261107`, with UF2 SHA-256 `43cf47135d55f7f264930bb2c03a7864fe47d9fd50c39cbe4a94e11b48b62e62`. The original `wsprrypi` service remains inactive, `sdrplay` active, and the receiver capture process is absent; no service state was changed. Raw IQ, failed controller attempts, original bundle/backups, and restoration records remain private on wspr5 under `/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-20261107`; temporary measurement settings are absent from the restored flash. No release publication or branch merge occurred.
 
+### Existing-wiring counter diagnostic, 2026-11-07
+
+Pico C completed two RAM-only 301-PPS captures using diagnostic source
+`c1f96a5e3af3c42304b374929b43c3ec2b3470f5`, at 138 MHz, with CLK2 on GP7,
+QLG3 PPS on GP3, and QLG3 serial on GP1. The user reconfirmed this setup.
+The actual production GPS/reference adapters ran alongside independent GPIO
+polling brackets on the same hardware counter. CLK2 used the fixture's integer
+PLLA 900 MHz / MS900 plan, which differs from the ordinary PLLB plan. The
+continuous counter also differs from ordinary twelve-second monitor restarts.
+No CLK0/GP2 RF job, SDR capture, GPSDO control, or GPSDO-to-GPIO connection
+was used. USB output alternated between quiet and bounded load every sixty
+PPS edges, with the second capture reversing the initial state.
+
+Both captures retained 301 consecutive PPS/UTC observations, maximum independent
+poll gap 9 us, and zero UART-error, dropped-record, or capture-rejection increments
+during capture. The quiet-first run retained 30 pre-capture UART errors; the
+loaded-first run retained zero. Startup counters were not reset. Load writes
+were 12,001 and 18,077. Ten and nine production count snapshots, respectively,
+legitimately refused concurrent publication; those observations remain present.
+Per run, 28/30 ten-second, 8/10 thirty-second, and 3/5 sixty-second windows had
+coherent endpoints. Unavailable windows were neither shifted nor fabricated.
+Every available production reconstruction agreed with independent count brackets.
+Maximum absolute midpoint differences were 535.50/585.50 ppb at ten seconds,
+116.67/100.00 ppb at thirty seconds, and 41.67/39.25 ppb at sixty seconds
+(quiet-first/loaded-first). Midpoints are not exact acquisition errors. Windows
+crossing or touching a load transition are labeled separately; the limited
+interior windows do not establish a causal USB-load effect.
+
+Independent ten-second reference midpoints ranged −550 to +500 ppb and −400
+to +300 ppb. Thirty-second ranges narrowed to −166.67…+66.67 and
+−183.33…+33.33 ppb; sixty-second ranges were −108.33…+8.33 and
+−141.67…+8.33 ppb. Both complete 300-second estimates were −63.33 ppb,
+with outward-rounded conditional half intervals of 90.01 ppb. These are
+conditional on the explicit 10 us allowance per PPS endpoint, count quantization,
+and retained GPIO/count brackets; this allowance is not a metrology certificate.
+Longer windows reduce observed spread in these captures, but do not uniquely
+separate oscillator variation, physical PPS variation, and acquisition effects.
+Shared hardware-counter errors and rapid source changes during post-edge reads
+are not independently resolved. This is not RF improvement evidence, and no
+production calibration policy changed. Item 21 remains in progress.
+
+An initial preflight failed on an unconfigured-profile assumption before RAM
+loading. The first diagnostic capture was refused for aggregate UART errors;
+its original image was restored and evidence retained. The accepted successor
+starts the capture core before UART ingress, preserves a post-settling health
+baseline, and rejects any error increment during capture. Stack-usage review
+also replaced inadequate SDK defaults with separate 16 KiB/8 KiB stacks and
+verified linker bounds. Both RAM variants were cross-built with pinned SDK
+2.3.1 and Arm GNU 15.3.1; every UF2 payload address was checked to be SRAM.
+The external GP9/GP11 variant was built but has not been physically run.
+
+Before this session, another project had installed CI image
+`0.1.0-ci.42429358845.1`, source
+`922935f0097ed3014f8f20bef4bb0c9289645422`. Its exact published bundle was
+retained and verified before RAM loading. The older local developer reference
+was inapplicable to this CI image and was not edited. Final restoration verified
+that all 4 MiB of flash remained unchanged (SHA-256
+`6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906`),
+with no flash rewrite, the original CI image, equal saved semantics, an empty
+unowned job queue, and inactive output. Pico C was released after verification.
+The exact bundle, raw transcripts, original snapshots, failed attempts, controller,
+and backups remain private under
+`/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage1-20261107`.
+Raw transcripts contain GPS status and are excluded from tracked source. The
+adjacent JSON records sanitized measurements and capture hashes. The
+[diagnostic instructions](../../tests/hardware/si5351-reference-truth/README.md)
+define tomorrow's disabled-output wiring and preservation requirements.
+
 ### Earlier conducted GPS/PPS observations
 
 GPS-only startup collected 90 samples with networking disabled and zero NTP observations admitted from boot: 83 samples had valid UTC/PPS pairing, 82 selected GPS and 62 had both independent calibration estimates fresh. Four physical production Pi USB resource reads returned 200. A host USB time submission did not replace the selected GPS source. Maximum observed IRQ latency was 29.674 µs; the maximum reported corrected capture bound was 9.712 µs. These local timestamp results do not establish receiver absolute accuracy.

@@ -142,7 +142,9 @@ class Tests(unittest.TestCase):
             result = compare_production(pulses,self.production_observations(pulses))
             self.assertEqual(result['observations'],301)
             self.assertTrue(all(r['consistent_with_independent_brackets'] for r in result['windows']))
-            self.assertTrue(all(r['loaded'] is not None for r in result['windows']))
+            self.assertTrue(any(r['loaded'] is None for r in result['windows']))
+            self.assertTrue(any(r['loaded'] is False for r in result['windows']))
+            self.assertTrue(any(r['loaded'] is True for r in result['windows']))
             shifted = compare_production(pulses,self.production_observations(pulses)[1:])
             self.assertTrue(any(r['loaded'] is None for r in shifted['windows']))
 

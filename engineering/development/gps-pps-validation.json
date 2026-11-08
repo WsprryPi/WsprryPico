@@ -5607,5 +5607,240 @@
     },
     "restoration_verified_utc": "2026-11-08T01:20:10Z",
     "measurement_ordering": "Chronological campaign order from the durable pre-ARM RF-budget reservation event. Reservation timestamps are not calibrated RF launch timestamps."
+  },
+  "si5351_existing_wiring_counter_diagnostic_20261107": {
+    "date_local": "2026-11-07",
+    "diagnostic_source": "c1f96a5e3af3c42304b374929b43c3ec2b3470f5",
+    "source_scope": "RAM-only fixture; final analyzer successor changes transition classification and terminology, not deployed firmware.",
+    "board_serial": "1545B6EFBF78028C",
+    "system_clock_hz": 138000000,
+    "engine": "No RF jobs; Si5351 CLK2 1 MHz integer PLLA900/MS900 reference, CLK0/1 disabled",
+    "pins": {
+      "clock": 7,
+      "pps": 3,
+      "serial_rx": 1
+    },
+    "pps_endpoint_allowance_us": 10,
+    "scope": "Conditional count-window evidence, not calibrated RF improvement; shared hardware counter and source variation within read delay remain unresolved.",
+    "captures": {
+      "quiet-first": {
+        "pulses": 301,
+        "max_gap_us": 9,
+        "load_writes": 12001,
+        "health_before": {
+          "uart_errors": 30,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "health_deltas": {
+          "uart_errors": 0,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "transcript_sha256": "2acffe920f65a2c4c2894d9886b186ac438f79041b9ce2a4c54920ac49aba0e7",
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -550.0,
+            "maximum_ppb": 500.0,
+            "peak_to_peak_ppb": 1050.0,
+            "sample_stdev_ppb": 224.73483736714425,
+            "maximum_half_interval_ppb": 2800.0000000112
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -166.66666666666666,
+            "maximum_ppb": 66.66666666666667,
+            "peak_to_peak_ppb": 233.33333333333331,
+            "sample_stdev_ppb": 72.77565730583473,
+            "maximum_half_interval_ppb": 916.6666333337407
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -63.33333333333333,
+            "minimum_ppb": -108.33333333333333,
+            "maximum_ppb": 8.333333333333334,
+            "peak_to_peak_ppb": 116.66666666666666,
+            "sample_stdev_ppb": 47.72607021092118,
+            "maximum_half_interval_ppb": 458.333336111162
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -63.333333333333336,
+            "maximum_ppb": -63.333333333333336,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 89.99999577777817
+          }
+        ],
+        "production_observations": 301,
+        "incoherent_count_observations": 10,
+        "production_windows": [
+          {
+            "span_s": 10,
+            "available": 28,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 535.4999058000376,
+            "quiet_interior_windows": 13,
+            "loaded_interior_windows": 8,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 30,
+            "available": 8,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 116.66665972222465,
+            "quiet_interior_windows": 1,
+            "loaded_interior_windows": 0,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 60,
+            "available": 3,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 41.666666666666664,
+            "quiet_interior_windows": 0,
+            "loaded_interior_windows": 0,
+            "transition_windows": 3
+          }
+        ]
+      },
+      "loaded-first": {
+        "pulses": 301,
+        "max_gap_us": 9,
+        "load_writes": 18077,
+        "health_before": {
+          "uart_errors": 0,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "health_deltas": {
+          "uart_errors": 0,
+          "dropped": 0,
+          "capture_rejections": 0
+        },
+        "transcript_sha256": "e47666615961bdf4f2c62464253ee5867b0ccbcfaab481e29a8bb81f227a0d8d",
+        "independent_summaries": [
+          {
+            "span_s": 10,
+            "windows": 30,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -400.0,
+            "maximum_ppb": 300.0,
+            "peak_to_peak_ppb": 700.0,
+            "sample_stdev_ppb": 206.3364064911429,
+            "maximum_half_interval_ppb": 2750.000500011
+          },
+          {
+            "span_s": 30,
+            "windows": 10,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -183.33333333333334,
+            "maximum_ppb": 33.333333333333336,
+            "peak_to_peak_ppb": 216.66666666666669,
+            "sample_stdev_ppb": 60.24640760767093,
+            "maximum_half_interval_ppb": 933.333311111526
+          },
+          {
+            "span_s": 60,
+            "windows": 5,
+            "mean_ppb": -63.33333333333333,
+            "minimum_ppb": -141.66666666666666,
+            "maximum_ppb": 8.333333333333334,
+            "peak_to_peak_ppb": 150.0,
+            "sample_stdev_ppb": 53.87743291748204,
+            "maximum_half_interval_ppb": 466.66665000005185
+          },
+          {
+            "span_s": 300,
+            "windows": 1,
+            "mean_ppb": -63.333333333333336,
+            "minimum_ppb": -63.333333333333336,
+            "maximum_ppb": -63.333333333333336,
+            "peak_to_peak_ppb": 0.0,
+            "sample_stdev_ppb": null,
+            "maximum_half_interval_ppb": 89.99999577777817
+          }
+        ],
+        "production_observations": 301,
+        "incoherent_count_observations": 9,
+        "production_windows": [
+          {
+            "span_s": 10,
+            "available": 28,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 585.4998330501335,
+            "quiet_interior_windows": 8,
+            "loaded_interior_windows": 13,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 30,
+            "available": 8,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 99.99999999999999,
+            "quiet_interior_windows": 0,
+            "loaded_interior_windows": 1,
+            "transition_windows": 7
+          },
+          {
+            "span_s": 60,
+            "available": 3,
+            "unavailable": 2,
+            "inconsistent_with_brackets": 0,
+            "maximum_absolute_midpoint_difference_ppb": 39.24997320557699,
+            "quiet_interior_windows": 0,
+            "loaded_interior_windows": 0,
+            "transition_windows": 3
+          }
+        ]
+      }
+    },
+    "restoration": {
+      "verified": true,
+      "serial": "1545B6EFBF78028C",
+      "source": "922935f0097ed3014f8f20bef4bb0c9289645422",
+      "firmware": "0.1.0-ci.42429358845.1",
+      "full_flash_sha256": "6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906",
+      "flash_rewritten": false,
+      "saved_semantics_equal": true,
+      "job": {
+        "boot_id": "3ea79e1574e55c0a9e758e9bfbf8bb99",
+        "state": "empty",
+        "output_active": false,
+        "owner_id": null,
+        "job_id": null,
+        "terminal_records": []
+      },
+      "bundle_uf2_sha256": "e2609c2830294e197d7ae67c8bf157a5ff2ab2e9e996a6b73cb4fb6bb7c7f6dd"
+    },
+    "attempts": [
+      {
+        "attempt": 0,
+        "result": "Unconfigured-profile preflight bug; no RAM load; original semantics verified."
+      },
+      {
+        "attempt": 1,
+        "result": "301-edge capture refused for aggregate UART errors; original restored with no flash rewrite. Retained privately, not qualification."
+      },
+      {
+        "attempt": 2,
+        "result": "Both complete captures accepted with zero UART/drop/rejection deltas during capture; startup counters retained."
+      }
+    ],
+    "private_evidence_root": "/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage1-20261107",
+    "external_gpio_test": "Built and SRAM-validated only; not connected or physically run."
   }
 }

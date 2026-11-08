@@ -110,9 +110,10 @@ def compare_production(
 ):
     """Compare production reconstruction with independently bracketed SAME edges.
 
-    Physical PPS jitter and oscillator movement are common to both counts.
-    Differences in cycles therefore need no assumed receiver timing allowance.
-    This does not remove either method's count/edge bracket uncertainty.
+    Both methods cover the same observed PPS interval, so comparing interval
+    counts needs no assumed receiver-to-UTC allowance. Bracket uncertainty remains.
+    Rapid source variation within the post-edge read delay and common hardware
+    counter errors are not independently resolved by this comparison.
     """
     analyze_windows(pulses, nominal_hz=nominal_hz)
     if type(first_loaded) is not bool:
@@ -209,8 +210,14 @@ def compare_production(
             a, pa = selected[start]
             b, pb = selected[start + seconds]
             phase = pa[0] // 60
+            # Endpoint reads can occur after a load switch at the same PPS.
+            # Keep boundary-touching windows out of quiet/loaded comparisons.
             loaded = (
-                (first_loaded ^ bool(phase & 1)) if (pb[0] - 1) // 60 == phase else None
+                first_loaded ^ bool(phase & 1)
+                if (pb[0] - 1) // 60 == phase
+                and (pa[0] == 0 or pa[0] % 60 != 0)
+                and pb[0] % 60 != 0
+                else None
             )
             if not a["coherent"] or not b["coherent"]:
                 rows.append(
@@ -237,10 +244,7 @@ def compare_production(
                 float((normalized - independent_high) * scale),
                 float((normalized - independent_low) * scale),
             ]
-            phase = pa[0] // 60
-            loaded = (
-                (first_loaded ^ bool(phase & 1)) if (pb[0] - 1) // 60 == phase else None
-            )
+
             rows.append(
                 dict(
                     available=True,
@@ -256,7 +260,7 @@ def compare_production(
                     consistent_with_independent_brackets=difference[0]
                     <= 0
                     <= difference[1],
-                    pps_timestamp_error_change_ns=[
+                    pps_timestamp_difference_change_ns=[
                         (b["raw_ns"] - pb[2] * 1000) - (a["raw_ns"] - pa[1] * 1000),
                         (b["raw_ns"] - pb[1] * 1000) - (a["raw_ns"] - pa[2] * 1000),
                     ],
@@ -266,13 +270,13 @@ def compare_production(
         observations=len(selected),
         outside_capture=outside,
         incoherent_sequences=[o["seq"] for o, p in selected if not o["coherent"]],
-        pps_timestamp_errors=[
+        pps_timestamp_differences=[
             dict(
                 pps=p[0],
-                error_ns=[o["raw_ns"] - p[2] * 1000, o["raw_ns"] - p[1] * 1000],
+                difference_ns=[o["raw_ns"] - p[2] * 1000, o["raw_ns"] - p[1] * 1000],
             )
             for o, p in selected
         ],
         windows=rows,
-        scope="Same-edge acquisition difference; physical PPS/oscillator changes cancel. Independent brackets remain conditional on coherent count extension and input identity.",
+        scope="Same-PPS-interval reconstruction difference with GPIO/count brackets; conditional on coherent count extension, input identity, and steady source behavior across the post-edge read delay. Does not independently validate the shared hardware counter or calibrated pad-edge latency.",
     )

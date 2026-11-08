@@ -65,10 +65,12 @@ remain in the report; windows with incoherent endpoints are marked unavailable
 rather than fabricating counts or shifting the window. PPS sequence/UTC
 continuity and coherent count-session identity remain mandatory.
 It compares nonoverlapping 10-, 30-, and 60-second production reconstructions
-against independent counts spanning the *same* electrical edges. Actual oscillator
-movement and physical PPS jitter are common to both measurements and cancel in
-this acquisition difference; both methods' count/edge brackets remain. Windows
-crossing a load transition are retained and labeled separately. Independent
+against independent counts spanning the *same* electrical edges. Both measurements span the same observed PPS interval, so their interval-count
+difference needs no receiver-to-UTC allowance. Both count/edge brackets remain.
+Rapid source changes within the post-edge read delay and errors common to the
+shared hardware counter are not independently resolved. Reported timestamp
+differences are relative to GPIO polling brackets, not calibrated pad-edge latency. Windows
+crossing or touching a load transition are retained and labeled separately. Independent
 10/30/60/300-second frequency intervals retain the explicit conditional 10 us
 per-PPS allowance. The report omits position; the original private transcript
 can contain a position-bearing GPS status record.
@@ -92,8 +94,8 @@ GP1 remains available for consecutive UTC labels; this test does not qualify
 association of the substituted PPS for normal UTC operation. The GPSDO provides a known nominal clock-to-PPS ratio; using the same enclosure
 does not establish zero relative jitter or phase coherence. Independent frequency
 intervals retain the conditional 10 us PPS endpoint allowance for this source too.
-The same-edge acquisition comparison cancels actual PPS jitter without requiring
-that assumption. This does not certify absolute UTC or source accuracy. Only one input pair is selected per build.
+The same-interval reconstruction comparison does not require
+zero receiver-to-UTC jitter. This does not certify absolute UTC or source accuracy. Only one input pair is selected per build.
 Disconnect the GPIO leads before changing the reference outputs to RF test
 frequencies. This mode is test equipment, not an ordinary firmware upgrade.
 
@@ -103,3 +105,17 @@ UF2 payload address lies in RP2350 SRAM before loading, retain and verify the
 current installed-image bundle and complete same-board flash backup, and follow
 the preserving RAM-test/restoration transaction above. A successful host test or
 cross-build does not qualify either physical input arrangement.
+
+
+For the later GPIO connection, power the Pico off and disable the GPSDO clock
+and PPS outputs before attaching leads. Connect OUT2 to GP9 (physical pin 12),
+OUT1 PPS to GP11 (physical pin 15), and common ground, for example physical pin
+13. Keep the outputs disabled until the source configuration and compatible
+input levels have been verified and the selected RAM diagnostic reports
+`input_only=1`. OUT2 must provide 1 MHz and OUT1 must provide PPS. Existing
+GP7/GP3 leads remain in place. The current installed image and exact recovery
+bundle must be checked again before that session. The existing-wiring private
+controller is bound to GP7/GP3 and its recorded original image; it must not be
+reused unchanged for the external-input transaction. Disable the external
+outputs before returning to the ordinary image, and disconnect the GPIO leads
+before restoring any RF-frequency output configuration.
