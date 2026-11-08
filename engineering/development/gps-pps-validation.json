@@ -2802,255 +2802,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.17,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "gp2-r1-off-5366200",
-        "engine": "gp2",
-        "automatic": false,
-        "frequency_hz": 5366200,
-        "reference_hz": 5366700,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-gp2-r1-off-5366200",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "0e6cac5fdea738b8373d8a201a6bbfda6678a39a2c880755132f0978fe4cdca0",
-        "measured_error_hz": -2.2908143435386705,
-        "total_allowance_hz": 0.2059074433089987,
-        "one_second_errors_hz": [
-          -2.1888085068629834,
-          -2.2252947137176875,
-          -2.259388303250887,
-          -2.284121477091901,
-          -2.304855594972139,
-          -2.3251537843249253,
-          -2.348598789736286,
-          -2.3667299445069148
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "7"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -350,
-          "uncertainty_ppb": 40162,
-          "observed_raw_ns": "13141114227",
-          "age_ns": "11555306773",
-          "span_ns": "10000000000",
-          "generation": "1",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -375,
-          "uncertainty_ppb": 33363,
-          "observed_raw_ns": "28141108727",
-          "age_ns": "1954106273",
-          "span_ns": "12000000000",
-          "generation": "4",
-          "fresh": true
-        },
-        "job_id": "ac6034011c61423ba0bfa0c1bc59ef05",
-        "boot_id": "1bb98e8524b8b6728b5931af77e7f4bb",
-        "reported_load_delta_hz": "0.002841651",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.15,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "gp2-r1-on-5366200",
-        "engine": "gp2",
-        "automatic": true,
-        "frequency_hz": 5366200,
-        "reference_hz": 5366700,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-gp2-r1-on-5366200",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "52943fdea92146cf94585d9d82945d93ca2bad05bad7ba64ff7f95ea9ae26e33",
-        "measured_error_hz": -0.5344723632641148,
-        "total_allowance_hz": 0.2052707727002963,
-        "one_second_errors_hz": [
-          -0.43292754367934094,
-          -0.47226152290011214,
-          -0.5033781230377485,
-          -0.5267111124967983,
-          -0.546295859102429,
-          -0.5704610220552127,
-          -0.5916351249113063,
-          -0.6087829290586342
-        ],
-        "frozen": {
-          "prepared_ppb": -333,
-          "prepared_source": "gps",
-          "prepared_generation": "4"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -400,
-          "uncertainty_ppb": 40170,
-          "observed_raw_ns": "12589762727",
-          "age_ns": "12141641273",
-          "span_ns": "10000000000",
-          "generation": "1",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -333,
-          "uncertainty_ppb": 33385,
-          "observed_raw_ns": "26589755872",
-          "age_ns": "3545910128",
-          "span_ns": "12000000000",
-          "generation": "4",
-          "fresh": true
-        },
-        "job_id": "30c041132def42f484befa2d756de7ca",
-        "boot_id": "c6e907194ff96dd33992b0ebe2d9b831",
-        "reported_load_delta_hz": "1.802156866",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "gp2-r2-off-5366200",
-        "engine": "gp2",
-        "automatic": false,
-        "frequency_hz": 5366200,
-        "reference_hz": 5366700,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-gp2-r2-off-5366200",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "65a21b51236db7cd858487f532c934030ef4cf33c7072643bfcc1791c6b7e05a",
-        "measured_error_hz": -2.355354380710196,
-        "total_allowance_hz": 0.20609804275741642,
-        "one_second_errors_hz": [
-          -2.2531643992997488,
-          -2.289612537057053,
-          -2.322180194357486,
-          -2.3478928201776057,
-          -2.3690561688456455,
-          -2.3938723593453233,
-          -2.4135395431799793,
-          -2.4258158187336107
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "9"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -500,
-          "uncertainty_ppb": 40172,
-          "observed_raw_ns": "12445570872",
-          "age_ns": "12259826128",
-          "span_ns": "10000000000",
-          "generation": "1",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -357,
-          "uncertainty_ppb": 28597,
-          "observed_raw_ns": "28445566727",
-          "age_ns": "1669256273",
-          "span_ns": "14000000000",
-          "generation": "6",
-          "fresh": true
-        },
-        "job_id": "93650b80eb3843a3bd8e6be4fd492cce",
-        "boot_id": "d6722140a8d1d85568399d9141fc3603",
-        "reported_load_delta_hz": "0.002841651",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.13,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "gp2-r2-on-5366200",
-        "engine": "gp2",
-        "automatic": true,
-        "frequency_hz": 5366200,
-        "reference_hz": 5366700,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-gp2-r2-on-5366200",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "eb3ad0a1a32999e089a40b489a707a5c5abecf7b7cddb7425e34c1130b43c71e",
-        "measured_error_hz": -0.16981452762826166,
-        "total_allowance_hz": 0.19883510232890114,
-        "one_second_errors_hz": [
-          -0.07466890862008313,
-          -0.11206674584565235,
-          -0.1406184458696771,
-          -0.16218835983676172,
-          -0.1815494479654376,
-          -0.20273655438762717,
-          -0.22367173404870755,
-          -0.23903670563379364
-        ],
-        "frozen": {
-          "prepared_ppb": -405,
-          "prepared_source": "gps",
-          "prepared_generation": "12"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -443,
-          "uncertainty_ppb": 20025,
-          "observed_raw_ns": "23049501872",
-          "age_ns": "1662842128",
-          "span_ns": "20000000000",
-          "generation": "11",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -405,
-          "uncertainty_ppb": 19134,
-          "observed_raw_ns": "24049502227",
-          "age_ns": "6062532773",
-          "span_ns": "21000000000",
-          "generation": "12",
-          "fresh": true
-        },
-        "job_id": "ae48ba0864894619a2c2a4a1073fcb1c",
-        "boot_id": "66e1d1053f5d37cf49954c10b7857e1b",
-        "reported_load_delta_hz": "2.187724411",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794098868423123225",
+        "campaign_order": 1
       },
       {
         "label": "si5351-r1-off-28126100",
@@ -3112,7 +2866,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.16,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099225385278810",
+        "campaign_order": 2
       },
       {
         "label": "si5351-r1-off-5366200",
@@ -3174,7 +2930,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099260105767506",
+        "campaign_order": 3
       },
       {
         "label": "si5351-r1-on-1840100",
@@ -3257,7 +3015,9 @@
             "generation": "22",
             "fresh": true
           }
-        }
+        },
+        "rf_budget_reserved_utc_ns": "1794099329084467492",
+        "campaign_order": 4
       },
       {
         "label": "si5351-r1-on-28126100",
@@ -3319,7 +3079,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.13,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099363730907402",
+        "campaign_order": 5
       },
       {
         "label": "si5351-r1-on-5366200",
@@ -3381,317 +3143,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r2-off-1840100",
-        "engine": "si5351",
-        "automatic": false,
-        "frequency_hz": 1840100,
-        "reference_hz": 1840600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r2-off-1840100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "c44e7b6481755478e5f48218740a5b71c9aa7498650bdaceecf65bbe97673b0d",
-        "measured_error_hz": -0.10081438913306329,
-        "total_allowance_hz": 0.08842158254787158,
-        "one_second_errors_hz": [
-          -0.10288644783372547,
-          -0.10153393588200288,
-          -0.10035367252163496,
-          -0.1015438512542346,
-          -0.10172631698242185,
-          -0.10137034168803893,
-          -0.09869354195222968,
-          -0.09784623156798489
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "4"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": 260,
-          "uncertainty_ppb": 53197,
-          "observed_raw_ns": "142325071727",
-          "age_ns": "962324273",
-          "span_ns": "11000000000",
-          "generation": "78",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": 260,
-          "uncertainty_ppb": 53283,
-          "observed_raw_ns": "142325071727",
-          "age_ns": "7151946273",
-          "span_ns": "11000000000",
-          "generation": "78",
-          "fresh": true
-        },
-        "job_id": "1a3ac7885e3f47a7a0ef3e6bffb445ee",
-        "boot_id": "4c639d74793e7ec9046f23666c579e61",
-        "reported_load_delta_hz": "0",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r2-off-28126100",
-        "engine": "si5351",
-        "automatic": false,
-        "frequency_hz": 28126100,
-        "reference_hz": 28126600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r2-off-28126100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "22c6d9c5ff5af5763057a2eaa9850d2d89088a4affa547d482a3e6b8d8a2d921",
-        "measured_error_hz": -2.0887829020235813,
-        "total_allowance_hz": 0.3514804012668143,
-        "one_second_errors_hz": [
-          -2.1020203190713005,
-          -2.1022595241250315,
-          -2.0958171158063124,
-          -2.079840198113459,
-          -2.085330502645377,
-          -2.088484191761495,
-          -2.0844517653987964,
-          -2.076865221264825
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "4"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -165,
-          "uncertainty_ppb": 57625,
-          "observed_raw_ns": "70325098018",
-          "age_ns": "2327764982",
-          "span_ns": "10000000000",
-          "generation": "44",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -165,
-          "uncertainty_ppb": 57710,
-          "observed_raw_ns": "70325098018",
-          "age_ns": "8481265982",
-          "span_ns": "10000000000",
-          "generation": "44",
-          "fresh": true
-        },
-        "job_id": "b0268be1b7b44546bc5086473e08e080",
-        "boot_id": "4c639d74793e7ec9046f23666c579e61",
-        "reported_load_delta_hz": "-4.294967296",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r2-off-5366200",
-        "engine": "si5351",
-        "automatic": false,
-        "frequency_hz": 5366200,
-        "reference_hz": 5366700,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r2-off-5366200",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "e32e25b140052fa3c8dea05f8a660e83fbc70ec9491c2aa12f9bbaf944b51cdc",
-        "measured_error_hz": -0.31447449849753184,
-        "total_allowance_hz": 0.12370395090906924,
-        "one_second_errors_hz": [
-          -0.30980174527462623,
-          -0.3152501434504984,
-          -0.3148445401218396,
-          -0.30949485669447085,
-          -0.3127809234837855,
-          -0.3187019558693578,
-          -0.3187797870137956,
-          -0.3166457275029302
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "4"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": 182,
-          "uncertainty_ppb": 51528,
-          "observed_raw_ns": "36325113018",
-          "age_ns": "1602555982",
-          "span_ns": "11000000000",
-          "generation": "9",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": 182,
-          "uncertainty_ppb": 51612,
-          "observed_raw_ns": "36325113018",
-          "age_ns": "7676611982",
-          "span_ns": "11000000000",
-          "generation": "9",
-          "fresh": true
-        },
-        "job_id": "7a7ab39f5850448888dfc4c3f543629a",
-        "boot_id": "4c639d74793e7ec9046f23666c579e61",
-        "reported_load_delta_hz": "0",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.13,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r2-on-1840100",
-        "engine": "si5351",
-        "automatic": true,
-        "frequency_hz": 1840100,
-        "reference_hz": 1840600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r2-on-1840100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "0a363c5b5ac89873e3928698deaa63e0ef3c364dc5f055dfd3c133313fc05fee",
-        "measured_error_hz": 0.08338177130605118,
-        "total_allowance_hz": 0.08840316090566991,
-        "one_second_errors_hz": [
-          0.08401332541365036,
-          0.08312000574159129,
-          0.08265221063629724,
-          0.08389263437112504,
-          0.08297379099514046,
-          0.08418141512726152,
-          0.08311998140919741,
-          0.08314784484247184
-        ],
-        "frozen": {
-          "prepared_ppb": -100,
-          "prepared_source": "gps",
-          "prepared_generation": "86"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -100,
-          "uncertainty_ppb": 58921,
-          "observed_raw_ns": "131776237872",
-          "age_ns": "2397452128",
-          "span_ns": "10000000000",
-          "generation": "86",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -100,
-          "uncertainty_ppb": 59007,
-          "observed_raw_ns": "131776237872",
-          "age_ns": "8601710128",
-          "span_ns": "10000000000",
-          "generation": "86",
-          "fresh": true
-        },
-        "job_id": "a341ee370ce14c3e8219b6d25b42ed01",
-        "boot_id": "9bf3bc807fbf453caa5638f1c32766ce",
-        "reported_load_delta_hz": "0.184010015",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r2-on-28126100",
-        "engine": "si5351",
-        "automatic": true,
-        "frequency_hz": 28126100,
-        "reference_hz": 28126600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r2-on-28126100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "31c190e5399331d57b1a62b8c50fc40b4be66ebbc87d3550a31fe37f4609fd0d",
-        "measured_error_hz": -3.3263719990537766,
-        "total_allowance_hz": 0.3787384712938143,
-        "one_second_errors_hz": [
-          -3.2792377015499596,
-          -3.3107276815000546,
-          -3.3308460454485953,
-          -3.3286238730472633,
-          -3.3276671228259715,
-          -3.326294206770285,
-          -3.343851162214605,
-          -3.34422395474445
-        ],
-        "frozen": {
-          "prepared_ppb": 45,
-          "prepared_source": "gps",
-          "prepared_generation": "52"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": 50,
-          "uncertainty_ppb": 60209,
-          "observed_raw_ns": "97776249872",
-          "age_ns": "1475717128",
-          "span_ns": "10000000000",
-          "generation": "50",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": 45,
-          "uncertainty_ppb": 54217,
-          "observed_raw_ns": "98776249372",
-          "age_ns": "6621069628",
-          "span_ns": "11000000000",
-          "generation": "52",
-          "fresh": true
-        },
-        "job_id": "32c6a6a3164d4896b02425ca9a0eea83",
-        "boot_id": "9bf3bc807fbf453caa5638f1c32766ce",
-        "reported_load_delta_hz": "-5.560641412",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.13,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099398734036457",
+        "campaign_order": 6
       },
       {
         "label": "si5351-r2-on-5366200",
@@ -3753,7 +3207,329 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099458366207775",
+        "campaign_order": 7
+      },
+      {
+        "label": "si5351-r2-on-28126100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-on-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "31c190e5399331d57b1a62b8c50fc40b4be66ebbc87d3550a31fe37f4609fd0d",
+        "measured_error_hz": -3.3263719990537766,
+        "total_allowance_hz": 0.3787384712938143,
+        "one_second_errors_hz": [
+          -3.2792377015499596,
+          -3.3107276815000546,
+          -3.3308460454485953,
+          -3.3286238730472633,
+          -3.3276671228259715,
+          -3.326294206770285,
+          -3.343851162214605,
+          -3.34422395474445
+        ],
+        "frozen": {
+          "prepared_ppb": 45,
+          "prepared_source": "gps",
+          "prepared_generation": "52"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 50,
+          "uncertainty_ppb": 60209,
+          "observed_raw_ns": "97776249872",
+          "age_ns": "1475717128",
+          "span_ns": "10000000000",
+          "generation": "50",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 45,
+          "uncertainty_ppb": 54217,
+          "observed_raw_ns": "98776249372",
+          "age_ns": "6621069628",
+          "span_ns": "11000000000",
+          "generation": "52",
+          "fresh": true
+        },
+        "job_id": "32c6a6a3164d4896b02425ca9a0eea83",
+        "boot_id": "9bf3bc807fbf453caa5638f1c32766ce",
+        "reported_load_delta_hz": "-5.560641412",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099528226860396",
+        "campaign_order": 8
+      },
+      {
+        "label": "si5351-r2-on-1840100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-on-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "0a363c5b5ac89873e3928698deaa63e0ef3c364dc5f055dfd3c133313fc05fee",
+        "measured_error_hz": 0.08338177130605118,
+        "total_allowance_hz": 0.08840316090566991,
+        "one_second_errors_hz": [
+          0.08401332541365036,
+          0.08312000574159129,
+          0.08265221063629724,
+          0.08389263437112504,
+          0.08297379099514046,
+          0.08418141512726152,
+          0.08311998140919741,
+          0.08314784484247184
+        ],
+        "frozen": {
+          "prepared_ppb": -100,
+          "prepared_source": "gps",
+          "prepared_generation": "86"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -100,
+          "uncertainty_ppb": 58921,
+          "observed_raw_ns": "131776237872",
+          "age_ns": "2397452128",
+          "span_ns": "10000000000",
+          "generation": "86",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -100,
+          "uncertainty_ppb": 59007,
+          "observed_raw_ns": "131776237872",
+          "age_ns": "8601710128",
+          "span_ns": "10000000000",
+          "generation": "86",
+          "fresh": true
+        },
+        "job_id": "a341ee370ce14c3e8219b6d25b42ed01",
+        "boot_id": "9bf3bc807fbf453caa5638f1c32766ce",
+        "reported_load_delta_hz": "0.184010015",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099563190388396",
+        "campaign_order": 9
+      },
+      {
+        "label": "si5351-r2-off-5366200",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "e32e25b140052fa3c8dea05f8a660e83fbc70ec9491c2aa12f9bbaf944b51cdc",
+        "measured_error_hz": -0.31447449849753184,
+        "total_allowance_hz": 0.12370395090906924,
+        "one_second_errors_hz": [
+          -0.30980174527462623,
+          -0.3152501434504984,
+          -0.3148445401218396,
+          -0.30949485669447085,
+          -0.3127809234837855,
+          -0.3187019558693578,
+          -0.3187797870137956,
+          -0.3166457275029302
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 182,
+          "uncertainty_ppb": 51528,
+          "observed_raw_ns": "36325113018",
+          "age_ns": "1602555982",
+          "span_ns": "11000000000",
+          "generation": "9",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 182,
+          "uncertainty_ppb": 51612,
+          "observed_raw_ns": "36325113018",
+          "age_ns": "7676611982",
+          "span_ns": "11000000000",
+          "generation": "9",
+          "fresh": true
+        },
+        "job_id": "7a7ab39f5850448888dfc4c3f543629a",
+        "boot_id": "4c639d74793e7ec9046f23666c579e61",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099631248363047",
+        "campaign_order": 10
+      },
+      {
+        "label": "si5351-r2-off-28126100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-off-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "22c6d9c5ff5af5763057a2eaa9850d2d89088a4affa547d482a3e6b8d8a2d921",
+        "measured_error_hz": -2.0887829020235813,
+        "total_allowance_hz": 0.3514804012668143,
+        "one_second_errors_hz": [
+          -2.1020203190713005,
+          -2.1022595241250315,
+          -2.0958171158063124,
+          -2.079840198113459,
+          -2.085330502645377,
+          -2.088484191761495,
+          -2.0844517653987964,
+          -2.076865221264825
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -165,
+          "uncertainty_ppb": 57625,
+          "observed_raw_ns": "70325098018",
+          "age_ns": "2327764982",
+          "span_ns": "10000000000",
+          "generation": "44",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -165,
+          "uncertainty_ppb": 57710,
+          "observed_raw_ns": "70325098018",
+          "age_ns": "8481265982",
+          "span_ns": "10000000000",
+          "generation": "44",
+          "fresh": true
+        },
+        "job_id": "b0268be1b7b44546bc5086473e08e080",
+        "boot_id": "4c639d74793e7ec9046f23666c579e61",
+        "reported_load_delta_hz": "-4.294967296",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099666059254450",
+        "campaign_order": 11
+      },
+      {
+        "label": "si5351-r2-off-1840100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r2-off-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "c44e7b6481755478e5f48218740a5b71c9aa7498650bdaceecf65bbe97673b0d",
+        "measured_error_hz": -0.10081438913306329,
+        "total_allowance_hz": 0.08842158254787158,
+        "one_second_errors_hz": [
+          -0.10288644783372547,
+          -0.10153393588200288,
+          -0.10035367252163496,
+          -0.1015438512542346,
+          -0.10172631698242185,
+          -0.10137034168803893,
+          -0.09869354195222968,
+          -0.09784623156798489
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 260,
+          "uncertainty_ppb": 53197,
+          "observed_raw_ns": "142325071727",
+          "age_ns": "962324273",
+          "span_ns": "11000000000",
+          "generation": "78",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 260,
+          "uncertainty_ppb": 53283,
+          "observed_raw_ns": "142325071727",
+          "age_ns": "7151946273",
+          "span_ns": "11000000000",
+          "generation": "78",
+          "fresh": true
+        },
+        "job_id": "1a3ac7885e3f47a7a0ef3e6bffb445ee",
+        "boot_id": "4c639d74793e7ec9046f23666c579e61",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099736732855937",
+        "campaign_order": 12
       },
       {
         "label": "si5351-r3-off-1840100",
@@ -3815,7 +3591,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099841365179051",
+        "campaign_order": 13
       },
       {
         "label": "si5351-r3-off-28126100",
@@ -3877,7 +3655,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099876118994376",
+        "campaign_order": 14
       },
       {
         "label": "si5351-r3-off-5366200",
@@ -3939,7 +3719,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099911124225191",
+        "campaign_order": 15
       },
       {
         "label": "si5351-r3-on-1840100",
@@ -4001,7 +3783,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.13,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794099994378467488",
+        "campaign_order": 16
       },
       {
         "label": "si5351-r3-on-28126100",
@@ -4063,7 +3847,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100029195063784",
+        "campaign_order": 17
       },
       {
         "label": "si5351-r3-on-5366200",
@@ -4125,317 +3911,9 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r4-off-1840100",
-        "engine": "si5351",
-        "automatic": false,
-        "frequency_hz": 1840100,
-        "reference_hz": 1840600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r4-off-1840100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "f12684522a9da3ba87679e8efa35a66ab702417f59eff2107ea088ef62d4fe6a",
-        "measured_error_hz": -0.10087326438326727,
-        "total_allowance_hz": 0.08842158843604422,
-        "one_second_errors_hz": [
-          -0.10038162679921925,
-          -0.10073165837070519,
-          -0.10019361853062492,
-          -0.1003327080749159,
-          -0.10115757703999861,
-          -0.10175133417254756,
-          -0.10120483986213458,
-          -0.10143863264659103
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "6"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -214,
-          "uncertainty_ppb": 52249,
-          "observed_raw_ns": "191180408372",
-          "age_ns": "1525774628",
-          "span_ns": "11000000000",
-          "generation": "109",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -214,
-          "uncertainty_ppb": 52335,
-          "observed_raw_ns": "191180408372",
-          "age_ns": "7714650628",
-          "span_ns": "11000000000",
-          "generation": "109",
-          "fresh": true
-        },
-        "job_id": "c4065da495d044cebdd89a5814ac9678",
-        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
-        "reported_load_delta_hz": "0",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r4-off-28126100",
-        "engine": "si5351",
-        "automatic": false,
-        "frequency_hz": 28126100,
-        "reference_hz": 28126600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r4-off-28126100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "53b5ea1f6febeb0124a769fa3ae97e049c4e86406e45c65cb4dcac22ee0967e4",
-        "measured_error_hz": -2.0722305169958304,
-        "total_allowance_hz": 0.40513887966867845,
-        "one_second_errors_hz": [
-          -2.077704877174824,
-          -2.0092216910101115,
-          -2.1123929155569385,
-          -2.082104337805106,
-          -2.01093911657415,
-          -2.078845501734179,
-          -2.106195032862786,
-          -2.1458906508182736
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "6"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": 0,
-          "uncertainty_ppb": 52492,
-          "observed_raw_ns": "108180442727",
-          "age_ns": "1669383273",
-          "span_ns": "11000000000",
-          "generation": "65",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": 0,
-          "uncertainty_ppb": 52577,
-          "observed_raw_ns": "108180442727",
-          "age_ns": "7796806273",
-          "span_ns": "11000000000",
-          "generation": "65",
-          "fresh": true
-        },
-        "job_id": "2ae64317bb174b18a16b55428f88b170",
-        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
-        "reported_load_delta_hz": "-4.294967296",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r4-off-5366200",
-        "engine": "si5351",
-        "automatic": false,
-        "frequency_hz": 5366200,
-        "reference_hz": 5366700,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r4-off-5366200",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "95aa90c7d1aa3d3348f7033f7b7bc321d915a16572050f11c3eedf7ca2ffdfd4",
-        "measured_error_hz": -0.31953627272918084,
-        "total_allowance_hz": 0.1246641593089779,
-        "one_second_errors_hz": [
-          -0.29857657056237485,
-          -0.3109721925250142,
-          -0.3290514532198472,
-          -0.3068868481889808,
-          -0.3279180480286641,
-          -0.3195183175058105,
-          -0.3194498185458201,
-          -0.3212517349086852
-        ],
-        "frozen": {
-          "prepared_ppb": 0,
-          "prepared_source": "manual",
-          "prepared_generation": "6"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -72,
-          "uncertainty_ppb": 52418,
-          "observed_raw_ns": "61180461727",
-          "age_ns": "1576282273",
-          "span_ns": "11000000000",
-          "generation": "28",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -72,
-          "uncertainty_ppb": 52503,
-          "observed_raw_ns": "61180461727",
-          "age_ns": "7657468273",
-          "span_ns": "11000000000",
-          "generation": "28",
-          "fresh": true
-        },
-        "job_id": "0e9072dfdf9f4ee297196bd35ac9aa7f",
-        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
-        "reported_load_delta_hz": "0",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.13,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r4-on-1840100",
-        "engine": "si5351",
-        "automatic": true,
-        "frequency_hz": 1840100,
-        "reference_hz": 1840600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r4-on-1840100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "09a531021d143b9e7e05936cc1b39c0e3d3a6646c9d4c0cfd9e26f95896b1471",
-        "measured_error_hz": -0.044984053421273984,
-        "total_allowance_hz": 0.08841599890016671,
-        "one_second_errors_hz": [
-          -0.04342945214489191,
-          -0.043960837812164755,
-          -0.04368978834855852,
-          -0.04506764002826458,
-          -0.0456824109394347,
-          -0.04629981796949778,
-          -0.04579881649630124,
-          -0.04293822409914583
-        ],
-        "frozen": {
-          "prepared_ppb": -29,
-          "prepared_source": "gps",
-          "prepared_generation": "93"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": -29,
-          "uncertainty_ppb": 56555,
-          "observed_raw_ns": "144287793727",
-          "age_ns": "1508093273",
-          "span_ns": "10000000000",
-          "generation": "93",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": -29,
-          "uncertainty_ppb": 56642,
-          "observed_raw_ns": "144287793727",
-          "age_ns": "7720194273",
-          "span_ns": "10000000000",
-          "generation": "93",
-          "fresh": true
-        },
-        "job_id": "2462d500a798412aa06b4d443d8d9546",
-        "boot_id": "9a4918fa50eb3eb7d41e895dd1614cbb",
-        "reported_load_delta_hz": "0.0533629",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
-      },
-      {
-        "label": "si5351-r4-on-28126100",
-        "engine": "si5351",
-        "automatic": true,
-        "frequency_hz": 28126100,
-        "reference_hz": 28126600,
-        "source": "9f929b27b724",
-        "capture_directory": "97d6c9f0-si5351-r4-on-28126100",
-        "original_controller_success": true,
-        "recovered_after_controller_metadata_error": false,
-        "raw_sha256": "99c553a8045f79de45c98b4cd069f9bd24f0fe26f7f531ba8d95a02593a1ca5b",
-        "measured_error_hz": -2.4388245051264335,
-        "total_allowance_hz": 0.36495314053098243,
-        "one_second_errors_hz": [
-          -2.4053867738730332,
-          -2.416567864547858,
-          -2.415476345552804,
-          -2.4286818629604454,
-          -2.44804054723312,
-          -2.4584901019475183,
-          -2.4694704403795527,
-          -2.4717952589940637
-        ],
-        "frozen": {
-          "prepared_ppb": 14,
-          "prepared_source": "gps",
-          "prepared_generation": "65"
-        },
-        "ready_calibration": {
-          "oscillator_error_ppb": 14,
-          "uncertainty_ppb": 56571,
-          "observed_raw_ns": "109287808372",
-          "age_ns": "1568449628",
-          "span_ns": "10000000000",
-          "generation": "65",
-          "fresh": true
-        },
-        "calibration_after_load": {
-          "oscillator_error_ppb": 14,
-          "uncertainty_ppb": 56657,
-          "observed_raw_ns": "109287808372",
-          "age_ns": "7713994628",
-          "span_ns": "10000000000",
-          "generation": "65",
-          "fresh": true
-        },
-        "job_id": "83346341ab0040ac932338e24a2dc6c4",
-        "boot_id": "9a4918fa50eb3eb7d41e895dd1614cbb",
-        "reported_load_delta_hz": "-4.688730824",
-        "capture_quality": {
-          "primary": "success",
-          "overflows": 0,
-          "clipped_samples": 0,
-          "cleanup": "verified"
-        },
-        "receiver": {
-          "driver": "sdrplay",
-          "serial": "2404058C60"
-        },
-        "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100089236839283",
+        "campaign_order": 18
       },
       {
         "label": "si5351-r4-on-5366200",
@@ -4497,7 +3975,585 @@
           "serial": "2404058C60"
         },
         "analysis_start_s": 5.14,
-        "analysis_duration_s": 8
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100170806585184",
+        "campaign_order": 19
+      },
+      {
+        "label": "si5351-r4-on-28126100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-on-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "99c553a8045f79de45c98b4cd069f9bd24f0fe26f7f531ba8d95a02593a1ca5b",
+        "measured_error_hz": -2.4388245051264335,
+        "total_allowance_hz": 0.36495314053098243,
+        "one_second_errors_hz": [
+          -2.4053867738730332,
+          -2.416567864547858,
+          -2.415476345552804,
+          -2.4286818629604454,
+          -2.44804054723312,
+          -2.4584901019475183,
+          -2.4694704403795527,
+          -2.4717952589940637
+        ],
+        "frozen": {
+          "prepared_ppb": 14,
+          "prepared_source": "gps",
+          "prepared_generation": "65"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 14,
+          "uncertainty_ppb": 56571,
+          "observed_raw_ns": "109287808372",
+          "age_ns": "1568449628",
+          "span_ns": "10000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 14,
+          "uncertainty_ppb": 56657,
+          "observed_raw_ns": "109287808372",
+          "age_ns": "7713994628",
+          "span_ns": "10000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "job_id": "83346341ab0040ac932338e24a2dc6c4",
+        "boot_id": "9a4918fa50eb3eb7d41e895dd1614cbb",
+        "reported_load_delta_hz": "-4.688730824",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100230315235367",
+        "campaign_order": 20
+      },
+      {
+        "label": "si5351-r4-on-1840100",
+        "engine": "si5351",
+        "automatic": true,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-on-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "09a531021d143b9e7e05936cc1b39c0e3d3a6646c9d4c0cfd9e26f95896b1471",
+        "measured_error_hz": -0.044984053421273984,
+        "total_allowance_hz": 0.08841599890016671,
+        "one_second_errors_hz": [
+          -0.04342945214489191,
+          -0.043960837812164755,
+          -0.04368978834855852,
+          -0.04506764002826458,
+          -0.0456824109394347,
+          -0.04629981796949778,
+          -0.04579881649630124,
+          -0.04293822409914583
+        ],
+        "frozen": {
+          "prepared_ppb": -29,
+          "prepared_source": "gps",
+          "prepared_generation": "93"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -29,
+          "uncertainty_ppb": 56555,
+          "observed_raw_ns": "144287793727",
+          "age_ns": "1508093273",
+          "span_ns": "10000000000",
+          "generation": "93",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -29,
+          "uncertainty_ppb": 56642,
+          "observed_raw_ns": "144287793727",
+          "age_ns": "7720194273",
+          "span_ns": "10000000000",
+          "generation": "93",
+          "fresh": true
+        },
+        "job_id": "2462d500a798412aa06b4d443d8d9546",
+        "boot_id": "9a4918fa50eb3eb7d41e895dd1614cbb",
+        "reported_load_delta_hz": "0.0533629",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100265310060890",
+        "campaign_order": 21
+      },
+      {
+        "label": "si5351-r4-off-5366200",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "95aa90c7d1aa3d3348f7033f7b7bc321d915a16572050f11c3eedf7ca2ffdfd4",
+        "measured_error_hz": -0.31953627272918084,
+        "total_allowance_hz": 0.1246641593089779,
+        "one_second_errors_hz": [
+          -0.29857657056237485,
+          -0.3109721925250142,
+          -0.3290514532198472,
+          -0.3068868481889808,
+          -0.3279180480286641,
+          -0.3195183175058105,
+          -0.3194498185458201,
+          -0.3212517349086852
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "6"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -72,
+          "uncertainty_ppb": 52418,
+          "observed_raw_ns": "61180461727",
+          "age_ns": "1576282273",
+          "span_ns": "11000000000",
+          "generation": "28",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -72,
+          "uncertainty_ppb": 52503,
+          "observed_raw_ns": "61180461727",
+          "age_ns": "7657468273",
+          "span_ns": "11000000000",
+          "generation": "28",
+          "fresh": true
+        },
+        "job_id": "0e9072dfdf9f4ee297196bd35ac9aa7f",
+        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100358246603969",
+        "campaign_order": 22
+      },
+      {
+        "label": "si5351-r4-off-28126100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 28126100,
+        "reference_hz": 28126600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-off-28126100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "53b5ea1f6febeb0124a769fa3ae97e049c4e86406e45c65cb4dcac22ee0967e4",
+        "measured_error_hz": -2.0722305169958304,
+        "total_allowance_hz": 0.40513887966867845,
+        "one_second_errors_hz": [
+          -2.077704877174824,
+          -2.0092216910101115,
+          -2.1123929155569385,
+          -2.082104337805106,
+          -2.01093911657415,
+          -2.078845501734179,
+          -2.106195032862786,
+          -2.1458906508182736
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "6"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": 0,
+          "uncertainty_ppb": 52492,
+          "observed_raw_ns": "108180442727",
+          "age_ns": "1669383273",
+          "span_ns": "11000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": 0,
+          "uncertainty_ppb": 52577,
+          "observed_raw_ns": "108180442727",
+          "age_ns": "7796806273",
+          "span_ns": "11000000000",
+          "generation": "65",
+          "fresh": true
+        },
+        "job_id": "2ae64317bb174b18a16b55428f88b170",
+        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
+        "reported_load_delta_hz": "-4.294967296",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100405383131781",
+        "campaign_order": 23
+      },
+      {
+        "label": "si5351-r4-off-1840100",
+        "engine": "si5351",
+        "automatic": false,
+        "frequency_hz": 1840100,
+        "reference_hz": 1840600,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-si5351-r4-off-1840100",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "f12684522a9da3ba87679e8efa35a66ab702417f59eff2107ea088ef62d4fe6a",
+        "measured_error_hz": -0.10087326438326727,
+        "total_allowance_hz": 0.08842158843604422,
+        "one_second_errors_hz": [
+          -0.10038162679921925,
+          -0.10073165837070519,
+          -0.10019361853062492,
+          -0.1003327080749159,
+          -0.10115757703999861,
+          -0.10175133417254756,
+          -0.10120483986213458,
+          -0.10143863264659103
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "6"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -214,
+          "uncertainty_ppb": 52249,
+          "observed_raw_ns": "191180408372",
+          "age_ns": "1525774628",
+          "span_ns": "11000000000",
+          "generation": "109",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -214,
+          "uncertainty_ppb": 52335,
+          "observed_raw_ns": "191180408372",
+          "age_ns": "7714650628",
+          "span_ns": "11000000000",
+          "generation": "109",
+          "fresh": true
+        },
+        "job_id": "c4065da495d044cebdd89a5814ac9678",
+        "boot_id": "9ed4ccec2f054696b4cfc0da9dc854f2",
+        "reported_load_delta_hz": "0",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100488329945878",
+        "campaign_order": 24
+      },
+      {
+        "label": "gp2-r1-off-5366200",
+        "engine": "gp2",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r1-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "0e6cac5fdea738b8373d8a201a6bbfda6678a39a2c880755132f0978fe4cdca0",
+        "measured_error_hz": -2.2908143435386705,
+        "total_allowance_hz": 0.2059074433089987,
+        "one_second_errors_hz": [
+          -2.1888085068629834,
+          -2.2252947137176875,
+          -2.259388303250887,
+          -2.284121477091901,
+          -2.304855594972139,
+          -2.3251537843249253,
+          -2.348598789736286,
+          -2.3667299445069148
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "7"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -350,
+          "uncertainty_ppb": 40162,
+          "observed_raw_ns": "13141114227",
+          "age_ns": "11555306773",
+          "span_ns": "10000000000",
+          "generation": "1",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -375,
+          "uncertainty_ppb": 33363,
+          "observed_raw_ns": "28141108727",
+          "age_ns": "1954106273",
+          "span_ns": "12000000000",
+          "generation": "4",
+          "fresh": true
+        },
+        "job_id": "ac6034011c61423ba0bfa0c1bc59ef05",
+        "boot_id": "1bb98e8524b8b6728b5931af77e7f4bb",
+        "reported_load_delta_hz": "0.002841651",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.15,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100542507892816",
+        "campaign_order": 25
+      },
+      {
+        "label": "gp2-r1-on-5366200",
+        "engine": "gp2",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r1-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "52943fdea92146cf94585d9d82945d93ca2bad05bad7ba64ff7f95ea9ae26e33",
+        "measured_error_hz": -0.5344723632641148,
+        "total_allowance_hz": 0.2052707727002963,
+        "one_second_errors_hz": [
+          -0.43292754367934094,
+          -0.47226152290011214,
+          -0.5033781230377485,
+          -0.5267111124967983,
+          -0.546295859102429,
+          -0.5704610220552127,
+          -0.5916351249113063,
+          -0.6087829290586342
+        ],
+        "frozen": {
+          "prepared_ppb": -333,
+          "prepared_source": "gps",
+          "prepared_generation": "4"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -400,
+          "uncertainty_ppb": 40170,
+          "observed_raw_ns": "12589762727",
+          "age_ns": "12141641273",
+          "span_ns": "10000000000",
+          "generation": "1",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -333,
+          "uncertainty_ppb": 33385,
+          "observed_raw_ns": "26589755872",
+          "age_ns": "3545910128",
+          "span_ns": "12000000000",
+          "generation": "4",
+          "fresh": true
+        },
+        "job_id": "30c041132def42f484befa2d756de7ca",
+        "boot_id": "c6e907194ff96dd33992b0ebe2d9b831",
+        "reported_load_delta_hz": "1.802156866",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100596077144360",
+        "campaign_order": 26
+      },
+      {
+        "label": "gp2-r2-on-5366200",
+        "engine": "gp2",
+        "automatic": true,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r2-on-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "eb3ad0a1a32999e089a40b489a707a5c5abecf7b7cddb7425e34c1130b43c71e",
+        "measured_error_hz": -0.16981452762826166,
+        "total_allowance_hz": 0.19883510232890114,
+        "one_second_errors_hz": [
+          -0.07466890862008313,
+          -0.11206674584565235,
+          -0.1406184458696771,
+          -0.16218835983676172,
+          -0.1815494479654376,
+          -0.20273655438762717,
+          -0.22367173404870755,
+          -0.23903670563379364
+        ],
+        "frozen": {
+          "prepared_ppb": -405,
+          "prepared_source": "gps",
+          "prepared_generation": "12"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -443,
+          "uncertainty_ppb": 20025,
+          "observed_raw_ns": "23049501872",
+          "age_ns": "1662842128",
+          "span_ns": "20000000000",
+          "generation": "11",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -405,
+          "uncertainty_ppb": 19134,
+          "observed_raw_ns": "24049502227",
+          "age_ns": "6062532773",
+          "span_ns": "21000000000",
+          "generation": "12",
+          "fresh": true
+        },
+        "job_id": "ae48ba0864894619a2c2a4a1073fcb1c",
+        "boot_id": "66e1d1053f5d37cf49954c10b7857e1b",
+        "reported_load_delta_hz": "2.187724411",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.14,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100649588286074",
+        "campaign_order": 27
+      },
+      {
+        "label": "gp2-r2-off-5366200",
+        "engine": "gp2",
+        "automatic": false,
+        "frequency_hz": 5366200,
+        "reference_hz": 5366700,
+        "source": "9f929b27b724",
+        "capture_directory": "97d6c9f0-gp2-r2-off-5366200",
+        "original_controller_success": true,
+        "recovered_after_controller_metadata_error": false,
+        "raw_sha256": "65a21b51236db7cd858487f532c934030ef4cf33c7072643bfcc1791c6b7e05a",
+        "measured_error_hz": -2.355354380710196,
+        "total_allowance_hz": 0.20609804275741642,
+        "one_second_errors_hz": [
+          -2.2531643992997488,
+          -2.289612537057053,
+          -2.322180194357486,
+          -2.3478928201776057,
+          -2.3690561688456455,
+          -2.3938723593453233,
+          -2.4135395431799793,
+          -2.4258158187336107
+        ],
+        "frozen": {
+          "prepared_ppb": 0,
+          "prepared_source": "manual",
+          "prepared_generation": "9"
+        },
+        "ready_calibration": {
+          "oscillator_error_ppb": -500,
+          "uncertainty_ppb": 40172,
+          "observed_raw_ns": "12445570872",
+          "age_ns": "12259826128",
+          "span_ns": "10000000000",
+          "generation": "1",
+          "fresh": true
+        },
+        "calibration_after_load": {
+          "oscillator_error_ppb": -357,
+          "uncertainty_ppb": 28597,
+          "observed_raw_ns": "28445566727",
+          "age_ns": "1669256273",
+          "span_ns": "14000000000",
+          "generation": "6",
+          "fresh": true
+        },
+        "job_id": "93650b80eb3843a3bd8e6be4fd492cce",
+        "boot_id": "d6722140a8d1d85568399d9141fc3603",
+        "reported_load_delta_hz": "0.002841651",
+        "capture_quality": {
+          "primary": "success",
+          "overflows": 0,
+          "clipped_samples": 0,
+          "cleanup": "verified"
+        },
+        "receiver": {
+          "driver": "sdrplay",
+          "serial": "2404058C60"
+        },
+        "analysis_start_s": 5.13,
+        "analysis_duration_s": 8,
+        "rf_budget_reserved_utc_ns": "1794100703215136103",
+        "campaign_order": 28
       }
     ],
     "comparison": {
@@ -5549,6 +5605,7 @@
       "scope": "Read-only independent lifecycle installer tool; no branch integration",
       "host_picotool_version": "2.3.1"
     },
-    "restoration_verified_utc": "2026-11-08T01:20:10Z"
+    "restoration_verified_utc": "2026-11-08T01:20:10Z",
+    "measurement_ordering": "Chronological campaign order from the durable pre-ARM RF-budget reservation event. Reservation timestamps are not calibrated RF launch timestamps."
   }
 }
