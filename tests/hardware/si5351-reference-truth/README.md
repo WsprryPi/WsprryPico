@@ -119,3 +119,21 @@ controller is bound to GP7/GP3 and its recorded original image; it must not be
 reused unchanged for the external-input transaction. Disable the external
 outputs before returning to the ordinary image, and disconnect the GPIO leads
 before restoring any RF-frequency output configuration.
+
+### Digital connection check
+
+Before either external-reference capture, `CHECK` observes GP8 through GP13
+for 2.2 seconds. All six pads are forced input-only with weak pulldowns during
+the check; no test pin drives a signal. A hardware PWM counter counts GP9
+rising edges independently of the GPIO polling scan. Check both outputs/PPS
+off, OUT2 alone at 1 MHz, off again, OUT1 PPS alone, and off again. Require
+only GP9 to receive the hardware-counted 1 MHz clock and only GP11 to receive
+two or three PPS edges; neighbouring pins and the inactive input must stay
+quiet. `rf_analysis.wiring.analyze_wiring` refuses missing, misplaced, swapped,
+wrong-frequency, incomplete, or incoherent observations. GPIO polling counts
+locate activity; they do not measure a fast signal's frequency. Missing signals
+stop the session before a long capture. This verifies digital routing, not
+independent ground-lead continuity, voltage, ringing, or certified source timing.
+Keep GPSDO frequency outputs and PPS disabled before loading/restoring the
+ordinary image. With GPIO leads still attached, leave the GPSDO disabled;
+restore the original RF output configuration only after lead removal.

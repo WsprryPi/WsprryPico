@@ -193,7 +193,7 @@
     },
     "rf_correction_analysis_tests": {
       "kind": "unittest",
-      "count": 20,
+      "count": 24,
       "entrypoint": "tests/rf_correction_analysis_tests.py"
     },
     "rf_drive_comparison_tests": {

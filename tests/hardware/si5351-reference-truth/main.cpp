@@ -131,6 +131,72 @@ uint slice;
 uint16_t previous_count;
 uint64_t extended_count = 0, previous_us = 0, max_gap = 0;
 bool coherent = true;
+// Wiring check only: observe neighbouring pads without driving any test lead.
+// The PWM input gives a hardware edge count; the GPIO scan locates misplaced
+// signals but does not measure their frequency or certify a ground lead.
+void check_wiring() {
+    if (!external_reference || used) {
+        puts("ERROR wiring_check_requires_unused_external_fixture");
+        return;
+    }
+    constexpr uint32_t mask = 0x3f00; // GP8..GP13, surrounding GP9/GP11.
+    for (unsigned gp = 8; gp <= 13; ++gp) {
+        gpio_init(gp);
+        gpio_set_dir(gp, GPIO_IN);
+        gpio_set_oeover(gp, GPIO_OVERRIDE_LOW);
+        gpio_pull_down(gp);
+    }
+    gpio_set_function(input_gp, GPIO_FUNC_PWM);
+    auto config = pwm_get_default_config();
+    pwm_config_set_clkdiv_mode(&config, PWM_DIV_B_RISING);
+    pwm_init(slice, &config, false);
+    pwm_set_counter(slice, 0);
+    uint64_t edges = 0, gap = 0;
+    uint16_t prior_count = 0;
+    uint64_t rises[6]{}, falls[6]{};
+    uint32_t prior = gpio_get_all() & mask;
+    const auto start = time_us_64();
+    auto previous = start;
+    pwm_set_enabled(slice, true);
+    while (time_us_64() - start < 2200000ULL) {
+        const auto now = time_us_64();
+        gap = std::max(gap, now - previous);
+        previous = now;
+        const uint16_t count = pwm_get_counter(slice);
+        edges += uint16_t(count - prior_count);
+        prior_count = count;
+        const uint32_t current = gpio_get_all() & mask;
+        auto changed = current ^ prior;
+        while (changed) {
+            const unsigned gp = unsigned(__builtin_ctz(changed));
+            if (current & (1u << gp))
+                ++rises[gp - 8];
+            else
+                ++falls[gp - 8];
+            changed &= changed - 1;
+        }
+        prior = current;
+    }
+    pwm_set_enabled(slice, false);
+    edges += uint16_t(pwm_get_counter(slice) - prior_count);
+    const auto elapsed = time_us_64() - start;
+    gpio_set_function(input_gp, GPIO_FUNC_SIO);
+    bool input_only = true;
+    for (unsigned gp = 8; gp <= 13; ++gp) {
+        gpio_disable_pulls(gp);
+        input_only = input_only && !gpio_get_dir(gp) &&
+                     ((io_bank0_hw->io[gp].ctrl & IO_BANK0_GPIO0_CTRL_OEOVER_BITS) >>
+                      IO_BANK0_GPIO0_CTRL_OEOVER_LSB) == GPIO_OVERRIDE_LOW;
+    }
+    printf("CHECK duration_us=%llu clock_edges=%llu max_gap_us=%llu coherent=%u input_only=%u\n",
+           (unsigned long long)elapsed, (unsigned long long)edges, (unsigned long long)gap,
+           unsigned(gap < 400), unsigned(input_only));
+    for (unsigned gp = 8; gp <= 13; ++gp)
+        printf("CHECK_PIN gp=%u rises=%llu falls=%llu\n", gp, (unsigned long long)rises[gp - 8],
+               (unsigned long long)falls[gp - 8]);
+    puts("END_CHECK");
+    fflush(stdout);
+}
 Endpoint snapshot() {
     Endpoint s{};
     s.before_us = time_us_64();
@@ -301,7 +367,9 @@ int main() {
                              ((io_bank0_hw->io[pps_gp].ctrl & IO_BANK0_GPIO0_CTRL_OEOVER_BITS) >>
                               IO_BANK0_GPIO0_CTRL_OEOVER_LSB) == GPIO_OVERRIDE_LOW));
                 fflush(stdout);
-            } else if (!strcmp(command, "TEST"))
+            } else if (!strcmp(command, "CHECK"))
+                check_wiring();
+            else if (!strcmp(command, "TEST"))
 #if TRUTH_PRODUCTION_CAPTURE
                 test_production(false);
 #else

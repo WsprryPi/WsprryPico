@@ -6,11 +6,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 from rf_analysis.carrier_repeatability import compare_carriers
 from rf_analysis.pps_windows import analyze_windows, compare_production
+from rf_analysis.wiring import analyze_wiring
 from analyze_rf_drift import fit_drift
 from compare_rf_clocks import compare
 from predict_rf_spurs import alias, corrected_increment, simulate
 
 class Tests(unittest.TestCase):
+    def wiring_text(self, phase):
+        rows=['CHECK duration_us=2200000 clock_edges=%d max_gap_us=9 coherent=1 input_only=1' % (2200000 if phase=='clock' else 0)]
+        for gp in range(8,14):
+            n=123456 if phase=='clock' and gp==9 else 2 if phase=='pps' and gp==11 else 0
+            rows.append('CHECK_PIN gp=%d rises=%d falls=%d' % (gp,n,n))
+        return '\n'.join(rows+['END_CHECK'])
+    def test_wiring_valid_isolated_outputs(self):
+        for phase in ('off','clock','pps'):
+            self.assertEqual(analyze_wiring(self.wiring_text(phase),phase)['phase'],phase)
+    def test_wiring_refuses_swapped_or_neighbouring_signal(self):
+        for gp in (8,9,10,12,13):
+            text=self.wiring_text('pps').replace('gp=11 rises=2 falls=2','gp=11 rises=0 falls=0').replace('gp=%d rises=0 falls=0'%gp,'gp=%d rises=2 falls=2'%gp)
+            with self.assertRaises(ValueError):analyze_wiring(text,'pps')
+        with self.assertRaises(ValueError):analyze_wiring(self.wiring_text('clock'),'off')
+    def test_wiring_refuses_missing_wrong_rate_or_stuck_pps(self):
+        for phase,text in [('clock',self.wiring_text('clock').replace('clock_edges=2200000','clock_edges=22000000')),('pps',self.wiring_text('off')),('pps',self.wiring_text('pps').replace('rises=2 falls=2','rises=1 falls=0'))]:
+            with self.assertRaises(ValueError):analyze_wiring(text,phase)
+    def test_wiring_refuses_incomplete_and_invalid_health(self):
+        base=self.wiring_text('off')
+        for text in (base.replace('coherent=1','coherent=0'),base.replace('input_only=1','input_only=0'),base.replace('max_gap_us=9','max_gap_us=400'),base.replace('duration_us=2200000','duration_us=1'),base+'\nEND_CHECK',base.replace('gp=10','gp=9')):
+            with self.assertRaises(ValueError):analyze_wiring(text,'off')
     def reference_iq(self, error=0, sample_ppm=0, *, finite=True, reference=True,
                      dropout=False, ambiguity=False):
         rate = 10000
