@@ -240,6 +240,43 @@ void gps_correction_freeze() {
     job.allow_frequency_adjustment=false;
     REQUIRE(!f.engine.prepare(job).accepted);
 }
+void gps_frozen_input_survives_unobserved_generation(bool emit_fixture = false) {
+    Fixture f;
+    auto config = *f.store.config();
+    config.gps.emplace();
+    config.gps->enabled = true;
+    config.gps->pairing_qualified = true;
+    config.gps->automatic_rf_calibration = true;
+    config.gps->calibration_maximum_age_s = 30;
+    REQUIRE(f.store.save(config));
+    f.raw.correction_allowed = true;
+    f.engine.gps_calibration(time::gps::Calibration{182,7428,377*hz,54*hz,228},378*hz,true,false);
+    f.claim();
+    // The host read generation 228; LOAD selects an intervening generation.
+    f.engine.gps_calibration(time::gps::Calibration{200,7000,379*hz,56*hz,230},380*hz,true,false);
+    auto job = f.job(14'097'100*hz);
+    REQUIRE(f.send("LOAD", job).ok);
+    REQUIRE(f.raw.correction == 200);
+    REQUIRE(f.engine.prepared_correction()->generation == 230);
+    f.engine.gps_calibration(time::gps::Calibration{218,6798,382*hz,59*hz,233},383*hz,true,false);
+    const auto json = f.engine.calibration_status(383*hz);
+    const auto diagnostic = wtp::json::parse(json);
+    REQUIRE(diagnostic && diagnostic->get("prepared_generation")->string() == "230");
+    REQUIRE(diagnostic->get("next_generation")->string() == "233");
+    REQUIRE(diagnostic->get("prepared_ppb")->integer() == 200);
+    const auto input = diagnostic->get("prepared_input");
+    REQUIRE(input && input->get("generation")->string() == "230");
+    REQUIRE(input->get("oscillator_error_ppb")->integer() == 200);
+    REQUIRE(input->get("job_id")->string() == job.job_id);
+    REQUIRE(input->get("selected_raw_ns")->string() == "380000000000");
+    if (emit_fixture) {
+        const auto response = f.call("GET", "/api/control/v1/rf-calibration");
+        REQUIRE(response.status == 200);
+        std::cout << response.body << "\n";
+    }
+    f.engine.calibration_boundary();
+    REQUIRE(f.engine.calibration_status(383*hz).find("\"prepared_input\":null") != std::string::npos);
+}
 void band_and_engine_limits() {
     using application::frequency_allowed;
     using application::frequency_disposition;
@@ -475,9 +512,14 @@ void autonomous_admission() {
     }
 }
 } // namespace
-int main() {
+int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "--frozen-input-fixture") {
+        gps_frozen_input_survives_unobserved_generation(true);
+        return 0;
+    }
     config_and_storage();
     gps_correction_freeze();
+    gps_frozen_input_survives_unobserved_generation();
     band_and_engine_limits();
     admission_and_revocation();
     progress_storage_fault_admission();
