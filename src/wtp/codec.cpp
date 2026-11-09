@@ -255,7 +255,7 @@ std::string caps(const ServiceConfig& c) {
 bool is_bounded_control_request(Value root) {
     // Scalar controls never allocate a job/event array. Bound their encoded
     // body before choosing the existing small workspace; full closed-envelope
-    // and body validation still precedes dispatch. LOAD keeps its full budget.
+    // and body validation still precedes dispatch. LOAD has a separate page estimate.
     const auto op = get(root, "op"), b = get(root, "body");
     if (get(root, "protocol").raw.size() > 128 || get(root, "type").raw.size() > 44 ||
         op.raw.size() > 56 || b.type() != '{')
@@ -277,6 +277,35 @@ bool is_active_load_replay(Value root, std::string_view id) {
     return get(root, "protocol").raw.size() <= 128 && get(root, "type").raw.size() <= 44 &&
            op.raw.size() <= 26 && job.raw.size() <= 194 && op.string() == "LOAD" &&
            job.string() == id;
+}
+std::size_t request_decode_workspace(Value root, std::string_view active_replay_id) {
+    if (is_active_load_replay(root, active_replay_id) || is_bounded_control_request(root))
+        return 6144;
+    constexpr std::size_t maximum_workspace = 32768;
+    constexpr auto maximum_event_bytes = EventList::maximum_events * sizeof(RfEvent);
+    static_assert(maximum_event_bytes < maximum_workspace);
+    const auto op = get(root, "op"), b = get(root, "body"), events = get(b, "events");
+    // This is allocation admission, not a second protocol validator. Keep the
+    // original maximum for unknown/large envelopes and malformed array shapes.
+    // Bound all non-event text together, and each event, so scalar/key scratch
+    // cannot consume the space reserved here for decoded event pages.
+    if (get(root, "protocol").raw.size() > 128 || get(root, "type").raw.size() > 44 ||
+        op.raw.size() > 26 || op.string() != "LOAD" || events.type() != '[' ||
+        root.raw.size() - events.raw.size() > 2048)
+        return maximum_workspace;
+    std::size_t cursor = 0, count = 0;
+    while (auto element = events.next_element(cursor)) {
+        if (element->type() != '{' || element->raw.size() > 1024 ||
+            ++count > EventList::maximum_events)
+            return maximum_workspace;
+    }
+    if (!count)
+        return maximum_workspace;
+    const auto pages = (count + EventList::page_events - 1) / EventList::page_events;
+    // Retain all non-event scratch from the former maximum-job estimate.
+    // A 512-event request still receives the unchanged 32 KiB workspace.
+    return maximum_workspace - maximum_event_bytes +
+           pages * EventList::page_events * sizeof(RfEvent);
 }
 std::optional<Request> decode_request(Value root, std::string_view principal, InputView payload,
                                       std::string_view active_replay_id,
