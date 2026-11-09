@@ -53,6 +53,7 @@ udp
 :maxdepth: 2
 :caption: Reference
 
+reference/releases
 reference/output
 reference/time
 reference/defaults

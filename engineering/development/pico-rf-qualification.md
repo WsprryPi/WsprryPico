@@ -1,17 +1,8 @@
 # Pico RF qualification
 
-The Qualification Harness provides a distinct Pico USB `complete-test` route.
-It submits complete finite WTP jobs to RP2350 and uses separate USB management
-for discovery, current-control validation, configuration observations, and
-output readback. It uses the selected Pico's production encoders, exact-count
-SoapySDR captures, independent Morse references, carrier analysis, and WSJT-X
-`wsprd`. Pico is not represented as a Pi process or Pi GPIO/I²C backend.
+The Qualification Harness provides a distinct Pico USB `complete-test` route. It submits complete finite WTP jobs to RP2350 and uses separate USB management for discovery, current-control validation, configuration observations, and output readback. It uses the selected Pico's production encoders, exact-count SoapySDR captures, independent Morse references, carrier analysis, and WSJT-X `wsprd`. Pico is not represented as a Pi process or Pi GPIO/I²C backend.
 
-The maintained [Harness campaign guide](https://github.com/WsprryPi/WsprryPi-Qualification-Harness/blob/codex/pico-rf-harness/docs/development/pico-rf-campaign.md)
-contains configuration fields, the source-bound compiler build, CLI commands,
-evidence validation, platform limits, and software acceptance. The implementation
-is on the Harness `codex/pico-rf-harness` branch until its normal review/merge;
-select the intended actual ref rather than assuming availability on `devel`.
+The maintained [Harness campaign guide](https://github.com/WsprryPi/WsprryPi-Qualification-Harness/blob/devel/docs/development/pico-rf-campaign.md) contains configuration fields, the source-bound compiler build, CLI commands, evidence validation, platform limits, and software acceptance. The Pico route and its corrections are delivered on Harness `devel`; select an exact tested controller revision and intended Pico source instead of relying on a branch name alone.
 
 ## Campaign coverage
 
@@ -22,66 +13,48 @@ select the intended actual ref rather than assuming availability on `devel`.
 | Supported Si5351 / CLK0 | Disabled | Manual; explicit supported non-GPS UTC source |
 | Supported Si5351 / CLK0 | Enabled | Automatic correction off and on |
 
-Every configuration covers TONE, WSPR, QRSS, FSKCW, and DFCW. Each selected
-mode requires three independent complete job/capture transactions. Three
-on/off cycles inside a Tone job remain one observation. Each WSPR observation
-has an additional finite carrier gate. Live WSPR qualification currently uses
-ordinary Type 1 station messages; paired Type 2/3 plans are refused before
-USB access because the maintained decode identity classifier is Type 1.
+Every configuration covers TONE, WSPR, QRSS, FSKCW, and DFCW. Each selected mode requires three independent complete job/capture transactions. Three on/off cycles inside a Tone job remain one observation. Each WSPR observation has an additional finite carrier gate. Live WSPR qualification currently uses ordinary Type 1 station messages; paired Type 2/3 plans are refused before USB access because the maintained decode identity classifier is Type 1.
 
 GPS disablement is observed in firmware; physical cable removal is unnecessary. GPS-enabled rows require usable paired serial/PPS/time observations. Manual trim, automatic RF correction, UTC discipline, and receiver-only calibration are separate dimensions. Automatic correction requires the product's qualified observations and matching frozen job provenance, with no manual fallback. The RF calibration diagnostic retains the complete automatic input with the accepted job, independently of later GPS estimates. Its [closed schema](../protocol/rf-calibration-diagnostics.schema.json) defines the job ID, manual residual, measured oscillator error, base uncertainty, observation time, measurement span, generation, and selection time. The selection time is the raw timer instant used by the freshness check. A calibration boundary retires the record; manual preparation has no automatic input. External validators check job/device/boot binding, signed residual arithmetic, age and uncertainty growth at selection, and the retained observations bracketing LOAD. Polling need not encounter the intervening generation selected during preparation. Si5351 correction uses the existing CLK2/input-only GP7 feedback and supported hardware profile.
 
 ## Setup and execution boundaries
 
-Campaign setup is read-only. Select and verify the engine, pins, time source,
-GPS/PPS, correction, and disabled schedules through ordinary product setup
-before running. The Harness does not silently install firmware, restart the
-board, change settings, set UTC, or take over another owner's job. Install
-firmware separately using the [shared installer](usb-installer.md), retain the
-exact bundle, and preserve its same-board reference.
+Campaign setup is read-only. Select and verify the engine, pins, time source, GPS/PPS, correction, and disabled schedules through ordinary product setup before running. The Harness does not silently install firmware, restart the board, change settings, set UTC, or take over another owner's job. Install firmware separately using the [shared installer](usb-installer.md), retain the exact bundle, and preserve its same-board reference.
 
-Portable composition, rehearsal, analysis, and result validation support
-macOS, Linux, and native Windows. Live USB requires native macOS or Linux
-on the host that physically owns both Pico USB and the SDR. Remote USB/SDR
-delegation and Windows/WSL live USB are refused before device access. A
-controller may invoke the installed command on the bench host through its
-separately authorized management connection.
+Portable composition, rehearsal, analysis, and result validation support macOS, Linux, and native Windows. Live USB requires native macOS or Linux on the host that physically owns both Pico USB and the SDR. Remote USB/SDR delegation and Windows/WSL live USB are refused before device access. A controller may invoke the installed command on the bench host through its separately authorized management connection.
 
-Use current conducted-path evidence for the selected output, termination,
-attenuation, combiner/filter routing, antenna disconnection, SDR identity,
-and safe input basis. Historical wiring records and example configurations
-are not physical evidence. Identify the intended board and both USB CDC roles
-before opening them.
+Use current conducted-path evidence for the selected output, termination, attenuation, combiner/filter routing, antenna disconnection, SDR identity, and safe input basis. Historical wiring records and example configurations are not physical evidence. Identify the intended board and both USB CDC roles before opening them.
 
-The Harness admits idle state before opening WTP, bounds capture and job
-lifetimes, verifies RF-off preamble before ARM, renews only its own lease,
-never replays an uncertain mutation, and reconciles/aborts/releases only its
-owned job. Cleanup checks boot-bound output inactivity and Si5351 register
-disablement where applicable. Final settings readback must match the original
-state. A reset, disconnect, changed owner, or unverified receiver/transmitter
-cleanup prevents qualification. Existing schedules are not resumed implicitly.
+The Harness admits idle state before opening WTP, bounds capture and job lifetimes, verifies RF-off preamble before ARM, renews only its own lease, never replays an uncertain mutation, and reconciles/aborts/releases only its owned job. Cleanup checks boot-bound output inactivity and Si5351 register disablement where applicable. Final settings readback must match the original state. A reset, disconnect, changed owner, or unverified receiver/transmitter cleanup prevents qualification. Existing schedules are not resumed implicitly.
+
+## Exact-artifact acceptance
+
+Prepare firmware separately through the [canonical build](software-build-ci.md) and [retained publication](prepared-publication.md) workflows with publication disabled. Preserve the original canonical deployment and audit archives, nine selected public files, generated developer bundle, source, version, run/attempt, manifests and payload hashes. A renamed CI image or preview build does not establish a semantic release candidate. Later validation and publication consume the same retained bytes.
+
+Use the maintained [Pico lifecycle workflows](https://github.com/WsprryPi/WsprryPi-Qualification-Harness/blob/devel/docs/development/lifecycle-release.md) and shared installer for independent fresh and preservation tracks. Fresh acceptance includes guarded erase, independent blank-flash verification, exact-image installation, unconfigured defaults and synthetic-setting reinstall/readback. Preservation includes an independently identified compatible baseline, distinctive settings, identical-image reinstall, upgrade, supported recovery and semantic comparison. Newly persisted fields need explicit migration/default/round-trip checks. Add full disabled test-configuration preservation separately; hostname-only fixtures do not establish complete configuration preservation.
+
+Retain the original bundles, settings and installer recovery records until handback is verified. Use the installed-bundle reconciliation path for a stale same-board reference; do not edit identities or discard records to bypass a refusal. When storage generations prevent a supported downgrade, use an explicitly selected supported fresh-default handback. Verify final image/reference identity, default or selected settings, idle state, released ownership and RF inactivity. Installation evidence does not qualify RF.
+
+Check the actual installed browser at its current IP address and resolved hostname using independent fresh browser sessions. Validate authentication, lock feedback, desktop/mobile layout, retained settings and restart behavior with schedules disabled and output inactive. A/B/A saves of hardware settings must retain their restart and output-inhibition semantics. Retain failed attempts and their reconciled outcomes alongside passing observations.
 
 ## Evidence and claims
 
-Keep private run bundles outside Git. They retain the requested/frozen plan,
-compiler/encoder and separate Harness analyzer identities, observed firmware
-and boot, actual USB topology, settings and correction snapshots, complete
-WTP transactions and management ACK/byte audit, exact-count IQ metadata,
-full decoder output, analysis, and final cleanup/settings state. Validate them
-with the maintained `validate-complete-test` route before interpreting results.
-A compiler source revision does not establish the installed firmware bytes;
-exact-artifact qualification must bind the retained installer bundle separately.
+Keep private run bundles outside Git. They retain the requested/frozen plan, compiler/encoder and separate Harness analyzer identities, observed firmware and boot, actual USB topology, settings and correction snapshots, complete WTP transactions and management ACK/byte audit, exact-count IQ metadata, full decoder output, analysis, and final cleanup/settings state. Validate them with the maintained `validate-complete-test` route before interpreting results. A compiler source revision does not establish the installed firmware bytes; exact-artifact qualification must bind the retained installer bundle separately.
 
 The [network diagnostic schema](../protocol/network-diagnostics.schema.json) describes the full platform network observations carried by `ntp-observations`. It is separate from the shared control-resource schema and preserves the independent μChrony diagnostic identifiers. Campaign validators check the selected source's exact diagnostic schema and reject missing fields, unknown fields and malformed nested observations.
 
-Software fixture success, rehearsal, and synthetic IQ establish no physical
-USB, RP2350 timing, installed-image, or RF acceptance. Live results are specific
-to the recorded board, engine, band, modes, clock/correction state, receiver,
-and conducted path. Decode success is not spectral compliance or calibrated
-power. The [RC.2 checklist](rc2-release-checklist.md) separates Harness delivery,
-exact-artifact physical qualification, and publication.
+Software fixture success, rehearsal, and synthetic IQ establish no physical USB, RP2350 timing, installed-image, or RF acceptance. Live results are specific to the recorded board, engine, band, modes, clock/correction state, receiver, and conducted path. Decode success is not spectral compliance or calibrated power. The [RC.2 checklist](rc2-release-checklist.md) separates Harness delivery, exact-artifact physical qualification, and publication.
 
-The [Si5351 investigation disposition](gps-pps-validation.md#bounded-investigation-closure-2026-11-08)
-is finally closed as inconclusive and resolution-limited. Automatic correction
-remains available for experimentation. Campaigns verify its selected operation
-without requiring it to improve accuracy or expanding acquisition windows.
+The [Si5351 investigation disposition](gps-pps-validation.md#bounded-investigation-closure-2026-11-08) is finally closed as inconclusive and resolution-limited. Automatic correction remains available for experimentation. Campaigns verify its selected operation without requiring it to improve accuracy or expanding acquisition windows.
+
+## RC.2 candidate acceptance
+
+The selected `1.0.0-rc.2` image is source `abfabb08d6435468e6d33beec0b729181527b602`, canonical [build 42566811307, attempt 1](https://github.com/WsprryPi/WsprryPico/actions/runs/42566811307). Canonical verification passed all 234 tests and reproduced identical firmware; publication was skipped. The retained UF2 has 6,298,112 bytes and SHA256 `5238d0ae28a1efe298281f172723e5b9ff1901175d4678a2714e7ec54dafb8ef`. The prepared packet digest is `c3e6f66a08f623ccc153e7df0866dc8998f1542f51f1ea40a970280206a0bab2`; its containing JSON file has a separate file digest. Later publication consumes the retained packet and exact original canonical archives.
+
+Both production network and USB integration suites passed against Pi source `961411da6659027d83752a41aca34e88aac269bc` and the selected Pico source in [run 42564516997](https://github.com/WsprryPi/WsprryPi/actions/runs/42564516997). Harness source `42c18b6231aa641920f612f7759bb1b83739b424` passed all three platform jobs with the same explicit Pico source in [run 42580390534](https://github.com/WsprryPi/WsprryPi-Qualification-Harness/actions/runs/42580390534). The firmware correction is delivered through [Pico PR #26](https://github.com/WsprryPi/WsprryPico/pull/26); required Harness corrections, including [post-preparation GPS scheduling](https://github.com/WsprryPi/WsprryPi-Qualification-Harness/pull/27), are delivered on Harness `devel`.
+
+Physical installation acceptance used Pico C, serial `1545B6EFBF78028C`, on wspr5 USB parent `3-1.4`, through the retained shared installer and seven-file candidate bundle. The compatible baseline was source `922935f0097ed3014f8f20bef4bb0c9289645422`, version `0.1.0-ci.42429358845.1`. Guarded baseline preparation, migration/default/round-trip/recovery, independent blank-flash fresh installation, and complete disabled-configuration reinstall/preservation passed 6, 21, 11, and 5 checks respectively. Original firmware bundles, settings, installer references and recovery records remain retained privately.
+
+Native Mac Chrome `156.0.8078.81` passed direct-IP authentication, startup feedback, hostname editing before station commissioning, default-name restoration, lock explanations, local favicon delivery, desktop/mobile layout, and suspended hardware-only A/B/A save checks. The saved hardware restart latch survived A/B/A and cleared after the supported restart; station settings and schedules were preserved, with ownership released and RF inactive. Native bench Chromium `156.0.8078.79` independently passed the actual default-hostname origin, normal name resolution to the expected IP, device identity, authentication and layout. The Mac failed to resolve that hostname on the current multicast path. The Pico answered three direct mDNS queries, and the bench resolver and browser succeeded. These observations do not establish reliable multicast discovery on every client or network. Failed connection, readiness and acceptance-script attempts remain retained alongside passing evidence.
+
+The direct-GP2, GPS-disabled row passed all five modes, fifteen independent observations and three additional WSPR carrier gates under Harness `75cc0e65337bb04c757580ea2f430941beb54d2e`, with settings preserved and cleanup verified. Its full original evidence also passes the corrected Harness validator. The following GPS-enabled manual row stopped when USB preparation finished after its preselected QRSS start; that unsuccessful result remains unqualified, with transmitter release and later RF inactivity independently verified. The corrected controller selects GPS non-WSPR starts after preparation and conservatively checks finite capture coverage. Remaining RF acceptance and final supported fresh-default handback are pending. No public release or asset publication has occurred.
