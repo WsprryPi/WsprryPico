@@ -21,6 +21,8 @@ Use the published [recommended firmware, version **@RECOMMENDED_FIRMWARE_VERSION
 
 No `--branch` option is needed for the recommended release. The firmware version is independent of the installer source and any WsprryPi branch. The `devel` segment in the installer download URL below selects the installer source, while `--version @RECOMMENDED_FIRMWARE_VERSION@` selects the firmware.
 
+See the [RC.2 release notes and qualification scope](reference/releases.md) before selecting this prerelease.
+
 For development firmware, use the [published devel download](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel) and the [devel upgrade command](#upgrade-to-devel-firmware).
 
 ## Get the installer and identify the Pico
