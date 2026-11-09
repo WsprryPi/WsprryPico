@@ -1,3 +1,4 @@
+#include "wtp/codec.hpp"
 #include "wtp/endpoint.hpp"
 #include "wtp/inhibited_rf_engine.hpp"
 #include "wtp/json_compact.hpp"
@@ -190,13 +191,13 @@ struct Peer {
 };
 void bounded_control_pressure() {
     Peer peer;
-    forced_pressure = heap_budget - 60000;
+    forced_pressure = heap_budget - 45000;
     peer.hello_claim();
     CHECK(peer.response_ok(peer.send(request(3, "PING", "{}"))));
     CHECK(peer.response_ok(peer.send(
         request(4, "RENEW",
                 "{\"owner_id\":" + json::quote(std::string(32, 'e')) + ",\"lease_ms\":60000}"))));
-    CHECK(!memory_admitted(32768)); // LOAD keeps its workspace and authority reserve.
+    CHECK(!memory_admitted(32768)); // Maximum LOAD workspace and authority reserve stay separate.
     const auto small_load = request(
         5, "LOAD",
         "{\"job_id\":" + json::quote(std::string(32, 'c')) +
@@ -207,7 +208,7 @@ void bounded_control_pressure() {
     peer.endpoint.poll(2);
     CHECK(peer.response_ok(peer.drain()));
     CHECK(peer.engine.prepared == 1);
-    forced_pressure = heap_budget - 60000;
+    forced_pressure = heap_budget - 45000;
     CHECK(peer.response_ok(
         peer.send(request(6, "ABORT", "{\"job_id\":" + json::quote(std::string(32, 'c')) + "}"))));
     CHECK(peer.response_ok(peer.send(request(7, "RELEASE", "{}"))));
@@ -235,6 +236,40 @@ void capacity(bool escaped) {
     CHECK(conflict.find("REQUEST_ID_REUSE") != std::string::npos);
     CHECK(peer.engine.prepared == 1);
 }
+void decode_workspace_bounds() {
+    const auto estimate = [](std::string_view text) {
+        const auto root = json::parse(text);
+        CHECK(root);
+        return request_decode_workspace(*root, {});
+    };
+    CHECK(estimate(load(3, false)) == 32768);
+    CHECK(estimate(load(3, true)) == 32768);
+    const auto envelope = [](std::string_view events, std::string extra = {}) {
+        return request(
+            3, "LOAD",
+            "{\"job_id\":" + json::quote(std::string(32, 'c')) +
+                R"(,"profile":"rf-events/1","mode":"tone","total_duration_ns":"1","events":)" +
+                std::string(events) + extra + "}");
+    };
+    CHECK(estimate(envelope("[]")) == 32768);
+    CHECK(estimate(envelope("[1]")) == 32768);
+    CHECK(estimate(envelope("{}")) == 32768);
+    CHECK(estimate(envelope("[{\"unexpected\":\"" + std::string(1024, 'x') + "\"}]")) == 32768);
+    CHECK(estimate(envelope("[{}]", ",\"unexpected\":\"" + std::string(2048, 'x') + "\"")) ==
+          32768);
+    std::string excessive = "[{}";
+    for (unsigned i = 1; i < 513; ++i)
+        excessive += ",{}";
+    CHECK(estimate(envelope(excessive + "]")) == 32768);
+    // A smaller allocation estimate never substitutes for body validation.
+    Peer peer;
+    forced_pressure = heap_budget - 60000;
+    peer.hello_claim();
+    const auto response = peer.send(envelope("[{}]"));
+    CHECK(response.find("INVALID_MESSAGE") != std::string::npos);
+    CHECK(peer.engine.prepared == 0 && !peer.service.status().job_id);
+    forced_pressure = 0;
+}
 void direct_wspr_headroom() {
     std::string body =
         "{\"job_id\":" + json::quote(std::string(32, 'c')) +
@@ -251,6 +286,12 @@ void direct_wspr_headroom() {
     }
     const auto payload = request(3, "LOAD", body + "]}");
     CHECK(payload.size() < 20480);
+    const auto root = json::parse(payload);
+    CHECK(root);
+    constexpr auto pages = (162 + EventList::page_events - 1) / EventList::page_events;
+    CHECK(request_decode_workspace(*root, {}) ==
+          32768 - EventList::maximum_events * sizeof(RfEvent) +
+              pages * EventList::page_events * sizeof(RfEvent));
     {
         Peer peer;
         forced_pressure = heap_budget - 56552; // Observed failing Direct/GPS headroom.
@@ -261,7 +302,8 @@ void direct_wspr_headroom() {
     CHECK(live_bytes == 0);
     {
         Peer peer;
-        forced_pressure = heap_budget - 88000; // Below the corrected target's headroom.
+        forced_pressure =
+            heap_budget - 79000; // Full configured RF image: about 62 KiB with input resident.
         peer.hello_claim();
         CHECK(peer.response_ok(peer.send(payload)));
         CHECK(!peer.endpoint.closed() && peer.engine.prepared == 1 && peer.engine.events == 162);
@@ -326,6 +368,8 @@ int main() {
     }
     CHECK(live_bytes == 0);
     {
+        decode_workspace_bounds();
+        CHECK(live_bytes == 0);
         direct_wspr_headroom();
     }
     CHECK(live_bytes == 0);
