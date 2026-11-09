@@ -963,9 +963,9 @@ void indicator_cancel_before_launch() {
     }
 }
 
-void early_alarm_retry_race() {
+void early_alarm_retry_race_case(std::uint64_t programming_ns) {
     Hardware hw;
-    hw.retry_elapsed_ns = 50'000;
+    hw.retry_elapsed_ns = programming_ns;
     rf::IndicatorGate gate;
     rf::PioDmaSink sink(hw, &gate);
     std::array<std::uint32_t, 32> words{};
@@ -997,6 +997,27 @@ void early_alarm_retry_race() {
     hw.alarm_event(2);
     CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
     CHECK(!hw.enabled && !gate.requested() && hw.launches == 1);
+}
+
+void early_alarm_retry_race() {
+    // SDK timer programming shares a spinlock across cores. Exercise delays
+    // beyond the old 100 us retry target, including the conducted failure span.
+    for (const auto programming_ns : {50'000ULL, 250'000ULL, 3'600'000ULL})
+        early_alarm_retry_race_case(programming_ns);
+
+    // Time consumed by programming cannot extend the admitted UTC second.
+    Hardware hw;
+    hw.retry_elapsed_ns = 3'600'000;
+    rf::IndicatorGate gate;
+    rf::PioDmaSink sink(hw, &gate);
+    std::array<std::uint32_t, 32> words{};
+    CHECK(sink.submit(1, 0, words, words.size() * 32));
+    const auto start = hw.time + 1'000'000;
+    CHECK(sink.arm(1, start, words.size() * 32, {nullptr, nullptr, start + 2'000'000}));
+    hw.time = start;
+    hw.alarm_event(1);
+    CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+    CHECK(!hw.enabled && !gate.requested() && hw.launches == 0);
 }
 
 void indicator_modes_and_tail() {
