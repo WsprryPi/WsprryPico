@@ -286,13 +286,30 @@ void PioDmaSink::event(DriverEvent event) {
             // attempt at/after the local start requests the checked on write.
             if (now < start_ || !indicator_->request_launch()) {
                 constexpr std::uint64_t retry_ns = 100'000;
-                // The timer can advance while entering/programming the SDK alarm.
-                // Retain a full retry margin even when the guarded start is only
-                // a few microseconds ahead; the original UTC deadline still bounds it.
-                const auto wake = std::max(start_, now + retry_ns);
-                if (wake < now || wake >= deadline || !hw_.retry_alarm(wake, epoch_)) {
+                auto retry_now = hw_.now_ns();
+                auto wake = std::max(start_, retry_now + retry_ns);
+                bool queued = false;
+                if (wake >= retry_now && wake < deadline) {
+                    queued = hw_.retry_alarm(wake, epoch_);
+                    if (!queued) {
+                        // The SDK's cross-core timer lock may outlast the short
+                        // target. Retry programming only once, using fresh time
+                        // and headroom strictly inside the original deadline.
+                        retry_now = hw_.now_ns();
+                        if (retry_now < deadline) {
+                            auto margin =
+                                std::min<std::uint64_t>(10'000'000, (deadline - retry_now - 1) / 2);
+                            margin -= margin % 1000; // SDK timer resolution.
+                            wake = std::max(start_, retry_now + margin);
+                            if (margin && wake >= retry_now && wake < deadline)
+                                queued = hw_.retry_alarm(wake, epoch_);
+                        }
+                    }
+                }
+                if (!queued) {
                     failure_ = "launch_retry_alarm_rejected";
-                    state_ = halt_output(now) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                    state_ = halt_output(hw_.now_ns()) ? wtp::EngineState::Missed
+                                                       : wtp::EngineState::Failed;
                 }
                 return;
             }
