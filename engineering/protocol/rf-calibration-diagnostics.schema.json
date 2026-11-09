@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Pico RF calibration diagnostics",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract",
+    "schema",
+    "target",
+    "saved",
+    "selection",
+    "execution_engine",
+    "storage_healthy"
+  ],
+  "properties": {
+    "contract": {
+      "const": "Wsprry-Control/1"
+    },
+    "schema": {
+      "const": "rf-calibration"
+    },
+    "target": {
+      "$ref": "urn:wsprry:control:1#/$defs/application/$defs/target"
+    },
+    "saved": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "manual_ppm",
+            "mode"
+          ],
+          "properties": {
+            "manual_ppm": {
+              "type": "string",
+              "pattern": "^-?(?:0|[1-9][0-9]{0,2})\\.[0-9]{3}$"
+            },
+            "mode": {
+              "const": "manual"
+            }
+          }
+        }
+      ]
+    },
+    "selection": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "candidate",
+            "candidate_correction_ppb",
+            "candidate_uncertainty_ppb",
+            "saved_ntp_available",
+            "saved_ntp",
+            "candidate_age_ns",
+            "topology_supported",
+            "independent_rf_verified",
+            "ntp_rf_supported",
+            "next_ppb",
+            "next_generation",
+            "next_source",
+            "reason",
+            "prepared_ppb",
+            "prepared_source",
+            "prepared_generation",
+            "prepared_input"
+          ],
+          "properties": {
+            "candidate": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "qualified",
+                "utc_rate_ppb",
+                "uncertainty_ppb",
+                "generation",
+                "sampled_raw_ns",
+                "span_ns",
+                "samples",
+                "reason"
+              ],
+              "properties": {
+                "qualified": {
+                  "type": "boolean"
+                },
+                "utc_rate_ppb": {
+                  "type": "integer",
+                  "minimum": -2147483648,
+                  "maximum": 2147483647
+                },
+                "uncertainty_ppb": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "generation": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]{0,19})$",
+                  "x-maximum": "18446744073709551615"
+                },
+                "sampled_raw_ns": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]{0,19})$",
+                  "x-maximum": "18446744073709551615"
+                },
+                "span_ns": {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]{0,19})$",
+                  "x-maximum": "18446744073709551615"
+                },
+                "samples": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 4294967295
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "candidate_correction_ppb": {
+              "type": "null"
+            },
+            "candidate_uncertainty_ppb": {
+              "const": 0
+            },
+            "saved_ntp_available": {
+              "const": false
+            },
+            "saved_ntp": {
+              "type": "null"
+            },
+            "candidate_age_ns": {
+              "const": "0"
+            },
+            "topology_supported": {
+              "const": false
+            },
+            "independent_rf_verified": {
+              "const": false
+            },
+            "ntp_rf_supported": {
+              "const": false
+            },
+            "next_ppb": {
+              "type": "integer",
+              "minimum": -100000,
+              "maximum": 100000
+            },
+            "next_generation": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,19})$",
+              "x-maximum": "18446744073709551615"
+            },
+            "next_source": {
+              "enum": [
+                "manual",
+                "gps"
+              ]
+            },
+            "reason": {
+              "enum": [
+                "gps_calibration_required",
+                "gps_calibrated",
+                "manual_mode"
+              ]
+            },
+            "prepared_ppb": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "integer",
+                  "minimum": -100000,
+                  "maximum": 100000
+                }
+              ]
+            },
+            "prepared_source": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "enum": [
+                    "manual",
+                    "gps"
+                  ]
+                }
+              ]
+            },
+            "prepared_generation": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "string",
+                  "pattern": "^(0|[1-9][0-9]{0,19})$",
+                  "x-maximum": "18446744073709551615"
+                }
+              ]
+            },
+            "prepared_input": {
+              "anyOf": [
+                {
+                  "type": "null"
+                },
+                {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "job_id",
+                    "manual_correction_ppb",
+                    "oscillator_error_ppb",
+                    "uncertainty_ppb",
+                    "observed_raw_ns",
+                    "span_ns",
+                    "generation",
+                    "selected_raw_ns"
+                  ],
+                  "properties": {
+                    "job_id": {
+                      "type": "string",
+                      "pattern": "^[0-9a-f]{32}$"
+                    },
+                    "manual_correction_ppb": {
+                      "type": "integer",
+                      "minimum": -100000,
+                      "maximum": 100000
+                    },
+                    "oscillator_error_ppb": {
+                      "type": "integer",
+                      "minimum": -100000,
+                      "maximum": 100000
+                    },
+                    "uncertainty_ppb": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100001
+                    },
+                    "observed_raw_ns": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "x-maximum": "18446744073709551615"
+                    },
+                    "span_ns": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "x-maximum": "18446744073709551615"
+                    },
+                    "generation": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "x-maximum": "18446744073709551615",
+                      "not": {
+                        "const": "0"
+                      }
+                    },
+                    "selected_raw_ns": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$",
+                      "x-maximum": "18446744073709551615"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "execution_engine": {
+      "type": "string",
+      "minLength": 1
+    },
+    "storage_healthy": {
+      "type": "boolean"
+    }
+  }
+}

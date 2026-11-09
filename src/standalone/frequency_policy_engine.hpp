@@ -34,6 +34,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     }
     void calibration_boundary() override {
         frozen_.reset();
+        prepared_job_id_.clear();
         pair_frozen_ = false;
     }
     void freeze_pair_calibration(bool freeze) override {
@@ -112,9 +113,13 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         bool valid = true, automatic = false;
         std::uint64_t observed_raw_ns = 0;
         std::uint32_t uncertainty_ppb = 0;
+        std::int32_t manual_ppb = 0;
+        std::uint64_t selected_raw_ns = 0;
+        std::optional<time::gps::Calibration> input;
     };
     Selection selection() const;
     std::optional<Selection> frozen_;
+    std::string prepared_job_id_;
     bool pair_frozen_ = false;
     std::optional<std::int32_t> programmed_;
     wtp::RfEngine& engine_;

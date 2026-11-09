@@ -53,6 +53,7 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
             return {};
     }
     frozen_ = selected;
+    prepared_job_id_ = job.job_id;
     return prepared;
 }
 FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection() const {
@@ -63,6 +64,7 @@ FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection() const {
                 ? store_.config()->manual_correction_ppb
                 : (store_.config()->si5351 ? store_.config()->si5351->manual_correction_ppb : 0);
         result.generation = store_.config_sequence();
+        result.manual_ppb = result.ppb;
         const auto& gps = store_.config()->gps;
         const bool automatic = boot_engine_ == hardware::PinPlan::Engine::Direct
             ? gps && gps->automatic_rf_calibration
@@ -77,6 +79,8 @@ FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection() const {
                 gps_calibration_->oscillator_error_ppb, result.ppb);
             if (!corrected) { result.valid = false; return result; }
             result.ppb = *corrected;
+            result.input = *gps_calibration_;
+            result.selected_raw_ns = gps_now_;
             result.generation = gps_calibration_->generation;
             result.observed_raw_ns = gps_calibration_->observed_raw_ns;
             result.uncertainty_ppb = gps_calibration_->uncertainty_at(gps_now_);
@@ -86,6 +90,18 @@ FrequencyPolicyEngine::Selection FrequencyPolicyEngine::selection() const {
 }
 std::string FrequencyPolicyEngine::calibration_status(std::uint64_t) const {
     const auto next = selection();
+    std::string prepared_input = "null";
+    if (frozen_ && frozen_->automatic && frozen_->input) {
+        const auto& input = *frozen_->input;
+        prepared_input = "{\"job_id\":" + wtp::json::quote(prepared_job_id_) +
+            ",\"manual_correction_ppb\":" + std::to_string(frozen_->manual_ppb) +
+            ",\"oscillator_error_ppb\":" + std::to_string(input.oscillator_error_ppb) +
+            ",\"uncertainty_ppb\":" + std::to_string(input.uncertainty_ppb) +
+            ",\"observed_raw_ns\":\"" + std::to_string(input.observed_raw_ns) +
+            "\",\"span_ns\":\"" + std::to_string(input.span_ns) +
+            "\",\"generation\":\"" + std::to_string(input.generation) +
+            "\",\"selected_raw_ns\":\"" + std::to_string(frozen_->selected_raw_ns) + "\"}";
+    }
     // Retain the v1 diagnostic shape, with no runnable or qualified NTP input.
     time::RateEstimate rejected;
     rejected.reason = "ntp_rf_rejected";
@@ -101,6 +117,7 @@ std::string FrequencyPolicyEngine::calibration_status(std::uint64_t) const {
            (frozen_ ? std::to_string(frozen_->ppb) : "null") +
            ",\"prepared_source\":" + (frozen_ ? wtp::json::quote(frozen_->automatic ? "gps" : "manual") : "null") +
            ",\"prepared_generation\":" +
-           (frozen_ ? wtp::json::quote(std::to_string(frozen_->generation)) : "null") + "}";
+           (frozen_ ? wtp::json::quote(std::to_string(frozen_->generation)) : "null") +
+           ",\"prepared_input\":" + prepared_input + "}";
 }
 } // namespace wsprrypico::standalone

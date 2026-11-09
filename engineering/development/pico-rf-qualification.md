@@ -29,13 +29,7 @@ has an additional finite carrier gate. Live WSPR qualification currently uses
 ordinary Type 1 station messages; paired Type 2/3 plans are refused before
 USB access because the maintained decode identity classifier is Type 1.
 
-GPS disablement is observed in firmware; physical cable removal is unnecessary.
-GPS-enabled rows require usable paired serial/PPS/time observations. Manual
-trim, automatic RF correction, UTC discipline, and receiver-only calibration
-are separate dimensions. Automatic correction requires the product's qualified
-observations and matching frozen job provenance, with no manual fallback.
-Si5351 correction uses the existing CLK2/input-only GP7 feedback and supported
-hardware profile.
+GPS disablement is observed in firmware; physical cable removal is unnecessary. GPS-enabled rows require usable paired serial/PPS/time observations. Manual trim, automatic RF correction, UTC discipline, and receiver-only calibration are separate dimensions. Automatic correction requires the product's qualified observations and matching frozen job provenance, with no manual fallback. The RF calibration diagnostic retains the complete automatic input with the accepted job, independently of later GPS estimates. Its [closed schema](../protocol/rf-calibration-diagnostics.schema.json) defines the job ID, manual residual, measured oscillator error, base uncertainty, observation time, measurement span, generation, and selection time. The selection time is the raw timer instant used by the freshness check. A calibration boundary retires the record; manual preparation has no automatic input. External validators check job/device/boot binding, signed residual arithmetic, age and uncertainty growth at selection, and the retained observations bracketing LOAD. Polling need not encounter the intervening generation selected during preparation. Si5351 correction uses the existing CLK2/input-only GP7 feedback and supported hardware profile.
 
 ## Setup and execution boundaries
 
