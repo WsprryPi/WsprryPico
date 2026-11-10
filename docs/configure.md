@@ -83,7 +83,15 @@ The **NTP update timeout: Continue without a valid NTP update for (minutes).** c
 (automatic-beacon-schedule)=
 ### Automatic beacon schedule
 
-In **Time and calibration**, choose **All day**, **Daylight only**, or **Night only** under **Automatic beacon schedule**. All day is the default. Daylight and night policies require GPS input, usable GPS position, and UTC; without them, automatic WSPR and keyed-message schedules wait. This policy does not enable a schedule or change its interval.
+In **Time and calibration**, use **Automatic beacon schedule** to limit when the Pico starts scheduled WSPR and repeating keyed-message transmissions.
+
+- **All day** (default): Allow scheduled starts at any time of day or night. This option adds no GPS requirement.
+- **Daylight only**: Allow scheduled starts during daylight at the GPS location, from calculated sunrise to sunset.
+- **Night only**: Allow scheduled starts at night at the GPS location, from calculated sunset to sunrise.
+
+Use the daylight or night options to compare reception under different conditions or to limit an unattended beacon to the part of the day you want to monitor. The Pico follows seasonal changes in sunrise and sunset without a local time zone or daylight-saving setting. It skips occurrences outside the selected period and does not make them up later. This setting does not enable a schedule, change its interval, or stop a transmission that has already been accepted.
+
+**Daylight only** and **Night only** require GPS to be enabled, a usable GPS position, and usable UTC. The Pico uses GPS latitude and longitude for the solar calculation even when **Use saved manual locator** is selected for the WSPR message. UTC from NTP can supply the time, but it cannot supply the position. If the Pico has no usable GPS position, it withholds new scheduled starts until one is available again.
 
 Choose **Save RF output settings** to save this policy together with the current GPS and RF output entries, then restart explicitly to activate it. Review any pending Radio pins edits before saving. If validation reveals a conflicting entry, correct the indicated control before trying again.
 
@@ -143,7 +151,12 @@ With the option disabled, GPS serial and position observations remain available,
 
 Receiving serial data or finding satellites does not establish the UTC/PPS association. Enter conservative timing allowances for the receiver and cable, and a separate timestamp error allowance. The hardware counter measures IRQ delivery latency and removes it from the PPS timestamp. Status reports the latest and maximum IRQ latency, the timestamp error bound, and rejected captures. Counter wrap, an interrupt gap, or a changed clock configuration forces fresh acquisition.
 
-Choose **Use saved manual locator** or **Use current GPS location**. GPS location leaves the manual locator saved and withholds new GPS-located WSPR transmissions when the fix is absent, invalid, or too old. A complete WSPR plan, including both frames of a pair, keeps its original locator. Configure the [automatic beacon schedule policy](#automatic-beacon-schedule) under **Time and calibration**.
+The location selection controls which grid locator standalone WSPR sends:
+
+- **Use saved manual locator** sends the grid entered under [Station identity](#station-identity). Use it when operating at a known location, including without GPS.
+- **Use current GPS location** derives the grid from the GPS fix. Use it when the station moves between locations. The Pico keeps the manual locator saved but withholds new GPS-located WSPR transmissions when the fix is absent, invalid, or too old.
+
+A complete WSPR plan, including both frames of a pair, keeps its original locator. The [automatic beacon schedule](#automatic-beacon-schedule) is a separate setting: its daylight and night options use GPS position with either WSPR locator choice.
 
 **Automatic direct GPIO RF correction** requires qualified PPS and a verified shared oscillator. For the Si5351 engine, use its separate automatic-correction control and a configured CLK2 loopback. The GPS section reports Pico clock and Si5351 reference measurements separately. A positive error means a fast oscillator. With automatic correction enabled, the saved manual correction is a residual trim; it is applied once when the job is prepared. Missing, expired, or conflicting calibration withholds a new job. An accepted job or WSPR pair keeps its correction.
 
