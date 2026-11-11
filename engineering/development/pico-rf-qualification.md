@@ -43,7 +43,9 @@ Keep private run bundles outside Git. They retain the requested/frozen plan, com
 
 The [network diagnostic schema](../protocol/network-diagnostics.schema.json) describes the full platform network observations carried by `ntp-observations`. It is separate from the shared control-resource schema and preserves the independent μChrony diagnostic identifiers. Campaign validators check the selected source's exact diagnostic schema and reject missing fields, unknown fields and malformed nested observations.
 
-Software fixture success, rehearsal, and synthetic IQ establish no physical USB, RP2350 timing, installed-image, or RF acceptance. Live results are specific to the recorded board, engine, band, modes, clock/correction state, receiver, and conducted path. Decode success is not spectral compliance or calibrated power. The [RC.2 checklist](rc2-release-checklist.md) separates Harness delivery, exact-artifact physical qualification, and publication.
+Software fixture success, rehearsal, and synthetic IQ establish no physical USB, RP2350 timing, installed-image, or RF acceptance. Live results are specific to the recorded board, engine, band, modes, clock/correction state, receiver, and conducted path. Decode success is not spectral compliance or calibrated power.
+
+RC.2 release preparation is closed, and the prerelease is published for user testing. Physical installation/preservation and RF acceptance of that exact published image were not performed. Earlier candidate results apply only to their recorded images. Any further physical qualification is a separately selected campaign under this guide, rather than an open release-preparation checklist. The [publication guide](prepared-publication.md#rc2-published-artifact-provenance) retains the exact published artifact identities.
 
 The [Si5351 investigation disposition](gps-pps-validation.md#bounded-investigation-closure-2026-11-08) is finally closed as inconclusive and resolution-limited. Automatic correction remains available for experimentation. Campaigns verify its selected operation without requiring it to improve accuracy or expanding acquisition windows.
 
