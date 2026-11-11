@@ -140,7 +140,18 @@ void invalid_is_atomic() {
     auto legacy_unknown = m.complete_update();
     legacy_unknown.body.insert(legacy_unknown.body.size() - 1, ",\"future\":false");
     reject(legacy_unknown, 400);
-    // A small partial request can produce an oversized raw complete candidate.
+    legacy_unknown = m.complete_update();
+    const auto wifi = legacy_unknown.body_text().find("\"ssid\"");
+    legacy_unknown.body.insert(wifi, "\"future\":false,");
+    reject(legacy_unknown, 400);
+    auto exact = network_test::control_request(m.update(R"({"enabled":false})"));
+    exact.body.resize(application::max_config_update_bytes, ' ');
+    REQUIRE(m.call(exact).status == 200);
+}
+void expanded_candidate_limits() {
+    Member m;
+    // Escaping expands the raw candidate beyond the former 1,800-byte limit,
+    // but a valid update within the advertised 4,096-byte limit must save.
     std::string host;
     for (unsigned label = 0; label < 4; ++label) {
         if (label)
@@ -151,16 +162,41 @@ void invalid_is_atomic() {
     std::string escaped;
     for (char c : host)
         escaped += c == 'a' ? "\\u0061" : ".";
-    auto result_too_large = m.update("{\"wifi\":{\"ntp_ipv4\":\"" + escaped + "\"}}");
-    REQUIRE(result_too_large.body.size() <= application::max_config_update_bytes);
-    reject(result_too_large, 400);
-    legacy_unknown = m.complete_update();
-    const auto wifi = legacy_unknown.body_text().find("\"ssid\"");
-    legacy_unknown.body.insert(wifi, "\"future\":false,");
-    reject(legacy_unknown, 400);
-    auto exact = network_test::control_request(m.update(R"({"enabled":false})"));
-    exact.body.resize(application::max_config_update_bytes, ' ');
-    REQUIRE(m.call(exact).status == 200);
+    const auto patch = "{\"wifi\":{\"ntp_ipv4\":\"" + escaped + "\"}}";
+    const auto parsed = wtp::json::parse(patch);
+    REQUIRE(parsed);
+    auto candidate = application::config_candidate(*parsed, m.f.store.config(),
+                                                   application::ConfigWrite::Merge, true, true);
+    REQUIRE(candidate && candidate->size() > 1800 &&
+            candidate->size() <= standalone::max_config_bytes);
+    const auto update = m.update(patch);
+    REQUIRE(update.body.size() <= application::max_config_update_bytes);
+    REQUIRE(m.call(update).status == 200);
+    REQUIRE(m.f.store.config()->ntp_ipv4 == host);
+    standalone::Store reload(m.f.flash);
+    REQUIRE(reload.load() && reload.config() == m.f.store.config());
+
+    // Test the candidate builder's independent byte budget at its exact edge.
+    // The HTTP request budget above remains a separate, smaller limit.
+    std::string schedules = R"({"schedules":[{"period_s":120,"phase_s":0}]})";
+    auto schedule_document = wtp::json::parse(schedules);
+    REQUIRE(schedule_document);
+    candidate = application::config_candidate(*schedule_document, m.f.store.config(),
+                                               application::ConfigWrite::Merge, true, true);
+    REQUIRE(candidate && candidate->size() < standalone::max_config_bytes);
+    schedules.insert(schedules.find('[') + 1,
+                     standalone::max_config_bytes - candidate->size(), ' ');
+    schedule_document = wtp::json::parse(schedules);
+    REQUIRE(schedule_document);
+    candidate = application::config_candidate(*schedule_document, m.f.store.config(),
+                                               application::ConfigWrite::Merge, true, true);
+    REQUIRE(candidate && candidate->size() == standalone::max_config_bytes &&
+            standalone::parse_config(*candidate));
+    schedules.insert(schedules.find('[') + 1, 1, ' ');
+    schedule_document = wtp::json::parse(schedules);
+    REQUIRE(schedule_document);
+    REQUIRE(!application::config_candidate(*schedule_document, m.f.store.config(),
+                                           application::ConfigWrite::Merge, true, true));
 }
 void revisions_pending_and_storage() {
     Member m;
@@ -372,6 +408,7 @@ int main(int argc, char** argv) {
     creation_and_stale_revision();
     merge_and_replace_refusal();
     invalid_is_atomic();
+    expanded_candidate_limits();
     revisions_pending_and_storage();
     paged_and_password();
     ownership_and_restart_exclusions();
