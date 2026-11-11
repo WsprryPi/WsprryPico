@@ -8,11 +8,11 @@
       "inputs": {
         "locked-controls.js": "17d657eb75f51f840f320fefd8cc6c7f98ee2ca9fb36d42b741b7b05ad091320",
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
-        "control-contract.js": "1c6bcab60fd1e77511ffc1cede644db4085bc7abe71a753b13d03e7a63c65302",
+        "control-contract.js": "df25ca91059e53018cc1991763fee423be9edee1c5ef200bd88373ac913ec0a2",
         "si5351.js": "c0325caa6eebb5281bfa92843011312dd9fb87d5adaed86a5bebb7c6a001e889",
-        "gps.js": "9b57dcdb62df630cba72854479fb8a4458e761e64fd93108e97cf5da43c6fdcf",
+        "gps.js": "1d9a53e7e89aa6e12da1c73c65229998d9f10bf2a290185e258bf7db2bc5ad29",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
-        "operations.js": "b1e3d4c42f45a5924aa751dca452b6cf3e54c9cea6b285fc05fbc4094abc1b78",
+        "operations.js": "e8462dadda959d1344bba496a96951975c949d04b4175d463de61c738a4ae9b2",
         "standalone-frequency.js": "690df1c89b02c8075f149b1d48644dee0c2fb8f87d923303822bc804766c1c7e",
         "rf-calibration.js": "636d0f9a2555e84357de4c1faf7b387c74e8441bfad59f9faa225e383e914628",
         "amplifier-enable.js": "40d804e65e7f9a0889d2188e5139880c72a65914c9153c1ee11cf6869ba37e08",
@@ -22,11 +22,11 @@
         "ntp-timeout.js": "470a14f62560f2e4b6af39cb4a61f518a8e9700648da865fe6ba564f350093fc",
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
-        "message-schedule.js": "e7eaae7bef7c033031b98541c1a81229e143bb0bbd7627484fbb561ee4278ccc",
-        "app.js": "db176fbec0a0c81bf71676955f29d903eb9c73b4fe82e1ce5612853bd5b8d174"
+        "message-schedule.js": "eee46ee321424f4d7834b9ef785bafd1bdbf89800d83904bb4880fc9edfb85bf",
+        "app.js": "3cd3af7198336f00d348c134ef9626d53d6f1b8a3f60b04dae5a0c480a590e47"
       },
-      "sha256": "60f0e9d0a8f86aee46ae5004a131f4bb86efc4bc7c28fb68a24de9edb45a293d",
-      "bytes": 281894
+      "sha256": "4f69903d1feb2237dd50384b0a754abe925f8fb145949581512462c06c12c2e3",
+      "bytes": 284684
     },
     "config-validation.min.js": {
       "inputs": {

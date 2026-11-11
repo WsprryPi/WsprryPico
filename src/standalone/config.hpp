@@ -16,7 +16,7 @@ namespace wsprrypico::standalone {
 inline constexpr unsigned default_ntp_timeout_s = 3600;
 inline constexpr unsigned minimum_ntp_timeout_s = 60;
 inline constexpr unsigned maximum_ntp_timeout_s = 86400;
-inline constexpr std::size_t max_config_bytes = 1800;
+inline constexpr std::size_t max_config_bytes = 4096;
 inline constexpr char default_time_server[] = "pool.ntp.org";
 struct Schedule {
     std::uint32_t period_s = 0, phase_s = 0;

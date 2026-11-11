@@ -38,6 +38,21 @@ bool clock_ready(const wtp::ClockSnapshot& now, const wtp::ServiceConfig& config
              now.sync_age_ns <= config.maximum_holdover_age_ns)) &&
            now.utc_now_ns >= time::sntp_min_utc_ns && now.utc_now_ns < time::sntp_max_utc_ns;
 }
+std::optional<time::gps::Position> grid_center(std::string_view grid) {
+    if (!encoding::valid_station_locator(grid))
+        return {};
+    // The first pair selects a 20° × 10° field, the digits select a 2° × 1°
+    // square, and the optional last pair divides that square into 24 per axis.
+    const auto center = [grid](unsigned axis, std::int32_t width_e7, std::int32_t origin_e7) {
+        const auto square = 10 * (grid[axis] - 'A') + (grid[axis + 2] - '0');
+        const auto offset = grid.size() == 4
+                                ? width_e7 / 2
+                                : (2 * (grid[axis + 4] - 'A') + 1) * width_e7 / 48;
+        return static_cast<std::int32_t>(origin_e7 + std::int64_t(square) * width_e7 + offset);
+    };
+    return time::gps::Position{center(1, 10'000'000, -900'000'000),
+                               center(0, 20'000'000, -1'800'000'000), 0};
+}
 } // namespace
 Scheduler::Scheduler(Store& store, wtp::JobService& service) : store_(store), service_(service) {
     active_filters_ = store_.filters();
@@ -63,14 +78,24 @@ std::optional<Config> Scheduler::station_snapshot(const Config& saved) const {
     result.locator = locator->data();
     return result;
 }
-bool Scheduler::daylight_allowed(std::uint64_t utc, std::uint64_t raw) const {
+Scheduler::BeaconWindow Scheduler::beacon_window(std::uint64_t utc, std::uint64_t raw) const {
+    using Daylight = hardware::GpsSettings::Daylight;
     const auto& config = store_.config();
-    if (!config || !config->gps || config->gps->daylight == hardware::GpsSettings::Daylight::Always)
-        return true;
-    if (!config->gps->enabled || !gps_position_ || raw < gps_position_->observed_raw_ns ||
-        raw - gps_position_->observed_raw_ns > config->gps->position_maximum_age_s * ns) return false;
-    const auto day = time::gps::daylight(*gps_position_, utc);
-    return day && (*day == (config->gps->daylight == hardware::GpsSettings::Daylight::Day));
+    if (!config || !config->gps || config->gps->daylight == Daylight::Always)
+        return BeaconWindow::Open;
+    const auto& gps = *config->gps;
+    std::optional<time::gps::Position> position;
+    if (gps.daylight_uses_gps()) {
+        if (!gps.enabled || !gps_position_ || raw < gps_position_->observed_raw_ns ||
+            raw - gps_position_->observed_raw_ns > gps.position_maximum_age_s * ns)
+            return BeaconWindow::FixUnavailable;
+        position = gps_position_;
+    } else {
+        position = grid_center(config->locator);
+    }
+    const auto day = position ? time::gps::daylight(*position, utc) : std::nullopt;
+    const bool requires_daylight = gps.daylight == Daylight::Day || gps.daylight == Daylight::DayManual;
+    return day && *day == requires_daylight ? BeaconWindow::Open : BeaconWindow::Closed;
 }
 wtp::Response Scheduler::request(std::string_view operation, wtp::RequestBody body) {
     wtp::Request r;
@@ -171,6 +196,8 @@ void Scheduler::poll() {
         return;
     }
     const auto final_slot = candidate + (plan->count - 1) * slot_duration;
+    if (plan->count == 2 && !daylight_allowed(final_slot, now.monotonic_now_ns))
+        return;
     const auto expiry = c.expires_utc_s * ns;
     // Include the second frame's entire accepted launch second for a pair.
     // Keep the previously accepted single-frame admission policy unchanged.
@@ -224,20 +251,21 @@ std::uint64_t Scheduler::message_lead_ns() const {
     return minimum > UINT64_MAX - ns ? UINT64_MAX : std::max(message_preparation_ns, minimum + ns);
 }
 std::optional<std::uint64_t> Scheduler::next_message_start() const {
-    return next_message_start_impl(false);
+    const auto now = service_.clock_snapshot();
+    const auto candidate = next_message_candidate(now);
+    return candidate && daylight_allowed(*candidate, now.monotonic_now_ns) ? candidate : std::nullopt;
 }
-std::optional<std::uint64_t> Scheduler::next_message_start_impl(bool ignore_gps_policy) const {
+std::optional<std::uint64_t> Scheduler::next_message_candidate(const wtp::ClockSnapshot& now) const {
     if (!store_.healthy() || !store_.message_schedule() || !store_.message_schedule()->enabled ||
         suspended_ || message_pause_pending_ || message_recovery_required() || reboot_required_)
         return {};
-    const auto now = service_.clock_snapshot();
     if (!clock_ready(now, service_.config()) || message_lead_ns() > time::sntp_max_utc_ns ||
         now.utc_now_ns > time::sntp_max_utc_ns - message_lead_ns())
         return {};
     const auto& schedule = *store_.message_schedule();
     const auto next =
         next_message_slot(schedule, now.utc_now_ns + message_lead_ns(), store_.watermark());
-    if (!next || (!ignore_gps_policy && !daylight_allowed(*next, now.monotonic_now_ns)))
+    if (!next)
         return {};
     const auto measured = encoding::measure_message(schedule.message, service_.config().max_events,
                                                     service_.config().max_job_duration_ns);
@@ -286,13 +314,17 @@ std::optional<std::uint64_t> Scheduler::next_wspr_start() const {
         (c.expires_utc_s &&
          (candidate >= c.expires_utc_s * ns || tail > c.expires_utc_s * ns - candidate)))
         return {};
-    if (!daylight_allowed(candidate, now.monotonic_now_ns)) return {};
+    if (!daylight_allowed(candidate, now.monotonic_now_ns) ||
+        (plan->count == 2 && !daylight_allowed(candidate + slot_duration, now.monotonic_now_ns)))
+        return {};
     return candidate;
 }
 std::string Scheduler::message_status() const {
     const auto& schedule = store_.message_schedule();
     const auto now = service_.clock_snapshot();
-    auto next = next_message_start();
+    const auto candidate = next_message_candidate(now);
+    const auto window = candidate ? beacon_window(*candidate, now.monotonic_now_ns) : BeaconWindow::Open;
+    auto next = window == BeaconWindow::Open ? candidate : std::nullopt;
     if (message_job_ && service_.activity().state == wtp::State::Armed)
         next = store_.last_message_start();
     std::string state = "not_configured";
@@ -317,8 +349,12 @@ std::string Scheduler::message_status() const {
                                             service_.config().max_job_duration_ns)
                       .error.empty())
             state = "unavailable";
-        else if (!next)
-            state = next_message_start_impl(true) ? "waiting" : "expired";
+        else if (!candidate)
+            state = "expired";
+        else if (window == BeaconWindow::FixUnavailable)
+            state = "waiting_for_gps_fix";
+        else if (window == BeaconWindow::Closed)
+            state = "waiting_for_beacon_window";
         else
             state = idle() ? "waiting" : "waiting_for_transmitter";
     }

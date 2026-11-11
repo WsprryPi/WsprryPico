@@ -45,7 +45,7 @@ def configuration(path, enable_schedule, now):
                     not now < expiry <= now + 3600):
                 raise ValueError()
         text = json.dumps(value, separators=(",", ":"), ensure_ascii=True)
-        if len(text) > 1800:
+        if len(text) > 4096:
             raise ValueError()
         return "CONFIG " + text
     except (OSError, ValueError, TypeError):

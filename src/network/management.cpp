@@ -31,7 +31,7 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
            "],\"unsupported\":[\"plain_wtp_json\",\"tls_wtp_json\",\"ble_json\"]," +
            "\"operations\":" + std::string(control_operations) +
            ",\"limits\":{\"http_body\":32768,"
-           "\"consumer_plaintext\":32724,\"config\":1800,\"update\":2048,\"login_ms\":" +
+           "\"consumer_plaintext\":32724,\"config\":4096,\"update\":2048,\"login_ms\":" +
            std::to_string(ConsumerRadioApi::login_ms) +
            ",\"idle_ms\":" + std::to_string(ConsumerRadioApi::idle_ms) +
            ",\"absolute_ms\":" + std::to_string(ConsumerRadioApi::absolute_ms) +

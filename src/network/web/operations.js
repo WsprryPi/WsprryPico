@@ -139,6 +139,8 @@
         blockers.push('Schedule expired; review its UTC end time.');
       if(!occupied && j.state!=='failed' && !j.output_active && j.owner_id) blockers.push(j.owner_id===session?'This browser holds the transmitter; choose Release control for standalone schedules.':'Another controller holds the transmitter; release it through that controller.');
       if(m.saved?.enabled && m.state==='unavailable') blockers.push('Message schedule unavailable; review its settings.');
+      if(m.saved?.enabled && Object.hasOwn(root.WsprryMessageSchedule.blocked,m.state))
+        blockers.push(root.WsprryMessageSchedule.blocked[m.state]);
     }
     if(wsprFailure) blockers.push('WSPR occurrence failed ('+s.last_error.code+'); skipped without retry. Review station, clock and transmitter settings.');
     if(m.saved?.enabled && m.last_error && !occupied) blockers.push('Message occurrence failed ('+m.last_error.code+'); review its saved result.');

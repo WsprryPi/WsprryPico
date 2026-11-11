@@ -61,7 +61,7 @@ std::string amplifier_observation(const rf::AmplifierObservation& o) {
 }
 std::string capabilities() {
     return "{\"application_read\":true,\"station_write\":true,\"hardware_write\":true,"
-           "\"max_update_bytes\":1024,\"max_config_bytes\":1800,"
+           "\"max_update_bytes\":1024,\"max_config_bytes\":4096,"
            "\"hardware_activation\":\"restart\",\"station_encoding\":\"wspr_type123_auto\","
            "\"station_power_meaning\":\"reported_wspr_dbm\","
            "\"recurrence_authorities\":[\"member\"],\"autonomous_modes\":[\"wspr\"],"

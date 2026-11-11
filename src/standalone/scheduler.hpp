@@ -103,8 +103,12 @@ class Scheduler {
                        const std::array<std::uint64_t, 4>& tones);
     void cancel_pair(wtp::ErrorCode reason);
     void poll_pair();
-    bool daylight_allowed(std::uint64_t utc_ns, std::uint64_t raw_ns) const;
-    std::optional<std::uint64_t> next_message_start_impl(bool ignore_gps_policy) const;
+    enum class BeaconWindow { Open, Closed, FixUnavailable };
+    BeaconWindow beacon_window(std::uint64_t utc_ns, std::uint64_t raw_ns) const;
+    bool daylight_allowed(std::uint64_t utc_ns, std::uint64_t raw_ns) const {
+        return beacon_window(utc_ns, raw_ns) == BeaconWindow::Open;
+    }
+    std::optional<std::uint64_t> next_message_candidate(const wtp::ClockSnapshot&) const;
     std::optional<time::gps::Position> gps_position_;
     std::optional<TransmissionStation> prepared_station_;
     struct Pair {

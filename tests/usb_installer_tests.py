@@ -995,7 +995,9 @@ class InstalledBundleHandoffTests(unittest.TestCase):
                     'firmware': manifest['firmware_version'] if new or failure == 'public' else '0.0.0-devel',
                     'source_revision': 'f'*12 if failure == 'ancestry' and not new else source[:12], 'status': {'job': {'state': 'empty',
                     'output_active': False, 'owner_id': None}, 'standalone': {'suspended': False, 'watermark_utc_ns': '7'}},
-                    'config': {'config': {'enabled': False}}, 'progress': {'fields': {}, 'draft_revision': '3'}, 'hostname': {'saved': 'fixture.local'},
+                    'config': {'config': {'enabled': False, **({'gps': {'daylight': 'night_manual'}}
+                               if failure == 'saved-grid' else {})}},
+                    'progress': {'fields': {}, 'draft_revision': '3'}, 'hostname': {'saved': 'fixture.local'},
                     'frequency': {'frequency_hz': None}, 'calibration': {'saved': None}}
 
         class Tool:
@@ -1064,8 +1066,10 @@ class InstalledBundleHandoffTests(unittest.TestCase):
                  patch.object(installer, 'public_snapshot', side_effect=snapshot), \
                  patch.object(installer, 'Management', Management):
                 if failure:
-                    with self.assertRaises((installer.Refusal, installer.TransactionFailure)):
+                    with self.assertRaises((installer.Refusal, installer.TransactionFailure)) as caught:
                         installer.transaction(args, files, manifest, new_image, BaselineNetwork())
+                    if failure == 'saved-grid':
+                        self.assertIn('cannot read configured GPS and beacon settings', str(caught.exception))
                     self.assertFalse(any(c[0]=='load' for c in calls))
                     self.assertEqual(reference.read_text(), 'stale reference must survive refusal')
                     if failure != 'flash':
@@ -1089,8 +1093,55 @@ class InstalledBundleHandoffTests(unittest.TestCase):
         self.run_upgrade(retained=False)
 
     def test_wrong_source_hash_flash_or_public_baseline_never_programs_or_repairs(self):
-        for failure in ('source', 'hash', 'flash', 'public', 'embedded', 'ancestry', 'symlink'):
+        for failure in ('source', 'hash', 'flash', 'public', 'embedded', 'ancestry', 'saved-grid', 'symlink'):
             with self.subTest(failure=failure): self.run_upgrade(failure=failure)
+
+    def test_saved_grid_image_admission_uses_linked_storage_support(self):
+        for policy in ('always', 'day', 'night', 'day_manual', 'night_manual'):
+            snapshot = {'config': {'config': {'gps': {'daylight': policy}}}}
+            with self.assertRaisesRegex(installer.Refusal, 'cannot read configured GPS and beacon settings'):
+                installer.admit_saved_grid_storage(snapshot, b'old firmware')
+            with self.assertRaisesRegex(installer.Refusal, 'cannot read configured GPS and beacon settings'):
+                installer.admit_saved_grid_storage(snapshot, b'WsprryPico saved-grid daylight storage 1\0')
+            with self.assertRaisesRegex(installer.Refusal, 'cannot read configured GPS and beacon settings'):
+                installer.admit_saved_grid_storage(snapshot, b'WsprryPico saved-grid daylight storage 2\0')
+            with self.assertRaisesRegex(installer.Refusal, 'cannot read configured GPS and beacon settings'):
+                installer.admit_saved_grid_storage(snapshot, b'WsprryPico saved-grid daylight storage 3\0')
+            installer.admit_saved_grid_storage(snapshot, b'WsprryPico GPS and beacon storage 4\0')
+        installer.admit_saved_grid_storage({'config': {'config': {}}}, b'old firmware')
+
+    def test_firmware_plan_checks_linked_control_schema_before_publishing_bundle(self):
+        files, manifest, _ = fixture(modern=True)
+        digest = 'a' * 64
+        prefix = b'WsprryPico Control schema sha256 '
+        marker = prefix + digest.encode() + b'\0'
+        with tempfile.TemporaryDirectory() as temp:
+            for i, image in enumerate((b'RC.2', prefix + b'b' * 64 + b'\0', marker * 2, marker[:-1], marker)):
+                with self.subTest(image=image):
+                    output = Path(temp) / str(i)
+                    with patch.object(installer, 'resolve', return_value=(files, manifest, image)), \
+                         patch.object(installer, 'recent_ci', return_value={}), \
+                         contextlib.redirect_stdout(io.StringIO()) as stream:
+                        code = installer.main(['plan', '--output', str(output), '--require-control-sha256', digest])
+                    result = json.loads(stream.getvalue())
+                    if image == marker:
+                        self.assertEqual(code, 0)
+                        self.assertEqual(result['control_schema_sha256'], digest)
+                        self.assertTrue(output.is_dir())
+                    else:
+                        self.assertEqual(code, 2)
+                        self.assertIn('does not match', result['error'])
+                        self.assertFalse(output.exists())
+
+    def test_upgrade_rechecks_linked_control_schema_before_programming(self):
+        with patch.object(installer, 'selected', return_value={'serial': SERIAL, 'mode': 'application', 'parent': 'port'}), \
+             patch.object(installer, 'resolve', return_value=({}, {}, b'older or replaced image')), \
+             patch.object(installer, 'transaction', side_effect=AssertionError('must not reach programming')), \
+             contextlib.redirect_stdout(io.StringIO()) as stream:
+            code = installer.main(['upgrade', '--device', SERIAL, '--board', 'pico2_w', '--yes',
+                                   '--require-control-sha256', 'a' * 64])
+        self.assertEqual(code, 2)
+        self.assertFalse(json.loads(stream.getvalue())['recovery_required'])
 
     def test_installed_bundle_is_upgrade_only_before_discovery_or_download(self):
         for operation in ('plan', 'install', 'recover', 'snapshot', 'erase', 'discover'):

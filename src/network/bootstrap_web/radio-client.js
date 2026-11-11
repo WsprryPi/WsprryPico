@@ -143,7 +143,7 @@ export class RadioClient {
       for (let attempt=0;attempt<2;attempt++) {
         const result=await this.request('management'),value=await result.json();
         const identity=this.identityContext,current=await this.identity(),target=value?.target,limits=value?.limits;
-        const maximum={http_body:32768,consumer_plaintext:32724,config:1800,update:2048,login_ms:60000,idle_ms:86400000,absolute_ms:86400000,consumer_sessions:16,consumer_pending_logins:16};
+        const maximum={http_body:32768,consumer_plaintext:32724,config:4096,update:2048,login_ms:60000,idle_ms:86400000,absolute_ms:86400000,consumer_sessions:16,consumer_pending_logins:16};
         const selected=value.selected;
         const knownCarriers=['engineering_mtls','engineering_field','consumer_station','consumer_ap','usb_physical'];
         if(!result.ok || value.contract!==globalThis.WsprryControl.contract || value.schema!=='management' ||

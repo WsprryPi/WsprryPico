@@ -121,11 +121,112 @@ bool Journal::append(std::string_view data) {
     return true;
 }
 namespace {
+using Daylight = hardware::GpsSettings::Daylight;
+constexpr const char* gps_fields[] = {
+    "enabled", "receiver", "rx_gp", "pps_gp", "tx_gp", "baud", "pps_active_high",
+    "pairing_qualified", "utc_second_offset", "pps_offset_ns", "minimum_message_delay_ms",
+    "maximum_message_delay_ms", "receiver_uncertainty_us", "capture_uncertainty_us",
+    "location", "position_maximum_age_s", "automatic_rf_calibration", "calibration_maximum_age_s"};
+constexpr const char* beacon_policies[] = {"always", "day", "night", "day_manual", "night_manual"};
+
+// Storage marker 4 replaces the private version field with a one-byte policy.
+// Only GPS fields that differ from its fixed storage defaults occupy flash.
+std::string stored_config(const Config& config) {
+    if (!config.gps)
+        return serialize_config(config);
+    const auto default_text = hardware::serialize_gps({});
+    const auto supplied_text = hardware::serialize_gps(*config.gps);
+    const auto defaults = *wtp::json::parse(default_text), supplied = *wtp::json::parse(supplied_text);
+    std::string sparse = "{";
+    for (const auto name : gps_fields) {
+        const auto value = supplied.get(name)->raw;
+        if (value == std::string(defaults.get(name)->raw))
+            continue;
+        if (sparse.size() > 1)
+            sparse += ',';
+        sparse += wtp::json::quote(name) + ":" + std::string(value);
+    }
+    sparse += '}';
+    auto base = config;
+    base.gps.reset();
+    auto text = serialize_config(base);
+    text.replace(0, std::string_view("{\"version\":1").size(),
+                 "{\"beacon\":" + std::to_string(static_cast<unsigned>(config.gps->daylight)));
+    if (sparse != "{}") {
+        text.pop_back();
+        text += ",\"gps\":" + sparse + "}";
+    }
+    return text;
+}
+
+std::optional<Config> parse_stored_config(std::string text) {
+    const auto root = wtp::json::parse(text);
+    const auto gps = root ? root->get("gps") : std::nullopt;
+    const auto version = root ? root->get("version") : std::nullopt;
+    if (const auto beacon = root ? root->get("beacon") : std::nullopt) {
+        if (version || !text.starts_with("{\"beacon\":") || beacon->raw.size() != 1 ||
+            beacon->type() < '0' || beacon->type() > '4' ||
+            (gps && !wtp::json::fields(*gps, {}, {
+                "enabled", "receiver", "rx_gp", "pps_gp", "tx_gp", "baud", "pps_active_high",
+                "pairing_qualified", "utc_second_offset", "pps_offset_ns", "minimum_message_delay_ms",
+                "maximum_message_delay_ms", "receiver_uncertainty_us", "capture_uncertainty_us",
+                "location", "position_maximum_age_s", "automatic_rf_calibration", "calibration_maximum_age_s"})))
+            return {};
+        const auto default_text = hardware::serialize_gps({});
+        const auto defaults = *wtp::json::parse(default_text);
+        std::string expanded = "{";
+        for (const auto name : gps_fields) {
+            if (expanded.size() > 1)
+                expanded += ',';
+            const auto selected = gps ? gps->get(name) : std::nullopt;
+            expanded += wtp::json::quote(name) + ":" +
+                        std::string(selected ? selected->raw : defaults.get(name)->raw);
+        }
+        expanded += ",\"daylight\":" + wtp::json::quote(beacon_policies[beacon->type() - '0']) + "}";
+        const auto timeout = root->get("ntp_timeout_s");
+        const bool unlimited = timeout && timeout->raw == "0";
+        if (gps)
+            text.replace(gps->raw.offset(), gps->raw.size(), expanded);
+        else {
+            text.pop_back();
+            text += ",\"gps\":" + expanded + "}";
+        }
+        text.replace(0, std::string_view("{\"beacon\":0").size(),
+                     unlimited ? "{\"version\":2" : "{\"version\":1");
+        return parse_config(text);
+    }
+    if (version && version->raw.size() == 1 && version->type() >= '3' && version->type() <= '6') {
+        const auto digit = version->type();
+        const auto policy = digit <= '4' ? Daylight::DayManual : Daylight::NightManual;
+        text[version->raw.offset()] = digit == '3' || digit == '5' ? '1' : '2';
+        if (gps) {
+            const auto field = gps->get("daylight");
+            if (!field || field->raw != "\"day\"")
+                return {};
+            text.replace(field->raw.offset(), field->raw.size(),
+                         policy == Daylight::DayManual ? "\"day_manual\"" : "\"night_manual\"");
+        }
+        auto decoded = parse_config(text);
+        if (decoded && !gps) {
+            decoded->gps.emplace();
+            decoded->gps->daylight = policy;
+        }
+        return decoded;
+    }
+    // Read the compact encoding from earlier candidates as well as full objects.
+    if (gps && (gps->raw == "\"day_manual\"" || gps->raw == "\"night_manual\"")) {
+        hardware::GpsSettings defaults;
+        defaults.daylight = gps->raw == "\"day_manual\"" ? Daylight::DayManual : Daylight::NightManual;
+        text.replace(gps->raw.offset(), gps->raw.size(), hardware::serialize_gps(defaults));
+    }
+    return parse_config(text);
+}
+
 std::string state_record(const std::optional<Config>& config,
                          const std::optional<MessageSchedule>& schedule,
                          logging::Settings logging = {},
                          const hardware::FilterSettings& filters = {}) {
-    const auto c = config ? serialize_config(*config) : "null";
+    const auto c = config ? stored_config(*config) : "null";
     if (filters != hardware::FilterSettings{})
         return "{\"schema\":\"standalone-state/4\",\"config\":" + c + ",\"message_schedule\":" +
                (schedule ? serialize_message_schedule(*schedule) : "null") +
@@ -186,7 +287,7 @@ bool Store::load(bool reset_recovery) {
                        root->get("schema")->string() != "standalone-state/3")
                 return false;
             if (root->get("config")->raw != "null") {
-                current_ = parse_config(std::string(root->get("config")->raw));
+                current_ = parse_stored_config(std::string(root->get("config")->raw));
                 if (!current_)
                     return false;
             }
@@ -201,7 +302,7 @@ bool Store::load(bool reset_recovery) {
             } else if (!logs)
                 return false;
         } else {
-            current_ = parse_config(config_.data());
+            current_ = parse_stored_config(config_.data());
             if (!current_)
                 return false;
         }

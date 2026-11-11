@@ -19,7 +19,10 @@ struct GpsSettings {
     unsigned position_maximum_age_s = 30;
     bool automatic_rf_calibration = false;
     unsigned calibration_maximum_age_s = 3600;
-    enum class Daylight { Always, Day, Night } daylight = Daylight::Always;
+    enum class Daylight { Always, Day, Night, DayManual, NightManual } daylight = Daylight::Always;
+    bool daylight_uses_gps() const {
+        return daylight == Daylight::Day || daylight == Daylight::Night;
+    }
     bool operator==(const GpsSettings&) const = default;
     time::gps::PairingPolicy pairing() const {
         return {pairing_qualified,

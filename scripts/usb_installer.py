@@ -1905,6 +1905,7 @@ def transaction(args, files, manifest, image, client=None):
                     compare = client.api('compare/' + old_source + '...' + new_source)
                     require(compare['status'] == 'ahead' and compare['merge_base_commit']['sha'] == old_source,
                             'Downgrade/diverged source is unsupported for saved storage')
+                admit_saved_grid_storage(snapshot, image)
                 if old_manifest['update'].get('usb_maintenance') != 1:
                     # Legacy applications cannot hold their writers/scheduler.
                     # The operator performs the physical reset; no reset/STOP
@@ -2105,6 +2106,23 @@ def saved_semantics(snapshot):
             # observation, not durable operator state. Configured schedules keep
             # their strict saved suspension comparison.
             'suspended': snapshot['status']['standalone']['suspended'] if config is not None else None}
+
+
+def admit_saved_grid_storage(snapshot, image):
+    config = snapshot['config'].get('config')
+    gps = config.get('gps') if config is not None else None
+    require(gps is None or isinstance(gps, dict), 'Malformed saved GPS settings')
+    if gps is not None:
+        require(b'WsprryPico GPS and beacon storage 4\0' in image,
+                'Selected image cannot read configured GPS and beacon settings. '
+                'Select an image with the current GPS storage support.')
+
+
+def admit_control_schema(image, expected):
+    marker = rb'WsprryPico Control schema sha256 ([0-9a-f]{64})\0'
+    require(re.findall(marker, image) == [expected.encode('ascii')],
+            'The selected Pico image does not match this WsprryPi build’s settings contract. '
+            'Choose a matching Pico image or update WsprryPi.')
 
 
 def admit_snapshot(snapshot):
@@ -2503,6 +2521,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
                         help='Cleanup of installer-managed picotool; backups and unresolved recovery are always retained')
     parser.add_argument('--output', type=Path, help='New private snapshot or verified offline bundle directory')
     parser.add_argument('--bundle', type=Path, help='Previously verified public bundle directory (offline planning/install)')
+    parser.add_argument('--require-control-sha256', help='Require the verified image to embed this canonical settings schema SHA-256')
     parser.add_argument('--state-dir', type=Path, default=Path.home() / '.local/state/wsprrypico-usb')
     parser.add_argument('--transaction', type=Path, help='Exact private transaction.json for explicit same-board recovery')
     parser.add_argument('--json-only', action='store_true', help='Emit JSON and disable terminal prompts and guidance (redirected stdout also retains JSON)')
@@ -2535,6 +2554,9 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 'Replacing unidentified application bytes is an explicit initial-install operation only')
         require(args.installed_bundle is None or args.operation == 'upgrade',
                 '--installed-bundle is only supported for upgrade')
+        require(args.require_control_sha256 is None or
+                (args.operation in ('plan', 'upgrade') and re.fullmatch(HEX64, args.require_control_sha256)),
+                'A settings schema SHA-256 is supported only for firmware plan or upgrade')
         if args.operation in ('install', 'upgrade'):
             require(args.yes, 'Programming requires an explicit operation and --yes')
             require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
@@ -2606,12 +2628,16 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 manifest, image = verify_bundle(files, args.branch)
             else:
                 files, manifest, image = resolve(client, args.branch, args.version, args.stable)
+            if args.require_control_sha256 is not None:
+                admit_control_schema(image, args.require_control_sha256)
             result = {'stage': 'planned', 'branch': args.branch, 'version': manifest['firmware_version'],
                       'source': manifest['source']['revision'], 'workflow': manifest['workflow'],
                       'uf2': candidate_asset(files, manifest),
                       'source_kind': 'local-development' if 'local-build.json' in files else 'canonical-ci',
                       'preserves': 'all reserved flash bytes; public saved state after boot',
                       'requires': 'Pico 2 W, manual BOOTSEL for initial install/recovery, picotool 2.3+ within 2.x with USB support'}
+            if args.require_control_sha256 is not None:
+                result['control_schema_sha256'] = args.require_control_sha256
             if not (args.bundle or args.local_build or args.local_bundle or args.stable):
                 result['recent_ci'] = recent_ci(client, args.branch, manifest)
             if args.operation == 'plan' and args.output:

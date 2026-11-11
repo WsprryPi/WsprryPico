@@ -49,6 +49,11 @@ int64_t led_release_hold(alarm_id_t, void*) {
 
 extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
     "WsprryPico USB maintenance 1 postboot verification 1";
+extern "C" [[gnu::used]] const char wsprrypico_saved_grid_storage[] =
+    "WsprryPico GPS and beacon storage 4";
+#include "network/control_contract.hpp"
+extern "C" [[gnu::used]] const char wsprrypico_control_schema[] =
+    "WsprryPico Control schema sha256 " WSPRRY_PICO_CONTROL_SCHEMA_SHA256;
 #include "pico/cyw43_arch.h"
 #include "pico/time.h"
 #include "pico_adapters.hpp"
@@ -335,6 +340,8 @@ std::string access_reply(wsprrypico::provisioning::AccessCode code) {
 } // namespace
 int main() {
     asm volatile("" : : "r"(wsprrypico_usb_update_contract) : "memory");
+    asm volatile("" : : "r"(wsprrypico_saved_grid_storage) : "memory");
+    asm volatile("" : : "r"(wsprrypico_control_schema) : "memory");
     paint_stack();
     const bool usb_update_boot = rom_get_last_boot_type() == BOOT_TYPE_FLASH_UPDATE;
     wsprrypico::wtp::allocate_input = wsprry_heap_try_input;

@@ -65,11 +65,12 @@ std::string validate_gps_settings(const GpsSettings& s) {
         return "invalid_gps_policy";
     if (s.location != GpsSettings::Location::Manual && s.location != GpsSettings::Location::Gps)
         return "invalid_gps_location";
-    if (s.daylight != GpsSettings::Daylight::Always && s.daylight != GpsSettings::Daylight::Day &&
-        s.daylight != GpsSettings::Daylight::Night)
+    if (s.daylight != GpsSettings::Daylight::Always && !s.daylight_uses_gps() &&
+        s.daylight != GpsSettings::Daylight::DayManual &&
+        s.daylight != GpsSettings::Daylight::NightManual)
         return "invalid_gps_daylight";
     if ((!s.enabled && (s.location == GpsSettings::Location::Gps || s.automatic_rf_calibration ||
-                        s.daylight != GpsSettings::Daylight::Always)) ||
+                        s.daylight_uses_gps())) ||
         (s.automatic_rf_calibration && !s.pairing_qualified))
         return "gps_required";
     return {};
@@ -169,6 +170,10 @@ std::optional<GpsSettings> parse_gps(std::string_view text) {
         s.daylight = GpsSettings::Daylight::Day;
     else if (daylight == "night")
         s.daylight = GpsSettings::Daylight::Night;
+    else if (daylight == "day_manual")
+        s.daylight = GpsSettings::Daylight::DayManual;
+    else if (daylight == "night_manual")
+        s.daylight = GpsSettings::Daylight::NightManual;
     else
         return {};
     if (!validate_gps_settings(s).empty())
@@ -195,9 +200,11 @@ std::string serialize_gps(const GpsSettings& s) {
            ",\"automatic_rf_calibration\":" + flag(s.automatic_rf_calibration) +
            ",\"calibration_maximum_age_s\":" + std::to_string(s.calibration_maximum_age_s) +
            ",\"daylight\":\"" +
-           (s.daylight == GpsSettings::Daylight::Day     ? "day"
-            : s.daylight == GpsSettings::Daylight::Night ? "night"
-                                                         : "always") +
+           (s.daylight == GpsSettings::Daylight::Day           ? "day"
+            : s.daylight == GpsSettings::Daylight::Night       ? "night"
+            : s.daylight == GpsSettings::Daylight::DayManual   ? "day_manual"
+            : s.daylight == GpsSettings::Daylight::NightManual ? "night_manual"
+                                                               : "always") +
            "\"}";
 }
 } // namespace wsprrypico::hardware

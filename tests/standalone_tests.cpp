@@ -967,14 +967,18 @@ void gps_daylight_scheduler_tests() {
     // sunrise events; absent, stale and future fixes cannot admit either policy.
     for (const bool summer : {false, true})
         for (const bool day : {false, true})
-            for (unsigned fix = 0; fix < 4; ++fix) {
+            for (unsigned fix = 0; fix < 7; ++fix) {
                 MemoryFlash flash;
                 standalone::Store store(flash);
                 auto config = scheduled_config();
                 config.gps.emplace();
-                config.gps->enabled = true;
-                config.gps->daylight = day ? hardware::GpsSettings::Daylight::Day
-                                          : hardware::GpsSettings::Daylight::Night;
+                using Daylight = hardware::GpsSettings::Daylight;
+                const bool manual = fix >= 4;
+                config.gps->enabled = !manual || fix == 6;
+                config.gps->daylight = manual ? (day ? Daylight::DayManual : Daylight::NightManual)
+                                               : (day ? Daylight::Day : Daylight::Night);
+                if (manual)
+                    config.locator = fix == 4 ? "RR99" : "RR99XX";
                 CHECK(store.load() && store.save(config));
                 Clock clock;
                 clock.value.utc_now_ns = (summer ? 1'782'043'200ULL : 1'797'854'400ULL) * ns - 4 * ns;
@@ -983,11 +987,13 @@ void gps_daylight_scheduler_tests() {
                 Identity identity;
                 wtp::JobService service(clock, engine, identity);
                 standalone::Scheduler scheduler(store, service);
-                if (fix)
+                if (fix > 0 && fix < 4)
                     scheduler.gps_position(time::gps::Position{
                         890'000'000, 0,
                         fix == 2 ? 85 * ns : fix == 3 ? 117 * ns : 116 * ns});
-                const bool allowed = fix == 1 && day == summer;
+                if (fix == 6)
+                    scheduler.gps_position(time::gps::Position{-890'000'000, 0, 116 * ns});
+                const bool allowed = (fix == 1 || manual) && day == summer;
                 CHECK(scheduler.next_wspr_start().has_value() == allowed);
                 scheduler.poll();
                 CHECK(engine.prepared == (allowed ? 1U : 0U));
@@ -998,6 +1004,34 @@ void gps_daylight_scheduler_tests() {
 }
 void paired_scheduler_tests() {
     constexpr std::uint64_t ns = 1'000'000'000ULL, duration = 110'592'000'000ULL;
+    for (const bool crosses_sunrise : {true, false}) {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto config = scheduled_config();
+        config.callsign = "PJ4/AA0NT";
+        config.locator = "JJ00AA";
+        config.schedules = {{120, 0}};
+        config.gps.emplace();
+        config.gps->daylight = hardware::GpsSettings::Daylight::NightManual;
+        CHECK(store.load() && store.save(config));
+        // At this grid on March 20 the 06:04:01 UTC slot is before sunrise,
+        // while the 06:06:01 slot is after it.
+        const auto first = (crosses_sunrise ? 1'773'986'641ULL : 1'773'986'521ULL) * ns;
+        Clock clock;
+        clock.advance(236 * ns);
+        clock.value.utc_now_ns = first - 5 * ns;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        CHECK(scheduler.next_wspr_start().has_value() == !crosses_sunrise);
+        scheduler.poll();
+        if (crosses_sunrise) {
+            CHECK(engine.prepared == 0 && store.watermark() == 0 && !service.status().owner_id);
+        } else {
+            CHECK(engine.prepared == 1 && store.watermark() == first + 120 * ns);
+        }
+    }
     for (unsigned fault = 0; fault < 12; ++fault) {
         MemoryFlash flash;
         standalone::Store store(flash);

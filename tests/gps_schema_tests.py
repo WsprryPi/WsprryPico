@@ -10,6 +10,11 @@ schema=json.loads((root/'engineering/protocol/control-1.schema.json').read_text(
 validator=Draft202012Validator({'$defs':schema['$defs'],'$ref':'#/$defs/gps'})
 sample=json.loads(subprocess.check_output([sys.argv[1]],text=True))
 validator.validate(sample)
+settings=Draft202012Validator({'$defs':schema['$defs'],'$ref':'#/$defs/gps-settings'})
+for policy in ('always','day_manual','night_manual','day','night','unknown'):
+ configured=dict(sample['saved'],enabled=False,location='manual',
+                 automatic_rf_calibration=False,daylight=policy)
+ assert settings.is_valid(configured) == (policy in ('always','day_manual','night_manual')),configured
 for change in (
  lambda v:v.update(contract='Wsprry-Control/2'),
  lambda v:v.update(extra=True),

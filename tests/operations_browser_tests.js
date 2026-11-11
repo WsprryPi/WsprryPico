@@ -103,6 +103,14 @@ function recurring(v) {
   for(const state of ['paused','pausing','expired','waiting_for_time','waiting_for_transmitter','recovery_required','restart_required','suspended','unavailable','running']) {
     const blocked=structuredClone(scheduled);blocked.message_schedule.state=state;assert.equal(next(blocked),'',state);
   }
+  for(const [state,reason] of Object.entries(globalThis.WsprryMessageSchedule.blocked)) {
+    const blocked=structuredClone(scheduled);
+    blocked.message_schedule.state=state;
+    assert(!ops.valid(blocked),'A blocked occurrence cannot advertise a start');
+    blocked.message_schedule.next_start_utc_ns=null;
+    assert(ops.valid(blocked));
+    assert(ops.model(blocked,caps,'x').warning.includes(reason));
+  }
   for(const mutate of [x=>x.message_schedule.pause_pending=true,x=>x.standalone.storage_healthy=false,
     x=>x.standalone.reboot_required=true,x=>x.standalone.suspended=true,x=>x.standalone.clock_state='unsynchronized',
     x=>x.standalone.sync_age_ns='3600000000001',

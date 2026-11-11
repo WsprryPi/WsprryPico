@@ -56,7 +56,8 @@ async function capture(state,dialog=false) {
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
         if(state==='contextual-help')await evaluate('document.getElementById("radio-settings").scrollIntoView({block:"start"})');
-        else if(state==='time-calibration')await evaluate('document.getElementById("time-calibration").scrollIntoView({block:"start"})');
+        else if(state==='time-calibration'||state==='beacon-saved-grid')await evaluate('document.getElementById("time-calibration").scrollIntoView({block:"start"})');
+        else if(state==='beacon-conflict-comparison')await evaluate('Array.from(document.querySelectorAll("#draft-comparison h4")).find(e=>e.textContent==="Automatic beacon schedule").scrollIntoView({block:"center"})');
         else if(state==='field-settings')await evaluate('document.getElementById("field-access").scrollIntoView({block:"start"})');
         else if(state==='si5351-details')await evaluate('document.querySelector("[data-si-status]").scrollIntoView({block:"end"})');
         else if(state==='si5351-settings')await evaluate('document.getElementById("si5351-settings").scrollIntoView({block:"start"})');

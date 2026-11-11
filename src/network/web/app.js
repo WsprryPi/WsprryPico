@@ -585,6 +585,8 @@ function showDraftComparison() {
   const draftPins = pinChoices ? readPins() : undefined;
   const value = x => x === undefined ? 'Not observed' : x === null ? 'Cleared / unset' : x === '' ? 'Empty' : String(x);
   const schedules = x => Array.isArray(x) ? x.map(s=>`${s.period_s} / ${s.phase_s}`).join('\n') : x;
+  const beaconField = $('automatic-beacon-controls')?.querySelector('[data-gps="daylight"]');
+  const beaconLabel = policy => Array.from(beaconField.options).find(option=>option.value===policy)?.textContent;
   const expiry = x => x === undefined || x === null ? x : x ? new Date(x*1000).toISOString().slice(0,19) : '';
   // Sparse omission inherits complete saved settings; explicit null masks them.
   const progress = (key, saved) => !p ? undefined : Object.hasOwn(p.fields,key) ? p.fields[key] : saved;
@@ -603,6 +605,10 @@ function showDraftComparison() {
   row('Schedules and pins','Standalone schedule enabled',f.enabled.checked,progress('enabled',c?.enabled),c?.enabled);
   row('Schedules and pins','Schedules (interval / offset, seconds)',f.schedules.value,schedules(progress('schedules',c?.schedules)),schedules(c?.schedules));
   row('Schedules and pins','Schedule expiry (UTC)',f.expiry.value,expiry(progress('expires_utc_s',c?.expires_utc_s)),expiry(c?.expires_utc_s));
+  if (beaconField) {
+    const saved = c === null ? null : beaconLabel(c?.gps?.daylight ?? WsprryGps.defaults.daylight);
+    row('Schedules and pins','Automatic beacon schedule',beaconLabel(beaconField.value),saved,saved);
+  }
   for (const [key,label] of [['engine','RF engine'],['i2c_pair','I²C pair'],['rf_gp','RF GPIO'],['button_gp','Button GPIO'],['amplifier_gp','Amplifier GPIO'],['amplifier_active_high','Amplifier active-high'],['indicator','TX LED'],['indicator_gp','External LED Pin'],['indicator_active_high','LED active-high']]) {
     if (key === 'amplifier_active_high' && !supportsAmplifier()) continue;
     row('Schedules and pins',label,member(draftPins,key),member(progress('pins',c?.pins),key),c?.pins?.[key]);
@@ -1602,7 +1608,7 @@ function describeMessageSchedule() {
   if (!value) return;
   const labels={not_configured:'No saved message schedule.',paused:'Message schedule paused. To resume, select Repeat on a schedule, review the entries, then choose Save and start schedule.',pausing:'Pause requested. The current transmission will finish before the pause is confirmed as saved. Keep the Pico powered until confirmation.',recovery_required:'Schedule needs review. Check transmitter status; once idle, choose Acknowledge interrupted schedule before saving a new enabled schedule.',waiting:'Message schedule enabled.',waiting_for_time:'Waiting for valid transmitter time.',waiting_for_transmitter:'Waiting for the transmitter to become available.',expired:'The schedule end has been reached.',restart_required:'A device restart is required before scheduling.',suspended:'Automatic transmissions are suspended.',armed:'Next scheduled transmission is armed.',running:'Scheduled message is running.',unavailable:'Saved schedule is unavailable.'};
   const next=value.next_start_utc_ns ? ' Next start: '+new Date(Number(BigInt(value.next_start_utc_ns)/1000000n)).toISOString().slice(0,19).replace('T',' ')+' UTC.' : '';
-  $('message-schedule-status').textContent=(messageScheduleUncertain?'Previous action is unconfirmed. Read saved schedule explicitly before another save. ':'')+(labels[value.state]||'Transmitter state: '+value.state+'.')+next+(value.last_error?' '+value.last_error.code+'.':'');
+  $('message-schedule-status').textContent=(messageScheduleUncertain?'Previous action is unconfirmed. Read saved schedule explicitly before another save. ':'')+(labels[value.state]||WsprryMessageSchedule.blocked[value.state]||'Transmitter state: '+value.state+'.')+next+(value.last_error?' '+value.last_error.code+'.':'');
 }
 function checkedMessageSchedule(result) {
   if (!result.revision || !WsprryMessageSchedule.valid(result.data,{device_id:localIdentity?.device_id,boot_id:snapshot?.job.boot_id})) throw new Error('Saved message schedule is unconfirmed. Your entries are preserved.');
@@ -2215,6 +2221,7 @@ function amplifierPinsChanged() {
   return ['amplifier_gp','amplifier_active_high'].some(key=>pins[key]!==currentConfig.pins[key]);
 }
 for (const id of ['pin-settings','amplifier-pin-settings','automatic-beacon-settings']) $(id).addEventListener('input',event=>{dirty=true;editedProgress(event);showDraftComparison();timingEditor?.notify();});
+$('automatic-beacon-settings').addEventListener('input',()=>consolePut('beacon-policy-status',''));
 async function saveRadioPins(amplifierOnly=false) {
   if(writeState!=='ready') throw new Error('Read and review saved settings before saving pins.');
   const draft=readPins();
@@ -2224,7 +2231,8 @@ async function saveRadioPins(amplifierOnly=false) {
     if(!WsprryControl.supported('si5351',capabilities?.si5351)) throw Error('This Pico does not advertise the current Si5351 controls. Read resources again.');
     siDraft=si5351Editor.validate(draft,filterSaved?.selectors || []).settings;
   }
-  const gpsDraft=amplifierOnly ? null : gpsEditor?.read(draft,siDraft || currentConfig?.si5351,filterSaved?.selectors || []);
+  const gpsDraft=amplifierOnly ? null : gpsEditor?.read(draft,siDraft || currentConfig?.si5351,
+    filterSaved?.selectors || [],currentConfig?.gps?.daylight ?? WsprryGps.defaults.daylight);
   if(siDraft?.automatic_calibration && (!gpsDraft?.enabled || !gpsDraft?.pairing_qualified)) throw Error('Si5351 automatic correction requires enabled GPS with a validated UTC/PPS association.');
   const path='hardware';
   const before=await api(path);
@@ -2265,7 +2273,31 @@ async function saveRadioPins(amplifierOnly=false) {
   } catch(error) { requireReadback(); consolePut('pins-status','Read saved settings and review the pin result before another save. '+error.message); throw error; }
 }
 $('save-pins').onclick=()=>action(()=>saveRadioPins());
-$('save-beacon-policy').onclick=()=>action(()=>saveRadioPins());
+$('save-beacon-policy').onclick=()=>action(async()=>{
+  if(writeState!=='ready' || !currentConfig) throw Error('Read and review saved settings before saving the beacon schedule.');
+  consolePut('beacon-policy-status','');
+  const gps=gpsEditor.readBeacon(currentConfig.gps);
+  const before=await api('hardware');
+  if(before.revision!==revision) { requireReadback(); throw Error('Saved settings changed. Read and review them before saving the beacon schedule.'); }
+  checkedHardware(before);
+  if(!currentConfig.gps && gps===null) {
+    consolePut('beacon-policy-status','Beacon schedule is already set to 24 hours.');
+    return;
+  }
+  try {
+    const result=await api('config/update','POST',{schema:'config-update',target:before.data.target,mode:'merge',config:{gps}},before.revision);
+    const confirmed=checkedConfig(result,false).gps;
+    if(gps===null ? confirmed!=null :
+      !WsprryGps.valid(confirmed) || Object.keys(gps).some(key=>gps[key]!==confirmed[key]))
+      throw Error('Saved readback did not confirm the beacon schedule.');
+    const reconciled=await reconcileConfirmedSettings(result,before.data.target,'Beacon schedule saved.');
+    if(reconciled) {
+      await refresh();
+      consolePut('beacon-policy-status',snapshot?.standalone.reboot_required
+        ? 'Beacon schedule saved. Restart the Pico to apply it.' : 'Beacon schedule saved.');
+    }
+  } catch(error) { requireReadback(); throw error; }
+});
 async function applyWsprProgress() {
   if(!savedProgress || writeState!=='ready' || !currentConfig) throw new Error('Read and review saved WSPR settings before applying.');
   const fields=savedProgress.data.fields, patch={};

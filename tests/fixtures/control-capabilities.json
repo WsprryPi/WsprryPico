@@ -297,7 +297,9 @@
       "daylight_policies": [
         "always",
         "day",
-        "night"
+        "night",
+        "day_manual",
+        "night_manual"
       ],
       "source_loss": "retain_rate_grow_uncertainty",
       "gps_holdover_ns": "3600000000000",
@@ -394,7 +396,7 @@
         "merge"
       ],
       "max_update_bytes": 2048,
-      "max_config_bytes": 1800
+      "max_config_bytes": 4096
     },
     "management_carriers": {
       "schema": "management",

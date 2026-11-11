@@ -85,15 +85,23 @@ The **NTP update timeout: Continue without a valid NTP update for (minutes).** c
 
 In **Time and calibration**, use **Automatic beacon schedule** to limit when the Pico starts scheduled WSPR and repeating keyed-message transmissions.
 
-- **All day** (default): Allow scheduled starts at any time of day or night. This option adds no GPS requirement.
-- **Daylight only**: Allow scheduled starts during daylight at the GPS location, from calculated sunrise to sunset.
-- **Night only**: Allow scheduled starts at night at the GPS location, from calculated sunset to sunrise.
+- **24 hours** (default): Allow scheduled starts at any time of day or night. This option adds no GPS requirement.
+- **Daylight only (saved grid)** and **Night only (saved grid)** use the center of the applied [station grid locator](#station-identity). Choose one of these for a fixed station with or without GPS.
+- **Daylight only (GPS)** and **Night only (GPS)** use the current GPS latitude and longitude. Choose one of these if the beacon moves and should follow its current position.
 
 Use the daylight or night options to compare reception under different conditions or to limit an unattended beacon to the part of the day you want to monitor. The Pico follows seasonal changes in sunrise and sunset without a local time zone or daylight-saving setting. It skips occurrences outside the selected period and does not make them up later. This setting does not enable a schedule, change its interval, or stop a transmission that has already been accepted.
 
-**Daylight only** and **Night only** require GPS to be enabled, a usable GPS position, and usable UTC. The Pico uses GPS latitude and longitude for the solar calculation even when **Use saved manual locator** is selected for the WSPR message. UTC from NTP can supply the time, but it cannot supply the position. If the Pico has no usable GPS position, it withholds new scheduled starts until one is available again.
+For a two-frame WSPR occurrence, both frame starts must fall inside the selected period. The Pico skips the whole occurrence if the second start would cross the solar boundary.
 
-Choose **Save RF output settings** to save this policy together with the current GPS and RF output entries, then restart explicitly to activate it. Review any pending Radio pins edits before saving. If validation reveals a conflicting entry, correct the indicated control before trying again.
+All daylight and night options need usable UTC, which can come from NTP or another supported time source. Daylight runs from calculated sunrise to sunset, and night runs from calculated sunset to sunrise. The saved grid options accept four or six characters. The Pico uses the full applied locator even when the WSPR message sends only four characters. Six characters narrow the estimated position. The result is approximate and does not account for the local terrain or horizon obstructions.
+
+The GPS options also require GPS input to be enabled and a usable GPS fix. The Pico skips occurrences when the fix is absent, invalid, or too old. The schedule choice is independent of which grid the WSPR message sends.
+
+The USB installer requires an image that supports the current GPS storage format whenever GPS settings or a beacon policy are saved. The WsprryPi firmware panel checks the selected image against its own settings contract before offering installation.
+
+Choose **Save beacon schedule**, then restart explicitly to activate a changed policy. Save GPS input separately in **Radio pins** before choosing a GPS schedule. To disable GPS input while a GPS schedule is saved, first save a saved grid option or **24 hours**.
+
+For repeating keyed messages, the schedule status identifies when the next occurrence falls outside the selected beacon window or when the policy is waiting for a current GPS fix.
 
 (pins-and-drive)=
 ## Pins and drive
@@ -156,7 +164,7 @@ The location selection controls which grid locator standalone WSPR sends:
 - **Use saved manual locator** sends the grid entered under [Station identity](#station-identity). Use it when operating at a known location, including without GPS.
 - **Use current GPS location** derives the grid from the GPS fix. Use it when the station moves between locations. The Pico keeps the manual locator saved but withholds new GPS-located WSPR transmissions when the fix is absent, invalid, or too old.
 
-A complete WSPR plan, including both frames of a pair, keeps its original locator. The [automatic beacon schedule](#automatic-beacon-schedule) is a separate setting: its daylight and night options use GPS position with either WSPR locator choice.
+A complete WSPR plan, including both frames of a pair, keeps its original locator. Choose the location for daylight or night calculations separately under [Automatic beacon schedule](#automatic-beacon-schedule).
 
 **Automatic direct GPIO RF correction** requires qualified PPS and a verified shared oscillator. For the Si5351 engine, use its separate automatic-correction control and a configured CLK2 loopback. The GPS section reports Pico clock and Si5351 reference measurements separately. A positive error means a fast oscillator. With automatic correction enabled, the saved manual correction is a residual trim; it is applied once when the job is prepared. Missing, expired, or conflicting calibration withholds a new job. An accepted job or WSPR pair keeps its correction.
 
