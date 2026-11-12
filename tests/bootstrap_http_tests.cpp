@@ -86,7 +86,11 @@ int main() {
     assert(station_page.static_body.substr(style_start + 7, style_end - style_start - 7) ==
            wsprrypico::network::bootstrap_asset("/style.css")->body);
     assert(station_page.content_security_policy == setup.content_security_policy);
-    assert(setup.static_parts.size() == 4 && setup.body.empty() && setup.buffered_body.empty());
+    const auto setup_script = *wsprrypico::network::bootstrap_asset("/bundle.js");
+    assert(setup.static_parts.size() == 3 + std::max<std::size_t>(1, setup_script.parts.size()) &&
+           setup.body.empty() && setup.buffered_body.empty());
+    for (const auto part : setup.static_parts)
+        assert(part.size() < 65536);
     assert(setup.body_text().find("<script src=") == std::string::npos);
     assert(setup.static_body.find("href=\"/owner.html\"") != std::string_view::npos);
     assert(station_page.body.empty() && station_page.buffered_body.empty());
@@ -131,21 +135,37 @@ int main() {
     const auto bundle = wsprrypico::network::bootstrap_http_response(bundle_request.request(),
                                                                      "device-id", "firmware");
     const auto asset = wsprrypico::network::bootstrap_asset("/bundle.js");
-    assert(asset && asset->body.size() > 50000);
-    assert(bundle.status == 200 && bundle.static_body.data() == asset->body.data());
+    assert(asset);
+    std::string expected_script;
+    if (asset->parts.empty())
+        expected_script = asset->body;
+    else
+        for (const auto part : asset->parts) {
+            assert(part.size() < 65536);
+            expected_script += part;
+        }
+    assert(expected_script.size() > 50000);
+    assert(bundle.status == 200);
+    if (asset->parts.empty())
+        assert(bundle.static_body.data() == asset->body.data());
+    else
+        assert(bundle.static_parts.data() == asset->parts.data());
     assert(bundle.body.empty() && bundle.buffered_body.empty());
-    assert(bundle.body_size() == asset->body.size());
-    assert(bundle.wire_headers().find("Content-Length: " + std::to_string(asset->body.size())) !=
-           std::string::npos);
+    assert(bundle.body_size() == expected_script.size());
+    assert(bundle.wire_headers().find("Content-Length: " +
+                                      std::to_string(expected_script.size())) != std::string::npos);
     assert(bundle.wire_headers().find("script-src 'self'") != std::string::npos);
     std::string delivered;
     for (std::size_t offset = 0; offset < bundle.body_size();) {
-        const auto chunk = bundle.body_at(offset).first(
-            std::min<std::size_t>(1024, bundle.body_at(offset).size()));
+        const auto available = bundle.body_at(offset);
+        assert(!available.empty());
+        const auto chunk = available.first(std::min<std::size_t>(1024, available.size()));
         delivered.append(reinterpret_cast<const char*>(chunk.data()), chunk.size());
         offset += chunk.size();
     }
-    assert(delivered == asset->body);
+    assert(delivered == expected_script);
+    assert(bundle.body_at(bundle.body_size()).empty());
+    assert(setup.body_text().find("<script>" + delivered + "</script>") != std::string::npos);
 
     HttpParser hidden_form;
     send("GET /index.html HTTP/1.1\r\nHost: 192.168.4.1\r\n\r\n", hidden_form);
