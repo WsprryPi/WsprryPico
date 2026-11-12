@@ -1,7 +1,7 @@
 {
   "sdk": "079c6f39023649b154152db30f1d781e884879bc",
   "picotool": "6f6458d792b93685a11423b244a585eaa99eafcf",
-  "companion": "e67693171ee7a4acfc9231fa799a0c07b65cfbee",
+  "companion": "8b0d6790fdb06e7560cef2a694f5eb1106c947bd",
   "harness": "d56e581adefd5f1b60532a8a162ae0f5541cf089",
   "arm_gcc": "15.3.1",
   "toolchain_url": "https://gitlab.arm.com/api/v4/projects/tooling%2Fgnu-toolchains-for-arm/packages/generic/gnu-toolchain/15.3.rel1/arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi.tar.xz",
