@@ -193,12 +193,20 @@ try {
     await click('wifi-host-link');
     await cdp.evaluate('document.getElementById("hostname-section").open=true');
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
-    await field('hostname-input','K.local');
+    assert.equal(await cdp.evaluate(`document.getElementById('hostname-input').value`),'wsprrypico-0a60df');
+    const programsBeforeInvalid=(await f.command({op:'stats'})).profile_programs;
+    for(const invalid of ['pico-a.local','pico-a.','.pico-a','a.b']) {
+        await field('hostname-input',invalid);
+        await cdp.evaluate(`document.getElementById('hostname-form').dispatchEvent(new Event('submit',{cancelable:true}))`);
+        await until(()=>cdp.evaluate(`!busy && document.getElementById('hostname-input').getAttribute('aria-invalid')==='true'`),'dots refused locally');
+        assert.equal((await f.command({op:'stats'})).profile_programs,programsBeforeInvalid);
+    }
+    await field('hostname-input','K');
     await cdp.evaluate(`document.getElementById('hostname-form').dispatchEvent(new Event('submit',{cancelable:true}))`);
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'invalid hostname');
-    assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/full .local hostname/);
+    assert.match(await cdp.evaluate(`document.getElementById('notice').textContent`),/Dots are not allowed/);
     assert.equal(await cdp.evaluate('document.title'),'wsprrypico-0a60df.local - Station control');
-    await field('hostname-input','x'.repeat(63)+'.local');
+    await field('hostname-input','x'.repeat(63));
     await cdp.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
     await cdp.evaluate(`document.getElementById('hostname-input').focus()`);
     await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
@@ -206,7 +214,7 @@ try {
     await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     await capture('max-name-draft');
     await field('message-text','KEEP DRAFT');
-    await field('hostname-input','pico-a.local');
+    await field('hostname-input','pico-a');
     const before=await f.command({op:'stats'});
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !localAuthenticated'),'profile save logs in again');
@@ -214,6 +222,7 @@ try {
     assert.equal((await f.command({op:'stats'})).profile_generation,'2');
     await login();
     assert.equal(await cdp.evaluate('hostnameState.saved'),'pico-a.local');
+    assert.equal(await cdp.evaluate(`document.getElementById('hostname-input').value`),await cdp.evaluate('hostnameState.active.slice(0,-6)'));
     assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'wsprrypico-0a60df.local');
     assert.equal(await cdp.evaluate('document.title'),'wsprrypico-0a60df.local - Station control (rename pending)');
     assert.equal(await cdp.evaluate(`document.getElementById('hostname-save').disabled`),true);
@@ -272,7 +281,7 @@ try {
     assert.equal(await cdp.evaluate('location.hash'),'','verified return removes only its receipt');
 
     // Lost reply after a committed rename never resubmits; fresh login/read/review recovers.
-    await field('hostname-input','wsprrypico-0a60df.local');dropNext=true;
+    await field('hostname-input','wsprrypico-0a60df');dropNext=true;
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !radio.authenticated'),'lost save reply');
     assert.equal((await f.command({op:'stats'})).profile_generation,'3');
@@ -309,7 +318,7 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !!localIdentity'),'return by IP');await login();
     await click('wifi-host-link');await click('hostname-review');
-    const longName='x'.repeat(63)+'.local';await field('hostname-input',longName);
+    const longName='x'.repeat(63)+'.local';await field('hostname-input',longName.slice(0,-6));
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !localAuthenticated'),'long name saved');
     await f.command({op:'reboot'});await f.time(f.now+3000);
@@ -356,13 +365,13 @@ try {
     assert.equal(await cdp.evaluate('hostnameState.writable'),true);
     assert.equal((await f.command({op:'stats'})).config_sequence,'0','station setup is not a rename prerequisite');
     const readyClick=async id=>until(()=>cdp.evaluate(`!busy && !submissions.pending && !accessClosing && !accessLoginPending && !document.getElementById(${JSON.stringify(id)}).matches(':disabled') && (document.getElementById(${JSON.stringify(id)}).click(),true)`),'captive action available: '+id);
-    await login();await field('hostname-input','-bad.local');
+    await login();await field('hostname-input','-bad');
     const initialPrograms=(await f.command({op:'stats'})).profile_programs;
     await cdp.evaluate('document.getElementById("hostname-input").focus()');await readyClick('hostname-save');
     await until(()=>cdp.evaluate('!busy && document.getElementById("hostname-input").getAttribute("aria-invalid")==="true"'),'inline hostname validation');
     assert.equal((await f.command({op:'stats'})).profile_programs,initialPrograms,'invalid name makes no write');
     await capture('captive-hostname-invalid','hostname-section');
-    await field('hostname-input','PICO-A.LOCAL.');await readyClick('hostname-save');
+    await field('hostname-input','PICO-A');await readyClick('hostname-save');
     await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'initial hostname saved');
     assert.equal((await f.command({op:'stats'})).api_restarts,0,'saving does not restart the Pico');
     assert.equal((await f.command({op:'stats'})).config_sequence,'0','saving does not configure a station');
@@ -385,7 +394,7 @@ try {
     await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'initial hostname default restored');
     await login();await click('hostname-review');
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
-    await field('hostname-input','pico-b.local');await readyClick('hostname-save');
+    await field('hostname-input','pico-b');await readyClick('hostname-save');
     await until(()=>cdp.evaluate('!busy && !localAuthenticated'),'initial hostname selected again');
     await login();
     // A pending rename retains the existing station/Wi-Fi restart guard.

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {checkLockedControls} from './locked_controls_browser.mjs';
 import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkGps} from './gps_ui_checks.mjs';
+import {checkGrayLine} from './gray_line_ui_checks.mjs';
 import {checkHardwareSaveIsolation} from './hardware_save_checks.mjs';
 import {checkControlAlignment} from './control_alignment_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
@@ -61,11 +62,12 @@ async function capture(state,dialog=false) {
         else if(state==='field-settings')await evaluate('document.getElementById("field-access").scrollIntoView({block:"start"})');
         else if(state==='si5351-details')await evaluate('document.querySelector("[data-si-status]").scrollIntoView({block:"end"})');
         else if(state==='si5351-settings')await evaluate('document.getElementById("si5351-settings").scrollIntoView({block:"start"})');
+        else if(state.startsWith('gray-line'))await evaluate('document.getElementById("gray-line-controls").scrollIntoView({block:"start"})');
         else if(state.startsWith('gps-'))await evaluate('document.getElementById("gps-settings").scrollIntoView({block:"start"})');
         else if(!dialog)await evaluate('scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
-        if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
-        const gpsClip=state.startsWith('gps-')?await evaluate('(()=>{const r=document.getElementById("gps-settings").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:Math.ceil(r.height),scale:1}})()'):null;
+        if(process.env.UI_REVIEW_NO_CAPTURE==='1' && !(process.env.GRAY_LINE_REVIEW_CAPTURE==='1' && state.startsWith('gray-line')))continue;
+        const gpsClip=state.startsWith('gray-line')?await evaluate('(()=>{const r=document.getElementById("gray-line-controls").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:Math.ceil(r.height),scale:1}})()'):state.startsWith('gps-')?await evaluate('(()=>{const r=document.getElementById("gps-settings").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:Math.ceil(r.height),scale:1}})()'):null;
         const shot=await send('Page.captureScreenshot',{format:'png',...(gpsClip?{clip:gpsClip,captureBeyondViewport:true}:{})});
         await writeFile(path.join(output,state+'-'+view.name+'.png'),Buffer.from(shot.data,'base64'));
     }
@@ -138,6 +140,7 @@ try {
       await checkSi5351({evaluate,section,click,idle,capture});
       pass('native Si5351 conditional controls, validation focus, draft isolation, atomic save and direct restoration');
       await checkGps({evaluate,section,click,idle,capture,telemetryFixture:process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER?JSON.parse(execFileSync(process.env.WSPRRY_PICO_GPS_RESOURCE_DRIVER,{encoding:'utf8'})):null});
+      await checkGrayLine({evaluate,section,idle,capture});
       pass('native GPS pin/timing validation focus, QLG3 receive-only protection, atomic save and separate qualification');
       await checkControlAlignment({evaluate,send,section,output:path.join(output,'alignment')});
       pass('content-sized RF/GPS control alignment across engines, labels, help, locks, breakpoints and zoom');
@@ -271,7 +274,7 @@ try {
     assert.equal(await evaluate('radio.authenticated || localAuthenticated'),false);assert.equal(await evaluate('cancelLogoutCount'),1);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
     pass('cancelled late login cannot ghost-unlock and cleans only its serialized session');
-    for(const [button,resource,editor] of [['rf-calibration-read','rf-calibration','calibrationEditor'],['ntp-timeout-read','ntp-timeout','ntpTimeoutEditor'],['gpio-drive-read','gpio-drive','driveEditor']]) {
+    for(const [button,resource,editor] of [['rf-calibration-read','rf-calibration','calibrationEditor'],['ntp-timeout-read','ntp-timeout','ntpTimeoutEditor'],['gpio-drive-read','gpio-drive','driveEditor'],['gray-line-1-read','gray-line','grayLineEditor']]) {
       await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':'time-calibration');
       await evaluate(`${editor}.invalidate();controls(online)`);
       await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorRead=radio.publicRead.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);return editorRequest(...args)};radio.publicRead=async(...args)=>{if(args[0]==='${resource}'&&!globalThis.releaseEditor)await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRead(...args)}`);
@@ -322,6 +325,7 @@ try {
       await navigate();await login();
       await checkSi5351({evaluate,section,click,idle,capture});
       await checkGps({evaluate,section,click,idle,capture});
+      await checkGrayLine({evaluate,section,idle,capture});
       pass('consumer encrypted RF/GPS controls retain conditional validation, atomic saves, relocated policy readback, and lock state');
       await checkControlAlignment({evaluate,send,section,output:path.join(output,'alignment')});
       pass('encrypted RF/GPS control alignment across engines, labels, help, locks, breakpoints and zoom');

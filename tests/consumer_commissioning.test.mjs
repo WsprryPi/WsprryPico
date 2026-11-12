@@ -7,6 +7,30 @@ import {begin as beginWifi,seal as sealWifi} from '../src/network/bootstrap_web/
 import {p256} from '../src/network/bootstrap_web/node_modules/@noble/curves/nist.js';
 globalThis.WsprryPicoOwnerKey={keygen:()=>p256.keygen(),getPublicKey:(key,compressed)=>p256.getPublicKey(key,compressed)};
 async function run(name,fn,args=[]){const f=new Fixture(process.argv[2],args);try{await f.time(1000);await fn(f);console.log('PASS '+name);}finally{await f.stop();}}
+await run('Initial hostname commits with Wi-Fi, survives reboot, and remains through a Wi-Fi replacement',async f=>{
+ const setup=async(path,body)=>f.fetch('192.168.4.1',true,path,{method:body?'POST':'GET',marker:'Bootstrap',body:body?JSON.stringify(body):undefined});
+ const id=await(await setup('/local/v1/identity')).json();
+ async function save(hostname){
+   const pending=beginWifi();
+   const start=await(await setup('/api/bootstrap/v1/start',{version:1,device_id:id.device_id,browser_public_key:pending.browserPublicKey,request_nonce:pending.requestNonce})).json();
+   const attempt=sealWifi(pending,start,id.device_id,'Home Wi-Fi','test-password',{timeServer:'pool.ntp.org',hostname});
+   // A committed response can be lost; status binds both fields to this exact attempt.
+   assert.equal((await setup('/api/bootstrap/v1/submit',attempt.submit)).status,200);
+   await f.time(f.now+4000);await f.time(f.now+1000);
+   const saved=await(await setup('/api/bootstrap/v1/status')).json();
+   assert.equal(saved.source,'network_only');assert.equal(saved.request_id_digest,attempt.requestDigest);
+   await f.command({op:'reboot'});await f.time(f.now+1000);
+ }
+ await save('picoc.local');
+ const a=f.client('192.168.4.1',true);await f.login(a);
+ let name=await(await a.request('hostname')).json();
+ assert.equal(name.active,'picoc.local');assert.equal(name.saved,'picoc.local');
+ assert.equal((await f.command({op:'stats'})).config_sequence,'0');
+ await a.logout();await f.time(f.now+1000);
+ await save(undefined);
+ await f.login(a);name=await(await a.request('hostname')).json();
+ assert.equal(name.active,'picoc.local');assert.equal(name.saved,'picoc.local');
+},['1'.repeat(32),'--blank']);
 await run('Wi-Fi-only setup survives reboot and admits LAN login without station data',async f=>{
  const setup=async(path,body)=>f.fetch('192.168.4.1',true,path,{method:body?'POST':'GET',marker:'Bootstrap',body:body?JSON.stringify(body):undefined});
  const id=await(await setup('/local/v1/identity')).json(),pending=beginWifi();

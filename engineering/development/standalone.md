@@ -157,3 +157,28 @@ The existing 2 KiB configuration journal stores an internal `standalone-state/3`
 The existing 256-byte cursor journal accepts legacy decimal watermarks or `standalone-cursor/2`, containing the consumed watermark, last message start, and a message-in-flight barrier. The barrier is persisted before LOAD/ARM and cleared only after the matching successful terminal result, inactive output, and safe release. Reset, lost outcome, or failure retains it and blocks autonomous recurrence until an explicit idle pause acknowledges recovery. No flash regions, WTP authority, or job limits change. Enabled autonomous WSPR and message profiles are mutually exclusive.
 
 Pause does not abort or release another owner's work. While a job runs, pause is pending in RAM; once idle, the disabled profile and cleared barrier are saved before confirmation. Power loss before that confirmation can lose the pending pause, while the durable in-flight barrier still prevents replay. USB updates require a confirmed paused profile without recovery or pending state; installer snapshots compare the saved profile after upgrade. Factory operational erasure removes the profile and cursor, while preserving provisioning operations retain them.
+
+## Gray-line selection
+
+The portable scheduler evaluates one optional `gray_line` object before ordinary beacon policy. Its explicit `location` is `manual` or `gps`. Closed `morning` and `evening` objects each contain boolean `enabled`, integer `lower_mdeg` and `upper_mdeg` (−90000 ≤ lower < upper ≤ 90000), nullable whole-Hz `wspr_dial_frequency_hz` (6503–159998496), and nullable canonical positive decimal string `message_frequency_nhz` (uint64 nHz).
+
+Null frequency overrides inherit the normal mode's saved frequency. Both periods default disabled, with −6000/+6000 bounds. Browser entries use degrees with up to three decimal places and are converted to integer millidegrees. Existing recurrence, expiry, station encoding, and output guards remain authoritative.
+
+FSKCW and DFCW translate Mark and Space together, refusing overflow or underflow and preserving the direction of the saved shift. Changed frequency overrides are checked against the current engine range and candidate frequency permissions before persistence, including disabled periods. Unchanged values can be retained or disabled after an engine/policy change; admission still rechecks every actual tone and the translated message shift.
+
+Solar elevation is geometric Sun-center elevation from the existing NOAA approximation. Bounds compare the unrounded elevation, lower inclusive and upper exclusive. Local solar hour angle partitions morning/evening: negative angles are morning; noon is evening and midnight is morning. This rule remains defined at the poles without requiring crossings. `prolonged_window` reports that the estimated daily elevation range at the current declination lies inside the selected period; it is not an event forecast or propagation prediction.
+
+| Gray-line state | New standalone occurrence |
+| --- | --- |
+| Both periods disabled | Existing ordinary policy; no gray-line prerequisites |
+| Enabled, evaluable, selected period qualifies | Selected gray-line frequencies; ordinary solar gate overridden |
+| Enabled, evaluable, no period qualifies | Existing ordinary policy |
+| Enabled, required location or UTC unavailable | Hold whole occurrence, including ordinary fallback |
+| Pair starts select different periods or gray-line/ordinary policies | Refuse whole pair before CLAIM or reservation |
+| Invalid settings or identity/revision mismatch | Reject before configuration writes |
+
+The same admission-time position and configuration evaluate both scheduled frame starts. Accepted work keeps its frozen intent and local launch checks. Current jobs are not interrupted by a solar boundary, configuration reads, or a loss of position. Existing idle/unowned update rules, durable watermarks, and no-catch-up behavior apply. External WTP/manual jobs do not use this standalone gate.
+
+The current Control/1 `gray-line` resource exposes target-bound saved settings, storage health, and the current solar selection. Its PUT envelope contains `schema`, `target`, and complete `settings`, requires the current contract and If-Match revision, and uses the ordinary shared configuration transaction. Config merge also accepts the same closed `gray_line` object; omission preserves it. Default settings occupy no extra storage. Nondefault settings are stored in the existing independent journal format; older firmware rejects the unknown extension instead of reviving older enabled settings. Total journal capacity is unchanged, and aggregate overflow refuses before writing.
+
+Pico performs recurrence. Pi controls negotiate the same descriptor and validate complete shape, bounds, identity, revision, carrier, and confirmed readback. Native Pi and Fleet recurrence behavior is unchanged. Software checks exercise both actual source-pair carriers; they do not qualify physical RF or propagation.

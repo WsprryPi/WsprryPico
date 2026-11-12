@@ -87,10 +87,11 @@ const text=(f,id)=>f.elements[id].textContent;
   assert.match(text(legacy,'device-name-state'),/Last confirmed/);
   assert.equal(text(legacy,'device-id'),id);
   const renamed=await fixture(true,true,true);
-  renamed.elements['hostname-input'].value='new.local';
+  renamed.elements['hostname-input'].value='new';
   await renamed.elements['hostname-form'].onsubmit({preventDefault(){}});
   assert.match(text(renamed,'local-status'),/authenticated/);
   assert.match(text(renamed,'device-name-state'),/Rename pending/);
+  assert.equal(renamed.savedHostname,'new.local','bare label saves the full wire hostname');
   const local=await fixture(true,true,true);assert.equal(text(local,'device-id'),id);assert.equal(text(local,'device-boot'),boot);
 
   // Pure controller exercises target binding and request ordering separately from the VM.

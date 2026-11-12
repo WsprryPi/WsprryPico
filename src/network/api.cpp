@@ -455,6 +455,17 @@ HttpResponse BrowserApi::rf_calibration() const {
     result.etag = revision();
     return result;
 }
+HttpResponse BrowserApi::gray_line() const {
+    const auto config = effective_config();
+    auto result = ok(
+        "{\"schema\":\"gray-line\",\"target\":" +
+        application::target(device_, service_.status().boot_id) + ",\"saved\":" +
+        (store_.healthy() && config ? standalone::serialize_gray_line(config->gray_line) : "null") +
+        ",\"storage_healthy\":" + std::string(store_.healthy() ? "true" : "false") +
+        ",\"runtime\":" + scheduler_.gray_line_status() + "}");
+    result.etag = revision();
+    return result;
+}
 HttpResponse BrowserApi::ntp_timeout() const {
     const auto config = effective_config();
     const auto saved = config ? config->ntp_timeout_s : standalone::default_ntp_timeout_s;
@@ -1084,6 +1095,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                  control_descriptor("gpio_drive"),
                  ",\"si5351\":",
                  control_descriptor("si5351"),
+                 ",\"gray_line\":",
+                 control_descriptor("gray_line"),
                  ",\"gps\":",
                  control_descriptor("gps"),
                  carrier != ManagementCarrier::EngineeringField ? ",\"operations_status\":" : "",
@@ -1165,6 +1178,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return gpio_drive();
         if (r.path == "/api/control/v1/si5351")
             return si5351();
+        if (r.path == "/api/control/v1/gray-line")
+            return gray_line();
         if (r.path == "/api/control/v1/gps")
             return gps();
         if (r.path == "/api/control/v1/ntp-timeout")
@@ -1299,6 +1314,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         r.path == "/api/control/v1/config" || r.path == "/api/control/v1/config/update";
     const bool drive_config = amplifier_config;
     const bool calibration_resource = r.path == "/api/control/v1/rf-calibration";
+    const bool gray_resource = r.path == "/api/control/v1/gray-line";
     const bool frequency_resource = r.path == "/api/control/v1/standalone-frequency";
     const bool timing_resource = r.path == "/api/control/v1/amplifier-timing";
     const bool filter_resource = r.path == "/api/control/v1/filter-selector";
@@ -1316,12 +1332,12 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     if (!restart && !config_update && !hostname &&
         (r.method != "PUT" ||
          (r.path != "/api/control/v1/config" && !drive_resource && !timing_resource &&
-          !filter_resource && !calibration_resource && !frequency_resource && !ntp_resource &&
-          r.path != "/api/control/v1/schedules" && r.path != "/api/control/v1/network" &&
-          !scoped_resource)))
+          !filter_resource && !calibration_resource && !frequency_resource && !gray_resource &&
+          !ntp_resource && r.path != "/api/control/v1/schedules" &&
+          r.path != "/api/control/v1/network" && !scoped_resource)))
         return http_error(404, "not_found");
     if ((scoped_resource || timing_resource || drive_resource || calibration_resource ||
-         frequency_resource || ntp_resource) &&
+         frequency_resource || gray_resource || ntp_resource) &&
         r.body_view().size() > application::max_update_bytes)
         return http_error(413, "resource_body_too_large");
     if (config_update && r.body_view().size() > application::max_config_update_bytes)
@@ -1423,7 +1439,26 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         return result;
     }
     std::string candidate;
-    if (frequency_resource) {
+    if (gray_resource) {
+        const auto checked = application::validate_envelope(*root, "gray-line", "settings", device_,
+                                                            service_.status().boot_id);
+        if (checked != application::Envelope::Valid)
+            return http_error(checked == application::Envelope::TargetMismatch ? 409 : 400,
+                              "invalid_gray_line_resource");
+        const auto settings = standalone::parse_gray_line(*root->get("settings"));
+        if (!settings)
+            return http_error(400, "invalid_gray_line");
+        if (!effective_config())
+            return http_error(409, "not_configured");
+        auto updated = *effective_config();
+        updated.gray_line = *settings;
+        candidate = standalone::serialize_config(updated);
+        // Explicit defaults must replace a previously saved nondefault policy.
+        if (updated.gray_line == standalone::GrayLine{}) {
+            candidate.pop_back();
+            candidate += ",\"gray_line\":" + standalone::serialize_gray_line(*settings) + "}";
+        }
+    } else if (frequency_resource) {
         const auto checked = application::validate_envelope(
             *root, "standalone-frequency", "frequency_hz", device_, service_.status().boot_id);
         if (checked != application::Envelope::Valid)
@@ -1631,6 +1666,10 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
+    if (!standalone::gray_line_frequency_update_allowed(
+            *validated, store_.config() ? &*store_.config() : nullptr,
+            service_.config().minimum_frequency_nhz, service_.config().maximum_frequency_nhz))
+        return http_error(400, "frequency_not_allowed");
     if (const auto conflict = standalone::validate_rf_configuration(*validated, store_.filters());
         !conflict.empty())
         return http_error(400, conflict);
@@ -1724,6 +1763,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     ++network_revision_; // Consume even an effective no-op without rewriting flash.
     if (calibration_resource)
         return rf_calibration();
+    if (gray_resource)
+        return gray_line();
     if (frequency_resource)
         return standalone_frequency();
     if (timing_resource)

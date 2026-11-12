@@ -70,12 +70,12 @@ export function begin() {
   } catch (error) { owned.fill(0); throw error; }
 }
 
-export function networkPlaintext(ssidText, passwordText, timeServerText) {
+export function networkPlaintext(ssidText, passwordText, timeServerText, hostnameText) {
   const parts=[];
   try {
     const ssid=ascii(ssidText,1,32);parts.push(ssid);
     const password=ascii(passwordText,8,63);parts.push(password);
-    let server;
+    let server, hostname;
     if (timeServerText !== undefined) {
       server=ascii(timeServerText,1,253);parts.push(server);
       const ip = timeServerText.split('.');
@@ -84,14 +84,20 @@ export function networkPlaintext(ssidText, passwordText, timeServerText) {
       const numeric=labels.every(p=>/^(?:[0-9]+|0x[0-9a-f]+)$/i.test(p));
       if (!ipv4 && (numeric || !labels.every(p=>/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/i.test(p)))) throw new Error('Invalid time server hostname or IPv4 address');
     }
+    if (hostnameText !== undefined) {
+      if (timeServerText === undefined || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.local$/.test(hostnameText))
+        throw new Error('Invalid local hostname');
+      hostname=ascii(hostnameText,7,69);parts.push(hostname);
+    }
     return join(Uint8Array.of(ssid.length),ssid,Uint8Array.of(password.length),password,
-      ...(server ? [Uint8Array.of(server.length),server] : []));
+      ...(server ? [Uint8Array.of(server.length),server] : []),
+      ...(hostname ? [Uint8Array.of(hostname.length),hostname] : []));
   } finally {for (const part of parts)part.fill(0);}
 }
 export function seal(pending, start, deviceId, ssidText, passwordText, fixed = {}) {
   let shared, key, plain;
   try {
-    plain = networkPlaintext(ssidText,passwordText,fixed.timeServer);
+    plain = networkPlaintext(ssidText,passwordText,fixed.timeServer,fixed.hostname);
     const requestId = fixed.requestId || hex(random(16));
     const nonce = fixed.nonce || random(12);
     const picoPublic = fromB64u(start.pico_public_key, 32);

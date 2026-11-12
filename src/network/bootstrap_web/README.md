@@ -10,7 +10,7 @@ keeps the current login and drafts. Raw AP setup APIs stay AP-only.
 Blank AP roots retain the Wi-Fi-first pages described below;
 `/station`, `/radio` and `/owner.html` lead to optional station commissioning
 with an explicit Wi-Fi-first refusal where needed. Blank profiles have no job
-control authority. After Wi-Fi setup, Device hostname uses the existing password-authenticated editor without requiring station details; hostname and Wi-Fi saves remain separate transactions. Cross-document commissioning changes ask before discarding
+control authority. Initial Wi-Fi setup accepts an optional canonical full `.local` hostname in its encrypted payload and commits it with the network profile. Omission preserves the current name; configured consumer profiles use the authenticated editor to maintain certificate bindings. After Wi-Fi setup, Device hostname uses the existing password-authenticated editor without requiring station details; hostname and Wi-Fi saves remain separate transactions. Cross-document commissioning changes ask before discarding
 edited fields. Unavailable setup/control shows bounded recovery guidance.
 Station details use [automatic Type 1/2/3 planning](../../../engineering/development/wspr-planning.md).
 

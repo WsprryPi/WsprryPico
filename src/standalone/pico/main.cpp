@@ -650,9 +650,9 @@ int main() {
                                                         : std::string(tls_credentials.hostname);
     auto access_identity = local_identity;
     access_identity.hostname = deployment_hostname;
+    // The active name is also needed by blank-AP presentation before Wi-Fi setup.
     const bool network_hostname_ready =
-        !network_only_source ||
-        (derived_identity && network.configure_hostname(deployment_hostname));
+        derived_identity && network.configure_hostname(deployment_hostname);
     static wsprrypico::provisioning::PicoBondStore bond_store;
     static wsprrypico::provisioning::PicoRandomSource random_source;
     static wsprrypico::provisioning::LocalAccessController local_access(

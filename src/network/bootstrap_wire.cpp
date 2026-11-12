@@ -53,7 +53,7 @@ bool bootstrap_mutation_admitted(const HttpRequest& request, std::string_view ro
            request.header("content-type") == "application/json" &&
            request.header("x-wsprrypico-bootstrap") == "1" &&
            !request.headers.contains("transfer-encoding") &&
-           request.body_view().size() <= (route == "/api/bootstrap/v1/submit" ? 768 : 512);
+           request.body_view().size() <= (route == "/api/bootstrap/v1/submit" ? 1024 : 512);
 }
 
 std::optional<BootstrapStartRequest> parse_bootstrap_start(const HttpRequest& request) {

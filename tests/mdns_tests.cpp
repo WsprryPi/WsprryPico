@@ -69,6 +69,10 @@ int main() {
         assert(late.state() == "unconfigured" && late_adapter.adds == 0);
         assert(late.configure_hostname("wsprrypico-0a60df.local"));
         assert(!late.configure_hostname("other.local"));
+        // Blank AP presentation needs the active name before station association.
+        late.poll(false, 0, 2);
+        assert(late.hostname() == "wsprrypico-0a60df.local");
+        assert(late.advertised().empty() && late_adapter.adds == 0);
         late.poll(true, 7, 2);
         late.name_result(true);
         assert(late.advertised() == "wsprrypico-0a60df.local");

@@ -58,6 +58,63 @@ int main() {
     const auto anchor = 1793001605000000000ULL;
     {
         network_test::Fixture f;
+        auto config = *standalone::parse_config(network_test::config);
+        assert(f.store.save(config));
+        const auto before = call(f, "GET", "/api/control/v1/gray-line");
+        const auto bytes = f.flash.bytes;
+        const auto sequence = f.store.config_sequence();
+        const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
+        for (unsigned fault = 0; fault < 4; ++fault) {
+            auto settings = standalone::GrayLine{};
+            if (fault == 0)
+                settings.morning.wspr_dial_frequency_hz = 1'234'567;
+            if (fault == 1)
+                settings.evening.message_frequency_nhz = 1;
+            if (fault == 2)
+                settings.morning.message_frequency_nhz = UINT64_MAX;
+            if (fault == 3)
+                settings.evening.wspr_dial_frequency_hz = 159'998'496;
+            const auto json = standalone::serialize_gray_line(settings);
+            const auto body =
+                "{\"schema\":\"gray-line\",\"target\":" + target + ",\"settings\":" + json + "}";
+            const auto refused = call(f, "PUT", "/api/control/v1/gray-line", body, before.etag);
+            assert(refused.status == 400);
+            assert(refused.body.find("frequency_not_allowed") != std::string::npos);
+            const auto update = "{\"schema\":\"config-update\",\"target\":" + target +
+                                ",\"mode\":\"merge\",\"config\":{\"gray_line\":" + json + "}}";
+            assert(call(f, "POST", "/api/control/v1/config/update", update, before.etag).status ==
+                   400);
+            config.gray_line = settings;
+            assert(f.scheduler.command("CONFIG " + standalone::serialize_config(config))
+                       .find("frequency_not_allowed") != std::string::npos);
+            assert(f.flash.bytes == bytes && f.store.config_sequence() == sequence);
+            assert(call(f, "GET", "/api/control/v1/gray-line").etag == before.etag);
+        }
+        auto settings = standalone::GrayLine{};
+        settings.morning.wspr_dial_frequency_hz = 1'234'567;
+        settings.evening.message_frequency_nhz = 1'234'567'000'000'000ULL;
+        const auto update = "{\"schema\":\"config-update\",\"target\":" + target +
+                            ",\"mode\":\"merge\",\"config\":{\"allow_unqualified_frequency\":true,"
+                            "\"allow_non_amateur_frequency\":true,\"gray_line\":" +
+                            standalone::serialize_gray_line(settings) + "}}";
+        assert(call(f, "POST", "/api/control/v1/config/update", update, before.etag).status == 200);
+        assert(f.store.config()->gray_line == settings && !f.store.config()->enabled);
+        // Restored values can become unusable under another engine/policy.
+        // Disabling that period must not require replacing its saved frequency.
+        config = *f.store.config();
+        config.gray_line.evening.enabled = true;
+        config.gray_line.evening.message_frequency_nhz = UINT64_MAX;
+        assert(f.store.save(config));
+        const auto restored = call(f, "GET", "/api/control/v1/gray-line");
+        config.gray_line.evening.enabled = false;
+        const auto disable =
+            "{\"schema\":\"gray-line\",\"target\":" + target + ",\"settings\":" +
+            standalone::serialize_gray_line(config.gray_line) + "}";
+        assert(call(f, "PUT", "/api/control/v1/gray-line", disable, restored.etag).status == 200);
+        assert(f.store.config()->gray_line == config.gray_line);
+    }
+    {
+        network_test::Fixture f;
         auto config = standalone::parse_config(network_test::config);
         assert(config);
         config->enabled = false;
@@ -86,6 +143,24 @@ int main() {
             return f.flash.bytes[offset + 16] + 256u * f.flash.bytes[offset + 17];
         };
         assert(payload_size() == standalone::Store::max_state_bytes);
+        {
+            auto settings = standalone::GrayLine{};
+            settings.morning.enabled = true;
+            const auto read = call(f, "GET", "/api/control/v1/gray-line");
+            assert(read.status == 200);
+            const auto sequence = f.store.config_sequence();
+            const auto bytes = f.flash.bytes;
+            const auto edit =
+                "{\"schema\":\"gray-line\",\"target\":" +
+                application::target(std::string(32, 'a'), f.service.status().boot_id) +
+                ",\"settings\":" + standalone::serialize_gray_line(settings) + "}";
+            assert(call(f, "PUT", "/api/control/v1/gray-line", edit, read.etag).status == 413);
+            assert(f.store.config_sequence() == sequence && f.flash.bytes == bytes);
+            assert(call(f, "PUT", "/api/control/v1/gray-line", std::string(2049, 'x'), read.etag)
+                       .status == 413);
+            assert(f.store.config_sequence() == sequence && f.flash.bytes == bytes);
+        }
+
         const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
         for (const auto policy : {hardware::GpsSettings::Daylight::DayManual,
                                   hardware::GpsSettings::Daylight::NightManual,

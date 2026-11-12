@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {x25519} from '@noble/curves/ed25519.js';
-import {begin, seal, slotDigest, available} from './crypto.js';
+import {begin, seal, slotDigest, available, networkPlaintext} from './crypto.js';
 
 const vector = JSON.parse(readFileSync(new URL('../../../engineering/protocol/WiFi-Bootstrap-v1-vectors.json',
   import.meta.url)));
@@ -53,3 +53,10 @@ for (const changed of [
   assert.notEqual(box.submit.tag, vector.tag);
 }
 console.log('bootstrap browser crypto vector passed');
+
+const withName = networkPlaintext('LabNet','test-only-password','time.example.org','picoc.local');
+assert.equal(Buffer.from(withName).subarray(-12).toString('hex'), '0b' + Buffer.from('picoc.local').toString('hex'));
+for (const hostname of ['a.b.local','bad_name.local','-bad.local','x'.repeat(64)+'.local','PICO.local','pico.local.','http://pico.local/'])
+  assert.throws(()=>networkPlaintext('LabNet','test-only-password','pool.ntp.org',hostname));
+assert.throws(()=>networkPlaintext('LabNet','test-only-password',undefined,'picoc.local'));
+assert.equal(networkPlaintext('x'.repeat(32),'x'.repeat(63), 'x'.repeat(63)+'.'+'x'.repeat(63)+'.'+'x'.repeat(63)+'.'+'x'.repeat(61),'x'.repeat(63)+'.local').length,421);

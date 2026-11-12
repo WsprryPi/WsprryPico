@@ -124,7 +124,7 @@ function clearPrivateStatus() {
   for(const id of ['job-result','message-result','job-progress','standalone-status','recovery','saved-active-status','saved-readback','hostname-status','pico-password-status','progress-settings-status','progress-station-status','progress-engineering-station-status','progress-engineering-network-status','message-schedule-status']) consolePut(id,'');
   if($('saved-readback-details')) $('saved-readback-details').hidden=true;
   hostnameState=null; picoPasswordState=null; messageScheduleReadback=null;
-  timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
+  timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); grayLineEditor?.invalidate(); driveEditor?.invalidate(); frequencyEditor?.invalidate();
   for(const id of ['rf-calibration-status','ntp-timeout-status','gpio-drive-status','gpio-drive-draft-status','standalone-frequency-status']) consolePut(id,'Controls locked. Read this setting again after unlocking; your entry is preserved.');
   $('draft-comparison').replaceChildren();
   requireReadback(Boolean(saveAttempt));
@@ -167,8 +167,8 @@ let picoPasswordState = null, frequencyRefreshing = false, activeEditor=null;
 function radioSettingsError(error, editor = activeEditor) {
   // Automatic time/calibration reads report errors beside their controls.
   // They are not save results; explicit editor actions retain recovery below.
-  if (loadingSettings && ['timeout','calibration'].includes(editor)) return;
-  const [section,label] = ['timeout','calibration'].includes(editor) ? ['time-calibration','Time and calibration'] :
+  if (loadingSettings && ['timeout','calibration','gray-line'].includes(editor)) return;
+  const [section,label] = ['timeout','calibration','gray-line'].includes(editor) ? ['time-calibration','Time and calibration'] :
     editor==='drive' ? ['radio-pins','Radio pins'] : ['radio-settings','WSPR Configuration'];
   notice(error.message+' Open '+label+' to read the result before another save. Your entry is preserved.',true);
   $('radio-result-reveal').href='/station#'+section;
@@ -301,6 +301,12 @@ const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-fr
 }) : null;
 if ($('rf-calibration-form')) $('rf-calibration-form').onsubmit = event => event.preventDefault();
 if ($('ntp-timeout-form')) $('ntp-timeout-form').onsubmit = event => event.preventDefault();
+const grayLineEditor = globalThis.WsprryGrayLine?.mount($('gray-line-controls'), {
+  exchange: (method,body,match)=>api('gray-line',method,body,match),
+  expectedTarget:()=>({device_id:localIdentity?.device_id || operationsTarget?.device_id || hostnameState?.target.device_id,boot_id:snapshot?.job.boot_id}),
+  run:fn=>editorAction('gray-line',fn),
+  afterSave:()=>refresh(),onError:error=>radioSettingsError(error,'gray-line')
+});
 const ntpTimeoutEditor = globalThis.WsprryNtpTimeout && $('ntp-timeout-minutes') ? WsprryNtpTimeout.create({
   input:$('ntp-timeout-minutes'),read:$('ntp-timeout-read'),save:$('ntp-timeout-save'),discard:$('ntp-timeout-discard'),adopt:$('ntp-timeout-adopt'),status:$('ntp-timeout-status'),
   run:fn=>editorAction('timeout',fn),
@@ -809,7 +815,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
       invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
       invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',
-      frequency_not_allowed:'The WSPR tones fall outside the engine limits or saved frequency permissions. Choose an allowed frequency',
+      frequency_not_allowed:'The requested frequency falls outside the engine limits or saved frequency permissions. Choose an allowed frequency',
       FREQUENCY_REJECTED:'A requested RF frequency or complete-job filter selection was refused. Review engine limits, frequency permissions and the declared selector ranges',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',
@@ -957,6 +963,7 @@ function controls(connected) {
   filterEditor?.setAvailability(!!connected && !!snapshot && WsprryFilters.supported(capabilities?.filter_selector), !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   timingEditor?.setPolicy(capabilities?.amplifier_timing);
   timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  grayLineEditor?.setAvailability(!!connected && !!snapshot && WsprryControl.supported('gray_line',capabilities?.gray_line), !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = uiBusy();
   const idle = online && unlocked && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
@@ -1116,7 +1123,7 @@ async function refresh(loadConfig = false, quiet = false) {
     }
     observedAt = new Date(observedClockMs).toISOString().slice(11,19) + ' UTC';
     if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) capabilities = (await api('capabilities')).data;
-    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); }
+    if (capabilitiesBoot && capabilitiesBoot !== snapshot.job.boot_id) { driveEditor?.invalidate(); timingEditor?.invalidate(); filterEditor?.invalidate(); filterSaved=null; calibrationEditor?.invalidate(); frequencyEditor?.invalidate(); ntpTimeoutEditor?.invalidate(); grayLineEditor?.invalidate(); }
     capabilitiesBoot = snapshot.job.boot_id;
     const s = snapshot.standalone, n = snapshot.network;
     $('state').textContent = snapshot.job.state;
@@ -1970,7 +1977,7 @@ async function readHostname(token = pageIdentity.request()) {
       hostnameState.target.boot_id !== d.target.boot_id || hostnameState.saved !== d.saved)) cancelReconnect();
   hostnameState = d; hostnameState.revision = result.revision;
   if (hostnameUncertain) hostnameReviewReady = true;
-  if (!hostnameDraft) $('hostname-input').value = d.saved;
+  if (!hostnameDraft) $('hostname-input').value = d.active.slice(0, -6);
   $('hostname-status').textContent = 'Active: ' + d.active + '. Saved: ' + d.saved + '. ' +
     (d.pending_restart ? 'Restart is required to use the new address. This page may disconnect; sign in again when the Pico returns.' :
       d.writable ? 'The saved address is active for this boot.' : d.reason === 'credential_bound_deployment' ?
@@ -2036,8 +2043,9 @@ async function monitorRestart(expected) {
 }
 $('hostname-form').onsubmit = event => { event.preventDefault(); return action(async()=> {
   cancelReconnect();
-  const name = canonicalHostname($('hostname-input').value);
-  if (!name) { $('hostname-input').setAttribute('aria-invalid','true');$('hostname-error').textContent='Use a full .local hostname with 1–63 letters, digits or hyphens; start and end with a letter or digit.';throw new Error($('hostname-error').textContent); }
+  const label = $('hostname-input').value;
+  const name = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label) ? label.toLowerCase() + '.local' : null;
+  if (!name) { $('hostname-input').setAttribute('aria-invalid','true');$('hostname-error').textContent='Use 1–63 letters, digits, or hyphens; start and end with a letter or digit. Dots are not allowed.';throw new Error($('hostname-error').textContent); }
   if (hostnameUncertain || !hostnameState?.writable) throw new Error('Read the saved hostname before another save.');
   const expected = hostnameState;
   hostnameUncertain = true;
@@ -2063,7 +2071,7 @@ $('hostname-form').onsubmit = event => { event.preventDefault(); return action(a
 $('hostname-default').onclick = () => {
   cancelReconnect();
   if (hostnameState?.writable && confirm('Use the stable default hostname ' + hostnameState.default + '? Save hostname to confirm.')) {
-    $('hostname-input').value=hostnameState.default; hostnameDraft=true;
+    $('hostname-input').value=hostnameState.default.slice(0, -6); hostnameDraft=true;
     $('hostname-input').setAttribute('aria-invalid','false'); $('hostname-error').textContent='';
   }
 };
@@ -2167,7 +2175,7 @@ async function loadAllSettings() {
   loadingSettings=true;
   try {
     controls(true);
-    for(const [editor,field] of [[filterEditor,'filter-selector-controls'],[timingEditor,'amplifier-timing-status'],[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
+    for(const [editor,field] of [[grayLineEditor,'gray-line-1-status'],[filterEditor,'filter-selector-controls'],[timingEditor,'amplifier-timing-status'],[frequencyEditor,'standalone-frequency-status'],[calibrationEditor,'rf-calibration-status'],[ntpTimeoutEditor,'ntp-timeout-status'],[driveEditor,'gpio-drive-status']]) {
       try { await editor?.load(); } catch(error) { consolePut(field,error.message); }
     }
     try { const h=await api('hardware'); const value=checkedHardware(h); if(value.saved && !dirty && !progressEdits.has('pins')) fillPins(value.saved); } catch(error) { consolePut('pins-status',error.message); }

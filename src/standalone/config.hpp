@@ -1,8 +1,9 @@
 #pragma once
-#include "hardware/pins.hpp"
 #include "hardware/gps_settings.hpp"
+#include "hardware/pins.hpp"
 #include "hardware/si5351_settings.hpp"
 #include "rf/amplifier_timing.hpp"
+#include "standalone/gray_line.hpp"
 #include "wtp/json.hpp"
 
 #include <array>
@@ -42,6 +43,7 @@ struct Config {
     std::string ssid, password;
     std::string ntp_ipv4 = default_time_server; // Legacy key also accepts a DNS hostname.
     std::vector<Schedule> schedules;
+    GrayLine gray_line;
     unsigned ntp_timeout_s = default_ntp_timeout_s;
     bool operator==(const Config&) const = default;
 };
@@ -73,6 +75,8 @@ std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz);
 bool valid_wspr_frequency_token(wtp::json::Value value);
 bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
                             std::uint64_t maximum_nhz);
+bool gray_line_frequency_update_allowed(const Config& candidate, const Config* current,
+                                        std::uint64_t minimum_nhz, std::uint64_t maximum_nhz);
 bool valid_wifi_credentials(std::string_view ssid, std::string_view password,
                             std::string_view time_server);
 } // namespace wsprrypico::standalone

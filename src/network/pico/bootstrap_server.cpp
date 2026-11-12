@@ -1,4 +1,3 @@
-#include "network/control.hpp"
 #include "network/pico/bootstrap_server.hpp"
 
 #include "encoding/wspr.hpp"
@@ -7,6 +6,7 @@
 #include "network/bootstrap_codec.hpp"
 #include "network/bootstrap_http.hpp"
 #include "network/bootstrap_wire.hpp"
+#include "network/control.hpp"
 #include "network/owner_claim_http.hpp"
 #include "network/owner_wire.hpp"
 #include "pico/time.h"
@@ -1011,7 +1011,10 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
             save.method = "POST";
             save.path = "/api/control/v1/progress/update";
             auto payload = control_payload(wtp::InputView(plaintext));
-            if (!payload) { cancel_owner_slot(false); return http_error(400, "unsupported_control_contract"); }
+            if (!payload) {
+                cancel_owner_slot(false);
+                return http_error(400, "unsupported_control_contract");
+            }
             save.body = std::move(*payload);
             const wtp::InputView control_wire_body(plaintext);
             save.control_wire_body = &control_wire_body;
@@ -1239,7 +1242,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
             !decode_hex(parsed->request_id, transcript.request_id) ||
             !decode_b64(binding->browser_public_key, transcript.browser_public_key) ||
             !decode_b64(parsed->aead_nonce, nonce) || !decode_b64(parsed->tag, tag) ||
-            !bootstrap_unb64url(parsed->ciphertext, ciphertext, 11, 351))
+            !bootstrap_unb64url(parsed->ciphertext, ciphertext, 11, 421))
             return http_error(400, "invalid_request");
         transcript.pico_public_key = crypto_.public_key();
         const auto digest = bootstrap_digest(transcript.request_id);
@@ -1272,13 +1275,18 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                                            saved->time_server};
             provisioning::scrub(*saved);
         }
+        std::string requested_hostname;
         if (!crypto_.open(transcript, nonce, ciphertext, tag, trial_.ssid, trial_.password,
-                          trial_.time_server, ack_verifier_)) {
+                          trial_.time_server, requested_hostname, ack_verifier_) ||
+            (!requested_hostname.empty() &&
+             profile_->source() == provisioning::ProfileSource::ConsumerProfile)) {
             end_trial(false, now_ms);
             return json("{\"version\":1,\"state\":\"failed\",\"generation\":0,"
                         "\"request_id_digest\":" +
                         wtp::json::quote(digest) + "}");
         }
+        if (!requested_hostname.empty())
+            trial_.hostname = requested_hostname;
         bootstrap_trial_start_pending_ = true;
         bootstrap_submit_delivered_ = false;
         bootstrap_submit_delivered_ms_ = 0;

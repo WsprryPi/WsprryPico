@@ -184,7 +184,7 @@ void HttpParser::parse_headers() {
         if (result.ec != std::errc{} || result.ptr != length.data() + length.size() ||
             content_length_ > max_http_body ||
             (request_.path.starts_with("/api/bootstrap/v1/") &&
-             content_length_ > (request_.path == "/api/bootstrap/v1/submit" ? 768 : 512)) ||
+             content_length_ > (request_.path == "/api/bootstrap/v1/submit" ? 1024 : 512)) ||
             (request_.path.starts_with("/api/owner/v1/claim/") && content_length_ > 1024) ||
             (request_.path.starts_with("/api/owner/v1/") &&
              content_length_ > (request_.path == "/api/owner/v1/clients/enroll" ? 6144 : 4096))) {

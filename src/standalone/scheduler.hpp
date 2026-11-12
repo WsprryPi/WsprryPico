@@ -23,6 +23,7 @@ class Scheduler {
     std::uint64_t message_lead_ns() const;
     std::optional<std::uint64_t> next_message_start() const;
     std::string message_status() const;
+    std::string gray_line_status() const;
     std::optional<std::uint64_t> next_wspr_start() const;
     bool pause_message();
     bool message_pause_pending() const {
@@ -103,6 +104,12 @@ class Scheduler {
                        const std::array<std::uint64_t, 4>& tones);
     void cancel_pair(wtp::ErrorCode reason);
     void poll_pair();
+    enum class GraySelection { Ordinary, Morning, Evening, LocationUnavailable, TimeUnavailable };
+    GraySelection gray_selection(std::uint64_t utc_ns, std::uint64_t raw_ns) const;
+    const GrayLinePeriod* gray_period(GraySelection) const;
+    std::optional<encoding::MorseMessage> selected_message(std::uint64_t utc,
+                                                           std::uint64_t raw) const;
+    bool occurrence_allowed(std::uint64_t first, std::uint64_t last, std::uint64_t raw) const;
     enum class BeaconWindow { Open, Closed, FixUnavailable };
     BeaconWindow beacon_window(std::uint64_t utc_ns, std::uint64_t raw_ns) const;
     bool daylight_allowed(std::uint64_t utc_ns, std::uint64_t raw_ns) const {
