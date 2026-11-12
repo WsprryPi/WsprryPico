@@ -5,7 +5,7 @@
 
 1. Power the Pico. If the Pico has no saved Wi-Fi settings, it starts a temporary **open** setup network named **WsprryPico-** followed by six hexadecimal characters. It needs no Wi-Fi join password. Select the intended Pico's network and stay connected if your phone or computer reports no Internet.
 2. Your phone or computer may open the Pico's setup page automatically after joining its Wi-Fi. If no page opens, launch your browser and type **http://192.168.4.1/** directly into the address bar. If the automatic setup window reports that it cannot run encrypted setup, open the same address in your regular browser.
-3. Enter your **Wi-Fi network name** and **Wi-Fi password** in the form shown below. Keep the suggested **Time server**, **pool.ntp.org**, unless you need a different one. Select **Connect to Wi-Fi**.
+3. Enter your **Wi-Fi network name** and **Wi-Fi password** in the form shown below. The **Hostname** field contains the Pico’s current name as editable text. Choose a unique **Hostname**, such as **picoc**, or keep the suggested name. Do not enter dots or `.local`; the page adds `.local` automatically. Leave it blank to retain the current name. The hostname and Wi-Fi credentials save together; the name takes effect after the setup restart. Keep the suggested **Time server**, **pool.ntp.org**, unless you need a different one. Select **Connect to Wi-Fi**.
 
    ```{image} _static/images/wifi-setup.jpg
    :alt: Pico Wi-Fi setup form showing an example network name, a masked Wi-Fi password, the suggested pool.ntp.org time server, and the Connect to Wi-Fi button. Enter your own network details.

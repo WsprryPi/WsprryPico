@@ -1977,7 +1977,7 @@ async function readHostname(token = pageIdentity.request()) {
       hostnameState.target.boot_id !== d.target.boot_id || hostnameState.saved !== d.saved)) cancelReconnect();
   hostnameState = d; hostnameState.revision = result.revision;
   if (hostnameUncertain) hostnameReviewReady = true;
-  if (!hostnameDraft) $('hostname-input').value = d.saved;
+  if (!hostnameDraft) $('hostname-input').value = d.active.slice(0, -6);
   $('hostname-status').textContent = 'Active: ' + d.active + '. Saved: ' + d.saved + '. ' +
     (d.pending_restart ? 'Restart is required to use the new address. This page may disconnect; sign in again when the Pico returns.' :
       d.writable ? 'The saved address is active for this boot.' : d.reason === 'credential_bound_deployment' ?
@@ -2043,8 +2043,9 @@ async function monitorRestart(expected) {
 }
 $('hostname-form').onsubmit = event => { event.preventDefault(); return action(async()=> {
   cancelReconnect();
-  const name = canonicalHostname($('hostname-input').value);
-  if (!name) { $('hostname-input').setAttribute('aria-invalid','true');$('hostname-error').textContent='Use a full .local hostname with 1–63 letters, digits or hyphens; start and end with a letter or digit.';throw new Error($('hostname-error').textContent); }
+  const label = $('hostname-input').value;
+  const name = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label) ? label.toLowerCase() + '.local' : null;
+  if (!name) { $('hostname-input').setAttribute('aria-invalid','true');$('hostname-error').textContent='Use 1–63 letters, digits, or hyphens; start and end with a letter or digit. Dots are not allowed.';throw new Error($('hostname-error').textContent); }
   if (hostnameUncertain || !hostnameState?.writable) throw new Error('Read the saved hostname before another save.');
   const expected = hostnameState;
   hostnameUncertain = true;
@@ -2070,7 +2071,7 @@ $('hostname-form').onsubmit = event => { event.preventDefault(); return action(a
 $('hostname-default').onclick = () => {
   cancelReconnect();
   if (hostnameState?.writable && confirm('Use the stable default hostname ' + hostnameState.default + '? Save hostname to confirm.')) {
-    $('hostname-input').value=hostnameState.default; hostnameDraft=true;
+    $('hostname-input').value=hostnameState.default.slice(0, -6); hostnameDraft=true;
     $('hostname-input').setAttribute('aria-invalid','false'); $('hostname-error').textContent='';
   }
 };

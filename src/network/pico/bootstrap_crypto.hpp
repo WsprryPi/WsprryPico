@@ -35,7 +35,7 @@ class PicoBootstrapCrypto {
     bool open(const BootstrapTranscriptFields& fields, std::span<const std::uint8_t, 12> nonce,
               std::span<const std::uint8_t> ciphertext, std::span<const std::uint8_t, 16> tag,
               std::string& ssid, std::string& password, std::string& time_server,
-              std::array<std::uint8_t, 32>& ack_verifier);
+              std::string& hostname, std::array<std::uint8_t, 32>& ack_verifier);
     void clear();
 
   private:

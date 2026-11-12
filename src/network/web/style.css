@@ -101,3 +101,7 @@ header .documentation-help:has(svg):hover{color:#fff}
 .control-grid>label>input,.control-grid>label>select{grid-row:2;min-width:0;margin:0}
 .control-grid>label>small,.control-grid>label>.field-result{grid-row:3}
 @media(min-width:651px){.rf-pin-fields:has(>#direct-rf-pin[hidden]){grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.hostname-field{display:flex;align-items:stretch;max-width:34rem;min-width:0}
+.hostname-field input{flex:1;min-width:0;border-radius:4px 0 0 4px}
+.hostname-suffix{display:flex;align-items:center;padding:.6rem .75rem;border:1px solid #687e90;border-left:0;border-radius:0 4px 4px 0;background:#e7eef4;color:#52616e;font-weight:400}

@@ -135,7 +135,7 @@ void valid_envelopes_and_admission() {
 void parser_rejects_oversize_before_body_allocation() {
     HttpParser parser;
     const std::string request = "POST /api/bootstrap/v1/submit HTTP/1.1\r\nHost: 192.168.4.1\r\n"
-                                "Content-Length: 769\r\n\r\n";
+                                "Content-Length: 1025\r\n\r\n";
     const auto bytes =
         std::span(reinterpret_cast<const std::uint8_t*>(request.data()), request.size());
     (void)parser.receive(bytes);
@@ -148,8 +148,8 @@ void parser_rejects_oversize_before_body_allocation() {
         "\"slot_id\":\"2031425364758697a8b9cadbecfd0e1f\","
         "\"request_id\":\"405162738495a6b7c8d9eafb0c1d2e3f\","
         "\"aead_nonce\":\"AAECAwQFBgcICQoL\",\"ciphertext\":\"" +
-        std::string(468, 'A') + "\",\"tag\":\"eckho4uf45mkproym74R4w\"}";
-    assert(maximal_body.size() <= 768 && maximal_body.size() > 512);
+        std::string(560, 'A') + "AA" + "\",\"tag\":\"eckho4uf45mkproym74R4w\"}";
+    assert(maximal_body.size() <= 1024 && maximal_body.size() > 512);
     const std::string headers = "POST /api/bootstrap/v1/submit HTTP/1.1\r\nHost: 192.168.4.1\r\n"
                                 "Origin: http://192.168.4.1\r\nContent-Type: application/json\r\n"
                                 "X-WsprryPico-Bootstrap: 1\r\nContent-Length: " +

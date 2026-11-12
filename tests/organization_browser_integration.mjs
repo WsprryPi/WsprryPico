@@ -186,7 +186,7 @@ try {
     await field('message-text','KEEP MESSAGE');
     await cdp.evaluate(`document.getElementById('config').elements.schedules.value='240 / 0';document.getElementById('config').dispatchEvent(new Event('input',{bubbles:true}))`);
     await click('wifi-host-link');await field('consumer-ssid','DRAFT NETWORK');await field('consumer-password','draft-password');
-    await field('hostname-input','x'.repeat(63)+'.local');
+    await field('hostname-input','x'.repeat(63));
     for(let i=0;i<5;i++){await click('station-link');await click('wifi-host-link');}
     assert.equal(await cdp.evaluate(`document.getElementById('consumer-password').value`),'draft-password');
     assert.equal(requests.filter(r=>r.path.endsWith('/start')).length,starts,'navigation must not allocate sessions');

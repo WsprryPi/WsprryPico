@@ -99,6 +99,7 @@ PROGRESS_BROWSER_NO_CAPTURE=1 node tests/progress_browser_integration.mjs build-
 node tests/consumer_recovery_browser.mjs build-browser/consumer_bootstrap_driver
 node tests/submission_ui_browser.mjs build-browser/consumer_bootstrap_driver build/submission-ui
 node tests/hostname_browser_integration.mjs build-browser/consumer_bootstrap_driver
+node tests/initial_hostname_browser.mjs build-browser/consumer_bootstrap_driver build/initial-hostname-browser
 node tests/organization_browser_integration.mjs build-browser/consumer_bootstrap_driver
 node tests/wspr_browser_integration.mjs build-browser/consumer_bootstrap_driver
 node tests/message_frequency_ui_integration.mjs build-browser/consumer_bootstrap_driver

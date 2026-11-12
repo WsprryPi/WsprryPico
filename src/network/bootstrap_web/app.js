@@ -25,6 +25,8 @@ let polling = false, acknowledging = false, completed = false, saving = false;
 let postAccepted = false, responseLost = false;
 let formEdited = false;
 let lastTimeHintMs;
+let requestedHostname;
+let hostnameEdited = false, hostnameLoaded = false;
 const hexId = (value) => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 const hasSavedNetwork = (status) =>
   status.source === 'network_only' || status.source === 'consumer';
@@ -75,6 +77,23 @@ async function startWhenAvailable(body) {
       notice('Finishing the previous Wi-Fi attempt. This can take up to two minutes.');
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
+  }
+}
+
+async function fillCurrentHostname() {
+  if (!deviceId || hostnameLoaded || saving || sealed || completed) return;
+  const hostname = await titleFromDevice('Wi-Fi setup', deviceId);
+  if (!hostname) {
+    $('hostname-read-status').textContent = 'Current hostname unavailable. Retrying.';
+    return;
+  }
+  hostnameLoaded = true;
+  if (!hostnameEdited) $('hostname').value = hostname.slice(0, -6);
+  $('hostname-read-status').hidden = true;
+  if ($('setup-hostname')) {
+    $('setup-hostname').textContent = hostname;
+    $('setup-hostname').href = 'http://' + hostname + '/';
+    $('setup-hostname').hidden = false;
   }
 }
 
@@ -168,6 +187,9 @@ async function update() {
     if (!Number.isSafeInteger(status.generation) || status.generation < 0)
       throw new Error('invalid generation');
     currentGeneration = status.generation;
+    $('hostname').disabled = status.source === 'consumer';
+    if (status.source === 'consumer') $('hostname-help').textContent =
+      'Change this configured Pico’s hostname in Wi-Fi/Host → Device hostname after signing in.';
     if (status.source === 'fault' && status.slot_state === 'reconcile' && sealed &&
         status.attempt_request_id_digest === sealed.requestDigest) {
       // Retain only the existing encrypted attempt evidence. The private key
@@ -186,6 +208,11 @@ async function update() {
         status.request_id_digest === sealed.requestDigest;
       if (saved) {
         completed = true;
+        if (requestedHostname && $('setup-hostname')) {
+          $('setup-hostname').textContent = requestedHostname;
+          $('setup-hostname').href = 'http://' + requestedHostname + '/';
+          $('setup-hostname').hidden = false;
+        }
         show(durableJoin(status) ? 'connected' : 'saved');
         notice(durableJoin(status) ? 'Wi-Fi saved and connected.' :
           'Wi-Fi saved. The station connection is down.');
@@ -235,7 +262,10 @@ async function update() {
       notice('Checking the saved result. Reconnect to the Pico Wi-Fi if needed.');
     }
   } finally {
-    if (!saving && !sealed && !submissions.pending) await hintTime();
+    if (!saving && !sealed && !submissions.pending) {
+      await fillCurrentHostname();
+      await hintTime();
+    }
     polling = false;
     setTimeout(update, 1000);
   }
@@ -255,7 +285,8 @@ async function submitWork(event) {
       currentGeneration >= Number.MAX_SAFE_INTEGER || saving || sealed || completed) return;
   const ssid = $('ssid').value, password = $('password').value;
   const timeServer = $('time-server').value.trim();
-  for (const id of ['ssid','password','time-server']) fieldError(id,'');
+  const hostnameLabel = $('hostname').disabled ? '' : $('hostname').value;
+  for (const id of ['ssid','password','time-server','hostname']) fieldError(id,'');
   const badSsid=!/^[\x20-\x7e]{1,32}$/.test(ssid), badPassword=!/^[\x20-\x7e]{8,63}$/.test(password);
   if (badSsid || badPassword) {
     if(badSsid) fieldError('ssid','Use 1–32 printable ASCII characters for the network name.');
@@ -269,6 +300,13 @@ async function submitWork(event) {
     notice('Enter a valid time server name or IPv4 address.', true);
     return;
   }
+  if (hostnameLabel && !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(hostnameLabel)) {
+    fieldError('hostname','Use 1–63 letters, digits, or hyphens; start and end with a letter or digit. Dots are not allowed.');
+    submissions.focus($('hostname'));
+    notice('Enter a hostname without dots, such as pico-c.', true);
+    return;
+  }
+  requestedHostname = hostnameLabel ? hostnameLabel.toLowerCase() + '.local' : undefined;
   const formHadFocus=document.activeElement?.closest('form')===$('wifi-form');
   saving = true;
   $('submit').disabled = true;
@@ -281,7 +319,7 @@ async function submitWork(event) {
         !hexId(started.slot_id) || typeof started.pico_public_key !== 'string' ||
         !/^[A-Za-z0-9_-]{43}$/.test(started.pico_public_key))
       throw new Error('invalid Pico start');
-    sealed = seal(pending, started, deviceId, ssid, password, {timeServer});
+    sealed = seal(pending, started, deviceId, ssid, password, {timeServer, hostname: requestedHostname});
     expectedGeneration = currentGeneration + 1;
     $('password').value = '';
     setPasswordVisible(false);
@@ -336,7 +374,7 @@ async function boot() {
   $('interrupted-button').addEventListener('click', () => location.reload());
   $('unknown-button').addEventListener('click', () => location.reload());
   $('wifi-form').addEventListener('submit', submit);
-  $('wifi-form').addEventListener('input', event => { formEdited = true; if (['ssid','password','time-server'].includes(event.target.id)) fieldError(event.target.id,''); });
+  $('wifi-form').addEventListener('input', event => { formEdited = true; if (event.target.id === 'hostname') hostnameEdited = true; if (['ssid','password','time-server','hostname'].includes(event.target.id)) fieldError(event.target.id,''); });
   if (location.origin !== host || typeof fetch !== 'function' ||
       typeof AbortController !== 'function' || !available()) {
     show('browser');
@@ -356,12 +394,7 @@ async function boot() {
     }
     if (!hexId(identity.device_id)) throw new Error('invalid identity');
     deviceId = identity.device_id;
-    const hostname = await titleFromDevice('Wi-Fi setup', deviceId);
-    if (hostname && $('setup-hostname')) {
-      $('setup-hostname').textContent = hostname;
-      $('setup-hostname').href = 'http://' + hostname + '/';
-      $('setup-hostname').hidden = false;
-    }
+    await fillCurrentHostname();
     $('device').textContent = 'Pico ' + deviceId.slice(-6);
     show('credentials');
     await fillSavedNetwork();

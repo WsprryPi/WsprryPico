@@ -7,7 +7,7 @@ const slot = '2031425364758697a8b9cadbecfd0e1f';
 const picoPublic = '3p7bfXt9wbTTW2HC7OQ1Nz-DQ8hbeGdNrfx-FG-IK08';
 const elements = new Map();
 for (const name of ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected', 'saved', 'retry',
-                    'interrupted', 'unknown', 'service', 'browser', 'notice', 'device', 'ssid-error','password-error','time-server-error','page-title', 'setup-intro',
+                    'interrupted', 'unknown', 'service', 'browser', 'notice', 'device', 'hostname','hostname-help','hostname-read-status','hostname-error','ssid-error','password-error','time-server-error','page-title', 'setup-intro',
                     'setup-footer', 'wifi-form', 'ssid', 'password', 'time-server',
                     'password-toggle', 'password-slash', 'submit', 'change-connected',
                     'change-saved', 'retry-button', 'interrupted-button', 'unknown-button']) {
@@ -111,6 +111,12 @@ assert.equal(elements.get('password-slash').attributes.hidden,true);
 assert.equal(elements.get('credentials').hidden, false);
 assert.equal(elements.get('submit').disabled, false);
 assert.equal(starts, 0); // Opening the page does not consume a setup slot.
+elements.get('ssid').value='Home Net';elements.get('password').value='test-password';
+elements.get('hostname').value='bad_name.local';
+await elements.get('wifi-form').events.submit({preventDefault(){}});
+assert.equal(starts,0);assert.equal(elements.get('hostname').attributes['aria-invalid'],'true');
+elements.get('hostname').value='PicoC';
+
 assert.deepEqual(timeHints, [String(now)]); // No extra tap to seed the clock.
 await poll();
 assert.equal(timeHints.length, 1); // Not every status request.
