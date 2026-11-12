@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {checkLockedControls} from './locked_controls_browser.mjs';
 import {checkSi5351} from './si5351_ui_checks.mjs';
 import {checkGps} from './gps_ui_checks.mjs';
-import {checkGrayLine} from './gray_line_ui_checks.mjs';
+import {checkGrayLine,checkUnsetSettings,checkUnsetGrayDraft} from './gray_line_ui_checks.mjs';
 import {checkHardwareSaveIsolation} from './hardware_save_checks.mjs';
 import {checkControlAlignment} from './control_alignment_checks.mjs';
 import {checkContextualHelp} from './contextual_help_browser.mjs';
@@ -347,6 +347,23 @@ try {
     await navigate();if(carrier!=='engineering')await login();
     await checkHardwareSaveIsolation({evaluate,section,click,idle,capture});
     pass('hardware saves preserve suspended no-dial recurrence and invalid WSPR drafts; LED, button, Si5351, GPS/PPS use production journals');
+    if(carrier==='consumer') {
+      await click('access-toggle');await idle();
+      await control({op:'first_use_profile',mode:'network'});
+      await navigate();await login();
+      assert.equal(await evaluate('localAuthenticated'),true);
+      await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'unset settings loaded');
+      await checkUnsetSettings({evaluate,section,click,idle,capture});
+      await click('access-toggle');await idle();
+      await control({op:'first_use_profile',mode:'overlay'});
+      await navigate();await login();
+      assert.equal(await evaluate('localAuthenticated'),true);
+      await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'applied settings loaded');
+      assert.equal(await evaluate(`api('gray-line').then(r=>r.data.saved!==null)`),true);
+      assert.equal(await evaluate('document.getElementById("rf-manual-ppm").disabled'),false);
+      await checkUnsetGrayDraft({evaluate,section,idle});
+      pass('healthy unset settings explain station setup without mutation; applied settings restore editors and retain drafts');
+    }
     const result={carrier,browser:(await send('Browser.getVersion')).product,checks,physical_device:false};
     await writeFile(path.join(output,'results.json'),JSON.stringify(result,null,2)+'\n');
 } catch(error) {

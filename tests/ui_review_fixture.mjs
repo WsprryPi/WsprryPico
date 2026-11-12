@@ -67,7 +67,7 @@ try {
             request.headers.host === `127.0.0.1:${firstPort+index}`) {
           const chunks=[]; for await (const chunk of request) chunks.push(chunk);
           const command=JSON.parse(Buffer.concat(chunks));
-          assert(['reboot','flash_failure','frequency_state','accepted_job','field_clock','time','activate','forget_engineering_station','schedule_tick','message_review','hardware_save_review','sensitivity_saved_mutation'].includes(command.op));
+          assert(['reboot','flash_failure','frequency_state','accepted_job','field_clock','time','activate','forget_engineering_station','schedule_tick','message_review','hardware_save_review','sensitivity_saved_mutation','first_use_profile'].includes(command.op));
           const result=await fixture.command(command);
           if (command.op === 'time') fixture.now = Number(command.ms);
           response.writeHead(200,{'Content-Type':'application/json'}); response.end(JSON.stringify(result)); return;

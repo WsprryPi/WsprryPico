@@ -318,6 +318,7 @@ const ntpTimeoutEditor = globalThis.WsprryNtpTimeout && $('ntp-timeout-minutes')
 const calibrationEditor = globalThis.WsprryRfCalibration && $('rf-manual-ppm') ? WsprryRfCalibration.create({
   input:$('rf-manual-ppm'),mode:$('rf-calibration-mode'),read:$('rf-calibration-read'),save:$('rf-calibration-save'),discard:$('rf-calibration-discard'),adopt:$('rf-calibration-adopt'),status:$('rf-calibration-status'),
   run:fn=>editorAction('calibration',fn),
+  expectedTarget:()=>({device_id:localIdentity?.device_id || operationsTarget?.device_id || hostnameState?.target.device_id,boot_id:snapshot?.job.boot_id}),
   exchange:async (method,body,match)=>{if (!WsprryRfCalibration.supported(capabilities?.rf_calibration)) throw new Error('Calibration configuration is unsupported.'); return api('rf-calibration',method,body,match);},
   onError:error=>radioSettingsError(error,'calibration'),
   afterSave:()=>requireReadback()

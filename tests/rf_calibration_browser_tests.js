@@ -43,6 +43,31 @@ const element = value => ({value,disabled:false,setAttribute(){},textContent:''}
   assert.equal(adopt.hidden,false); adopt.onclick(); assert.equal(save.disabled,false);
   discard.onclick(); assert.equal(input.value,'0.000'); assert.equal(save.disabled,true);
   editor.setAvailability(false); assert.equal(read.disabled,true);
+  // A healthy but unconfigured Pico returns null, independently of lock state.
+  const emptyUi={input:element('0.000'),mode:element('manual'),read:element(),save:element(),discard:element(),adopt:element(),status:element()};
+  let emptySaved=null,emptyErrors=0,emptyWrites=0,emptyHealthy=true,emptyTarget=target;
+  const emptyEditor=create({...emptyUi,expectedTarget:()=>target,onError:()=>{emptyErrors++;},exchange:async(method)=>{
+    if(method!=='GET')emptyWrites++;
+    return {revision:'empty-revision',data:{schema:'rf-calibration',target:emptyTarget,storage_healthy:emptyHealthy,saved:emptySaved}};
+  }});
+  emptyEditor.setAvailability(true);await emptyEditor.load();
+  assert.match(emptyUi.status.textContent,/No standalone station configuration is applied/);
+  assert.equal(emptyErrors,0);assert.equal(emptyUi.input.disabled,true);assert.equal(emptyUi.save.disabled,true);
+  assert.equal(emptyUi.discard.disabled,true);assert.equal(emptyUi.adopt.disabled,true);
+  await emptyUi.save.onclick();assert.equal(emptyWrites,0);
+  emptySaved={manual_ppm:'1.250',mode:'manual'};await emptyEditor.load();
+  assert.equal(emptyUi.input.value,'1.250');assert.equal(emptyUi.input.disabled,false);
+  emptyUi.input.value='2.500';emptyUi.input.oninput();emptySaved=null;await emptyEditor.load();
+  assert.equal(emptyUi.input.value,'2.500');assert.match(emptyUi.status.textContent,/entry is preserved/);
+  assert.equal(emptyUi.save.disabled,true);await emptyUi.save.onclick();assert.equal(emptyWrites,0);
+  emptySaved={manual_ppm:'1.250',mode:'manual'};await emptyEditor.load();
+  assert.equal(emptyUi.input.value,'2.500');assert.equal(emptyUi.save.disabled,false);
+  emptyHealthy=false;emptySaved=null;await emptyEditor.load();assert.equal(emptyErrors,1);
+  assert.match(emptyUi.status.textContent,/unavailable/);
+  emptyHealthy=true;emptyTarget={...target,boot_id:'d'.repeat(32)};
+  await emptyEditor.load();assert.equal(emptyErrors,2);assert.match(emptyUi.status.textContent,/different Pico or boot/);
+  emptyTarget=target;emptySaved={mode:'manual'};
+  await emptyEditor.load();assert.equal(emptyErrors,3);assert.equal(emptyUi.save.disabled,true);
   // Execute the real app API adapter; this catches revision/etag shape drift.
   const app = fs.readFileSync(require.resolve('../src/network/web/app.js'),'utf8');
   const apiSource = app.slice(app.indexOf('async function api('),app.indexOf('async function local('));

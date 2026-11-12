@@ -10,25 +10,28 @@
     return Math.abs(value) <= 100000 ? value : null;
   }
   function supported(value) { return control.supported('rf_calibration',value); }
-  function create({input,mode,read,save,discard,adopt,status,exchange,afterSave = ()=>{},onError = ()=>{},run = fn=>fn()}) {
+  function create({input,mode,read,save,discard,adopt,status,exchange,expectedTarget = ()=>null,afterSave = ()=>{},onError = ()=>{},run = fn=>fn()}) {
     let available = false, busy = false, observed = null, revision = '', epoch = 0, edited = false, draftTarget = '', review = false;
     const identity = value => JSON.stringify(value.target);
     function render() {
       read.hidden = !available || Boolean(observed && revision);
       read.disabled = busy || !available;
-      input.disabled = mode.disabled = busy || !available || !observed || !revision;
+      input.disabled = mode.disabled = busy || !available || !observed?.saved || !revision;
       save.disabled = input.disabled || review || !edited || ppm(input.value) === null || mode.value !== 'manual';
-      if (discard) discard.disabled = busy || !observed || !revision;
-      if (adopt) { adopt.hidden = !review; adopt.disabled = busy || !observed || !revision; }
+      if (discard) discard.disabled = busy || !observed?.saved || !revision;
+      if (adopt) { adopt.hidden = !review; adopt.disabled = busy || !observed?.saved || !revision; }
       input.setAttribute('aria-invalid',String(ppm(input.value) === null));
     }
     function valid(r) {
       const v = r.data;
       if (!v || v.schema !== 'rf-calibration' || !r.revision ||
           v.target?.scope !== 'member' || !/^[0-9a-f]{32}$/.test(v.target.device_id) ||
-          !/^[0-9a-f]{32}$/.test(v.target.boot_id) || !v.storage_healthy ||
-          typeof v.saved?.manual_ppm !== 'string' || ppm(v.saved.manual_ppm) === null ||
-          v.saved.mode !== 'manual') throw new Error('Calibration readback is unavailable or unsupported.');
+          !/^[0-9a-f]{32}$/.test(v.target.boot_id) || v.storage_healthy !== true ||
+          (v.saved !== null && (typeof v.saved?.manual_ppm !== 'string' || ppm(v.saved.manual_ppm) === null ||
+          v.saved.mode !== 'manual'))) throw new Error('Calibration readback is unavailable or unsupported.');
+      const expected = expectedTarget();
+      if (expected && (v.target.device_id !== expected.device_id || v.target.boot_id !== expected.boot_id))
+        throw new Error('Calibration belongs to a different Pico or boot.');
       return v;
     }
     async function load() {
@@ -39,9 +42,13 @@
         if (ticket !== epoch) return;
         observed = v; revision = r.revision;
         if (!edited) {
-          input.value = v.saved.manual_ppm; mode.value = v.saved.mode; draftTarget = identity(v);
+          input.value = v.saved?.manual_ppm ?? '0.000'; mode.value = v.saved?.mode ?? 'manual'; draftTarget = identity(v);
         }
         review = edited && draftTarget !== identity(v);
+        if (v.saved === null) {
+          status.textContent = 'No standalone station configuration is applied. Apply the station settings in WSPR Configuration before editing carrier calibration.' + (edited ? ' Your entry is preserved.' : '');
+          return;
+        }
         const selection=v.selection;
         const next=selection?.reason==='gps_calibration_required' ? 'waiting for qualified GPS calibration' :
           `${selection?.next_ppb ?? 'unavailable'} ppb${selection?.next_source==='gps' ? ' (GPS with manual residual trim)' : ' (manual correction)'}`;
@@ -58,7 +65,7 @@
           calibration:{manual_ppm:input.value,mode:selectedMode}},match);
         const v = valid(r);
         if (ticket !== epoch) return;
-        if (JSON.stringify(v.target) !== JSON.stringify(target) ||
+        if (v.saved === null || JSON.stringify(v.target) !== JSON.stringify(target) ||
             ppm(v.saved.manual_ppm) !== expected || v.saved.mode !== selectedMode)
           throw new Error('Saved calibration differs; read saved calibration before another save.');
         observed = v; revision = r.revision; edited = false; review = false;

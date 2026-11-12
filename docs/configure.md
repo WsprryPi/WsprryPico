@@ -71,6 +71,8 @@ To prevent later automatic starts, uncheck **Enable standalone schedules**, save
 
 These settings apply to WSPR, Morse modes, and test tones. Open **Station Control → Time and calibration**. Saved values load automatically; a read button appears only if recovery needs a fresh observation.
 
+If no standalone station configuration is applied, carrier calibration explains that station setup is required and keeps its editor disabled. Complete and apply the station settings in **WSPR Configuration** first. Healthy, unset settings do not indicate a storage or connection fault.
+
 See [output and reference options](reference/time.md#understand-the-output-and-reference-options) for how Direct GPIO, Si5351, GPS, PPS, and loopback work together. The [measured carrier-error examples](reference/time.md#measured-carrier-error-examples) compare manual-zero operation with GPS/PPS automatic correction.
 
 (ntp-update-timeout)=
@@ -126,6 +128,8 @@ The Pico checks new frequencies before saving them. Your selected RF output, ban
 Your existing WSPR schedule or repeating Morse-message settings still decide when transmissions are due. Gray-line scheduling chooses which period's settings to use at those times; it does not create extra transmissions or change how often they repeat.
 
 Choose **Read saved gray-line settings**, edit the morning and evening periods, then choose **Save gray-line settings**. Saved changes apply to future scheduled transmissions without a restart. You still need to enable the WSPR schedule or repeating message separately.
+
+Gray-line settings remain disabled until a standalone station configuration is applied. If the page reports that none is applied, complete and apply the station settings first; reading the page does not create a station configuration or enable a schedule.
 
 Reading saved settings keeps your unsaved edits. Choose **Discard gray-line entries** to replace them with the values from the last read. If a save reply is lost or unclear, read the saved settings again before saving. If the entries were kept from another Pico or from before a restart, review them and choose **Use entries for this Pico** before reusing them.
 

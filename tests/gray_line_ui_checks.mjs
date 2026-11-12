@@ -1,5 +1,41 @@
 // SPDX-License-Identifier: MIT
 import assert from 'node:assert/strict';
+export async function checkUnsetSettings({evaluate,section,click,idle,capture}) {
+  const empty=await evaluate(`Promise.all(['gray-line','rf-calibration'].map(p=>api(p).then(r=>({saved:r.data.saved,healthy:r.data.storage_healthy}))))`);
+  assert.deepEqual(empty,[{saved:null,healthy:true},{saved:null,healthy:true}],'production handlers report healthy unset settings');
+  for(const id of ['gray-line-1-status','rf-calibration-status']) {
+    const text=await evaluate(`document.getElementById('${id}').textContent`);
+    assert.match(text,/No standalone station configuration is applied/);
+    assert.doesNotMatch(text,/unavailable|unsupported|another Pico/);
+  }
+  assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true);
+  assert.equal(await evaluate('document.querySelector("#gray-line-controls fieldset").disabled'),true);
+  assert.equal(await evaluate('document.getElementById("rf-manual-ppm").disabled'),true);
+  await evaluate(`globalThis.emptyApi=api;globalThis.emptyWrites=[];api=async(...args)=>{if(args[1]&&args[1]!=='GET')emptyWrites.push(args[0]);return emptyApi(...args)};`);
+  for(const id of ['gray-line-1-save','rf-calibration-save']) {
+    assert.equal(await evaluate(`document.getElementById('${id}').disabled`),true);
+    await click(id);await idle();
+  }
+  assert.deepEqual(await evaluate('emptyWrites'),[],'unset settings never enable a mutation');
+  await section('advanced-scheduling');await capture('gray-line-unset');
+  await section('time-calibration');await capture('time-calibration');
+  await evaluate('api=emptyApi');
+}
+
+export async function checkUnsetGrayDraft({evaluate,section,idle}) {
+  await section('advanced-scheduling');await idle();
+  await evaluate(`globalThis.grayDraftApi=api;const field=document.querySelector('[data-gray="morning.upper_mdeg"]');field.value='7';field.dispatchEvent(new Event('input',{bubbles:true}));
+    api=async(...args)=>{const r=await grayDraftApi(...args);return args[0]==='gray-line'&&(!args[1]||args[1]==='GET')?{...r,data:{...r.data,saved:null}}:r};`);
+  await evaluate('grayLineEditor.load()');
+  assert.equal(await evaluate(`document.querySelector('[data-gray="morning.upper_mdeg"]').value`),'7');
+  assert.match(await evaluate('document.getElementById("gray-line-1-status").textContent'),/entries are preserved/);
+  assert.equal(await evaluate('document.getElementById("gray-line-1-save").disabled'),true);
+  await evaluate('api=grayDraftApi');await evaluate('grayLineEditor.load()');
+  assert.equal(await evaluate(`document.querySelector('[data-gray="morning.upper_mdeg"]').value`),'7');
+  assert.equal(await evaluate('document.getElementById("gray-line-1-save").disabled'),false);
+  await evaluate('document.getElementById("gray-line-1-discard").click()');
+}
+
 export async function checkGrayLine({evaluate,section,idle,capture}) {
   await section('advanced-scheduling');
   await evaluate('grayLineEditor.read()');await idle();
