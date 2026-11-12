@@ -36,7 +36,8 @@ Transmitter status leads Station Control and is hidden with that view on Wi-Fi/H
 | Time and calibration | `time-calibration` | Station; NTP timeout and RF correction for every mode | Closed | Station Control / `top` |
 | WSPR Configuration | `radio-settings` | Station; identity, saved message type, frequency, and schedules | Closed | Station Control / `top` |
 | Radio pins | `radio-pins` | Station; independent hardware save and drive settings | Closed | Station Control / `top` |
-| CW Modes | `message-section` | Station; capability-gated message/file controls | Closed | Station Control / `top` |
+| Advanced Scheduling | `advanced-scheduling` | Station; gray-line periods and automatic beacon policy | Closed | Station Control / `top` |
+| CW Configuration | `message-section` | Station; capability-gated message/file controls | Closed | Station Control / `top` |
 | Wi-Fi network | `wifi-settings` | Wi-Fi/Host; one profile-appropriate editor | Closed | Wi-Fi/Host / `top` |
 | Pico password | `pico-password-section` | Wi-Fi/Host; consumer setting when supported | Closed | Wi-Fi/Host / `top` |
 | Device hostname | `hostname-section` | Wi-Fi/Host; credential-bound engineering names remain read-only | Closed | Wi-Fi/Host / `top` |
@@ -107,7 +108,7 @@ Every Sphinx HTML build, including RTD publication, checks emitted help URLs aga
 
 ## RF and time control placement
 
-Time and calibration contains the NTP timeout and Automatic beacon schedule. The schedule offers 24-hour operation or a daylight or night restriction based on the saved grid or a fresh GPS fix. The schedule control uses the GPS editor's lock state. Save beacon schedule merges the selected policy into the saved GPS settings under the current revision. Save RF output settings in Radio pins preserves the saved beacon policy. A changed policy requires explicit restart. Radio pins places Si5351 I²C setup immediately after RF engine selection, followed by GPS controls. Wiring explanations are in the operator manual and linked through section-specific help. Shared editors keep their full explanatory presentation by default. The Pico requests compact presentation explicitly.
+Time and calibration contains the NTP timeout and RF correction. Advanced Scheduling contains Gray-line scheduling and Automatic beacon schedule. The schedule offers 24-hour operation or a daylight or night restriction based on the saved grid or a fresh GPS fix. The schedule control uses the GPS editor's lock state. Save beacon schedule merges the selected policy into the saved GPS settings under the current revision. Save RF output settings in Radio pins preserves the saved beacon policy. A changed policy requires explicit restart. Radio pins places Si5351 I²C setup immediately after RF engine selection, followed by GPS controls. Wiring explanations are in the operator manual and linked through section-specific help. Shared editors keep their full explanatory presentation by default. The Pico requests compact presentation explicitly.
 
 The hostname continuation link targets `/station`. A validated hostname-return receipt overrides stale presentation History on arrival and selects Station Control at the top with all managed disclosures collapsed. Public readback cannot confirm the reset or consume that receipt. Authenticated readback confirms device identity, a new boot, and the intended saved/active hostname before clearing it and restoring the same collapsed top presentation. Save receipts retain their separate recovery presentation.
 

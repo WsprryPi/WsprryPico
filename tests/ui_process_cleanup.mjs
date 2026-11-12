@@ -32,9 +32,20 @@ export async function ownedGroupAlive(pid,timeoutMs=3000) {
     },timeoutMs);
 }
 export async function recoverOwnedGroup(pid,timeoutMs=3000) {
-    if(!await ownedGroupAlive(pid,timeoutMs))return;
-    try{process.kill(-pid,'SIGKILL');}catch(error){if(error.code!=='ESRCH')throw error;}
+    await killOwnedGroup(pid,timeoutMs);
     await cleanupDeadlines.until(async()=>!await ownedGroupAlive(pid,timeoutMs),'owned-group-recovery',timeoutMs);
+}
+
+async function killOwnedGroup(pid,timeoutMs) {
+    if(!await ownedGroupAlive(pid,timeoutMs))return;
+    try{process.kill(-pid,'SIGKILL');}
+    catch(error){
+        if(error.code==='ESRCH')return;
+        // macOS can refuse a group signal while its last members exit. Only
+        // an independent observation of no live members permits profile removal.
+        if(error.code==='EPERM'&&!await ownedGroupAlive(pid,timeoutMs))return;
+        throw error;
+    }
 }
 
 function hasExited(child) {return child.exitCode!==null || child.signalCode!==null;}
@@ -80,7 +91,7 @@ async function stopChild(child,timeoutMs,processGroup) {
     // A browser can exit before its profile-writing descendants. These groups
     // belong only to detached processes started by this integration check.
     if(processGroup && child.pid) {
-        signalOwned(child,'SIGKILL',true);
+        await killOwnedGroup(child.pid,Math.max(1,end-performance.now()));
         await cleanupDeadlines.until(()=>cleanupDeadlines.deadlinePromise('owned-group-observation',
             (resolve,reject,budget)=>{groupAlive(child.pid,budget).then(live=>resolve(!live),reject);}),
             'owned-process-group-exit',Math.max(0,end-performance.now()));

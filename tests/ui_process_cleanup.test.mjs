@@ -100,6 +100,88 @@ test('owned profile writer descendants stop after their parent exits',{
     await assert.rejects(access(profile),{code:'ENOENT'});
 });
 
+test('an exited owned group with an EPERM probe does not block profile removal',{
+    skip:process.platform==='win32',timeout:5000
+},async t=>{
+    const child=spawn(process.execPath,['-e',''],{detached:true,stdio:'ignore'});
+    await once(child,'exit');
+    const kill=process.kill.bind(process),signals=[];
+    t.mock.method(process,'kill',(pid,signal)=>{
+        if(pid!==-child.pid)return kill(pid,signal);
+        signals.push(signal);
+        throw Object.assign(Error('exiting group'),{code:'EPERM'});
+    });
+    let removed=false;
+    await cleanupUiProcesses([child],'/unused/profile',{
+        processGroup:true,remove:async()=>{removed=true;}
+    });
+    assert.equal(removed,true);
+    assert.ok(signals.length>0);
+    assert.ok(signals.every(signal=>signal===0),'no kill is needed after all group members exit');
+});
+
+test('a denied group kill preserves the profile while an owned writer is live',{
+    skip:process.platform==='win32',timeout:10000
+},async t=>{
+    const child=spawn(process.execPath,['-e',"process.send('ready');setInterval(()=>{},1000)"],{
+        detached:true,stdio:['ignore','ignore','ignore','ipc']
+    });
+    const kill=process.kill.bind(process);
+    let patched,removed=false,denied=false;
+    try{
+        await once(child,'message');
+        patched=t.mock.method(process,'kill',(pid,signal)=>{
+            if(pid===-child.pid&&signal==='SIGKILL'){
+                denied=true;throw Object.assign(Error('live group denied'),{code:'EPERM'});
+            }
+            return kill(pid,signal);
+        });
+        // Model a browser parent that has exited while its owned group still
+        // contains this writer; only group cleanup may stop the remaining process.
+        await assert.rejects(cleanupUiProcesses([{pid:child.pid,exitCode:0,signalCode:null}],'/unused/profile',{
+            processGroup:true,remove:async()=>{removed=true;}
+        }),/live group denied/);
+        assert.equal(denied,true);
+        assert.equal(removed,false);
+        kill(child.pid,0);
+    }finally{
+        patched?.mock.restore();
+        const exited=once(child,'exit');kill(child.pid,'SIGKILL');await exited;
+    }
+});
+
+test('a group exiting between probe and kill permits removal after fresh observation',{
+    skip:process.platform==='win32',timeout:5000
+},async t=>{
+    const child=spawn(process.execPath,['-e',"process.send('ready');setInterval(()=>{},1000)"],{
+        detached:true,stdio:['ignore','ignore','ignore','ipc']
+    });
+    const kill=process.kill.bind(process),signals=[];
+    let patched,removed=false;
+    const exited=once(child,'exit');
+    try{
+        await once(child,'message');
+        patched=t.mock.method(process,'kill',(pid,signal)=>{
+            if(pid!==-child.pid)return kill(pid,signal);
+            signals.push(signal);
+            if(signal==='SIGKILL'){
+                kill(child.pid,'SIGKILL');
+                throw Object.assign(Error('group exited during signal'),{code:'EPERM'});
+            }
+            return kill(pid,signal);
+        });
+        await cleanupUiProcesses([{pid:child.pid,exitCode:0,signalCode:null}],'/unused/profile',{
+            processGroup:true,remove:async()=>{removed=true;}
+        });
+        assert.equal(removed,true);
+        assert.deepEqual(signals.slice(0,3),[0,'SIGKILL',0],'denial requires a fresh group observation');
+    }finally{
+        patched?.mock.restore();
+        if(child.exitCode===null&&child.signalCode===null)kill(child.pid,'SIGKILL');
+        await exited;
+    }
+});
+
 // Phase budgets and the JSON fixture run through the ordinary cleanup-test owner.
 import {FixtureProcess} from './fixture_process.mjs';
 import {createDeadlineTools,deadlinePromise,preserveCleanup,until} from './browser_deadline.mjs';

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 import assert from 'node:assert/strict';
 export async function checkGrayLine({evaluate,section,idle,capture}) {
-  await section('time-calibration');
+  await section('advanced-scheduling');
   await evaluate('grayLineEditor.read()');await idle();
   const query=`document.querySelector('#gray-line-controls [data-gray="morning.enabled"]')`;
   assert.equal(await evaluate(`${query}.matches(':disabled')`),false);

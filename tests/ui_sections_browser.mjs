@@ -57,7 +57,8 @@ async function capture(state,dialog=false) {
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
         if(state==='contextual-help')await evaluate('document.getElementById("radio-settings").scrollIntoView({block:"start"})');
-        else if(state==='time-calibration'||state==='beacon-saved-grid')await evaluate('document.getElementById("time-calibration").scrollIntoView({block:"start"})');
+        else if(state==='advanced-scheduling'||state==='beacon-saved-grid')await evaluate('document.getElementById("advanced-scheduling").scrollIntoView({block:"start"})');
+        else if(state==='time-calibration')await evaluate('document.getElementById("time-calibration").scrollIntoView({block:"start"})');
         else if(state==='beacon-conflict-comparison')await evaluate('Array.from(document.querySelectorAll("#draft-comparison h4")).find(e=>e.textContent==="Automatic beacon schedule").scrollIntoView({block:"center"})');
         else if(state==='field-settings')await evaluate('document.getElementById("field-access").scrollIntoView({block:"start"})');
         else if(state==='si5351-details')await evaluate('document.querySelector("[data-si-status]").scrollIntoView({block:"end"})');
@@ -66,6 +67,12 @@ async function capture(state,dialog=false) {
         else if(state.startsWith('gps-'))await evaluate('document.getElementById("gps-settings").scrollIntoView({block:"start"})');
         else if(!dialog)await evaluate('scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
+        if(state==='time-calibration') {
+          const layout=await evaluate(`(()=>{const input=document.getElementById('ntp-timeout-minutes').getBoundingClientRect(),save=document.getElementById('ntp-timeout-save').getBoundingClientRect(),cancel=document.getElementById('ntp-timeout-discard');return {inputWidth:input.width,sameRow:Math.abs(input.top-save.top)<4,cancel:cancel.textContent}})()`);
+          assert.ok(layout.inputWidth<=128,'timeout field keeps a compact width');
+          assert.equal(layout.cancel,'Cancel');
+          if(view.name==='desktop')assert.equal(layout.sameRow,true,'timeout actions fit beside the input');
+        }
         if(process.env.UI_REVIEW_NO_CAPTURE==='1' && !(process.env.GRAY_LINE_REVIEW_CAPTURE==='1' && state.startsWith('gray-line')))continue;
         const gpsClip=state.startsWith('gray-line')?await evaluate('(()=>{const r=document.getElementById("gray-line-controls").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:Math.ceil(r.height),scale:1}})()'):state.startsWith('gps-')?await evaluate('(()=>{const r=document.getElementById("gps-settings").getBoundingClientRect();return {x:0,y:r.top+scrollY,width:innerWidth,height:Math.ceil(r.height),scale:1}})()'):null;
         const shot=await send('Page.captureScreenshot',{format:'png',...(gpsClip?{clip:gpsClip,captureBeyondViewport:true}:{})});
@@ -95,6 +102,12 @@ try {
     pass('local shared favicon bytes, browser decoding and repeat delivery before login');
     await until(()=>evaluate('!!settingsLoadedBoot && !busy'),'automatic settings loaded');
     assert.equal(await evaluate('document.getElementById("radio-result-reveal").hidden'),true,'normal startup has no settings-result link');
+    assert.deepEqual(await evaluate(`[...document.querySelectorAll('#station-area [data-operator-section]')].slice(0,3).map(e=>e.id)`),['radio-settings','message-section','advanced-scheduling'],'configuration sections follow the requested order');
+    assert.equal(await evaluate(`document.querySelector('#message-section > summary span').textContent`),'CW Configuration');
+    assert.equal(await evaluate(`document.getElementById('gray-line-controls').closest('[data-operator-section]').id`),'advanced-scheduling');
+    await section('time-calibration');await capture('time-calibration');
+    await evaluate('document.getElementById("time-calibration").open=false');
+
     if(carrier==='consumer') {await checkLockedControls({evaluate,send,key,section,login,idle,output});pass('native authentication-lock feedback, guarded pointer/touch/keyboard and cleanup');}
     if(carrier==='consumer') {
       // Fail the actual automatic public reads on a new document, without a save.
@@ -275,7 +288,7 @@ try {
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
     pass('cancelled late login cannot ghost-unlock and cleans only its serialized session');
     for(const [button,resource,editor] of [['rf-calibration-read','rf-calibration','calibrationEditor'],['ntp-timeout-read','ntp-timeout','ntpTimeoutEditor'],['gpio-drive-read','gpio-drive','driveEditor'],['gray-line-1-read','gray-line','grayLineEditor']]) {
-      await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':'time-calibration');
+      await navigate();await login();await section(resource==='gpio-drive'?'radio-pins':resource==='gray-line'?'advanced-scheduling':'time-calibration');
       await evaluate(`${editor}.invalidate();controls(online)`);
       await evaluate(`globalThis.editorRequest=radio.request.bind(radio);globalThis.editorRead=radio.publicRead.bind(radio);globalThis.editorOrder=[];radio.request=async(...args)=>{editorOrder.push(args[0]);return editorRequest(...args)};radio.publicRead=async(...args)=>{if(args[0]==='${resource}'&&!globalThis.releaseEditor)await new Promise(resolve=>globalThis.releaseEditor=resolve);return editorRead(...args)}`);
       await click(button);await until(()=>evaluate('!!globalThis.releaseEditor'),'held editor');

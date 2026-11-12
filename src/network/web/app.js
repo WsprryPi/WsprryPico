@@ -168,7 +168,7 @@ function radioSettingsError(error, editor = activeEditor) {
   // Automatic time/calibration reads report errors beside their controls.
   // They are not save results; explicit editor actions retain recovery below.
   if (loadingSettings && ['timeout','calibration','gray-line'].includes(editor)) return;
-  const [section,label] = ['timeout','calibration','gray-line'].includes(editor) ? ['time-calibration','Time and calibration'] :
+  const [section,label] = editor==='gray-line' ? ['advanced-scheduling','Advanced Scheduling'] : ['timeout','calibration'].includes(editor) ? ['time-calibration','Time and calibration'] :
     editor==='drive' ? ['radio-pins','Radio pins'] : ['radio-settings','WSPR Configuration'];
   notice(error.message+' Open '+label+' to read the result before another save. Your entry is preserved.',true);
   $('radio-result-reveal').href='/station#'+section;

@@ -83,7 +83,7 @@ The **NTP update timeout: Continue without a valid NTP update for (minutes).** c
 (automatic-beacon-schedule)=
 ### Automatic beacon schedule
 
-In **Time and calibration**, use **Automatic beacon schedule** to limit when the Pico starts scheduled WSPR and repeating keyed-message transmissions.
+In **Advanced Scheduling**, use **Automatic beacon schedule** to limit when the Pico starts scheduled WSPR and repeating keyed-message transmissions.
 
 - **24 hours** (default): Allow scheduled starts at any time of day or night. This option adds no GPS requirement.
 - **Daylight only (saved grid)** and **Night only (saved grid)** use the center of the applied [station grid locator](#station-identity). Choose one of these for a fixed station with or without GPS.
@@ -106,7 +106,7 @@ For repeating keyed messages, the schedule status identifies when the next occur
 (gray-line-scheduling)=
 ### Gray-line scheduling
 
-In **Time and calibration**, use **Gray-line scheduling** to give morning and evening their own operating periods and frequencies. Both periods are disabled by default.
+In **Advanced Scheduling**, use **Gray-line scheduling** to give morning and evening their own operating periods and frequencies. Both periods are disabled by default.
 
 Solar elevation describes how far the Sun's center is above or below the horizon. Negative values mean it is below the horizon; positive values mean it is above it. At 0°, its center is on the horizon.
 
