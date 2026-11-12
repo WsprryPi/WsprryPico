@@ -160,28 +160,13 @@ Pause does not abort or release another owner's work. While a job runs, pause is
 
 ## Gray-line selection
 
-The portable scheduler evaluates one optional `gray_line` object before ordinary
-beacon policy. Its explicit `location` is `manual` or `gps`. Closed `morning` and
-`evening` objects each contain boolean `enabled`, integer `lower_mdeg` and
-`upper_mdeg` (−90000 ≤ lower < upper ≤ 90000), nullable whole-Hz
-`wspr_dial_frequency_hz` (6503–159998496), and nullable canonical positive decimal
-string `message_frequency_nhz` (uint64 nHz). Null frequency overrides inherit the
-normal mode's saved frequency. Both periods default disabled, with −6000/+6000
-bounds. Existing recurrence, expiry, station encoding, and output guards remain
-authoritative. FSKCW and DFCW translate Mark and Space together, refusing overflow or
-underflow and preserving the direction of the saved shift.
-Changed frequency overrides are checked against the current engine range and
-candidate frequency permissions before persistence, including disabled periods.
-Unchanged values can be retained or disabled after an engine/policy change;
-admission still rechecks every actual tone and the translated message shift.
+The portable scheduler evaluates one optional `gray_line` object before ordinary beacon policy. Its explicit `location` is `manual` or `gps`. Closed `morning` and `evening` objects each contain boolean `enabled`, integer `lower_mdeg` and `upper_mdeg` (−90000 ≤ lower < upper ≤ 90000), nullable whole-Hz `wspr_dial_frequency_hz` (6503–159998496), and nullable canonical positive decimal string `message_frequency_nhz` (uint64 nHz).
 
-Solar elevation is geometric Sun-center elevation from the existing NOAA
-approximation. Bounds compare the unrounded elevation, lower inclusive and
-upper exclusive. Local solar hour angle partitions morning/evening: negative
-angles are morning; noon is evening and midnight is morning. This rule remains
-defined at the poles without requiring crossings. `prolonged_window` reports
-that the estimated daily elevation range at the current declination lies inside
-the selected period; it is not an event forecast or propagation prediction.
+Null frequency overrides inherit the normal mode's saved frequency. Both periods default disabled, with −6000/+6000 bounds. Browser entries use degrees with up to three decimal places and are converted to integer millidegrees. Existing recurrence, expiry, station encoding, and output guards remain authoritative.
+
+FSKCW and DFCW translate Mark and Space together, refusing overflow or underflow and preserving the direction of the saved shift. Changed frequency overrides are checked against the current engine range and candidate frequency permissions before persistence, including disabled periods. Unchanged values can be retained or disabled after an engine/policy change; admission still rechecks every actual tone and the translated message shift.
+
+Solar elevation is geometric Sun-center elevation from the existing NOAA approximation. Bounds compare the unrounded elevation, lower inclusive and upper exclusive. Local solar hour angle partitions morning/evening: negative angles are morning; noon is evening and midnight is morning. This rule remains defined at the poles without requiring crossings. `prolonged_window` reports that the estimated daily elevation range at the current declination lies inside the selected period; it is not an event forecast or propagation prediction.
 
 | Gray-line state | New standalone occurrence |
 | --- | --- |
@@ -192,23 +177,8 @@ the selected period; it is not an event forecast or propagation prediction.
 | Pair starts select different periods or gray-line/ordinary policies | Refuse whole pair before CLAIM or reservation |
 | Invalid settings or identity/revision mismatch | Reject before configuration writes |
 
-The same admission-time position and configuration evaluate both scheduled frame
-starts. Accepted work keeps its frozen intent and local launch checks. Current
-jobs are not interrupted by a solar boundary, configuration reads, or a loss of
-position. Existing idle/unowned update rules, durable watermarks, and no-catch-up
-behavior apply. External WTP/manual jobs do not use this standalone gate.
+The same admission-time position and configuration evaluate both scheduled frame starts. Accepted work keeps its frozen intent and local launch checks. Current jobs are not interrupted by a solar boundary, configuration reads, or a loss of position. Existing idle/unowned update rules, durable watermarks, and no-catch-up behavior apply. External WTP/manual jobs do not use this standalone gate.
 
-The current Control/1 `gray-line` resource exposes target-bound saved settings,
-storage health, and the current solar selection. Its PUT envelope contains
-`schema`, `target`, and complete `settings`, requires the current contract and
-If-Match revision, and uses the ordinary shared configuration transaction.
-Config merge also accepts the same closed `gray_line` object; omission preserves
-it. Default settings occupy no extra storage. Nondefault settings are stored in
-the existing independent journal format; older firmware rejects the unknown
-extension instead of reviving older enabled settings. Total journal capacity is
-unchanged, and aggregate overflow refuses before writing.
+The current Control/1 `gray-line` resource exposes target-bound saved settings, storage health, and the current solar selection. Its PUT envelope contains `schema`, `target`, and complete `settings`, requires the current contract and If-Match revision, and uses the ordinary shared configuration transaction. Config merge also accepts the same closed `gray_line` object; omission preserves it. Default settings occupy no extra storage. Nondefault settings are stored in the existing independent journal format; older firmware rejects the unknown extension instead of reviving older enabled settings. Total journal capacity is unchanged, and aggregate overflow refuses before writing.
 
-Pico performs recurrence. Pi controls negotiate the same descriptor and validate
-complete shape, bounds, identity, revision, carrier, and confirmed readback.
-Native Pi and Fleet recurrence behavior is unchanged. Software checks exercise
-both actual source-pair carriers; they do not qualify physical RF or propagation.
+Pico performs recurrence. Pi controls negotiate the same descriptor and validate complete shape, bounds, identity, revision, carrier, and confirmed readback. Native Pi and Fleet recurrence behavior is unchanged. Software checks exercise both actual source-pair carriers; they do not qualify physical RF or propagation.
