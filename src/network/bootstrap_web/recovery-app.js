@@ -23,9 +23,10 @@ function choose(full) {
   if (!identity || submitting || uncertain) return;
   resetOrigin=full?'full':'provisioning';
   phrase = full ? 'erase' : 'reset provisioning';
-  $('operation').textContent = full ? 'Confirm full erase' : 'Confirm provisioning reset';
-  $('consequences').textContent = full ? 'This clears network credentials, certificates, engineering access, Bluetooth bonds, station details, schedules and time watermark.' : 'This clears network credentials, certificates, engineering access and Bluetooth bonds. Station details, schedules and time watermark are preserved.';
-  $('phrase-label').textContent = `Type ${phrase} exactly to confirm`;
+  $('operation').textContent = full ? 'Confirm user wipe' : 'Confirm provisioning reset';
+  $('consequences').textContent = full ? 'This clears saved credentials, passwords, certificates, Bluetooth pairings, station details, radio and pin settings, schedules, consumed-slot watermarks, drafts, logging settings, and retained clock estimates. The installed firmware stays. The Pico restarts first-time setup; reconnect to setup Wi-Fi and configure it again before normal use.' : 'This clears network credentials, certificates, engineering access and Bluetooth bonds. Station details, schedules and time watermark are preserved.';
+  $('phrase-label').textContent = full ? 'Type erase to confirm the user wipe' : `Type ${phrase} exactly to confirm`;
+  $('execute').textContent = full ? 'Confirm user wipe' : 'Confirm reset';
   $('phrase').value = ''; $('confirm-one').checked = false; $('confirm-two').checked = false;
   $('execute').disabled = true; $('actions').hidden = true; $('confirm').hidden = false;
   $('operation').focus();
@@ -58,7 +59,9 @@ $('reset-form').addEventListener('submit', (event) => {
       const result = await request('/api/recovery/v1/submit', body);
       if (result.state !== 'reset_pending') throw new Error('Reset result could not be confirmed.');
       uncertain = true; $('confirm').hidden = true;
-      notice('Reset accepted. The Pico will restart. Reconnect to its setup Wi-Fi after restart.');
+      notice(resetOrigin === 'full'
+        ? 'User wipe accepted. The Pico will restart first-time setup, keeping the installed firmware. Reconnect to setup Wi-Fi and configure it again before normal use.'
+        : 'Reset accepted. The Pico will restart. Reconnect to its setup Wi-Fi after restart.');
     } catch (error) {
       uncertain = submitted;
       notice(submitted ? 'Reset result unknown. Do not repeat the request. Wait for restart, then reconnect and check the Pico.' : error.message);

@@ -76,12 +76,14 @@ WsprryPi's [USB settings controls](connect.md#usb-access-without-wi-fi) can upda
 Read saved settings and try reconnecting before resetting. If the Pico password is forgotten, request setup Wi-Fi with the [external button](connect.md#request-setup-wi-fi-with-the-external-button) or [USB Console](usb.md#request-setup-wi-fi-from-the-console), join it, then open **http://192.168.4.1/recovery.html**. The recovery page does not require the forgotten password. Reset choices remove different data; read the device's confirmation carefully:
 
 - **Reset provisioning…:** Clears the separate Pico password, network credentials, certificates, engineering access, Bluetooth device pairings, and saved progress. It preserves applied station details, schedules, and the record of WSPR slots already used, called the **consumed-slot watermark**. The time-server setting returns to its default. Join setup Wi-Fi again and enter the network details before resuming normal use.
-- **Erase all settings…:** Also clears station details, schedules, the consumed-slot watermark, and retained clock-rate estimates learned from the time server. Firmware and protected platform boot storage remain installed. The page calls this **Full erase**; it is distinct from USB full flash erase below.
+- **User wipe…:** Clears all saved user settings and restarts first-time setup while keeping the installed firmware. This includes credentials, passwords, hostname, certificates and trust, Bluetooth pairings, station details, radio, pin, and calibration settings, schedules, consumed-slot watermarks, saved drafts, USB and UDP logging settings, retained clock-rate estimates, and persistent field mode. Defaults come from the installed firmware; its version and protected platform boot storage remain unchanged. Reconnect to setup Wi-Fi after restart and configure the Pico again before normal use.
 - **USB full flash erase:** Removes firmware and **all persistent data in the entire 4 MiB flash**, including Wi-Fi credentials, bonds, settings, drafts, and watermarks. It creates no backup and leaves the Pico in BOOTSEL.
+
+A user wipe resets user settings to fresh-setup defaults. It does not make every flash byte blank or promise forensic sanitization. Hardware identity and internal reset/access bookkeeping remain, and existing backups on computers are unaffected. It does not download, upgrade, or reinstall firmware.
 
 Recovery pages are device-served at **http://192.168.4.1/recovery.html** during an available setup window. A configured protected AP requires its Pico password to join. If that password is forgotten, request a deliberate recovery window through the physical button or USB Console; a blank device or deliberate recovery window can expose open commissioning. Anyone able to access an open recovery window can use these recovery actions. The two checkboxes and typed confirmation phrase prevent accidents; they do not authenticate the operator. Keep transmission stopped. BOOTSEL is an installation gesture, not a runtime password reset button.
 
-For deliberate full erase, identify the USB serial first, then replace `USB_SERIAL` with that exact selected serial:
+For deliberate USB full flash erase, identify the USB serial first, then replace `USB_SERIAL` with that exact selected serial:
 
 ```sh
 bash install_usb.sh discover
@@ -108,7 +110,7 @@ Record the full stable device ID, connection method (browser, USB, or network co
 (preserve-diagnostic-logging-settings)=
 ## Preserve diagnostic logging settings
 
-[USB logging](usb.md#usb-diagnostic-logging) and [UDP logging](udp.md) have independent saved settings. Ordinary restarts, unrelated saves, and compatible USB-installer upgrades preserve both; factory reset clears both. Before installing different firmware, disable UDP export and read it back. Use the [USB installer](install.md#preserve-settings-during-an-update), retain the exact installation bundle, and follow any compatibility refusal. Do not erase the Pico to bypass a refusal.
+[USB logging](usb.md#usb-diagnostic-logging) and [UDP logging](udp.md) have independent saved settings. Ordinary restarts, unrelated saves, and compatible USB-installer upgrades preserve both; a [user wipe](#recovery-and-reset) clears both. Before installing different firmware, disable UDP export and read it back. Use the [USB installer](install.md#preserve-settings-during-an-update), retain the exact installation bundle, and follow any compatibility refusal. Do not erase the Pico to bypass a refusal.
 
 ### Unattended erase
 

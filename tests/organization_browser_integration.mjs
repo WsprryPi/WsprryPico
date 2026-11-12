@@ -332,7 +332,11 @@ try {
     await capture('recovery-confirmation','confirm');
     await click('cancel');assert.equal(await cdp.evaluate(`document.activeElement.id`),'provisioning');
     assert.equal((await f.command({op:'stats'})).recovery_requests,0);
-    await click('full');await capture('full-erase-confirmation','confirm');await click('cancel');
+    assert.equal(await cdp.evaluate(`document.getElementById('full').textContent`),'User wipe…');
+    await click('full');
+    assert.equal(await cdp.evaluate(`document.getElementById('operation').textContent`),'Confirm user wipe');
+    assert.equal(await cdp.evaluate(`document.getElementById('phrase-label').textContent`),'Type erase to confirm the user wipe');
+    await capture('user-wipe-confirmation','confirm');await click('cancel');
     assert.equal(await cdp.evaluate('document.activeElement.id'),'full','cancel returns to selected reset origin');
     await click('provisioning');await click('confirm-one');await click('confirm-two');await field('phrase','reset provisioning');
     assert.equal(await cdp.evaluate(`document.getElementById('execute').disabled`),false);

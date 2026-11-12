@@ -42,7 +42,7 @@ Accepted-job state remains primary. A previous WSPR failure does not replace a n
 
 ## Reset Pico
 
-The Station status button invokes the existing guarded operation with a product confirmation. Reset is a normal restart retaining saved settings; enabled schedules may resume after readiness checks, while consumed occurrences remain skipped. It does not erase credentials or perform a factory reset, and introduces no new reboot policy.
+The Station status button invokes the existing guarded operation with a product confirmation. Reset is a normal restart retaining saved settings; enabled schedules may resume after readiness checks, while consumed occurrences remain skipped. It does not erase credentials or perform a user wipe, and introduces no new reboot policy.
 
 The request remains `POST /api/control/v1/restart` with the closed empty body `{}`, current If-Match, and `features.restart` negotiation. Authentication, target/boot readback, revision consumption, response acknowledgement, transaction token, and deferred restart remain the existing authority. Eligibility is checked on receipt and again at delivery: no loaded/armed/running/faulted job, owner, active/unknown output, maintenance, unhealthy storage, hardware-application failure, pending message pause, or recurring recovery barrier is permitted. A newly acquired owner or active job cancels the deferred effect. RF-off keyed gaps cannot make reset eligible.
 

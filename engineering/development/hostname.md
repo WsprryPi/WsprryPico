@@ -46,7 +46,7 @@ The running boot retains a separate immutable TLS snapshot while saved profile m
 
 On the next boot, selected credentials consistently drive station mDNS/DNS-SD, AP mDNS/local access, consumer claim naming, and HTTP/HTTPS authority. The stable recovery SSID, fixed `192.168.4.1`, password derivation, and device ID remain independent. Responder conflict remains latched with no automatic suffix. Advertised hostname remains empty until actual responder success.
 
-Legacy consumer profiles retain their prior effective name and trust without a migration write. New names remain readable by older firmware only if they fit that older firmware's TLS subrecord limit; rename to the stable default before rolling back. Both provisioning reset and full erase remove the profile/name through their existing reset semantics; full erase also retains its broader station/schedule/watermark consequences. Engineering bundle/profile precedence and tombstones are unchanged.
+Legacy consumer profiles retain their prior effective name and trust without a migration write. New names remain readable by older firmware only if they fit that older firmware's TLS subrecord limit; rename to the stable default before rolling back. Both provisioning reset and user wipe remove the profile/name through their existing reset semantics; user wipe also retains its broader station/schedule/watermark consequences. Engineering bundle/profile precedence and tombstones are unchanged.
 
 ## Browser behavior and recovery
 

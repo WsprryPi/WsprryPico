@@ -714,6 +714,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME recovery_web_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/src/network/bootstrap_web/recovery-app.test.mjs)
+        add_test(NAME recovery_shipped_tests COMMAND ${CMAKE_COMMAND} -E env RECOVERY_SHIPPED=1
+            ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/src/network/bootstrap_web/recovery-app.test.mjs)
         add_test(NAME provisioning_web_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/provisioning_web_tests.js)
     endif()

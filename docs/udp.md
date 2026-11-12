@@ -43,6 +43,6 @@ Logging checks require no radio transmission. Read back the settings, admit a fi
 
 ## Preserve settings and stop export
 
-Disable export, save, and read it back before removing or downgrading firmware. Ordinary restarts, unrelated setting saves, and settings-preserving upgrades retain the independent UDP policy. Factory reset clears it. Corrupt or unsupported saved logging settings disable UDP export. USB logging remains independently configured.
+Disable export, save, and read it back before removing or downgrading firmware. Ordinary restarts, unrelated setting saves, and settings-preserving upgrades retain the independent UDP policy. A [user wipe](maintain.md#recovery-and-reset) clears it. Corrupt or unsupported saved logging settings disable UDP export. USB logging remains independently configured.
 
 Use the [shared USB installer](install.md) for firmware updates and retain the exact installation bundle. The installer checks whether the selected firmware can preserve settings and refuses incompatible updates. Follow its refusal and recovery instructions; do not erase the Pico to bypass them.
