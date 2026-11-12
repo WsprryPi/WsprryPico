@@ -106,28 +106,40 @@ For repeating keyed messages, the schedule status identifies when the next occur
 (gray-line-scheduling)=
 ### Gray-line scheduling
 
-In **Time and calibration**, use **Gray-line scheduling** to configure separate morning and evening periods. Each period can have its own frequencies and solar-elevation settings. Both periods start disabled.
+In **Time and calibration**, use **Gray-line scheduling** to give morning and evening their own operating periods and frequencies. Both periods are disabled by default.
 
-Solar elevation is the calculated height of the Sun's center relative to the horizon. Negative values mean the Sun is below the horizon; positive values mean it is above the horizon. An elevation of 0° places its center on the horizon.
+Solar elevation describes how far the Sun's center is above or below the horizon. Negative values mean it is below the horizon; positive values mean it is above it. At 0°, its center is on the horizon.
 
-**Lower elevation** and **Upper elevation** set the bottom and top of the window. The lower number must be smaller than the upper number. The defaults are −6° and +6°, so the window extends from 6° below the horizon to 6° above it.
+**Lower elevation** and **Upper elevation** set the Sun positions that define each period. The lower number must be smaller than the upper number. The defaults are −6° and +6°, covering the time when the Sun is close to the horizon.
 
 With those defaults:
 
-- The **morning** period begins when the rising Sun reaches −6° and ends when it reaches +6°.
-- The **evening** period begins when the descending Sun drops below +6° and ends when it drops below −6°.
+- The **morning** period begins when the rising Sun reaches 6° below the horizon and ends when it reaches 6° above it.
+- The **evening** period begins when the setting Sun drops below 6° above the horizon and ends when it drops below 6° below it.
 
-Choose **Saved locator center** or **Fresh GPS position** explicitly. GPS input must be enabled and its position current for GPS selection. No source is substituted if the chosen position is unavailable. Scheduling needs usable UTC but no Internet connection, local time zone, or daylight-saving adjustment.
+Choose where the Pico gets the location used for these calculations: **Saved locator center** uses the center of your station's saved grid locator; **Fresh GPS position** uses a current GPS position. For GPS, enable GPS input and make sure a current position is available. The Pico does not switch to the other location source if your choice is unavailable. It also needs a usable UTC clock, but no Internet connection, local time zone, or daylight-saving adjustment.
 
-Each period can specify a whole-Hz **WSPR dial** and a keyed-message **Mark** frequency in Hz. Leave either blank to use its existing saved frequency. FSKCW and DFCW retain their saved Space/Mark separation and direction. Existing engine, band, and frequency permissions still apply; gray-line selection adds no band restriction or RF qualification. The existing WSPR intervals/offsets or keyed-message recurrence determine candidate starts; this setting does not add another timer. New frequency selections must pass the current engine and frequency permissions before saving. If an existing selection later becomes unusable, its new occurrences are withheld.
+For each period, you can enter a different **WSPR dial** frequency or **Mark** frequency for Morse messages. Enter frequencies in Hz as whole numbers, without decimal places. Leave a field blank to keep using the frequency already saved for that type of transmission. For FSKCW and DFCW, changing **Mark** moves both tones together: the distance between them and which tone is higher stay the same.
 
-Choose **Read saved gray-line settings**, edit the periods, then **Save gray-line settings**. Changes apply to future standalone occurrences without a restart. Main schedule enablement remains separate. Reads preserve edited entries; **Discard gray-line entries** restores the last read values. After an unconfirmed save, read again before saving. Entries retained for another Pico or boot need explicit review with **Use entries for this Pico**.
+The Pico checks new frequencies before saving them. Your selected RF output, band, and frequency permissions still apply. Gray-line scheduling adds no band restrictions and does not establish that an RF setup is suitable for use. If a saved frequency later becomes unavailable under those checks, the Pico skips new transmissions that would use it.
 
-Within a qualifying enabled window, gray-line selection overrides the ordinary day/night policy. Outside both evaluable windows, ordinary policy applies. If required time or location is unavailable, the whole new standalone occurrence waits, including day/night fallback. Disabling both periods restores ordinary behavior without gray-line-only prerequisites. An accepted transmission finishes across a boundary; missed occurrences are never made up. Both starts of a WSPR pair must select the same period, or both use ordinary policy, before either starts. A pair crossing that selection boundary is skipped in full.
+Your existing WSPR schedule or repeating Morse-message settings still decide when transmissions are due. Gray-line scheduling chooses which period's settings to use at those times; it does not create extra transmissions or change how often they repeat.
 
-Polar conditions use calculated elevation without inventing sunrise or sunset. The current-selection status reports when the daily solar range stays inside a window. Morning/evening assignment still follows the local solar half-day, so a pair crossing its noon or midnight boundary is skipped. Solar estimates ignore weather, terrain, and obstructions. These practical windows indicate a possible propagation opportunity; they do not guarantee reception or an optimum angle.
+Choose **Read saved gray-line settings**, edit the morning and evening periods, then choose **Save gray-line settings**. Saved changes apply to future scheduled transmissions without a restart. You still need to enable the WSPR schedule or repeating message separately.
 
-These controls affect Pico-owned standalone recurrence. They do not gate jobs submitted by an external WTP controller or add gray-line scheduling to Pi-owned Fleet or native Pi schedules.
+Reading saved settings keeps your unsaved edits. Choose **Discard gray-line entries** to replace them with the values from the last read. If a save reply is lost or unclear, read the saved settings again before saving. If the entries were kept from another Pico or from before a restart, review them and choose **Use entries for this Pico** before reusing them.
+
+When a transmission is due, an enabled morning or evening period takes priority over the usual day/night settings. Outside those periods, the usual day/night settings apply. If the clock or location needed to check the gray-line periods is unavailable, the Pico waits instead of starting a new scheduled transmission, even if the day/night settings would otherwise allow it. Turning off both gray-line periods removes this extra requirement; the usual day/night requirements still apply.
+
+A transmission the Pico has already accepted finishes even if the period changes. Skipped transmissions are not sent later to catch up.
+
+For a two-frame WSPR message, the Pico checks both planned start times before starting either frame. Both must use the same morning or evening period, or both must use the usual day/night settings. If the settings would change between the two starts, the Pico skips the whole message.
+
+Near the poles, the Pico follows the Sun's calculated position even on days without sunrise or sunset. Status shows when the Sun stays within a period's elevation limits all day. Morning and evening still belong to separate halves of the local solar day, divided at solar noon and midnight. A two-frame WSPR message that crosses either dividing time is skipped.
+
+These calculations do not account for weather, terrain, or obstructions. A gray-line period may offer useful propagation, but it does not guarantee reception or identify the best Sun angle.
+
+These settings apply only to WSPR schedules and repeating Morse messages that the Pico runs itself. They do not control when an external WTP controller sends a job, and they do not add gray-line scheduling to WsprryPi's Fleet or other Pi-run schedules.
 
 (pins-and-drive)=
 ## Pins and drive
