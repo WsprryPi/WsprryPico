@@ -71,7 +71,7 @@ To prevent later automatic starts, uncheck **Enable standalone schedules**, save
 
 These settings apply to WSPR, Morse modes, and test tones. Open **Station Control → Time and calibration**. Saved values load automatically; a read button appears only if recovery needs a fresh observation.
 
-See [output and reference options](reference/time.md#understand-the-output-and-reference-options) for how Direct GPIO, Si5351, GPS, PPS and loopback work together. The [measured carrier-error examples](reference/time.md#measured-carrier-error-examples) compare manual-zero operation with GPS/PPS automatic correction.
+See [output and reference options](reference/time.md#understand-the-output-and-reference-options) for how Direct GPIO, Si5351, GPS, PPS, and loopback work together. The [measured carrier-error examples](reference/time.md#measured-carrier-error-examples) compare manual-zero operation with GPS/PPS automatic correction.
 
 (ntp-update-timeout)=
 ### NTP update timeout
@@ -106,54 +106,28 @@ For repeating keyed messages, the schedule status identifies when the next occur
 (gray-line-scheduling)=
 ### Gray-line scheduling
 
-In **Time and calibration**, use **Gray-line scheduling** to give morning and
-evening their own solar windows and frequencies. Both periods start disabled.
-Their default window is −6° to +6° solar elevation. Morning is the rising half
-of the local solar day; evening is the descending half. Set each lower and upper
-boundary independently, from −90° to +90° with up to three decimal places. The
-lower boundary is included and the upper boundary is excluded.
+In **Time and calibration**, use **Gray-line scheduling** to configure separate morning and evening periods. Each period can have its own frequencies and solar-elevation settings. Both periods start disabled.
 
-Choose **Saved locator center** or **Fresh GPS position** explicitly. GPS input
-must be enabled and its position current for GPS selection. No source is
-substituted if the chosen position is unavailable. Scheduling needs usable UTC
-but no Internet connection, local time zone, or daylight-saving adjustment.
+Solar elevation is the calculated height of the Sun's center relative to the horizon. Negative values mean the Sun is below the horizon; positive values mean it is above the horizon. An elevation of 0° places its center on the horizon.
 
-Each period can specify a whole-Hz **WSPR dial** and a keyed-message **Mark**
-frequency in Hz. Leave either blank to use its existing saved frequency. FSKCW and DFCW
-retain their saved Space/Mark separation and direction. Existing engine, band, and
-frequency permissions still apply; gray-line selection adds no band restriction
-or RF qualification. The existing WSPR intervals/offsets or keyed-message
-recurrence determine candidate starts; this setting does not add another timer.
-New frequency selections must pass the current engine and frequency permissions
-before saving. If an existing selection later becomes unusable, its new
-occurrences are withheld.
+**Lower elevation** and **Upper elevation** set the bottom and top of the window. The lower number must be smaller than the upper number. The defaults are −6° and +6°, so the window extends from 6° below the horizon to 6° above it.
 
-Choose **Read saved gray-line settings**, edit the periods, then **Save gray-line
-settings**. Changes apply to future standalone occurrences without a restart.
-Main schedule enablement remains separate. Reads preserve edited entries;
-**Discard gray-line entries** restores the last read values. After an unconfirmed
-save, read again before saving. Entries retained for another Pico or boot need
-explicit review with **Use entries for this Pico**.
+With those defaults:
 
-Within a qualifying enabled window, gray-line selection overrides the ordinary
-day/night policy. Outside both evaluable windows, ordinary policy applies.
-If required time or location is unavailable, the whole new standalone occurrence
-waits, including day/night fallback. Disabling both periods restores ordinary
-behavior without gray-line-only prerequisites. An accepted transmission finishes
-across a boundary; missed occurrences are never made up. Both starts of a WSPR
-pair must select the same period, or both ordinary policy, before either starts.
-A pair crossing that selection boundary is skipped in full.
+- The **morning** period begins when the rising Sun reaches −6° and ends when it reaches +6°.
+- The **evening** period begins when the descending Sun drops below +6° and ends when it drops below −6°.
 
-Polar conditions use calculated elevation without inventing sunrise or sunset.
-The current-selection status reports when the daily solar range stays inside a
-window. Morning/evening assignment still follows the local solar half-day, so a
-pair crossing its noon or midnight boundary is skipped. Solar estimates ignore
-weather, terrain, and obstructions. These practical windows indicate a possible
-propagation opportunity; they do not guarantee reception or an optimum angle.
+Choose **Saved locator center** or **Fresh GPS position** explicitly. GPS input must be enabled and its position current for GPS selection. No source is substituted if the chosen position is unavailable. Scheduling needs usable UTC but no Internet connection, local time zone, or daylight-saving adjustment.
 
-These controls affect Pico-owned standalone recurrence. They do not gate jobs
-submitted by an external WTP controller or add gray-line scheduling to Pi-owned
-Fleet or native Pi schedules.
+Each period can specify a whole-Hz **WSPR dial** and a keyed-message **Mark** frequency in Hz. Leave either blank to use its existing saved frequency. FSKCW and DFCW retain their saved Space/Mark separation and direction. Existing engine, band, and frequency permissions still apply; gray-line selection adds no band restriction or RF qualification. The existing WSPR intervals/offsets or keyed-message recurrence determine candidate starts; this setting does not add another timer. New frequency selections must pass the current engine and frequency permissions before saving. If an existing selection later becomes unusable, its new occurrences are withheld.
+
+Choose **Read saved gray-line settings**, edit the periods, then **Save gray-line settings**. Changes apply to future standalone occurrences without a restart. Main schedule enablement remains separate. Reads preserve edited entries; **Discard gray-line entries** restores the last read values. After an unconfirmed save, read again before saving. Entries retained for another Pico or boot need explicit review with **Use entries for this Pico**.
+
+Within a qualifying enabled window, gray-line selection overrides the ordinary day/night policy. Outside both evaluable windows, ordinary policy applies. If required time or location is unavailable, the whole new standalone occurrence waits, including day/night fallback. Disabling both periods restores ordinary behavior without gray-line-only prerequisites. An accepted transmission finishes across a boundary; missed occurrences are never made up. Both starts of a WSPR pair must select the same period, or both use ordinary policy, before either starts. A pair crossing that selection boundary is skipped in full.
+
+Polar conditions use calculated elevation without inventing sunrise or sunset. The current-selection status reports when the daily solar range stays inside a window. Morning/evening assignment still follows the local solar half-day, so a pair crossing its noon or midnight boundary is skipped. Solar estimates ignore weather, terrain, and obstructions. These practical windows indicate a possible propagation opportunity; they do not guarantee reception or an optimum angle.
+
+These controls affect Pico-owned standalone recurrence. They do not gate jobs submitted by an external WTP controller or add gray-line scheduling to Pi-owned Fleet or native Pi schedules.
 
 (pins-and-drive)=
 ## Pins and drive
@@ -169,20 +143,20 @@ Pin or drive changes require an **explicit restart** in **Station Control → Tr
 (rf-output-engine)=
 ### RF output engine
 
-Select **Direct GPIO / PIO** for the Pico's RF GPIO, or **Si5351** for an external synthesizer. The same ordinary firmware supports both engines. Si5351 controls appear immediately after the engine selection. Other pin roles follow them. Choose **Save RF output settings**, then restart explicitly to apply changes.
+Select **Direct GPIO / PIO** for the Pico's RF GPIO, or **Si5351** for an external synthesizer. The same ordinary firmware supports both engines. Si5351 controls appear immediately after you select the engine. Other pin roles follow them. Choose **Save RF output settings**, then restart explicitly to apply changes.
 
 (si5351-output-settings)=
 ### Si5351 output settings
 
 Choose **Si5351** under **RF Output** to configure an external Si5351A 10-MSOP module at address **0x60**. Select the complete I²C SDA/SCL pair, the fitted **25 MHz** or **27 MHz** reference, its source, and the transmit clock. Passive crystals also require their specified **6, 8, or 10 pF** load. An external clock or TCXO uses the supported **XA** arrangement; selecting it does not select CLKIN. Output drive is **2, 4, 6, or 8 mA**, independent of reported WSPR power.
 
-Hardware selection, the reference uncertainty allowance and hardware qualification are operator responsibilities. A supported settings-profile match does not identify or certify the connected module; shared bench results describe their recorded test conditions.
+Hardware selection, the reference uncertainty allowance, and hardware qualification are operator responsibilities. A supported settings-profile match does not identify or certify the connected module; shared bench results describe their recorded test conditions.
 
-Loopback is **None**, **CLK0**, **CLK1**, or **CLK2**, with a distinct transmit output and an eligible counter-input GPIO. None releases the input and disables dependent trusted use. **Measure only** reports the clock ratio and its uncertainty. **Trust local reference for Pico rate** requires an explicit reference-uncertainty allowance; a TCXO label is insufficient. It can reduce Pico timer drift after NTP or phone time has been accepted. For phone-set time, the allowance must be below **50,000 ppb (50 ppm)** to select it over the ordinary timer estimate. The original phone-sample age, uncertainty and validity limits remain in force. It supplies no UTC epoch or automatic RF calibration. Manual correction is in **ppb**; a positive value lowers programmed RF for a fast reference. Direct GPIO correction is retained separately.
+Loopback is **None**, **CLK0**, **CLK1**, or **CLK2**, with a distinct transmit output and an eligible counter-input GPIO. None releases the input and disables dependent trusted use. **Measure only** reports the clock ratio and its uncertainty. **Trust local reference for Pico rate** requires an explicit reference-uncertainty allowance; a TCXO label is insufficient. It can reduce Pico timer drift after NTP or phone time has been accepted. For phone-set time, the allowance must be below **50,000 ppb (50 ppm)** to select it over the ordinary timer estimate. The original phone-sample age, uncertainty, and validity limits remain in force. It supplies no UTC epoch or automatic RF calibration. Manual correction is in **ppb**; a positive value lowers programmed RF for a fast reference. Direct GPIO correction is retained separately.
 
-Choose **Save RF output settings** to save the complete engine allocation together. Draft edits do not touch hardware. Restart explicitly to activate saved hardware changes. Selecting Direct GPIO restores its controls and retains inactive Si5351 settings. Each connected wire still needs a distinct GPIO, including external devices whose software is not enabled.
+Choose **Save RF output settings** to save the complete engine allocation. Draft edits do not touch hardware. Restart explicitly to activate saved hardware changes. Selecting Direct GPIO restores its controls and retains inactive Si5351 settings. Each connected wire still needs a distinct GPIO, including external devices whose software is not enabled.
 
-Ordinary firmware supports the tested **QRP Labs Rev. 6 module with its 25 MHz TCXO**, using **External clock / TCXO into XA**, **SDA GP4 / SCL GP5**, **CLK0**, and **8 mA**. Loopback may be **None** or **CLK2 → GP7**; leave **Independent RF gate GPIO** at **None wired**. This profile uses the normal **138 MHz** Pico clock. Other configurations require an explicit engineering build. The same normal image also supports Direct GPIO; changing engines does not require a different firmware image. Runtime readback distinguishes verified register state from unknown; neither proves physical RF inactivity or absolute accuracy. A separately powered module may continue through Pico reset or a failed bus transaction. Engineering operation requires a verified conducted RF path, verified 100 kHz I²C operation and appropriate electrical levels. Optional GPS/PPS input can supply time and calibrate the independent reference through CLK2; see [GPS and PPS](#gps-and-pps).
+Ordinary firmware supports the tested **QRP Labs Rev. 6 module with its 25 MHz TCXO**, using **External clock / TCXO into XA**, **SDA GP4 / SCL GP5**, **CLK0**, and **8 mA**. Loopback may be **None** or **CLK2 → GP7**; leave the **Independent RF gate GPIO** at **None wired**. This profile uses the normal **138 MHz** Pico clock. Other configurations require an explicit engineering build. The same normal image also supports Direct GPIO; changing engines does not require a different firmware image. Runtime readback distinguishes verified register state from unknown; neither proves physical RF inactivity or absolute accuracy. A separately powered module may continue through Pico reset or a failed bus transaction. Engineering operation requires a verified conducted RF path, verified 100 kHz I²C operation, and appropriate electrical levels. Optional GPS/PPS input can supply time and calibrate the independent reference through CLK2; see [GPS and PPS](#gps-and-pps).
 
 (gps-and-pps)=
 External XA requires compatible module wiring, electrical levels, and grounding; it does not select CLKIN. An independent RF gate requires an inactive hardware bias. Si5351 output drive is electrical current, not measured RF power or reported WSPR dBm. Saving settings alone does not enable an output. A separately powered module can continue producing output while the Pico resets or after a failed bus transaction.
@@ -191,7 +165,7 @@ Positive manual correction lowers programmed RF for a fast reference. Loopback m
 
 ### GPS and PPS
 
-Open **Station Control → Radio pins → GPS and PPS**. GPS is optional and disabled by default. Select the receiver, then open **GPS wiring and timing** to match the separate serial RX and PPS input pins, baud rate, and pulse polarity to the physical wiring. The [validation platform](reference/pico-validation-platform.md#gpspps-configuration) records QLG3 on GP1 and GP3, with no receiver-configuration output. GP numbers are GPIO names, not physical header numbers. PPS uses an input-only hardware counter and requires an offered odd GPIO. Its complete PWM slice must be separate from the Si5351 loopback slice; the saved configuration checks aliases as well as pin numbers. Save the complete RF output settings while idle and unowned, then restart explicitly.
+Open **Station Control → Radio pins → GPS and PPS**. GPS is optional and disabled by default. Select the receiver, then open **GPS wiring and timing** to match the separate serial RX and PPS input pins, baud rate, and pulse polarity to the physical wiring. The [validation platform](reference/pico-validation-platform.md#gpspps-configuration) records QLG3 on GP1 and GP3, with no receiver-configuration output. GP numbers are GPIO names, not physical header numbers. PPS uses an input-only hardware counter and requires an offered odd GPIO. Its complete PWM slice must be separate from the Si5351 loopback slice; the saved configuration checks aliases and pin numbers. Save the complete RF output settings while idle and unowned, then restart explicitly.
 
 (gps-wiring-and-timing)=
 #### GPS wiring and timing
@@ -209,7 +183,7 @@ The **RMC second offset** labels the selected captured pulse: **0** uses the sen
 
 With the option disabled, GPS serial and position observations remain available, but GPS cannot supply qualified UTC or automatic PPS-derived RF correction. NTP or authenticated controller/browser time can still supply UTC under their own rules. To use GPS as the time source, validate the setup first, enable this option, save RF output settings, and restart. Keep automatic RF correction disabled until its separate oscillator and loopback requirements are also met.
 
-Receiving serial data or finding satellites does not establish the UTC/PPS association. Enter conservative timing allowances for the receiver and cable, and a separate timestamp error allowance. The hardware counter measures IRQ delivery latency and removes it from the PPS timestamp. Status reports the latest and maximum IRQ latency, the timestamp error bound, and rejected captures. Counter wrap, an interrupt gap, or a changed clock configuration forces fresh acquisition.
+Receiving serial data or finding satellites does not establish the UTC/PPS association. Enter conservative timing allowances for the receiver and cable, and a separate timestamp error allowance. The hardware counter measures IRQ delivery latency and removes it from the PPS timestamp. Status reports the latest and maximum IRQ latency, the timestamp error bound, and rejected captures. A counter wrap, an interrupt gap, or a changed clock configuration forces a fresh acquisition.
 
 The location selection controls which grid locator standalone WSPR sends:
 
@@ -218,7 +192,7 @@ The location selection controls which grid locator standalone WSPR sends:
 
 A complete WSPR plan, including both frames of a pair, keeps its original locator. Choose the location for daylight or night calculations separately under [Automatic beacon schedule](#automatic-beacon-schedule).
 
-**Automatic direct GPIO RF correction** requires qualified PPS and a verified shared oscillator. For the Si5351 engine, use its separate automatic-correction control and a configured CLK2 loopback. The GPS section reports Pico clock and Si5351 reference measurements separately. A positive error means a fast oscillator. With automatic correction enabled, the saved manual correction is a residual trim; it is applied once when the job is prepared. Missing, expired, or conflicting calibration withholds a new job. An accepted job or WSPR pair keeps its correction.
+**Automatic direct GPIO RF correction** requires qualified PPS and a verified shared oscillator. For the Si5351 engine, use its separate automatic-correction control and a configured CLK2 loopback. The GPS section reports Pico clock and Si5351 reference measurements separately. A positive error means a fast oscillator. With automatic correction enabled, the saved manual correction is a residual trim; it is applied once when the job is prepared. Missing, expired, or conflicting calibration prevents a new job from starting. An accepted job or WSPR pair keeps its correction.
 
 Read serial, PPS, UTC pairing, position, satellite, and calibration status separately. GPS time retains its learned rate for at most one hour after observations stop, with growing uncertainty. NTP timeout zero does not extend this interval. This receive-only profile has no advance leap announcement: GPS time pauses for five seconds on either side of a UTC month boundary and reacquires afterward; jobs crossing that boundary are refused. Restart always needs fresh time and RF calibration observations. Independent measurements are still needed to establish UTC or carrier accuracy.
 
@@ -265,7 +239,7 @@ Open **Station Control → Radio pins** to inspect or change the transmit indica
 
 ### Keep incomplete progress
 
-On firmware offering **Save valid station fields**, you can save a callsign, locator, or reported power independently. An invalid edited field stays in the browser as **Not saved** while other valid fields can be retained. Fields you do not edit keep their saved values. Clearing a callsign or locator and saving clears that draft field; it does not substitute the previous applied value. **0 dBm** is valid reported power; a blank choice is missing power.
+On firmware offering **Save valid station fields**, you can save a callsign, locator, or reported power independently. An invalid edited field stays in the browser as **Not saved** while other valid fields can be retained. Fields you do not edit keep their saved values. Clearing a callsign or locator and saving clears that draft field; it does not substitute the previously applied value. **0 dBm** is valid reported power; a blank choice is missing power.
 
 Schedules save as one complete set through **Save WSPR configuration**; **Apply WSPR configuration** applies only saved schedule enablement, periods, and expiry. **Save RF output settings** saves the complete radio pin, Si5351, and GPS/PPS allocation independently. Changed hardware requires an explicit restart to activate it. Neither action applies drafts from the other section. A pin save can succeed while a schedule draft is invalid. A saved WSPR dial is not required to save radio pins, Si5351, or GPS/PPS settings. Standalone suspension and saved schedule preferences remain unchanged; saving hardware does not resume operation or enable a schedule. Conflicting pin assignments remain unsaved. Consumer Wi-Fi and hostname changes use their own complete save workflows in [Wi-Fi/Host](maintain.md#rename-or-change-wi-fi).
 
@@ -273,7 +247,7 @@ After Wi-Fi setup, **Set your station details** can also retain incomplete progr
 
 ### Apply device-saved values
 
-**Apply saved station** uses the values in the Pico's saved station summary, even if newer unsaved text is visible in the editor. Complete the saved station and review its WSPR plan first. An incomplete or unencodable station cannot be applied for local WSPR. A valid radio-settings draft can still apply using the previously complete station. QRSS, FSKCW, DFCW, and externally prepared jobs have their own message, clock, and frequency checks.
+**Apply saved station** uses the values in the Pico's saved station summary, even if newer unsaved text is visible in the editor. Complete the saved station and review its WSPR plan first. You cannot apply an incomplete or unencodable station for local WSPR. A valid radio-settings draft can still apply using the previously complete station. QRSS, FSKCW, DFCW, and externally prepared jobs have their own message, clock, and frequency checks.
 
 A draft save does not arm a job. Explicitly saving/applying **Enable standalone schedules** authorizes automatic transmissions at later eligible slots once all readiness checks pass. A saved or complete configuration alone does not establish RF readiness. Review [Operate](operate.md) before enabling it.
 
