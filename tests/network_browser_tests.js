@@ -372,10 +372,15 @@ if (require.main === module) (async () => {
     compact.state.standalone.reboot_required=false;compact.state.job.output_active=null;
     await compact.elements.refresh.onclick();assert.match(compact.elements['message-availability'].textContent,/RF output is unknown/);assert.equal(compact.elements.restart.disabled,true);
     const naming=await fixture();
-    naming.elements['hostname-input'].value='bad name';await naming.elements['hostname-form'].onsubmit(submit);
-    assert.equal(naming.elements['hostname-input'].getAttribute('aria-invalid'),'true');
+    assert.equal(naming.elements['hostname-input'].value,'old');
+    const namingWrites=naming.calls.filter(c=>c.options?.method && c.options.method!=='GET').length;
+    for(const invalid of ['bad name','new.local','.new','new.','a.b']) {
+        naming.elements['hostname-input'].value=invalid;await naming.elements['hostname-form'].onsubmit(submit);
+        assert.equal(naming.elements['hostname-input'].getAttribute('aria-invalid'),'true');
+        assert.equal(naming.calls.filter(c=>c.options?.method && c.options.method!=='GET').length,namingWrites,'invalid label sends no mutation');
+    }
     naming.elements['hostname-default'].onclick();
-    assert.equal(naming.elements['hostname-input'].value,'default.local');
+    assert.equal(naming.elements['hostname-input'].value,'default');
     assert.equal(naming.elements['hostname-input'].getAttribute('aria-invalid'),'false');
     assert.equal(naming.elements['hostname-error'].textContent,'');
     const initial=await fixture(true,false,false,false,'',true);
