@@ -75,6 +75,8 @@ std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz);
 bool valid_wspr_frequency_token(wtp::json::Value value);
 bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
                             std::uint64_t maximum_nhz);
+bool gray_line_frequency_update_allowed(const Config& candidate, const Config* current,
+                                        std::uint64_t minimum_nhz, std::uint64_t maximum_nhz);
 bool valid_wifi_credentials(std::string_view ssid, std::string_view password,
                             std::string_view time_server);
 } // namespace wsprrypico::standalone

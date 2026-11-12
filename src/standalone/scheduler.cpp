@@ -848,6 +848,10 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
         !wspr_frequency_allowed(*config, service_.config().minimum_frequency_nhz,
                                 service_.config().maximum_frequency_nhz))
         return error("frequency_not_allowed");
+    if (!gray_line_frequency_update_allowed(*config, store_.config() ? &*store_.config() : nullptr,
+                                            service_.config().minimum_frequency_nhz,
+                                            service_.config().maximum_frequency_nhz))
+        return error("frequency_not_allowed");
     if (config->wspr_dial_frequency_hz &&
         (!store_.config() || !store_.config()->wspr_dial_frequency_hz))
         config->enabled = false; // First Console selection also requires deliberate enablement.

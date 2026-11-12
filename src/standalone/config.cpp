@@ -116,6 +116,31 @@ bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
 bool valid_gpio_drive_token(wtp::json::Value value) {
     return value.raw == "2" || value.raw == "4" || value.raw == "8" || value.raw == "12";
 }
+bool gray_line_frequency_update_allowed(const Config& candidate, const Config* current,
+                                        std::uint64_t minimum_nhz, std::uint64_t maximum_nhz) {
+    for (const bool morning : {true, false}) {
+        const auto& selected = morning ? candidate.gray_line.morning : candidate.gray_line.evening;
+        const auto previous =
+            current ? (morning ? current->gray_line.morning : current->gray_line.evening)
+                    : GrayLinePeriod{};
+        if (selected.wspr_dial_frequency_hz &&
+            selected.wspr_dial_frequency_hz != previous.wspr_dial_frequency_hz) {
+            auto config = candidate;
+            config.wspr_dial_frequency_hz = selected.wspr_dial_frequency_hz;
+            if (!wspr_frequency_allowed(config, minimum_nhz, maximum_nhz))
+                return false;
+        }
+        if (selected.message_frequency_nhz &&
+            selected.message_frequency_nhz != previous.message_frequency_nhz) {
+            const auto frequency = *selected.message_frequency_nhz;
+            if (frequency < minimum_nhz || frequency > maximum_nhz ||
+                !application::frequency_allowed(frequency, candidate.allow_unqualified_frequency,
+                                                candidate.allow_non_amateur_frequency))
+                return false;
+        }
+    }
+    return true;
+}
 bool valid_time_server(std::string_view text) {
     if (ipv4(text))
         return true;

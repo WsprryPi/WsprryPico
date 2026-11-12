@@ -124,6 +124,9 @@ retain their saved Space/Mark separation and direction. Existing engine, band, a
 frequency permissions still apply; gray-line selection adds no band restriction
 or RF qualification. The existing WSPR intervals/offsets or keyed-message
 recurrence determine candidate starts; this setting does not add another timer.
+New frequency selections must pass the current engine and frequency permissions
+before saving. If an existing selection later becomes unusable, its new
+occurrences are withheld.
 
 Choose **Read saved gray-line settings**, edit the periods, then **Save gray-line
 settings**. Changes apply to future standalone occurrences without a restart.

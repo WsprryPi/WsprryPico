@@ -815,7 +815,7 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
       invalid_gpio_drive:'Choose 2, 4, 8 or 12 mA for GPIO drive strength',
       standalone_frequency_required:'Choose and save a standalone WSPR frequency before enabling schedules',
       invalid_wspr_frequency:'Enter a whole WSPR dial frequency in Hz, without commas or decimals',
-      frequency_not_allowed:'The WSPR tones fall outside the engine limits or saved frequency permissions. Choose an allowed frequency',
+      frequency_not_allowed:'The requested frequency falls outside the engine limits or saved frequency permissions. Choose an allowed frequency',
       FREQUENCY_REJECTED:'A requested RF frequency or complete-job filter selection was refused. Review engine limits, frequency permissions and the declared selector ranges',
       revision_conflict:'Saved settings changed. Your edits are preserved. Read current saved settings and review them before a new save',
       precondition_failed:'Saved revision changed. Your edits are preserved. Read and review current saved settings',

@@ -170,6 +170,10 @@ normal mode's saved frequency. Both periods default disabled, with −6000/+6000
 bounds. Existing recurrence, expiry, station encoding, and output guards remain
 authoritative. FSKCW and DFCW translate Mark and Space together, refusing overflow or
 underflow and preserving the direction of the saved shift.
+Changed frequency overrides are checked against the current engine range and
+candidate frequency permissions before persistence, including disabled periods.
+Unchanged values can be retained or disabled after an engine/policy change;
+admission still rechecks every actual tone and the translated message shift.
 
 Solar elevation is geometric Sun-center elevation from the existing NOAA
 approximation. Bounds compare the unrounded elevation, lower inclusive and

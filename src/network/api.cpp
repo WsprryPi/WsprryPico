@@ -1666,6 +1666,10 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     const auto validated = standalone::parse_config(candidate);
     if (!validated)
         return http_error(400, "invalid_config");
+    if (!standalone::gray_line_frequency_update_allowed(
+            *validated, store_.config() ? &*store_.config() : nullptr,
+            service_.config().minimum_frequency_nhz, service_.config().maximum_frequency_nhz))
+        return http_error(400, "frequency_not_allowed");
     if (const auto conflict = standalone::validate_rf_configuration(*validated, store_.filters());
         !conflict.empty())
         return http_error(400, conflict);
