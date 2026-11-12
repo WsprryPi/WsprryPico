@@ -103,6 +103,55 @@ Choose **Save beacon schedule**, then restart explicitly to activate a changed p
 
 For repeating keyed messages, the schedule status identifies when the next occurrence falls outside the selected beacon window or when the policy is waiting for a current GPS fix.
 
+(gray-line-scheduling)=
+### Gray-line scheduling
+
+In **Time and calibration**, use **Gray-line scheduling** to give morning and
+evening their own solar windows and frequencies. Both periods start disabled.
+Their default window is −6° to +6° solar elevation. Morning is the rising half
+of the local solar day; evening is the descending half. Set each lower and upper
+boundary independently, from −90° to +90° with up to three decimal places. The
+lower boundary is included and the upper boundary is excluded.
+
+Choose **Saved locator center** or **Fresh GPS position** explicitly. GPS input
+must be enabled and its position current for GPS selection. No source is
+substituted if the chosen position is unavailable. Scheduling needs usable UTC
+but no Internet connection, local time zone, or daylight-saving adjustment.
+
+Each period can specify a whole-Hz **WSPR dial** and a keyed-message **Mark**
+frequency in Hz. Leave either blank to use its existing saved frequency. FSKCW and DFCW
+retain their saved Space/Mark separation and direction. Existing engine, band, and
+frequency permissions still apply; gray-line selection adds no band restriction
+or RF qualification. The existing WSPR intervals/offsets or keyed-message
+recurrence determine candidate starts; this setting does not add another timer.
+
+Choose **Read saved gray-line settings**, edit the periods, then **Save gray-line
+settings**. Changes apply to future standalone occurrences without a restart.
+Main schedule enablement remains separate. Reads preserve edited entries;
+**Discard gray-line entries** restores the last read values. After an unconfirmed
+save, read again before saving. Entries retained for another Pico or boot need
+explicit review with **Use entries for this Pico**.
+
+Within a qualifying enabled window, gray-line selection overrides the ordinary
+day/night policy. Outside both evaluable windows, ordinary policy applies.
+If required time or location is unavailable, the whole new standalone occurrence
+waits, including day/night fallback. Disabling both periods restores ordinary
+behavior without gray-line-only prerequisites. An accepted transmission finishes
+across a boundary; missed occurrences are never made up. Both starts of a WSPR
+pair must select the same period, or both ordinary policy, before either starts.
+A pair crossing that selection boundary is skipped in full.
+
+Polar conditions use calculated elevation without inventing sunrise or sunset.
+The current-selection status reports when the daily solar range stays inside a
+window. Morning/evening assignment still follows the local solar half-day, so a
+pair crossing its noon or midnight boundary is skipped. Solar estimates ignore
+weather, terrain, and obstructions. These practical windows indicate a possible
+propagation opportunity; they do not guarantee reception or an optimum angle.
+
+These controls affect Pico-owned standalone recurrence. They do not gate jobs
+submitted by an external WTP controller or add gray-line scheduling to Pi-owned
+Fleet or native Pi schedules.
+
 (pins-and-drive)=
 ## Pins and drive
 

@@ -2,15 +2,16 @@
   "schema": "operator-assets/1",
   "tool": "esbuild/0.28.2",
   "target": "es2020",
-  "recipe_sha256": "12c0bc6366c1183c428ce5bea10add5e0aa1b5dcc8a14d38c9f88e6781446c5c",
+  "recipe_sha256": "9c8ee664afdf1a45b6bcd20734156bd77a5cb20813d22b98042bd736ba95daa3",
   "groups": {
     "app.min.js": {
       "inputs": {
         "locked-controls.js": "17d657eb75f51f840f320fefd8cc6c7f98ee2ca9fb36d42b741b7b05ad091320",
         "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
-        "control-contract.js": "df25ca91059e53018cc1991763fee423be9edee1c5ef200bd88373ac913ec0a2",
+        "control-contract.js": "f3ca81ff97b3ea48318372ab2195d8d0c5a830deb3b2efebd749b283cb0657e3",
         "si5351.js": "c0325caa6eebb5281bfa92843011312dd9fb87d5adaed86a5bebb7c6a001e889",
         "gps.js": "1d9a53e7e89aa6e12da1c73c65229998d9f10bf2a290185e258bf7db2bc5ad29",
+        "gray-line.js": "7aa36145a1907a31fdc39e906011d3beded461068d0825e1ab048ed8367ff375",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
         "operations.js": "e8462dadda959d1344bba496a96951975c949d04b4175d463de61c738a4ae9b2",
         "standalone-frequency.js": "690df1c89b02c8075f149b1d48644dee0c2fb8f87d923303822bc804766c1c7e",
@@ -23,17 +24,17 @@
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "eee46ee321424f4d7834b9ef785bafd1bdbf89800d83904bb4880fc9edfb85bf",
-        "app.js": "3cd3af7198336f00d348c134ef9626d53d6f1b8a3f60b04dae5a0c480a590e47"
+        "app.js": "227236d1ada90bb628233a957745a8870304dba28996ea80f35cabb0d8840671"
       },
-      "sha256": "4f69903d1feb2237dd50384b0a754abe925f8fb145949581512462c06c12c2e3",
-      "bytes": 284684
+      "sha256": "b8cf36c0c01800fae4df812ac5025790f7f83ca56b0ce24ad73c8ce4892ee775",
+      "bytes": 294322
     },
     "config-validation.min.js": {
       "inputs": {
-        "config-validation.js": "cfb632a9a336581f5087fa0205b88032416f34ced9067e947e303102c9d4bf1d"
+        "config-validation.js": "a3a44889e3056ba3c6f7b363d40e67581f32e9f5f6b2dfa8baa60723f6e78337"
       },
-      "sha256": "c148ccfc0b37240560a89c5852393de8daaaed75442e127df9b0ae651001d05f",
-      "bytes": 2695
+      "sha256": "424c6a2e66b1f43b6587d3a669e04cff3e660c972e1617008806baeb0e192728",
+      "bytes": 2777
     },
     "device-presentation.min.js": {
       "inputs": {

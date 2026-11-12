@@ -133,7 +133,7 @@ std::optional<std::int32_t> compose_correction(std::int32_t learned, std::int32_
         return {};
     return std::int32_t(value);
 }
-std::optional<bool> daylight(const Position& p, std::uint64_t utc) {
+std::optional<SolarPosition> solar_position(const Position& p, std::uint64_t utc) {
     if (!locator(p) || utc < 1'735'689'600ULL * second || utc >= 4'102'444'800ULL * second)
         return {};
     using namespace std::chrono;
@@ -155,6 +155,17 @@ std::optional<bool> daylight(const Position& p, std::uint64_t utc) {
     const double hour_angle = ((minute + equation + 4 * longitude) / 4 - 180) * rad;
     const double elevation_sine = std::sin(latitude) * std::sin(declination) +
                                   std::cos(latitude) * std::cos(declination) * std::cos(hour_angle);
-    return elevation_sine >= std::sin(-0.833 * rad);
+    const auto degrees = [](double sine) { return std::asin(std::clamp(sine, -1.0, 1.0)) / rad; };
+    const auto center = std::sin(latitude) * std::sin(declination);
+    const auto span = std::abs(std::cos(latitude) * std::cos(declination));
+    // Solar hour angle partitions the local solar day at its extrema. At
+    // exact noon choose evening, at exact midnight morning, including poles.
+    const auto angle = std::remainder(hour_angle, 2 * std::numbers::pi);
+    return SolarPosition{degrees(elevation_sine), angle < 0 || std::abs(angle) == std::numbers::pi,
+                         degrees(center - span), degrees(center + span)};
+}
+std::optional<bool> daylight(const Position& p, std::uint64_t utc) {
+    const auto solar = solar_position(p, utc);
+    return solar ? std::optional<bool>(solar->elevation_degrees >= -0.833) : std::nullopt;
 }
 } // namespace wsprrypico::time::gps

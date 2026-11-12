@@ -4,7 +4,7 @@ function validSavedConfig(c) {
   const object = v => v && typeof v === 'object' && !Array.isArray(v);
   const ascii = (v,min,max) => typeof v === 'string' && v.length >= min && v.length <= max && /^[\x20-\x7e]*$/.test(v);
   const gp = v => v === null || Number.isInteger(v) && (v >= 0 && v <= 22 || v >= 26 && v <= 28);
-  const known=['enabled','station','wifi','schedules','pins','expires_utc_s','allow_unqualified_frequency','allow_non_amateur_frequency','gpio_drive_ma','si5351','gps'];
+  const known=['enabled','station','wifi','schedules','pins','expires_utc_s','allow_unqualified_frequency','allow_non_amateur_frequency','gpio_drive_ma','si5351','gps','gray_line'];
   if (!object(c) || Object.keys(c).some(k=>!known.includes(k)) || typeof c.enabled !== 'boolean' ||
       !object(c.station) || Object.keys(c.station).sort().join(',') !== 'callsign,locator,power_dbm' || ['N0CALL','<N0CALL>'].includes(c.station.callsign) || !ascii(c.station.callsign,3,12) || !/^(?:[A-Z0-9]+(?:\/[A-Z0-9]+)*|<[A-Z0-9]+(?:\/[A-Z0-9]+)*>)$/.test(c.station.callsign) || !/^[A-Ra-r]{2}[0-9]{2}([A-Xa-x]{2})?$/.test(c.station.locator) ||
       ![0,3,7,10,13,17,20,23,27,30,33,37,40,43,47,50,53,57,60].includes(c.station.power_dbm) ||
@@ -15,6 +15,7 @@ function validSavedConfig(c) {
       c.expires_utc_s !== undefined && (!Number.isSafeInteger(c.expires_utc_s) || c.expires_utc_s !== 0 && (c.expires_utc_s < 1735689600 || c.expires_utc_s >= 4102444800))) return false;
   for (const name of ['allow_unqualified_frequency','allow_non_amateur_frequency']) if (c[name] !== undefined && typeof c[name] !== 'boolean') return false;
   if (![2,4,8,12].includes(c.gpio_drive_ma)) return false;
+  if (c.gray_line !== undefined && !globalThis.WsprryGrayLine?.valid(c.gray_line)) return false;
   if (c.gps !== undefined && !globalThis.WsprryGps?.valid(c.gps)) return false;
   if (c.gps && !globalThis.WsprryGps?.allocation(c.gps,c.pins,c.si5351)) return false;
   if (c.si5351?.automatic_calibration && (!c.gps?.enabled || !c.gps?.pairing_qualified)) return false;

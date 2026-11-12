@@ -86,6 +86,24 @@ int main() {
             return f.flash.bytes[offset + 16] + 256u * f.flash.bytes[offset + 17];
         };
         assert(payload_size() == standalone::Store::max_state_bytes);
+        {
+            auto settings = standalone::GrayLine{};
+            settings.morning.enabled = true;
+            const auto read = call(f, "GET", "/api/control/v1/gray-line");
+            assert(read.status == 200);
+            const auto sequence = f.store.config_sequence();
+            const auto bytes = f.flash.bytes;
+            const auto edit =
+                "{\"schema\":\"gray-line\",\"target\":" +
+                application::target(std::string(32, 'a'), f.service.status().boot_id) +
+                ",\"settings\":" + standalone::serialize_gray_line(settings) + "}";
+            assert(call(f, "PUT", "/api/control/v1/gray-line", edit, read.etag).status == 413);
+            assert(f.store.config_sequence() == sequence && f.flash.bytes == bytes);
+            assert(call(f, "PUT", "/api/control/v1/gray-line", std::string(2049, 'x'), read.etag)
+                       .status == 413);
+            assert(f.store.config_sequence() == sequence && f.flash.bytes == bytes);
+        }
+
         const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
         for (const auto policy : {hardware::GpsSettings::Daylight::DayManual,
                                   hardware::GpsSettings::Daylight::NightManual,

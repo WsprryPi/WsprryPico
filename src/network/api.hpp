@@ -155,6 +155,7 @@ class BrowserApi {
     HttpResponse amplifier_timing() const;
     HttpResponse filter_selector() const;
     HttpResponse ntp_timeout() const;
+    HttpResponse gray_line() const;
     HttpResponse rf_calibration() const;
     HttpResponse standalone_frequency() const;
     HttpResponse station_config() const;

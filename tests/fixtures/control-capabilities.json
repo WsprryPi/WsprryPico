@@ -407,6 +407,26 @@
     "max_wtp_connections": 1,
     "max_pending_connections": 1,
     "max_handshakes": 1,
-    "max_body_bytes": 32768
+    "max_body_bytes": 32768,
+    "gray_line": {
+      "schema": "gray-line",
+      "read": "/api/control/v1/gray-line",
+      "write": "/api/control/v1/gray-line",
+      "method": "PUT",
+      "activation": "next_occurrence",
+      "recurrence_authority": "member",
+      "elevation_units": "millidegrees",
+      "minimum": -90000,
+      "maximum": 90000,
+      "default_lower": -6000,
+      "default_upper": 6000,
+      "lower_inclusive": true,
+      "upper_inclusive": false,
+      "unavailable_policy": "hold_occurrence",
+      "location_sources": [
+        "manual",
+        "gps"
+      ]
+    }
   }
 }

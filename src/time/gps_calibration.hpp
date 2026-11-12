@@ -42,8 +42,15 @@ class PpsCalibration {
 // Manual correction is an independent residual trim when automatic learning
 // is enabled. Compose the scale factors, then round once; never apply twice.
 std::optional<std::int32_t> compose_correction(std::int32_t learned, std::int32_t manual);
-// Approximate apparent horizon (solar center -0.833 degrees), using NOAA's
-// published solar equations. UTC only; handles polar day/night without a
-// fictitious sunrise or sunset event. No terrain or weather correction.
+// Geometric Sun-center elevation from NOAA's published solar approximation.
+// Daily extrema hold declination fixed; rising selects the solar-hour branch.
+struct SolarPosition {
+    double elevation_degrees;
+    bool rising;
+    double daily_minimum_degrees, daily_maximum_degrees;
+};
+std::optional<SolarPosition> solar_position(const Position&, std::uint64_t utc_ns);
+// Apparent-horizon day/night convention: solar center at -0.833 degrees.
+// UTC only, without terrain/weather correction or fictitious polar crossings.
 std::optional<bool> daylight(const Position&, std::uint64_t utc_ns);
 } // namespace wsprrypico::time::gps

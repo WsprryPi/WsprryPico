@@ -14,6 +14,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <limits>
@@ -961,6 +962,255 @@ void standalone_production_memory_admission_test() {
     CHECK(scheduler.last_load_stage() == 2 && engine.prepared == 0);
     CHECK(service.status().state == wtp::State::Empty && !service.status().owner_id);
 }
+void gray_line_solar_reference_tests() {
+    // Independently evaluated NOAA Meeus/J2000 calculator, retrieved 2026-11-11:
+    // https://gml.noaa.gov/grad/solcalc/main.js
+    // SHA256 3832956f24724eafacf9e18173b9299b1554d6252bed0784d9c9aca6d9f54856
+    // calcAzEl at UTC with refraction disabled; production retains the existing
+    // fractional-year NOAA approximation. 0.7 degree comparison tolerance is
+    // an algorithm regression bound, not physical or opening-time accuracy.
+    struct Reference {
+        std::uint64_t utc;
+        std::int32_t latitude, longitude;
+        double elevation;
+    };
+    for (const auto& r : std::initializer_list<Reference>{
+             {1773986400ULL, 0, 0, -1.87672935},
+             {1774008000ULL, 0, 0, 88.14124809},
+             {1774029600ULL, 0, 0, 1.83972869},
+             {1782068400ULL, 400000000, -1050000000, 73.43266090},
+             {1797879600ULL, 400000000, -1050000000, 26.56082878},
+             {1782000000ULL, 800000000, 0, 13.43797884},
+             {1797854400ULL, 800000000, 0, -13.43763934},
+             {1782000000ULL, -800000000, 0, -33.43740947},
+             {1797854400ULL, -800000000, 0, 33.43692392},
+             {1782000000ULL, 900000000, 1800000000, 23.43771591},
+             {1797854400ULL, -900000000, -1800000000, 23.43730897},
+             {1835395200ULL, -400000000, 1800000000, 57.72533037},
+             {1835438400ULL, 400000000, -1800000000, -57.53813833},
+             {4102444799ULL, 510000000, 0, -61.99847137},
+             {1735689600ULL, 0, 0, -66.98664364},
+         }) {
+        const auto solar =
+            time::gps::solar_position({r.latitude, r.longitude, 0}, r.utc * 1'000'000'000ULL);
+        CHECK(solar && std::abs(solar->elevation_degrees - r.elevation) < 0.7);
+        CHECK(solar->daily_minimum_degrees <= solar->elevation_degrees + 1e-9 &&
+              solar->daily_maximum_degrees >= solar->elevation_degrees - 1e-9);
+    }
+    CHECK(!time::gps::solar_position({900000001, 0, 0}, 1'774'004'400'000'000'000ULL));
+    CHECK(!time::gps::solar_position({0, 0, 0}, 0));
+}
+void gray_line_scheduler_tests() {
+    constexpr std::uint64_t ns = 1'000'000'000ULL;
+    standalone::GrayLinePeriod boundary;
+    boundary.enabled = true;
+    CHECK(boundary.qualifies(-6.0));
+    CHECK(!boundary.qualifies(6.0));
+    CHECK(!boundary.qualifies(std::nextafter(-6.0, -7.0)));
+    CHECK(boundary.qualifies(std::nextafter(-6.0, -5.0)));
+    CHECK(boundary.qualifies(std::nextafter(6.0, 5.0)));
+    CHECK(!boundary.qualifies(std::nextafter(6.0, 7.0)));
+    boundary.enabled = false;
+    CHECK(!boundary.qualifies(0));
+    // Local equatorial morning, 2026-03-20 11:00 UTC. The ordinary night
+    // policy is deliberately closed by 09:00, while the wide morning window
+    // overrides it. GPS absence must not create an ordinary fallback.
+    for (unsigned scenario = 0; scenario < 10; ++scenario) {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto c = scheduled_config();
+        c.locator = "JJ00AA";
+        c.gps.emplace();
+        c.gps->enabled = true;
+        c.gray_line.morning = {true, -90000, 90000, 7'038'600, {}};
+        c.gray_line.evening = {true, -90000, 90000, 10'138'700, {}};
+        c.gray_line.gps = scenario == 1 || scenario == 2 || scenario >= 8;
+        if (scenario == 3)
+            c.gray_line = {};
+        if (scenario == 4)
+            c.gray_line.morning.upper_mdeg = -89000;
+        if (scenario == 7)
+            c.gray_line.morning.wspr_dial_frequency_hz = 1'234'567;
+        if (scenario == 5)
+            c.gps->daylight = hardware::GpsSettings::Daylight::NightManual;
+        CHECK(store.load() && store.save(c));
+        standalone::Store restored(flash);
+        CHECK(restored.load() && restored.config()->gray_line == c.gray_line);
+        Clock clock;
+        clock.value.utc_now_ns =
+            (scenario == 6 ? 1'774'027'200ULL : 1'774'004'400ULL) * ns - 4 * ns;
+        // Align fixture to a real 120-second start second, independently of poll.
+        clock.value.utc_now_ns = clock.value.utc_now_ns / (120 * ns) * (120 * ns) + 117 * ns;
+        clock.value.monotonic_now_ns = 116 * ns;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(restored, service);
+        if (scenario == 2)
+            scheduler.gps_position(time::gps::Position{0, 0, 80 * ns});
+        if (scenario == 8)
+            scheduler.gps_position(time::gps::Position{1'000'000'000, 0, 116 * ns});
+        if (scenario == 9)
+            scheduler.gps_position(time::gps::Position{0, 0, 117 * ns});
+        const bool admitted = scenario != 1 && scenario != 2 && scenario != 7 && scenario < 8;
+        CHECK(scheduler.next_wspr_start().has_value() == admitted);
+        scheduler.poll();
+        CHECK(engine.prepared == (admitted ? 1U : 0U));
+        CHECK((restored.watermark() != 0) == admitted);
+        if (!admitted)
+            CHECK(!service.status().owner_id);
+        if (admitted) {
+            CHECK(engine.job.events.size() == 162);
+            const auto tone = engine.job.events[0].frequency_nhz;
+            const auto ordinary = standalone::wspr_tones(*c.wspr_dial_frequency_hz);
+            const auto morning = standalone::wspr_tones(7'038'600);
+            const auto evening = standalone::wspr_tones(10'138'700);
+            const auto contains = [tone](const auto& tones) {
+                return std::find(tones->begin(), tones->end(), tone) != tones->end();
+            };
+            CHECK(scenario == 3 || scenario == 4 ? contains(ordinary)
+                  : scenario == 6                ? contains(evening)
+                                                 : contains(morning));
+        }
+    }
+    // A real known sunrise-adjacent pair: the first start is below -0.833°,
+    // the second above it. Ordinary policy is open, so falling back would
+    // transmit an occurrence that must be rejected as a whole.
+    {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto c = scheduled_config();
+        c.callsign = "PJ4/AA0NT";
+        c.locator = "JJ00AA";
+        c.gray_line.morning = {true, -90000, -833, {}, {}};
+        CHECK(store.load() && store.save(c));
+        Clock clock;
+        clock.value.utc_now_ns = 1'773'986'641ULL * ns - 5 * ns;
+        clock.value.monotonic_now_ns = 116 * ns;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        CHECK(!scheduler.next_wspr_start());
+        scheduler.poll();
+        CHECK(engine.prepared == 0 && store.watermark() == 0 && !service.status().owner_id);
+    }
+    for (const auto mode : {"qrss", "fskcw", "dfcw"}) {
+        for (unsigned fault = 0; fault < 3; ++fault) {
+            MemoryFlash flash;
+            standalone::Store store(flash);
+            auto c = scheduled_config();
+            c.enabled = false;
+            c.locator = "JJ00AA";
+            c.gray_line.morning = {true, -90000, 90000, {}, 7'039'000'000'000'000ULL};
+            if (fault == 1)
+                c.gray_line.morning.message_frequency_nhz = 1;
+            if (fault == 2)
+                c.gray_line.morning.message_frequency_nhz = UINT64_MAX;
+            CHECK(store.load() && store.save(c));
+            Clock clock;
+            clock.value.utc_now_ns = 1'774'004'400ULL * ns;
+            clock.value.monotonic_now_ns = 116 * ns;
+            standalone::MessageSchedule message;
+            message.enabled = true;
+            message.first_start_utc_ns = clock.value.utc_now_ns + 5 * ns;
+            message.period_s = 60;
+            auto& m = message.message;
+            m.job_id = std::string(32, 'a');
+            m.mode = mode;
+            m.text = "A";
+            m.mark_frequency_nhz = 10'140'000'000'000'000ULL;
+            m.space_frequency_nhz =
+                m.mode == "fskcw" ? m.mark_frequency_nhz - 5 * ns : m.mark_frequency_nhz + 5 * ns;
+            m.dot_ns = ns;
+            m.dash_ns = 3 * ns;
+            m.intra_gap_ns = ns;
+            m.character_gap_ns = 3 * ns;
+            m.word_gap_ns = 7 * ns;
+            CHECK(store.save_message_schedule(message));
+            Engine engine;
+            Identity identity;
+            wtp::JobService service(clock, engine, identity);
+            standalone::Scheduler scheduler(store, service);
+            CHECK(scheduler.next_message_start().has_value() == (fault == 0));
+            scheduler.poll();
+            if (fault)
+                CHECK(engine.prepared == 0 && store.watermark() == 0 && !service.status().owner_id);
+            else {
+                CHECK(engine.prepared == 1);
+                for (const auto& event : engine.job.events)
+                    if (event.rf_on)
+                        CHECK(
+                            event.frequency_nhz == 7'039'000'000'000'000ULL ||
+                            (m.mode == "dfcw" && event.frequency_nhz == 7'039'005'000'000'000ULL) ||
+                            (m.mode == "fskcw" && event.frequency_nhz == 7'038'995'000'000'000ULL));
+            }
+        }
+    }
+    // Independently tabulated equatorial sunrise is -1.88 degrees here.
+    // Exercise either side of both bounds, disabled branches, prolonged polar
+    // windows in both hemispheres, and unsupported UTC through production status.
+    struct SelectionCase {
+        std::uint64_t utc;
+        std::int32_t latitude, lower, upper;
+        bool morning, evening;
+        const char* selection;
+        bool prolonged;
+    };
+    for (const auto& test : std::initializer_list<SelectionCase>{
+             {1773986400, 0, -3000, -1000, true, true, "morning", false},
+             {1773986400, 0, -1000, 0, true, true, "ordinary", false},
+             {1773986400, 0, -4000, -3000, true, true, "ordinary", false},
+             {1773986400, 0, -3000, -1000, false, true, "ordinary", false},
+             {1774029600, 0, 1000, 3000, true, true, "evening", false},
+             {1774029600, 0, 1000, 3000, true, false, "ordinary", false},
+             {1782021600, 900000000, 20000, 30000, true, true, "morning", true},
+             {1797854400, -900000000, 20000, 30000, true, true, "evening", true},
+             {1782021600, -900000000, -30000, -20000, true, true, "morning", true},
+             {4102444800, 0, -90000, 90000, true, true, "waiting_for_time", false},
+         }) {
+        MemoryFlash flash;
+        standalone::Store store(flash);
+        auto c = scheduled_config();
+        c.gps.emplace();
+        c.gps->enabled = true;
+        c.gray_line.gps = true;
+        c.gray_line.morning = {test.morning, test.lower, test.upper, {}, {}};
+        c.gray_line.evening = {test.evening, test.lower, test.upper, {}, {}};
+        CHECK(store.load() && store.save(c));
+        Clock clock;
+        clock.value.utc_now_ns = test.utc * ns;
+        clock.value.monotonic_now_ns = 116 * ns;
+        Engine engine;
+        Identity identity;
+        wtp::JobService service(clock, engine, identity);
+        standalone::Scheduler scheduler(store, service);
+        scheduler.gps_position(time::gps::Position{test.latitude, 0, 116 * ns});
+        const auto status_text = scheduler.gray_line_status();
+        const auto status = *wtp::json::parse(status_text);
+        if (status.get("selection")->string() != test.selection)
+            std::cerr << "UTC " << test.utc << ": expected " << test.selection << ", got "
+                      << status_text << '\n';
+        CHECK(status.get("selection")->string() == test.selection);
+        CHECK(status.get("prolonged_window")->boolean() == test.prolonged);
+        CHECK(store.watermark() == 0 && !service.status().owner_id);
+    }
+    standalone::GrayLine settings;
+    auto encoded = standalone::serialize_gray_line(settings);
+    CHECK(standalone::parse_gray_line(*wtp::json::parse(encoded)) == settings);
+    for (const auto invalid : {"null", "[]", "{}"})
+        CHECK(!standalone::parse_gray_line(wtp::json::Value{invalid}));
+    for (const auto replacement : {"true", "-6000.0", "-6e3", "-90001", "6000"}) {
+        auto bad = encoded;
+        const auto offset = bad.find("-6000");
+        bad.replace(offset, 5, replacement);
+        const auto parsed_bad = wtp::json::parse(bad);
+        CHECK(!parsed_bad || !standalone::parse_gray_line(*parsed_bad));
+    }
+    auto bad = encoded;
+    bad.insert(1, "\"extra\":true,");
+    CHECK(!standalone::parse_gray_line(*wtp::json::parse(bad)));
+}
 void gps_daylight_scheduler_tests() {
     constexpr std::uint64_t ns = 1'000'000'000ULL;
     // Polar summer/winter exercise the actual scheduler without inventing
@@ -1318,6 +1568,8 @@ int main() {
     standalone_memory_admission_test();
     standalone_production_memory_admission_test();
     paired_scheduler_tests();
+    gray_line_solar_reference_tests();
+    gray_line_scheduler_tests();
     gps_daylight_scheduler_tests();
     sntp_tests();
     sntp_poll_schedule_test();

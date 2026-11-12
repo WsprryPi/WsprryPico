@@ -1,8 +1,9 @@
 #pragma once
-#include "hardware/pins.hpp"
 #include "hardware/gps_settings.hpp"
+#include "hardware/pins.hpp"
 #include "hardware/si5351_settings.hpp"
 #include "rf/amplifier_timing.hpp"
+#include "standalone/gray_line.hpp"
 #include "wtp/json.hpp"
 
 #include <array>
@@ -42,6 +43,7 @@ struct Config {
     std::string ssid, password;
     std::string ntp_ipv4 = default_time_server; // Legacy key also accepts a DNS hostname.
     std::vector<Schedule> schedules;
+    GrayLine gray_line;
     unsigned ntp_timeout_s = default_ntp_timeout_s;
     bool operator==(const Config&) const = default;
 };

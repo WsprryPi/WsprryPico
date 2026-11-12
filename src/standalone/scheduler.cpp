@@ -1,5 +1,6 @@
 #include "standalone/scheduler.hpp"
 
+#include "application/frequency_policy.hpp"
 #include "encoding/wspr.hpp"
 #include "time/mapping.hpp"
 #include "time/sntp.hpp"
@@ -78,8 +79,106 @@ std::optional<Config> Scheduler::station_snapshot(const Config& saved) const {
     result.locator = locator->data();
     return result;
 }
+Scheduler::GraySelection Scheduler::gray_selection(std::uint64_t utc, std::uint64_t raw) const {
+    const auto& c = store_.config();
+    if (!c || !c->gray_line.enabled())
+        return GraySelection::Ordinary;
+    std::optional<time::gps::Position> position;
+    if (c->gray_line.gps) {
+        if (!c->gps || !c->gps->enabled || !gps_position_ || raw < gps_position_->observed_raw_ns ||
+            raw - gps_position_->observed_raw_ns > c->gps->position_maximum_age_s * ns)
+            return GraySelection::LocationUnavailable;
+        position = gps_position_;
+    } else
+        position = grid_center(c->locator);
+    if (!position || !time::gps::locator(*position))
+        return GraySelection::LocationUnavailable;
+    const auto solar = time::gps::solar_position(*position, utc);
+    if (!solar)
+        return GraySelection::TimeUnavailable;
+    const auto& p = solar->rising ? c->gray_line.morning : c->gray_line.evening;
+    if (p.qualifies(solar->elevation_degrees))
+        return solar->rising ? GraySelection::Morning : GraySelection::Evening;
+    return GraySelection::Ordinary;
+}
+const GrayLinePeriod* Scheduler::gray_period(GraySelection choice) const {
+    if (!store_.config())
+        return nullptr;
+    if (choice == GraySelection::Morning)
+        return &store_.config()->gray_line.morning;
+    if (choice == GraySelection::Evening)
+        return &store_.config()->gray_line.evening;
+    return nullptr;
+}
+std::optional<encoding::MorseMessage> Scheduler::selected_message(std::uint64_t utc,
+                                                                  std::uint64_t raw) const {
+    if (!store_.message_schedule())
+        return {};
+    auto message = store_.message_schedule()->message;
+    const auto* gray = gray_period(gray_selection(utc, raw));
+    if (!gray || !gray->message_frequency_nhz)
+        return message;
+    const auto frequency = *gray->message_frequency_nhz;
+    if (message.mode == "dfcw") {
+        const auto offset = message.space_frequency_nhz - message.mark_frequency_nhz;
+        if (frequency > UINT64_MAX - offset)
+            return {};
+        message.space_frequency_nhz = frequency + offset;
+    } else if (message.mode == "fskcw") {
+        const auto offset = message.mark_frequency_nhz - message.space_frequency_nhz;
+        if (frequency <= offset)
+            return {};
+        message.space_frequency_nhz = frequency - offset;
+    }
+    message.mark_frequency_nhz = frequency;
+    const auto& c = *store_.config();
+    const auto allowed = [&](auto tone) {
+        return tone >= service_.config().minimum_frequency_nhz &&
+               tone <= service_.config().maximum_frequency_nhz &&
+               application::frequency_allowed(tone, c.allow_unqualified_frequency,
+                                              c.allow_non_amateur_frequency);
+    };
+    if (!allowed(message.mark_frequency_nhz) ||
+        (message.mode != "qrss" && !allowed(message.space_frequency_nhz)))
+        return {};
+    return message;
+}
+bool Scheduler::occurrence_allowed(std::uint64_t first, std::uint64_t last,
+                                   std::uint64_t raw) const {
+    return gray_selection(first, raw) == gray_selection(last, raw) &&
+           daylight_allowed(first, raw) && daylight_allowed(last, raw);
+}
+std::string Scheduler::gray_line_status() const {
+    const auto now = service_.clock_snapshot();
+    auto selection = gray_selection(now.utc_now_ns, now.monotonic_now_ns);
+    const bool enabled = store_.config() && store_.config()->gray_line.enabled();
+    if (enabled && !clock_ready(now, service_.config()))
+        selection = GraySelection::TimeUnavailable;
+    const char* name = !enabled                                          ? "disabled"
+                       : selection == GraySelection::Morning             ? "morning"
+                       : selection == GraySelection::Evening             ? "evening"
+                       : selection == GraySelection::LocationUnavailable ? "waiting_for_location"
+                       : selection == GraySelection::TimeUnavailable     ? "waiting_for_time"
+                                                                         : "ordinary";
+    bool prolonged = false;
+    if (const auto* period = gray_period(selection)) {
+        const auto& c = *store_.config();
+        const auto position = c.gray_line.gps ? gps_position_ : grid_center(c.locator);
+        const auto solar =
+            position ? time::gps::solar_position(*position, now.utc_now_ns) : std::nullopt;
+        prolonged = solar && solar->daily_minimum_degrees * 1000 >= period->lower_mdeg &&
+                    solar->daily_maximum_degrees * 1000 < period->upper_mdeg;
+    }
+    return "{\"selection\":" + wtp::json::quote(name) +
+           ",\"prolonged_window\":" + (prolonged ? "true}" : "false}");
+}
 Scheduler::BeaconWindow Scheduler::beacon_window(std::uint64_t utc, std::uint64_t raw) const {
     using Daylight = hardware::GpsSettings::Daylight;
+    const auto gray = gray_selection(utc, raw);
+    if (gray == GraySelection::Morning || gray == GraySelection::Evening)
+        return BeaconWindow::Open;
+    if (gray == GraySelection::LocationUnavailable || gray == GraySelection::TimeUnavailable)
+        return BeaconWindow::FixUnavailable;
     const auto& config = store_.config();
     if (!config || !config->gps || config->gps->daylight == Daylight::Always)
         return BeaconWindow::Open;
@@ -183,8 +282,17 @@ void Scheduler::poll() {
         last_error_ = wtp::ErrorCode::FrequencyRejected;
         return;
     }
-    const auto tones = wspr_tones(*c.wspr_dial_frequency_hz);
-    if (!tones) {
+    const auto* gray = gray_period(gray_selection(candidate, now.monotonic_now_ns));
+    const auto dial = gray && gray->wspr_dial_frequency_hz ? gray->wspr_dial_frequency_hz
+                                                           : c.wspr_dial_frequency_hz;
+    const auto tones = wspr_tones(*dial);
+    if (!tones || (gray && gray->wspr_dial_frequency_hz &&
+                   !std::all_of(tones->begin(), tones->end(), [&](auto tone) {
+                       return tone >= service_.config().minimum_frequency_nhz &&
+                              tone <= service_.config().maximum_frequency_nhz &&
+                              application::frequency_allowed(tone, c.allow_unqualified_frequency,
+                                                             c.allow_non_amateur_frequency);
+                   }))) {
         last_error_ = wtp::ErrorCode::FrequencyRejected;
         return;
     }
@@ -196,7 +304,7 @@ void Scheduler::poll() {
         return;
     }
     const auto final_slot = candidate + (plan->count - 1) * slot_duration;
-    if (plan->count == 2 && !daylight_allowed(final_slot, now.monotonic_now_ns))
+    if (!occurrence_allowed(candidate, final_slot, now.monotonic_now_ns))
         return;
     const auto expiry = c.expires_utc_s * ns;
     // Include the second frame's entire accepted launch second for a pair.
@@ -253,7 +361,10 @@ std::uint64_t Scheduler::message_lead_ns() const {
 std::optional<std::uint64_t> Scheduler::next_message_start() const {
     const auto now = service_.clock_snapshot();
     const auto candidate = next_message_candidate(now);
-    return candidate && daylight_allowed(*candidate, now.monotonic_now_ns) ? candidate : std::nullopt;
+    return candidate && daylight_allowed(*candidate, now.monotonic_now_ns) &&
+                   selected_message(*candidate, now.monotonic_now_ns)
+               ? candidate
+               : std::nullopt;
 }
 std::optional<std::uint64_t> Scheduler::next_message_candidate(const wtp::ClockSnapshot& now) const {
     if (!store_.healthy() || !store_.message_schedule() || !store_.message_schedule()->enabled ||
@@ -314,9 +425,17 @@ std::optional<std::uint64_t> Scheduler::next_wspr_start() const {
         (c.expires_utc_s &&
          (candidate >= c.expires_utc_s * ns || tail > c.expires_utc_s * ns - candidate)))
         return {};
-    if (!daylight_allowed(candidate, now.monotonic_now_ns) ||
-        (plan->count == 2 && !daylight_allowed(candidate + slot_duration, now.monotonic_now_ns)))
+    if (!occurrence_allowed(candidate, candidate + (plan->count - 1) * slot_duration,
+                            now.monotonic_now_ns))
         return {};
+    if (const auto* gray = gray_period(gray_selection(candidate, now.monotonic_now_ns));
+        gray && gray->wspr_dial_frequency_hz) {
+        auto selected = c;
+        selected.wspr_dial_frequency_hz = gray->wspr_dial_frequency_hz;
+        if (!wspr_frequency_allowed(selected, service_.config().minimum_frequency_nhz,
+                                    service_.config().maximum_frequency_nhz))
+            return {};
+    }
     return candidate;
 }
 std::string Scheduler::message_status() const {
@@ -324,7 +443,9 @@ std::string Scheduler::message_status() const {
     const auto now = service_.clock_snapshot();
     const auto candidate = next_message_candidate(now);
     const auto window = candidate ? beacon_window(*candidate, now.monotonic_now_ns) : BeaconWindow::Open;
-    auto next = window == BeaconWindow::Open ? candidate : std::nullopt;
+    const bool frequency_rejected = candidate && window == BeaconWindow::Open &&
+                                    !selected_message(*candidate, now.monotonic_now_ns);
+    auto next = window == BeaconWindow::Open && !frequency_rejected ? candidate : std::nullopt;
     if (message_job_ && service_.activity().state == wtp::State::Armed)
         next = store_.last_message_start();
     std::string state = "not_configured";
@@ -355,6 +476,8 @@ std::string Scheduler::message_status() const {
             state = "waiting_for_gps_fix";
         else if (window == BeaconWindow::Closed)
             state = "waiting_for_beacon_window";
+        else if (frequency_rejected)
+            state = "unavailable";
         else
             state = idle() ? "waiting" : "waiting_for_transmitter";
     }
@@ -371,7 +494,10 @@ std::string Scheduler::message_status() const {
            ",\"last_result\":" +
            (last_message_result_.empty() ? "null" : wtp::json::quote(last_message_result_)) +
            ",\"last_error\":" +
-           (message_error_ == wtp::ErrorCode::None ? "null" : wtp::error_json(message_error_)) +
+           (frequency_rejected && !message_job_ && !message_recovery_required()
+                ? wtp::error_json(wtp::ErrorCode::FrequencyRejected)
+            : message_error_ == wtp::ErrorCode::None ? "null"
+                                                     : wtp::error_json(message_error_)) +
            "}";
 }
 bool Scheduler::finish_message_pause() {
@@ -455,8 +581,10 @@ bool Scheduler::poll_message() {
     const auto now = service_.clock_snapshot();
     if (*next - now.utc_now_ns > std::max(10 * ns, message_lead_ns() + ns))
         return true;
-    const auto& schedule = *store_.message_schedule();
-    auto message = schedule.message;
+    const auto selected = selected_message(*next, now.monotonic_now_ns);
+    if (!selected)
+        return true;
+    auto message = *selected;
     message.job_id = "dddddddddddddddd" + id(*next).substr(16);
     auto compiled = encoding::compile_message(message, service_.config().max_events,
                                               service_.config().max_job_duration_ns);
@@ -707,6 +835,8 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
             config->ntp_rf_calibration = store_.config()->ntp_rf_calibration;
         if (!supplied->get("wspr_dial_frequency_hz"))
             config->wspr_dial_frequency_hz = store_.config()->wspr_dial_frequency_hz;
+        if (!supplied->get("gray_line"))
+            config->gray_line = store_.config()->gray_line;
         if (!supplied->get("amplifier_timing"))
             config->amplifier_timing = store_.config()->amplifier_timing;
         if (!supplied->get("ntp_timeout_s"))
@@ -725,6 +855,7 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
     if (hardware_write &&
         (!store_.config() || config->enabled != store_.config()->enabled ||
          config->schedules != store_.config()->schedules ||
+         config->gray_line != store_.config()->gray_line ||
          config->expires_utc_s != store_.config()->expires_utc_s ||
          config->wspr_dial_frequency_hz != store_.config()->wspr_dial_frequency_hz))
         return error("invalid_hardware_update");
