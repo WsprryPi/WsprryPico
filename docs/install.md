@@ -65,7 +65,25 @@ Linux needs a USB access rule and permission for your account to use it. Install
 
 5. Disconnect and reconnect the Pico so the reloaded rule applies. Use BOOTSEL for a first installation, as described below; leave existing WsprryPico firmware running normally for an upgrade.
 
-Continue with the installer commands below **without `sudo`**. Running the installer as root uses a different private cache and recovery directory, and its managed picotool download refuses root. Membership in the serial-port group `dialout` alone does not grant BOOTSEL USB access. If programming still fails, retain the full error and follow [support instructions](support.md); do not erase the Pico to resolve a host permission error.
+Continue with the installer commands below **without `sudo`**. Running the installer as root uses a different private cache and recovery directory, and its managed picotool download refuses root. Membership in the serial-port group `dialout` alone does not grant BOOTSEL USB access. If programming still fails, use the checks below. A host permission error does not require erasing the Pico.
+
+### Check Linux BOOTSEL access
+
+Discovery can list a Pico even when your account cannot open its USB programming connection. If picotool reports **No accessible RP-series devices in BOOTSEL mode**, check access before retrying installation:
+
+1. Connect only the intended Pico. Hold **BOOTSEL** while reconnecting its USB data cable, then release the button. Run `bash install_usb.sh discover` and check that the listed mode is **BOOTSEL**. Copy its USB serial number exactly.
+2. Find the full picotool executable path in the installer's error message. In the command below, replace `/absolute/path/to/picotool` with that path and `SERIAL` with the serial from discovery. Keep the quotation marks around the path:
+
+   ```sh
+   "/absolute/path/to/picotool" info -a --ser SERIAL
+   ```
+
+   This command reads device information without programming flash. Keep the complete output. If it works, your account can access the selected Pico; use the installer's actual error to identify the failing operation rather than changing permissions.
+
+3. If the information command fails, run the same command once with `sudo` before the quoted path. This administrator check applies only to `picotool info`, **not to the installer**. If it works only with `sudo`, return to the permission setup above: check the rule installation, log out and back in, confirm `plugdev` appears in `id -nG`, and reconnect the Pico. Repeat the information command without `sudo` to confirm the fix.
+4. If both attempts fail, run the information command without `--ser SERIAL`. If that lists a device, compare its serial with discovery and correct the command. If it still finds no accessible device, confirm BOOTSEL again, try a known USB data cable and a direct USB port without a hub, and close other programming tools that may be using the Pico. Change one thing at a time and repeat the read-only check. If another high-bandwidth USB device is affected, try a different physical USB port or controller.
+
+Once you can access the Pico as your ordinary user, return to the installer. If an earlier attempt printed a recovery command, use that command with its retained transaction instead of starting a new installation. Keep the error output and the results of these checks if you need further help; they show whether the problem is permissions, device selection, or USB access.
 
 ## Select recommended firmware
 
@@ -102,7 +120,7 @@ Copying a UF2 replaces the firmware program without erasing all flash memory or 
 ### Copy the recommended release from Windows
 
 1. Confirm that the board is a **Pico 2 W**. For an existing WsprryPico, disable and save its standalone schedule, finish or abort jobs through their owning controller, release control, and confirm inactive output before disconnecting it. Record settings you may need to enter again. If another program is installed, expect to replace it; this procedure does not back it up.
-2. Open the [recommended release, version @RECOMMENDED_FIRMWARE_VERSION@](https://github.com/WsprryPi/WsprryPico/releases/tag/v@RECOMMENDED_FIRMWARE_VERSION@), in your Windows browser. Expand **Assets** and download **`WsprryPico-@RECOMMENDED_FIRMWARE_VERSION@-pico2_w.uf2`** and **`SHA256SUMS`** into the same folder. Choose the named UF2 asset, rather than GitHub's **Source code** archives. Keep the original filenames. If either asset is missing, stop and use [support](support.md).
+2. In your Windows browser, open the [recommended release, version @RECOMMENDED_FIRMWARE_VERSION@](https://github.com/WsprryPi/WsprryPico/releases/tag/v@RECOMMENDED_FIRMWARE_VERSION@). Expand **Assets** and download **`WsprryPico-@RECOMMENDED_FIRMWARE_VERSION@-pico2_w.uf2`** and **`SHA256SUMS`** into the same folder. Choose the named UF2 asset, rather than GitHub's **Source code** archives. Keep the original filenames. If either asset is missing, confirm the version at the top of the release page and expand the full asset list. Wait for both files to be available; source archives cannot replace them.
 3. Open that folder in File Explorer, right-click an empty area, and choose **Open in Terminal** or **Open PowerShell window here**. Use a PowerShell tab and run:
 
    ```powershell
@@ -113,10 +131,21 @@ Copying a UF2 replaces the firmware program without erasing all flash memory or 
    The **Hash** column from the first command is a SHA-256 checksum, a fingerprint of the downloaded file. Compare every character with the checksum beside that exact UF2 filename in `SHA256SUMS`. Uppercase and lowercase letters are equivalent. If they differ, or a command fails, stop; do not copy the firmware to the Pico.
 
 4. Disconnect the Pico. Hold its onboard **BOOTSEL** button while reconnecting it to the Windows computer with a USB **data** cable, then release the button. File Explorer should show a drive named **RP2350**. Connect only the intended Pico during this procedure. If the drive does not appear, check the cable and repeat the BOOTSEL connection. This copy method requires no installer script, picotool, or administrator session.
-5. Copy the downloaded **`.uf2` file** onto the **RP2350** drive. Keep the USB cable connected while it transfers. The drive normally disappears when the Pico restarts. This disappearance alone does not confirm that the intended firmware is running correctly. If Windows reports a copy error or the board remains in BOOTSEL, retain the exact error and seek [support](support.md); do not erase flash as a troubleshooting shortcut.
+5. Copy the downloaded **`.uf2` file** onto the **RP2350** drive. Keep the USB cable connected while it transfers. The drive normally disappears when the Pico restarts. This disappearance alone does not confirm that the intended firmware is running correctly. If Windows reports an error or the board stays in BOOTSEL, use [Check a Windows UF2 copy](#check-a-windows-uf2-copy) below.
 6. After startup, continue to [Connect to your Pico](connect.md). Existing Wi-Fi settings may still apply. Use **About this Pico / Diagnostics**, or the [USB Console `INFO` command](usb.md#open-the-console-in-a-browser) in desktop Chrome on Windows, to check the firmware version and source against the selected release. Review saved settings, pins, and [transmit readiness](operate.md#before-transmitting) before enabling a schedule. If you cannot confirm the firmware version and source, installation remains unverified.
 
 Keep the downloaded UF2 and checksum file for reference. They do not contain a backup of your Pico or a record for continuing an interrupted installation.
+
+### Check a Windows UF2 copy
+
+If Windows reports a copy error, first check whether the Pico has restarted and the selected firmware is running, using step 6 above. The BOOTSEL drive disappears during a normal restart; a Windows message alone does not confirm whether programming succeeded.
+
+If the intended firmware is not running:
+
+1. Reconnect while holding **BOOTSEL**. Check that **RP2350** appears in File Explorer. If it does not, try a known USB data cable and a direct USB port without a hub.
+2. Check the downloaded filename against step 2. It must be the Pico 2 W UF2 for the selected release. Repeat the checksum comparison. If it differs, download both files again from that same release and compare them before copying.
+3. Copy the verified UF2 to **RP2350** again and keep the cable connected. After restart, repeat the firmware-version and source check. Do not copy a source archive, a file for another Pico model, or an erase image to work around a failure.
+4. If the drive remains in BOOTSEL or the firmware still cannot be verified, use the recommended installer on macOS or native Linux. Its device-information checks and actual picotool error can identify a USB-access or programming problem that File Explorer does not explain. Keep the exact Windows error and the results of the cable, port, file, and checksum checks for comparison.
 
 ## Get the installer and identify the Pico
 
