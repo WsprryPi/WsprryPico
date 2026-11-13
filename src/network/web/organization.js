@@ -36,6 +36,10 @@
     else {if(node.firstChild.nodeType===1 && node.firstChild.classList.contains('field-caption'))group.classList.add('field-caption');label.textContent=node.firstChild.textContent;node.firstChild.remove();node.prepend(group);}
     group.append(label);help(group,topic,path);
   }
+  // Setup Wi-Fi has no Internet route; keep recovery local and help offline.
+  const apView = location.origin === 'http://192.168.4.1';
+  document.documentElement.classList.toggle('ap-view', apView);
+  $('ap-recovery-navigation').hidden = !apView;
   const station = $('station-area'), wifi = $('wifi-host-area');
   const sections = new Map([
     ['radio-settings','station'],['message-section','station'],['advanced-scheduling','station'],['time-calibration','station'],['radio-pins','station'],

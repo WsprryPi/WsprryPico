@@ -45,10 +45,10 @@
     },
     "organization.min.js": {
       "inputs": {
-        "organization.js": "c9d8ddbb2c55038268126ac14caa538bfe37339fa08012d7343115bc67e3836b"
+        "organization.js": "1eea31863032dae91bb33a402393ba43ce2a970f40d506f5dfe4b9cc348ac64c"
       },
-      "sha256": "963ca30c33a4ea2e18761b5135038b0d0cc08287cd980097c6e81a4fbf4840c7",
-      "bytes": 9752
+      "sha256": "9fd5fde1435c740ac6aa052d809812372b3c55b46e5086b1c5c94ac628f0d410",
+      "bytes": 9892
     }
   }
 }

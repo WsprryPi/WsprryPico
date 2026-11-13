@@ -107,3 +107,7 @@ header .documentation-help:has(svg):hover{color:#fff}
 .hostname-suffix{display:flex;align-items:center;padding:.6rem .75rem;border:1px solid #687e90;border-left:0;border-radius:0 4px 4px 0;background:#e7eef4;color:#52616e;font-weight:400}
 
 .timeout-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:.5rem}.timeout-controls input{flex:0 1 8rem;width:8rem;min-width:0}.timeout-controls button{margin:0}
+
+/* Local recovery remains reachable before unlocking AP controls. */
+.ap-view .documentation-help,.ap-view .documentation-note{display:none}
+#device-recovery-link{display:inline-flex;align-items:center;min-height:44px}

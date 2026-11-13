@@ -50,3 +50,6 @@ summary .help-heading>span{min-width:0}
 .hostname-field{display:flex;align-items:stretch;max-width:34rem;min-width:0}
 .hostname-field input{flex:1;min-width:0;border-radius:4px 0 0 4px}
 .hostname-suffix{display:flex;align-items:center;padding:.6rem .75rem;border:1px solid #687e90;border-left:0;border-radius:0 4px 4px 0;background:#e7eef4;color:#52616e;font-weight:400}
+
+/* Setup and recovery pages are served only on the offline AP. */
+:root .documentation-help,:root .documentation-note{display:none}

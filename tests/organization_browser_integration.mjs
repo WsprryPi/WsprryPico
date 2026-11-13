@@ -107,6 +107,8 @@ try {
     assert.equal(await cdp.evaluate('document.getElementById("standalone-frequency").value'),'14095600');
     assert.equal(await cdp.evaluate('document.getElementById("consumer-ssid").value'),'Home Net');
     assert.equal((await f.command({op:'stats'})).config_sequence,'0');
+    assert.equal(await cdp.evaluate(`document.getElementById('ap-recovery-navigation').hidden`),true,'LAN does not offer AP-only recovery');
+    assert.equal(await cdp.evaluate(`getComputedStyle(document.getElementById('header-help')).display==='none'`),false,'LAN retains online help');
     await capture('wifi-only-lan-control','station-area');
     await click('wifi-host-link');
     await until(()=>cdp.evaluate('!!picoPasswordState && !document.getElementById("pico-password-settings").disabled'),'editable Pico password');
@@ -322,9 +324,17 @@ try {
       }
     }
     console.log('Recovery boundary: leave provisioning');await cdp.send('Page.navigate',{url:'about:blank'});await f.stop();console.log('Recovery boundary: new fixture');f=await h.fixture(process.argv[2]);await f.time(1000);
-    await f.command({op:'page_profile',mode:'recovery'});console.log('Recovery boundary: profile ready');
-    await cdp.send('Page.navigate',{url:'http://192.168.4.1/recovery.html'});
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+    await until(()=>cdp.evaluate(`!!document.getElementById('device-recovery-link') && !document.getElementById('ap-recovery-navigation').hidden && document.getElementById('wifi-settings-lock').disabled`),'locked AP landing offers recovery');
+    assert.equal(await cdp.evaluate(`Array.from(document.querySelectorAll('.documentation-help')).every(e=>getComputedStyle(e).display==='none')`),true,'AP hides all online help, including topic icons');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-recovery-link').closest('fieldset')`),null,'recovery does not require unlocking');
+    await capture('ap-recovery-navigation','wifi-host-area');
+    await f.command({op:'page_profile',mode:'recovery'}); // Supply the existing reset boundary double after loading the configured landing page.
+    const beforeRecovery=await f.command({op:'stats'});
+    await click('device-recovery-link');
+
     await until(()=>cdp.evaluate(`!!document.getElementById('provisioning') && !document.getElementById('provisioning').disabled`),'admitted recovery page');
+    assert.equal(await cdp.evaluate(`Array.from(document.querySelectorAll('.documentation-help,.documentation-note')).every(e=>getComputedStyle(e).display==='none')`),true,'recovery hides online help and its note');
     assert.match(await cdp.evaluate(`document.querySelector('a[data-help="Reset and recovery"]').href`),/^https:\/\/wsprrypico\.readthedocs\.io\/en\/(main|devel)\/maintain\.html#recovery-and-reset$/);
     await click('provisioning');
     assert.equal(await cdp.evaluate(`document.activeElement.id`),'operation');
@@ -332,6 +342,7 @@ try {
     await capture('recovery-confirmation','confirm');
     await click('cancel');assert.equal(await cdp.evaluate(`document.activeElement.id`),'provisioning');
     assert.equal((await f.command({op:'stats'})).recovery_requests,0);
+    assert.equal((await f.command({op:'stats'})).config_sequence,beforeRecovery.config_sequence,'recovery navigation and cancel preserve settings');
     assert.equal(await cdp.evaluate(`document.getElementById('full').textContent`),'User wipe…');
     await click('full');
     assert.equal(await cdp.evaluate(`document.getElementById('operation').textContent`),'Confirm user wipe');
@@ -350,6 +361,7 @@ try {
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
     await until(()=>cdp.evaluate(`!!document.getElementById('browser') && !document.getElementById('browser').hidden`),'captive crypto fallback');
     assert.equal(await cdp.evaluate(`document.getElementById('submit').disabled`),true);
+    assert.equal(await cdp.evaluate(`Array.from(document.querySelectorAll('.documentation-help,.documentation-note')).every(e=>getComputedStyle(e).display==='none')`),true,'initial captive setup hides online help without Web Crypto');
     await capture('missing-crypto');
     await cdp.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:noCrypto.identifier});
     await f.command({op:'page_profile',mode:'unavailable'});

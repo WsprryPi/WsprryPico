@@ -36,9 +36,9 @@ An existing AP keeps browser status and permitted controls available while a job
 
 ## Online help from the control page
 
-**Help** beside a section heading or group opens the relevant operator-manual instructions in a separate tab. Help is available while controls are locked and section headings are collapsed. It does not save settings, unlock controls, or stop transmissions. Keep the Pico tab open to retain unsaved entries and selected files.
+On the home-network control page, **Help** beside a section heading or group opens the relevant operator-manual instructions in a separate tab. Help is available while controls are locked and section headings are collapsed. It does not save settings, unlock controls, or stop transmissions. Keep the Pico tab open to retain unsaved entries and selected files.
 
-Online help needs Internet access; the setup Wi-Fi network may not provide it. Opening the Pico page, setup, and normal operation do not require access to the documentation site. Reconnect to an Internet-connected network or use another device to read the manual if necessary.
+Online help links are hidden on the Pico’s own Wi-Fi because it does not provide Internet access. Opening the Pico page, setup, and normal operation do not require access to the documentation site. Reconnect to an Internet-connected network or use another device to read the manual if necessary.
 
 ## Open the control page
 
