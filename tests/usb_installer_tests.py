@@ -1246,6 +1246,243 @@ class PicotoolDiagnosticTests(unittest.TestCase):
         self.assertNotIn('private output', str(caught.exception))
 
 
+class PicotoolSudoTests(unittest.TestCase):
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name).resolve()
+        self.log = self.root / 'calls.jsonl'
+        tool = self.root / 'picotool'
+        sudo = self.root / 'sudo'
+        tool.write_text('#!' + sys.executable + '''
+import json, os, pathlib, sys
+args = sys.argv[1:]
+with open(os.environ['FIXTURE_LOG'], 'a') as log:
+    log.write(json.dumps(['tool', bool(os.environ.get('FIXTURE_SUDO')), args]) + '\\n')
+if args == ['version']:
+    print('picotool v2.3.1 (fixture)')
+elif args[0] == 'help':
+    print('-a -r -v -t -u -x -o --ser --ignore-partitions')
+elif args[0] == 'info':
+    if os.environ.get('FIXTURE_SUDO') and os.environ.get('FIXTURE_ROOT_ERROR'):
+        print('No accessible RP-series devices in BOOTSEL mode', file=sys.stderr)
+        sys.exit(1)
+    if not os.environ.get('FIXTURE_SUDO') and os.environ.get('FIXTURE_ACCESS') != 'user':
+        print(os.environ.get('FIXTURE_ERROR', 'No accessible RP-series devices in BOOTSEL mode'), file=sys.stderr)
+        sys.exit(1)
+    print(' type: RP2350\\n chipid: 0x' + os.environ.get('FIXTURE_CHIP', args[-1].lower()))
+elif args[0] == 'save':
+    path = pathlib.Path(args[5])
+    assert path.exists() and path.stat().st_uid == os.geteuid()
+    assert path.stat().st_mode & 0o777 == 0o600
+    path.write_bytes(b'F' * 0x400000)
+elif args[0] == 'verify':
+    assert pathlib.Path(args[1]).read_bytes() == b'F' * 0x400000
+elif args[0] == 'load':
+    print('LIBUSB_ERROR_ACCESS during load', file=sys.stderr)
+    sys.exit(5)
+else:
+    raise AssertionError(args)
+''')
+        sudo.write_text('#!' + sys.executable + '''
+import json, os, sys
+with open(os.environ['FIXTURE_LOG'], 'a') as log:
+    log.write(json.dumps(['sudo', sys.argv[1:]]) + '\\n')
+if sys.argv[1:] == ['-v']:
+    sys.exit(int(os.environ.get('FIXTURE_AUTH_FAILURE', '0')))
+assert sys.argv[1:3] == ['-n', '--']
+os.environ['FIXTURE_SUDO'] = '1'
+os.execv(sys.argv[3], sys.argv[3:])
+''')
+        tool.chmod(0o700)
+        sudo.chmod(0o700)
+        self.args = SimpleNamespace(picotool=str(tool), sudo_picotool=False, sudo_prompt=True,
+                                    state_dir=self.root, operation='install')
+        original_which = shutil.which
+        self.selected_calls = []
+        def selected(serial, mode=None, parent=None):
+            self.selected_calls.append((serial, mode, parent))
+            return dict(serial=serial, mode='bootsel', parent='3-8')
+        for mocked in (patch.dict(os.environ, {'FIXTURE_LOG':str(self.log)}),
+                       patch.object(installer, 'selected', side_effect=selected),
+                       patch.object(installer, 'terminal_confirm', return_value=True),
+                       patch.object(installer, 'terminal_paragraph'),
+                       patch.object(installer.shutil, 'which', side_effect=lambda name:
+                           str(sudo) if name == 'sudo' else original_which(name))):
+            mocked.start()
+            self.addCleanup(mocked.stop)
+
+    def tool(self):
+        return installer.programming_picotool(self.args)
+
+    def calls(self):
+        return [json.loads(line) for line in self.log.read_text().splitlines()]
+
+    def test_permission_probe_elevates_only_usb_commands_and_preserves_backup(self):
+        tool = self.tool()
+        tool.run(SERIAL, 'info', '-a')
+        backup = self.root / 'before.bin'
+        self.assertEqual(tool.read_flash(SERIAL, backup), b'F' * installer.FLASH_SIZE)
+        self.assertEqual(backup.stat().st_uid, os.geteuid())
+        self.assertEqual(backup.stat().st_mode & 0o777, 0o600)
+        calls = self.calls()
+        self.assertTrue(all(not row[1] for row in calls if row[0]=='tool' and row[2][0] in ('version','help')))
+        self.assertEqual([row[2][0] for row in calls if row[0]=='tool' and row[1]], ['info','save','verify'])
+        self.assertIn((SERIAL, 'bootsel', '3-8'), self.selected_calls)
+        self.assertTrue(self.args.sudo_picotool)
+
+    def test_available_user_access_never_runs_sudo_or_asks(self):
+        self.args.sudo_picotool = True
+        with patch.dict(os.environ, {'FIXTURE_ACCESS':'user'}), patch.object(installer, 'terminal_confirm') as confirm:
+            self.tool().run(SERIAL, 'info', '-a')
+        confirm.assert_not_called()
+        self.assertFalse(any(row[0]=='sudo' for row in self.calls()))
+
+    def test_declined_consent_and_failed_authentication_never_write(self):
+        for refused in ('consent','authentication'):
+            with self.subTest(refused=refused):
+                self.log.write_text('')
+                with patch.object(installer, 'terminal_confirm', return_value=refused!='consent'), \
+                     patch.dict(os.environ, {'FIXTURE_AUTH_FAILURE':'1'}), self.assertRaises(installer.Refusal):
+                    self.tool().run(SERIAL, 'load', 'image.uf2')
+                self.assertFalse(any(row[0]=='tool' and row[2][0]=='load' for row in self.calls()))
+
+    def test_explicit_permission_choice_still_requires_sudo_authentication(self):
+        self.args.sudo_picotool = True
+        with patch.object(installer, 'terminal_confirm', side_effect=AssertionError('duplicate consent')):
+            self.tool().run(SERIAL, 'info', '-a')
+        self.assertIn(['sudo',['-v']], self.calls())
+
+    def test_supported_picotool_access_diagnostics_can_offer_sudo(self):
+        for message in ('LIBUSB_ERROR_ACCESS','Permission denied','No accessible RP2040/RP2350 devices in BOOTSEL mode'):
+            with self.subTest(message=message), patch.dict(os.environ, {'FIXTURE_ERROR':message}):
+                self.args.sudo_picotool = False
+                tool = self.tool()
+                tool.run(SERIAL,'info','-a')
+                self.assertTrue(tool.sudo_active)
+
+    def test_unrelated_read_error_never_requests_sudo(self):
+        with patch.dict(os.environ, {'FIXTURE_ERROR':'flash geometry unsupported'}), self.assertRaises(installer.Refusal):
+            self.tool().run(SERIAL, 'load', 'image.uf2')
+        self.assertFalse(any(row[0]=='sudo' for row in self.calls()))
+
+    def test_missing_sudo_and_failed_privileged_probe_never_write(self):
+        for failure in ('missing','probe'):
+            with self.subTest(failure=failure):
+                self.args.sudo_picotool = False
+                tool = self.tool()
+                self.log.write_text('')
+                if failure == 'missing':
+                    with patch.object(installer.shutil,'which',return_value=None), self.assertRaisesRegex(installer.Refusal,'Sudo is unavailable'):
+                        tool.run(SERIAL,'load','image.uf2')
+                else:
+                    with patch.dict(os.environ,{'FIXTURE_ROOT_ERROR':'1'}), self.assertRaises(installer.Refusal):
+                        tool.run(SERIAL,'load','image.uf2')
+                self.assertFalse(any(row[0]=='tool' and row[2][0]=='load' for row in self.calls()))
+
+    def test_root_macos_and_nonterminal_cli_cannot_select_sudo(self):
+        for system, uid, terminal in (('Linux',0,True),('Darwin',1000,True),('Linux',1000,False)):
+            messages = io.StringIO()
+            with self.subTest(system=system,uid=uid,terminal=terminal), \
+                 patch.object(installer.platform,'system',return_value=system), \
+                 patch.object(installer.os,'geteuid',return_value=uid), \
+                 contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(messages), \
+                 patch.object(messages,'isatty',return_value=terminal):
+                code=installer.main(['install','--sudo-picotool'],human=True)
+            self.assertEqual(code,2)
+            self.assertIn('Linux terminal',json.loads(output.getvalue())['error'])
+
+    def test_failed_write_is_not_retried_or_reauthenticated(self):
+        tool = self.tool()
+        with self.assertRaisesRegex(installer.Refusal, 'during load'):
+            tool.run(SERIAL, 'load', 'image.uf2')
+        self.assertEqual(sum(row[0]=='tool' and row[2][0]=='load' for row in self.calls()), 1)
+        self.assertEqual(self.calls().count(['sudo',['-v']]), 1)
+
+    def test_later_write_access_error_does_not_elevate_after_user_probe_succeeds(self):
+        with patch.dict(os.environ, {'FIXTURE_ACCESS':'user'}), self.assertRaisesRegex(installer.Refusal,'during load'):
+            self.tool().run(SERIAL,'load','image.uf2')
+        self.assertFalse(any(row[0]=='sudo' for row in self.calls()))
+        self.assertEqual(sum(row[0]=='tool' and row[2][0]=='load' for row in self.calls()),1)
+
+    def test_privileged_backup_still_refuses_existing_saved_state_before_programming(self):
+        files, manifest, _ = fixture()
+        self.args.device, self.args.board, self.args.yes = SERIAL, 'pico2_w', True
+        self.args.branch, self.args.state_dir = 'devel', self.root / '.local/state/wsprrypico-usb'
+        with patch.object(installer,'verify_linked_identity'), \
+             patch.object(installer,'device_lock',lambda _:contextlib.nullcontext()), \
+             patch.object(Path,'home',return_value=self.root), \
+             self.assertRaises(installer.TransactionFailure) as caught:
+            installer.transaction(self.args,files,manifest,b'candidate image')
+        self.assertIn('existing saved state',str(caught.exception))
+        record_path = Path(caught.exception.result['transaction'])
+        backup = record_path.parent / 'before.bin'
+        self.assertEqual(backup.read_bytes(),b'F' * installer.FLASH_SIZE)
+        self.assertEqual(backup.stat().st_uid,os.geteuid())
+        self.assertEqual(backup.stat().st_mode & 0o777,0o600)
+        self.assertEqual(installer.decode(record_path.read_bytes())['backup_sha256'],installer.sha(backup.read_bytes()))
+        self.assertFalse(any(row[0]=='tool' and row[2][0]=='load' for row in self.calls()))
+
+    @unittest.skipIf(os.geteuid() == 0, 'Standalone installer requires an ordinary user')
+    def test_standalone_linux_terminal_offers_sudo_without_a_flag(self):
+        class Terminal(io.StringIO):
+            def isatty(self):
+                return True
+        with patch.object(installer.platform,'system',return_value='Linux'), \
+             patch.object(Path,'home',return_value=self.root), \
+             patch.object(installer,'Https',return_value=Network('devel')), \
+             patch.object(installer,'verify_linked_identity'), \
+             patch.object(installer,'device_lock',lambda _:contextlib.nullcontext()), \
+             contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(Terminal()):
+            code=installer.main(['install','--device',SERIAL,'--board','pico2_w','--yes',
+                                 '--picotool',self.args.picotool,'--state-dir',str(self.root/'.local/state/wsprrypico-usb')],human=True)
+        self.assertEqual(code,2)
+        self.assertIn('existing saved state',json.loads(output.getvalue())['error'])
+        self.assertIn(['sudo',['-v']],self.calls())
+        self.assertFalse(any(row[0]=='tool' and row[2][0]=='load' for row in self.calls()))
+
+    def test_changed_parent_and_wrong_chip_refuse_before_write(self):
+        for mismatch in ('port','chip'):
+            with self.subTest(mismatch=mismatch):
+                self.args.sudo_picotool = False
+                tool = self.tool()
+                self.log.write_text('')
+                def selected(serial, mode=None, parent=None):
+                    if mismatch=='port' and parent is not None:
+                        raise installer.Refusal('Physical USB port changed')
+                    return dict(serial=serial, mode='bootsel', parent='3-8')
+                with patch.object(installer, 'selected', side_effect=selected), \
+                     patch.dict(os.environ, {'FIXTURE_CHIP':'0'*16}), self.assertRaises(installer.Refusal):
+                    tool.run(SERIAL, 'load', 'image.uf2')
+                self.assertFalse(any(row[0]=='tool' and row[2][0]=='load' for row in self.calls()))
+
+    def test_symlink_backup_is_refused_before_privileged_save(self):
+        tool = self.tool()
+        destination = self.root / 'backup.bin'
+        destination.symlink_to(self.root / 'elsewhere')
+        with self.assertRaises(OSError):
+            tool.read_flash(SERIAL, destination)
+        self.assertFalse(any(row[0]=='tool' and row[2][0]=='save' for row in self.calls()))
+
+    def test_imported_and_nonterminal_paths_cannot_opt_into_sudo(self):
+        self.args.sudo_prompt = False
+        self.args.sudo_picotool = True
+        with self.assertRaisesRegex(installer.Refusal, 'imported callers'):
+            self.tool()
+        for human, extra in ((False,[]),(True,['--json-only'])):
+            with self.subTest(human=human), contextlib.redirect_stdout(io.StringIO()) as output:
+                code = installer.main(['install','--sudo-picotool',*extra],human=human)
+            self.assertEqual(code,2)
+            self.assertIn('Linux terminal',json.loads(output.getvalue())['error'])
+
+    def test_recovery_command_preserves_sudo_choice_without_elevating_installer(self):
+        self.args.sudo_picotool = True
+        command = shlex.split(installer.continuation_command(self.args, {'serial':SERIAL,'transaction':str(self.root/'transaction.json')}))
+        self.assertEqual(command[0],sys.executable)
+        self.assertIn('--sudo-picotool',command)
+        self.assertNotEqual(command[0],'sudo')
+
+
 class PicotoolCompatibilityTests(unittest.TestCase):
     def tool(self, version, *, missing=None, usb=True):
         with tempfile.TemporaryDirectory() as temporary:

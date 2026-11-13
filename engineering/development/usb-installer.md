@@ -67,6 +67,14 @@ The standalone entry renders progress and results for a terminal when both outpu
 
 Picotool command failures include the invoked command, exit status, and available stderr and stdout in the existing terminal or JSON error. Each output stream is limited to 4096 bytes, with a truncation marker when needed; invalid UTF-8 and terminal control characters are replaced. Transaction failures retain this diagnostic in their private failure record. Successful tool output remains internal to verification. A failed version check retains the underlying diagnostic alongside executable/runtime guidance.
 
+## Linux picotool privilege boundary
+
+The standalone Linux terminal flow first runs a read-only BOOTSEL `info -a` probe as the invoking user. A recognized USB-access failure can offer consent to use sudo for picotool only. `--sudo-picotool` supplies that consent in advance, but still requires an ordinary-user Linux terminal. Imported calls, unattended calls, JSON-only calls, macOS, and root invocations cannot select this option. Successful ordinary-user access does not invoke sudo.
+
+Sudo authenticates directly through its controlling terminal with `sudo -v`; Python neither reads nor captures the password. The selected serial, physical USB parent, RP2350 type, and chip identity are checked again through a privileged read-only probe before privileged programming can proceed. Subsequent USB commands use the exact selected picotool path through `sudo -n --`; no shell or root Python process is used. Tool version checks, help, image-file inspection, downloads, transaction writes, and application management remain unprivileged. A failed write is never retried with elevated permissions. Expired sudo authorization fails the command and retains the ordinary transaction recovery behavior.
+
+Before privileged flash reads, the installer creates a private, user-owned regular file with mode 0600. Picotool's save operation opens that file with `fopen("wb")`; it does not replace the inode. The installer verifies the inode, ownership, mode, full size, and independent flash comparison before consuming the backup. Recovery commands retain `--sudo-picotool` after successful privileged access. Sudo changes neither compatibility admission nor the same-board backup, flash comparison, journal preservation, or postboot verification requirements. No sudoers rules or udev settings are installed automatically. This is deterministic software coverage; physical sudo installation remains unqualified.
+
 ## Managed tool downloads
 
 Missing or older Python is reported before bootstrap downloads begin. Windows, Git Bash, and WSL are rejected before USB access. An explicit `--picotool` selection never falls back to a download if it fails.

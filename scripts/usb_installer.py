@@ -95,6 +95,14 @@ class Refusal(ValueError):
     """An unsafe, unsupported, or incomplete operation; never a fallback."""
 
 
+class PicotoolFailure(Refusal):
+    def __init__(self, message, result):
+        super().__init__(message)
+        self.usb_access_error = any(marker in (result.stderr + result.stdout).decode('utf-8', errors='replace').lower()
+                                    for marker in ('libusb_error_access', 'permission denied',
+                                                   'insufficient permissions', 'no accessible rp'))
+
+
 def version_kind(version):
     """Classify bounded SemVer independently of publication authorization."""
     match = re.fullmatch(SEMVER, version) if isinstance(version, str) and len(version) <= MAX_VERSION else None
@@ -691,7 +699,7 @@ def command(arguments, timeout=30, *, picotool_errors=False):
                     if len(output) > 4096:
                         diagnostic += '\n[output truncated]'
                     message += '\n\n' + label + ':\n' + diagnostic
-            raise Refusal(message)
+            raise PicotoolFailure(message, result)
         raise Refusal('Command failed: ' + str(arguments[0]) +
                       ' (check USB permissions, device connection, and picotool installation)')
     require(len(result.stdout) < 4 * 1024 * 1024, 'Oversized tool response')
@@ -1270,19 +1278,87 @@ class Picotool:
         self.identity = {'version': report.strip(), 'sha256': sha(self.path.read_bytes())}
 
     def run(self, serial, *args, timeout=60):
-        selected(serial, 'bootsel')
-        return command([self.path, *args, '--ser', serial], timeout, picotool_errors=True)
+        probe = self.check_usb_access(serial)
+        selected(serial, 'bootsel', getattr(self, 'sudo_parent', None))
+        if probe is not None and args == ('info', '-a'):
+            return probe
+        prefix = [self.sudo_path, '-n', '--'] if getattr(self, 'sudo_active', False) else []
+        # Never retry a failed write, or ask for credentials during programming.
+        return command([*prefix, self.path, *args, '--ser', serial], timeout, picotool_errors=True)
+
+    def check_usb_access(self, serial):
+        args = getattr(self, 'sudo_args', None)
+        if args is None or getattr(self, 'usb_access_checked', False):
+            return None
+        board = selected(serial, 'bootsel')
+        info_command = [self.path, 'info', '-a', '--ser', serial]
+        try:
+            info = command(info_command, picotool_errors=True)
+        except PicotoolFailure as error:
+            if not error.usb_access_error:
+                raise
+            terminal_paragraph(str(error))
+            terminal_paragraph('Picotool could not open the selected USB device. Sudo can run only picotool while '
+                               'this installer, its backups, and recovery records remain under your login account. '
+                               'The next check reads device information; it does not program flash.')
+            require(args.sudo_picotool or terminal_confirm('Allow sudo for picotool USB operations?'),
+                    'Picotool sudo declined. Use Linux USB permission setup before retrying.')
+            sudo = shutil.which('sudo')
+            require(sudo, 'Sudo is unavailable. Use a local login account with sudo rights or complete Linux USB permission setup.')
+            terminal_paragraph('Sudo may ask for your login password in this terminal. The installer does not read or save it.')
+            # Sudo reads its own controlling terminal. Never use -S, capture a
+            # password, elevate Python, or change system USB rules here.
+            authenticated = subprocess.run([sudo, '-v'], stdin=subprocess.DEVNULL, timeout=120)
+            require(authenticated.returncode == 0,
+                    'Sudo authorization failed. Sign in with a local user account that has sudo rights, then rerun the installer without sudo.')
+            selected(serial, 'bootsel', board['parent'])
+            info = command([sudo, '-n', '--', *info_command], picotool_errors=True)
+            require(re.search(r'^\s+type:\s+RP2350$', info, re.M) and
+                    re.search(r'^\s+chipid:\s+0x' + serial.lower() + '$', info, re.M),
+                    'Sudo USB check returned a different chip; no programming was authorized')
+            self.sudo_path, self.sudo_parent, self.sudo_active = sudo, board['parent'], True
+            args.sudo_picotool = True  # Preserve access choice in recovery guidance.
+            terminal_paragraph("USB access confirmed with sudo. Continuing the installer's normal checks.")
+        self.usb_access_checked = True
+        return info
 
     def read_flash(self, serial, path):
+        self.check_usb_access(serial)
+        identity = None
+        if getattr(self, 'sudo_active', False):
+            # Picotool saves with fopen("wb"): precreate the file as this user
+            # so its credentials never become root-owned or world-readable.
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+            try:
+                metadata = os.fstat(fd)
+                require(stat.S_ISREG(metadata.st_mode) and metadata.st_uid == os.geteuid() and metadata.st_nlink == 1,
+                        'Unsafe private flash backup destination')
+                os.fchmod(fd, 0o600)
+                identity = (metadata.st_dev, metadata.st_ino)
+            finally:
+                os.close(fd)
         self.run(serial, 'save', '-r', '0x10000000', '0x10400000', '-v', path, '-t', 'bin')
         require(path.is_file() and not path.is_symlink() and path.stat().st_size == FLASH_SIZE,
                 'Incomplete private flash backup')
+        if identity is not None:
+            metadata = path.stat()
+            require((metadata.st_dev, metadata.st_ino) == identity and metadata.st_uid == os.geteuid() and
+                    stat.S_IMODE(metadata.st_mode) == 0o600, 'Private flash backup ownership or permissions changed')
         data = path.read_bytes()
         # A second supported comparison verifies the same-board read, independently
         # of the save command's success/progress output.
         self.run(serial, 'verify', path, '-t', 'bin', '-o', '0x10000000')
         path.chmod(0o600)
         return data
+
+
+def programming_picotool(args):
+    require(not getattr(args, 'sudo_picotool', False) or getattr(args, 'sudo_prompt', False),
+            'Picotool sudo requires an ordinary-user Linux terminal; imported callers never request sudo')
+    tool = Picotool(args.picotool)
+    if getattr(args, 'sudo_prompt', False):
+        tool.sudo_args = args
+    return tool
 
 
 def tool_platform():
@@ -1731,7 +1807,7 @@ def finish_erase(args, record, path):
     record.pop('erased_bytes', None)
     try:
         selected(args.device, 'bootsel', record['parent'])
-        tool = Picotool(args.picotool)
+        tool = programming_picotool(args)
         info = tool.run(args.device, 'info', '-a')
         require(re.search(r'^\s+type:\s+RP2350$', info, re.M) and
                 re.search(r'^\s+chipid:\s+0x' + args.device.lower() + '$', info, re.M),
@@ -1844,7 +1920,7 @@ def transaction(args, files, manifest, image, client=None):
                 'Selected Pico mode changed; select the same board again before retrying')
         board = selected(serial, parent=getattr(args, 'selected_parent', None))
         require_operation_mode(args.operation, board)
-        tool = Picotool(args.picotool)
+        tool = programming_picotool(args)
         require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
         root = private_directory(args.state_dir)
         prune_transactions(root)
@@ -2205,7 +2281,7 @@ def recover_transaction(args):
             sha(before[preserved_start(manifest, record):]) == record.get('persistent_sha256'), 'Recovery backup integrity mismatch')
     snapshot_path = path.parent / 'preflight.json'
     snapshot = decode(snapshot_path.read_bytes()) if record['operation'] == 'upgrade' else None
-    tool = Picotool(args.picotool)
+    tool = programming_picotool(args)
     with device_lock(args.device):
         board = selected(args.device, parent=record['parent'])
         original_stage = record.get('failure_stage', 'failed') if record['stage'] == 'failed' else record['stage']
@@ -2259,7 +2335,7 @@ def continue_migration(args, record, path, manifest, image):
                 old_manifest['update'].get('usb_maintenance') != 1, 'Migration installed image identity mismatch')
         with device_lock(args.device):
             selected(args.device, 'bootsel', record['parent'])
-            tool = Picotool(args.picotool)
+            tool = programming_picotool(args)
             info = tool.run(args.device, 'info', '-a')
             require(re.search(r'^ type:\s+RP2350$', info, re.M) and
                     re.search(r'^ chipid:\s+0x' + args.device.lower() + '$', info, re.M), 'Migration BOOTSEL chip identity mismatch')
@@ -2295,6 +2371,8 @@ def continuation_command(args, result):
     arguments = ['recover', '--transaction', str(Path(result['transaction']).absolute()),
                  '--device', result['serial'], '--board', 'pico2_w', '--yes',
                  '--picotool=' + picotool, '--state-dir', str(args.state_dir.absolute())]
+    if getattr(args, 'sudo_picotool', False):
+        arguments.append('--sudo-picotool')
     revision = os.environ.get('WSPRRY_PICO_USB_INSTALLER_REVISION', '')
     if re.fullmatch('[0-9a-f]{40}', revision):
         # The bootstrap's temporary Python path disappears on exit. Re-fetch
@@ -2529,6 +2607,8 @@ def main(argv=None, schema_bytes=None, *, human=False):
     parser.add_argument('--replace-unidentified-application', action='store_true',
                         help='Initial installation only: explicitly replace unknown application bytes, requiring erased saved state')
     parser.add_argument('--picotool', help='Existing executable; an explicit path never triggers a fallback download')
+    parser.add_argument('--sudo-picotool', action='store_true',
+                        help='Allow a Linux terminal USB-access check to use sudo for picotool only; installer stays unprivileged')
     parser.add_argument('--download-picotool', action='store_true', help='Allow an official verified picotool download when needed (standalone only)')
     parser.add_argument('--tool-cleanup', choices=('ask', 'keep', 'remove'), default='ask',
                         help='Cleanup of installer-managed picotool; backups and unresolved recovery are always retained')
@@ -2555,6 +2635,10 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 terminal_paragraph('Requested version: ' + args.version)
         require(platform.system() in ('Darwin', 'Linux') and 'microsoft' not in platform.release().lower(),
                 'USB flashing supports native macOS and Linux; Windows, Git Bash and WSL are unsupported')
+        args.sudo_prompt = (human and not args.json_only and sys.stderr.isatty() and
+                            platform.system() == 'Linux' and os.geteuid() != 0)
+        require(not args.sudo_picotool or (args.sudo_prompt and args.operation in ('install', 'upgrade', 'recover', 'erase')),
+                '--sudo-picotool requires standalone install, upgrade, recover or erase in a Linux terminal as an ordinary user')
         require(not (args.download_picotool or args.tool_cleanup != 'ask') or
                 human and args.operation in ('install', 'upgrade', 'erase', 'recover'),
                 'Picotool download/cleanup options are for standalone install, upgrade, erase or recover')
