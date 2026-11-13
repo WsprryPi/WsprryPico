@@ -675,12 +675,25 @@ def release_tag_source(client, tag):
     return obj['sha']
 
 
-def command(arguments, timeout=30):
-    """No shell, inherited stdin, credentials, or subprocess output in receipts."""
+def command(arguments, timeout=30, *, picotool_errors=False):
+    """No shell or inherited stdin; only picotool failures include tool output."""
     result = subprocess.run([str(x) for x in arguments], stdin=subprocess.DEVNULL,
                             capture_output=True, timeout=timeout)
-    require(result.returncode == 0, 'Command failed: ' + str(arguments[0]) +
-            ' (check USB permissions, device connection, and picotool installation)')
+    if result.returncode != 0:
+        if picotool_errors:
+            message = f'Picotool failed (exit status {result.returncode}): ' + shlex.join([str(x) for x in arguments])
+            for label, output in (('stderr', result.stderr), ('stdout', result.stdout)):
+                if output:
+                    # Preserve useful diagnostics without terminal control sequences
+                    # or unbounded output in terminal/JSON errors and private records.
+                    diagnostic = output[:4096].decode('utf-8', errors='replace')
+                    diagnostic = ''.join(c if c.isprintable() or c in '\n\t' else '?' for c in diagnostic).strip()
+                    if len(output) > 4096:
+                        diagnostic += '\n[output truncated]'
+                    message += '\n\n' + label + ':\n' + diagnostic
+            raise Refusal(message)
+        raise Refusal('Command failed: ' + str(arguments[0]) +
+                      ' (check USB permissions, device connection, and picotool installation)')
     require(len(result.stdout) < 4 * 1024 * 1024, 'Oversized tool response')
     return result.stdout.decode('utf-8')
 
@@ -736,7 +749,7 @@ def candidate_asset(files, manifest):
 
 
 def verify_linked_identity(tool, filename, manifest):
-    linked = command([tool.path, 'info', '-a', filename])
+    linked = command([tool.path, 'info', '-a', filename], picotool_errors=True)
     variant = manifest.get('developer_variant', 'normal')
     inhibited = variant == 'inhibited'
     image_name = {'normal':'WsprryPico','inhibited':'WsprryPico-Inhibited',
@@ -1241,24 +1254,24 @@ class Picotool:
         require(resolved, 'Install picotool 2.3 or newer within 2.x, with USB support; see the USB installer guide')
         self.path = Path(resolved).resolve()
         try:
-            report = command([self.path, 'version'])
+            report = command([self.path, 'version'], picotool_errors=True)
         except (OSError, Refusal, subprocess.SubprocessError) as error:
             raise Refusal('Cannot run picotool at ' + str(self.path) +
                           '; check its CPU architecture and runtime libraries, or use an official package from '
-                          'https://github.com/raspberrypi/pico-sdk-tools/releases') from error
+                          'https://github.com/raspberrypi/pico-sdk-tools/releases\n\n' + str(error)) from error
         version = re.match(r'^picotool v([0-9]+)\.([0-9]+)\.([0-9]+) ', report)
         require(version and tuple(map(int, version.groups())) >= PICOTOOL_MIN_VERSION and
                 int(version[1]) == 2 and 'without USB support' not in report,
                 'picotool 2.3 or newer within 2.x, with USB support, is required')
         for operation, options in PICOTOOL_OPTIONS.items():
-            help_text = command([self.path, 'help', operation])
+            help_text = command([self.path, 'help', operation], picotool_errors=True)
             require(all(re.search(r'(?<![\w-])' + re.escape(option) + r'(?![\w-])', help_text)
                         for option in options), 'picotool lacks required ' + operation + ' command options')
         self.identity = {'version': report.strip(), 'sha256': sha(self.path.read_bytes())}
 
     def run(self, serial, *args, timeout=60):
         selected(serial, 'bootsel')
-        return command([self.path, *args, '--ser', serial], timeout)
+        return command([self.path, *args, '--ser', serial], timeout, picotool_errors=True)
 
     def read_flash(self, serial, path):
         self.run(serial, 'save', '-r', '0x10000000', '0x10400000', '-v', path, '-t', 'bin')

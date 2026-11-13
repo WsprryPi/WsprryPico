@@ -27,7 +27,7 @@ Linux needs a USB access rule and permission for your account to use it. Install
 2. In a folder where you can save a file, download the rule:
 
    ```sh
-   curl --fail --location --proto '=https' --proto-redir '=https' \
+   curl -fsSL --proto '=https' --proto-redir '=https' \
      https://raw.githubusercontent.com/raspberrypi/picotool/2.3.1/udev/60-picotool.rules \
      --output 60-picotool.rules
    ```
@@ -82,7 +82,7 @@ Prepare the Pico **before running discovery**:
 Open a terminal in a folder where you can keep the installer. Download the small launcher script as `install_usb.sh`, inspect it in a text editor, and run it as your ordinary user. Keep using this folder for subsequent commands that begin with `bash install_usb.sh`:
 
 ```sh
-curl --fail --location --proto '=https' --proto-redir '=https' \
+curl -fsSL --proto '=https' --proto-redir '=https' \
   https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
   --output install_usb.sh
 bash install_usb.sh discover
@@ -98,7 +98,7 @@ You can also run the public bootstrap without keeping a local script. For a firs
 
 ```sh
 set -o pipefail
-curl --fail --silent --show-error --location \
+curl -fsSL \
   --proto '=https' --proto-redir '=https' \
   --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
   https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
@@ -164,7 +164,7 @@ To upgrade to the latest published `devel` firmware, finish or abort any job, re
 
 ```sh
 set -o pipefail
-curl --fail --silent --show-error --location \
+curl -fsSL \
   --proto '=https' --proto-redir '=https' \
   --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
   https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \

@@ -44,7 +44,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 installer_revision=${WSPRRY_PICO_USB_INSTALLER_REVISION:-}
 if [[ -z "$installer_revision" ]]; then
-    curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+    curl -fsSL --proto '=https' --proto-redir '=https' \
         --connect-timeout 10 --max-time 30 --max-filesize 1048576 \
         https://api.github.com/repos/WsprryPi/WsprryPico/commits/devel > "$installer_tmp/revision.json"
     installer_revision=$(python3 -c 'import json,re,sys; v=json.load(open(sys.argv[1]))["sha"]; assert re.fullmatch("[0-9a-f]{40}",v); print(v)' "$installer_tmp/revision.json")
@@ -55,7 +55,7 @@ if [[ ! "$installer_revision" =~ ^[0-9a-f]{40}$ ]]; then
 fi
 mkdir -p "$installer_tmp/scripts/ci"
 for installer_file in scripts/usb_installer.py scripts/ci/release-manifest-2.schema.json; do
-    curl --fail --silent --show-error --location --proto '=https' --proto-redir '=https' \
+    curl -fsSL --proto '=https' --proto-redir '=https' \
         --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
         "https://raw.githubusercontent.com/WsprryPi/WsprryPico/$installer_revision/$installer_file" \
         > "$installer_tmp/$installer_file"

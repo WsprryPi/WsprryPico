@@ -65,6 +65,8 @@ Install/upgrade mode admission precedes picotool preparation and image resolutio
 
 The standalone entry renders progress and results for a terminal when both output streams are terminals. Imported calls, redirected standard output, and `--json-only` retain the single `wsprrypico-usb-result/1` JSON response. `--json-only` disables device-selection, tool-download, and cleanup questions and BOOTSEL guidance. Progress describes actual transaction stages; completion requires the existing flash and application checks. Preflight refusals do not create recovery work; cleanup independently checks all retained transaction records before removing a managed tool.
 
+Picotool command failures include the invoked command, exit status, and available stderr and stdout in the existing terminal or JSON error. Each output stream is limited to 4096 bytes, with a truncation marker when needed; invalid UTF-8 and terminal control characters are replaced. Transaction failures retain this diagnostic in their private failure record. Successful tool output remains internal to verification. A failed version check retains the underlying diagnostic alongside executable/runtime guidance.
+
 ## Managed tool downloads
 
 Missing or older Python is reported before bootstrap downloads begin. Windows, Git Bash, and WSL are rejected before USB access. An explicit `--picotool` selection never falls back to a download if it fails.

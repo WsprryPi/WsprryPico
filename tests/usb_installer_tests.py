@@ -1047,7 +1047,7 @@ class InstalledBundleHandoffTests(unittest.TestCase):
             info = (' name: WsprryPico\n version: '+manifest['firmware_version']+
                     '\n description: Standalone PIO/DMA RF '+source[:12]+
                     '\n pico_board: pico2_w\n target chip: RP2350\n')
-            def linked_info(command):
+            def linked_info(command, **kwargs):
                 if Path(command[-1]).name == asset['path']:
                     return info.replace(manifest['firmware_version'], '0.0.0-devel').replace(
                         'pico2_w', 'wrong_board' if failure == 'embedded' else 'pico2_w').replace(
@@ -1191,12 +1191,67 @@ class InstalledBundleHandoffTests(unittest.TestCase):
                         self.assertEqual(calls, ['reference', 'release'])
 
 
+class PicotoolDiagnosticTests(unittest.TestCase):
+    def failure(self, script):
+        # Execute a real failing process through the production Picotool path;
+        # substitute only USB discovery, never open a physical device.
+        tool = installer.Picotool.__new__(installer.Picotool)
+        tool.path = Path(sys.executable)
+        with patch.object(installer, 'selected'), self.assertRaises(installer.Refusal) as caught:
+            tool.run(SERIAL, '-c', script)
+        return str(caught.exception)
+
+    def test_usb_failure_reports_command_exit_status_and_both_streams(self):
+        message = self.failure("import sys; print('Device found'); print('LIBUSB_ERROR_ACCESS', file=sys.stderr); sys.exit(7)")
+        for detail in ('exit status 7', '--ser ' + SERIAL, 'stderr:\nLIBUSB_ERROR_ACCESS', 'stdout:\nDevice found'):
+            self.assertIn(detail, message)
+        for terminal in (False, True):
+            output, errors = io.StringIO(), io.StringIO()
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+                installer.emit_result(SimpleNamespace(terminal_ui=terminal), dict(ok=False, error=message))
+            if terminal:
+                self.assertIn('LIBUSB_ERROR_ACCESS', errors.getvalue())
+                self.assertEqual(output.getvalue(), '')
+            else:
+                self.assertEqual(json.loads(output.getvalue())['error'], message)
+                self.assertEqual(errors.getvalue(), '')
+
+    def test_stdout_only_and_empty_failures_remain_useful(self):
+        self.assertIn('stdout:\nNo accessible device', self.failure("print('No accessible device'); raise SystemExit(1)"))
+        message = self.failure('raise SystemExit(2)')
+        self.assertIn('exit status 2', message)
+        self.assertIn('--ser ' + SERIAL, message)
+        self.assertNotIn('stderr:', message)
+
+    def test_diagnostics_are_bounded_and_safe_for_terminal_and_json(self):
+        message = self.failure("import sys; sys.stderr.buffer.write(b'\\x1b[31mUSB\\xff\\x00\\n' + b'x' * 5000); sys.exit(1)")
+        self.assertNotIn('\x1b', message)
+        self.assertNotIn('\x00', message)
+        self.assertIn('USB\ufffd?', message)
+        self.assertIn('[output truncated]', message)
+        self.assertLess(len(message), 5000)
+
+    def test_version_check_preserves_original_diagnostic(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            binary = Path(temporary) / 'picotool'
+            binary.write_text('#!' + sys.executable + "\nimport sys\nprint('loader failed', file=sys.stderr)\nsys.exit(9)\n")
+            binary.chmod(0o700)
+            with self.assertRaisesRegex(installer.Refusal, 'loader failed'):
+                installer.Picotool(binary)
+
+    def test_successful_stdout_and_other_command_failures_keep_existing_behavior(self):
+        self.assertEqual(installer.command([sys.executable, '-c', "print('valid response')"], picotool_errors=True), 'valid response\n')
+        with self.assertRaises(installer.Refusal) as caught:
+            installer.command([sys.executable, '-c', "import sys; print('private output'); sys.exit(1)"])
+        self.assertNotIn('private output', str(caught.exception))
+
+
 class PicotoolCompatibilityTests(unittest.TestCase):
     def tool(self, version, *, missing=None, usb=True):
         with tempfile.TemporaryDirectory() as temporary:
             binary = Path(temporary)/'picotool'
             binary.write_bytes(b'fixture executable')
-            def command(arguments):
+            def command(arguments, **kwargs):
                 if arguments[1:] == ['version']:
                     return 'picotool v'+version+' (Linux, fixture)'+('' if usb else ' (without USB support)')
                 self.assertEqual(arguments[1], 'help')
