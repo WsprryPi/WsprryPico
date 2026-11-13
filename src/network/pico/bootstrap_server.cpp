@@ -60,9 +60,14 @@ HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
     if (setup_transaction_)
         return http_error(409, "setup_response_pending");
     // Called only after ConsumerRadioApi authenticates the complete envelope.
-    // This closed route set never forwards recovery/reset or arbitrary HTTP.
+    // The closed route set preserves the existing setup/recovery decoders.
     HttpResponse result = http_error(404, "not_found");
-    if (request.method == "GET" && request.path == "/api/bootstrap/v1/status")
+    if ((request.method == "GET" && request.path == "/api/recovery/v1/status") ||
+        (request.method == "POST" && mutation_safe_ &&
+         (request.path == "/api/recovery/v1/start" ||
+          request.path == "/api/recovery/v1/submit")))
+        result = recovery(request, login);
+    else if (request.method == "GET" && request.path == "/api/bootstrap/v1/status")
         result = status();
     else if (request.method == "GET" && request.path == "/api/owner/v1/wspr-support")
         result = json("{\"schema\":\"wspr-support/"
@@ -92,6 +97,11 @@ HttpResponse PicoBootstrapServer::consumer_setup(const HttpRequest& request,
 }
 
 void PicoBootstrapServer::setup_login_closed(std::span<const std::uint8_t, 16> login) {
+    if (recovery_login_ && std::equal(login.begin(), login.end(), recovery_login_->begin())) {
+        recovery_slot_.cancel();
+        recovery_crypto_.clear();
+        recovery_login_.reset();
+    }
     if (!std::equal(login.begin(), login.end(), setup_login_.begin()))
         return;
     // Preparation has not been submitted. Acknowledged trial/commit authority
@@ -280,7 +290,8 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
     return response_;
 }
 
-HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
+HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request,
+                                          std::span<const std::uint8_t> login) {
     if (request.path == "/api/recovery/v1/status") {
         if (request.method != "GET" || request.header("host") != "192.168.4.1")
             return http_error(400, "invalid_request");
@@ -310,6 +321,11 @@ HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
             recovery_crypto_.clear();
             return http_error(409, "busy");
         }
+        recovery_login_.reset();
+        if (!login.empty()) {
+            recovery_login_.emplace();
+            std::copy(login.begin(), login.end(), recovery_login_->begin());
+        }
         return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
                     ",\"boot_id\":" + wtp::json::quote(recovery_boot_id_) +
                     ",\"slot_id\":" + wtp::json::quote(slot) + ",\"pico_public_key\":" +
@@ -318,6 +334,11 @@ HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
     }
     if (request.path != "/api/recovery/v1/submit")
         return http_error(404, "not_found");
+    // A proof reserved by a login cannot cross to another login or the public
+    // AP route; the converse is also refused. Logout cancels an unused proof.
+    if (recovery_login_.has_value() != !login.empty() ||
+        (recovery_login_ && !std::equal(login.begin(), login.end(), recovery_login_->begin())))
+        return http_error(403, "recovery_login_mismatch");
     auto parsed = parse_recovery_submit(request);
     const auto* binding = recovery_slot_.binding();
     if (!parsed || !binding || parsed->device_id != device_ ||
@@ -344,6 +365,7 @@ HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request) {
     std::string command;
     const bool opened = recovery_crypto_.open(transcript, nonce, ciphertext, tag, command);
     recovery_slot_.cancel();
+    recovery_login_.reset();
     if (!opened)
         return http_error(400, "invalid_confirmation");
     const auto level = command == "1:1:erase" ? provisioning::ResetLevel::Full
@@ -385,8 +407,10 @@ void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admit
     recovery_slot_.expire(time_us_64() / 1000);
     if (!active_ && !reset_pending_)
         recovery_slot_.cancel();
-    if (recovery_slot_.state() == BootstrapSlotState::None)
+    if (recovery_slot_.state() == BootstrapSlotState::None) {
         recovery_crypto_.clear();
+        recovery_login_.reset();
+    }
 
     mutation_safe_ = mutation_safe && setup_admitted_;
     if (!setup_admitted_) {

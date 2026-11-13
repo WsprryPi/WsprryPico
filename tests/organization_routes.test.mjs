@@ -107,3 +107,57 @@ try {
  assert.equal((await f.command({op:'stats'})).api_restarts,0);
  console.log('PASS production AP/LAN aliases, exact Host/interface admission, commissioning/unavailable routes, full streaming and CSP; zero restarts');
 } finally {await f.stop();}
+
+// Recovery is an authenticated setup operation on both consumer carriers.
+// The reset callback alone is doubled: production HTTP, AEAD, slots and parsing
+// remain in the served Pico implementation; no physical settings are erased.
+const {setup}=await import('../src/network/bootstrap_web/radio-setup.js');
+const {recoveryKey,recoverySeal}=await import('../src/network/bootstrap_web/recovery-crypto.js');
+for(const [host,ap] of [['192.168.1.53',false],['192.168.4.1',true]]) {
+ const reset=new Fixture(process.argv[2]);
+ try {
+  await reset.time(1000);await reset.command({op:'page_profile',mode:'network-recovery'});
+  const a=reset.client(host,ap),b=reset.client(host,ap);
+  await assert.rejects(a.resetSettings({device_id:'1'.repeat(32),boot_id:'a'.repeat(32)},'erase'),/Log in/);
+  await reset.login(a);const identity=await a.identity();
+  assert.equal((await a.recoveryStatus(identity)).pending,false);
+  const key=recoveryKey(),startBody={version:1,device_id:identity.device_id,browser_public_key:key.public,request_nonce:key.nonce};
+  for(const bad of [{...startBody,version:2},{...startBody,extra:true},{...startBody,device_id:'f'.repeat(32)}])
+   await assert.rejects(setup(a,'/api/recovery/v1/start',bad));
+  const start=await setup(a,'/api/recovery/v1/start',startBody);
+  const body=recoverySeal(key,start,identity.device_id,'erase');
+  await reset.time(2000);await reset.login(b);
+  await assert.rejects(setup(b,'/api/recovery/v1/submit',body),/recovery_login_mismatch/);
+  const publicAttempt=await reset.fetch('192.168.4.1',true,'/api/recovery/v1/submit',
+   {method:'POST',body:JSON.stringify(body),headers:{'Content-Type':'application/json'},marker:'Bootstrap'});
+  assert.equal(publicAttempt.status,403,'authenticated proof cannot cross to public recovery');
+  await assert.rejects(setup(a,'/api/recovery/v1/submit',{...body,boot_id:'f'.repeat(32)}));
+  await a.logout();
+  await assert.rejects(setup(b,'/api/recovery/v1/submit',body));
+  assert.equal((await reset.command({op:'stats'})).recovery_requests,0,'logout and rejected proofs never reset');
+  const publicKey=recoveryKey();
+  const publicStart=await reset.fetch('192.168.4.1',true,'/api/recovery/v1/start',
+   {method:'POST',body:JSON.stringify({version:1,device_id:identity.device_id,browser_public_key:publicKey.public,request_nonce:publicKey.nonce}),headers:{'Content-Type':'application/json'},marker:'Bootstrap'});
+  assert.equal(publicStart.status,200);
+  const publicBody=recoverySeal(publicKey,await publicStart.json(),identity.device_id,'erase');
+  await assert.rejects(setup(b,'/api/recovery/v1/submit',publicBody),/recovery_login_mismatch/,'public proof cannot cross into an authenticated login');
+  await reset.time(183000); // Expire the public reservation; do not submit a reset.
+
+  assert.equal((await b.resetSettings(await b.identity(),'erase')).state,'reset_pending');
+  assert.equal(b.authenticated,false,'successful reset retires the local login');
+  assert.equal((await reset.command({op:'stats'})).recovery_requests,1);
+ } finally {await reset.stop();}
+}
+{
+ const reset=new Fixture(process.argv[2]);
+ try {
+  await reset.time(1000);await reset.command({op:'page_profile',mode:'network-recovery'});
+  const a=reset.client();await reset.login(a);const identity=await a.identity();
+  const fetch=a.fetcher;let requests=0;
+  a.fetcher=async(...args)=>{const response=await fetch(...args);if(++requests===3)throw new Error('lost reset reply');return response;};
+  await assert.rejects(a.resetSettings(identity,'reset provisioning'),error=>error.unconfirmed===true);
+  assert.equal(a.authenticated,false);assert.equal(requests,3,'lost submit is not replayed');
+  assert.equal((await reset.command({op:'stats'})).recovery_requests,1);
+ } finally {await reset.stop();}
+}
+console.log('PASS authenticated station/AP recovery, closed parsing, login-bound proofs, logout cancellation and lost-submit refusal');

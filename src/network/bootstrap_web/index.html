@@ -10,7 +10,7 @@
   <script src="./bundle.js" defer></script>
 </head>
 <body>
-  <header><strong>WsprryPico</strong><span>Wi-Fi/Host</span></header>
+  <header><strong id="page-hostname">WsprryPico</strong><span>Wi-Fi/Host</span></header>
   <main>
     <div class="help-heading"><h1 id="page-title" tabindex="-1">Connect this Pico to Wi-Fi</h1><a class="documentation-help" title="First Wi-Fi connection — online help opens in a new tab" data-help="First Wi-Fi connection" href="@WSPRRY_PICO_HELP_BASE@connect.html#first-wi-fi-connection" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: First Wi-Fi connection (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
     <p class="documentation-note"><a class="documentation-help" title="Operator manual — online help opens in a new tab" data-help="Operator manual" href="@WSPRRY_PICO_HELP_BASE@index.html" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Manual: Operator manual (online, opens in a new tab)">Manual</a><br>Online help opens in a new tab and needs Internet access. Setup Wi-Fi may have no Internet connection. Keep this tab open; setup does not need online help.</p>
@@ -120,7 +120,8 @@
       <p>If contact was lost before confirmation, return to this open page on the Pico setup Wi-Fi to check the result. Do not submit the same save again while its result is unknown.</p>
     </section>
     <details><summary><span class="help-heading"><span>Setup Wi-Fi access window</span><a class="documentation-help" title="Setup Wi-Fi access window — online help opens in a new tab" data-help="Setup Wi-Fi access window" href="@WSPRRY_PICO_HELP_BASE@connect.html#request-setup-wi-fi-with-the-external-button" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Setup Wi-Fi access window (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></span></summary><p>Setup Wi-Fi stays available while a device is connected. After the last device disconnects, it closes after ten minutes without a connection. If nobody joins, the initial window lasts ten minutes. A USB Console request initially gives two minutes to join. Saving settings that restart the Pico can interrupt the connection. Release the configured switch and make a new nine-second hold to request setup again. The factory switch is GP14 to ground; saved custom or disabled assignments take precedence. USB access remains available.</p></details>
-    <nav class="setup-nav" aria-label="Setup pages"><a href="/recovery.html">Recovery and reset</a><a href="/radio">Station/Transmission controls</a></nav>
+    <details id="setup-advanced"><summary>Advanced</summary><p>Review recovery options and their warnings before confirming a reset.</p><button id="setup-recovery" type="button">Recovery and reset…</button></details>
+    <nav class="setup-nav" aria-label="Setup pages"><a href="/radio">Station/Transmission controls</a></nav>
   </main>
   <footer id="setup-footer">The Pico setup Wi-Fi is open. Your network details are encrypted by this page before they cross the connection.</footer>
 </body>

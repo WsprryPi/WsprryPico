@@ -1,6 +1,6 @@
 import '../web/control-contract.js';
 import {begin,authenticate,seal,open,clear,unhex,retirementSelector} from './radio-crypto.js';
-import {prepareNetwork,prepareStation,submitSetup,checkSetup} from './radio-setup.js';
+import {prepareNetwork,prepareStation,submitSetup,checkSetup,recoveryStatus,resetSettings} from './radio-setup.js';
 
 const publicReadResources = globalThis.WsprryControl.publicResources;
 
@@ -265,6 +265,8 @@ export class RadioClient {
     } finally {pending?.secret.fill(0);state?.finish.fill(0);clear(state);this.busy=false;}
   }
   prepareNetwork(identity,settings) { return prepareNetwork(this,identity,settings); }
+  recoveryStatus(identity) { return recoveryStatus(this,identity); }
+  resetSettings(identity,phrase) { return resetSettings(this,identity,phrase); }
   prepareStation(identity,settings) { return prepareStation(this,identity,settings); }
   submitSetup(attempt) { return submitSetup(this,attempt); }
   checkSetup(attempt) { return checkSetup(this,attempt); }

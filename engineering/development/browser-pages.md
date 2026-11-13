@@ -13,7 +13,8 @@ Use one control document with two areas and same-document History navigation. `/
 | Station Control | Message, mode, frequency/shift, dot/repeats/gaps, timing, start; JSON job file/start, preview/result/progress | Explicit existing Load/Arm; one JobService |
 | Wi-Fi/Host | SSID, new password/visibility, time server | Consumer authenticated transactional wrapper or engineering configuration; no duplicate read-only inputs |
 | Wi-Fi/Host | Saved/active/default hostname, Save/default/review, restart/cancel/countdown/continuation, explicit restart continuation | Existing hostname/restart/network adapters; engineering name remains credential-bound |
-| AP commissioning | Wi-Fi credentials/time server; optional station identity, Identify; trial/save/refusal/crypto fallback, recovery/reset, and help links | Existing AP-only bootstrap/owner/reset; complete commissioning before control |
+| Wi-Fi/Host | Advanced: Recovery and reset button, provisioning/user-wipe warnings, two acknowledgments, exact phrase and Cancel | Authenticated Recovery/1 wrapper on consumer station/AP; public recovery remains AP-only |
+| AP commissioning | Wi-Fi credentials/time server; optional station identity, Identify; trial/save/refusal/crypto fallback, recovery/reset, and offline guidance | Existing AP-only bootstrap/owner/reset; complete commissioning before control |
 
 Disclosure headings name their control groups through `aria-labelledby` where a separate legend would repeat the same title: Radio pins, both profile-specific Wi-Fi editors, Pico password, and USB logging. Distinct subgroup legends such as Station identity, Amplifier control, and LPF / band selector remain visible.
 

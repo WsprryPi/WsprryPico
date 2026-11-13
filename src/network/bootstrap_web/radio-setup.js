@@ -6,6 +6,49 @@ import {sha256} from '@noble/hashes/sha2.js';
 import {begin as beginNetwork, seal as sealNetwork, networkPlaintext} from './crypto.js';
 import {sealOwnerClaim, claimPlaintext} from './owner-claim.js';
 import {b64, hex, unhex} from './radio-crypto.js';
+import {recoveryKey, recoverySeal} from './recovery-crypto.js';
+
+function recoveryDocument(value, fields, identity) {
+  if (!value || Object.keys(value).sort().join(',') !== ['contract','version',...fields].sort().join(',') ||
+      value.contract !== 'Wsprry-Control/1' || value.version !== 1 ||
+      (identity && (value.device_id !== identity.device_id || value.boot_id !== identity.boot_id)))
+    throw new Error('Recovery response does not match this Pico. Reload before continuing');
+  return value;
+}
+export async function recoveryStatus(client, identity) {
+  const result = recoveryDocument(await setup(client,'/api/recovery/v1/status'),
+    ['device_id','boot_id','pending'],identity);
+  if (typeof result.pending !== 'boolean') throw new Error('Invalid recovery status');
+  return result;
+}
+export async function resetSettings(client, identity, phrase) {
+  if (!identity || !/^[0-9a-f]{32}$/.test(identity.device_id) || !/^[0-9a-f]{32}$/.test(identity.boot_id))
+    throw new Error('Invalid recovery identity');
+  if (!['erase','reset provisioning'].includes(phrase)) throw new Error('Invalid reset confirmation');
+  const status = await recoveryStatus(client,identity);
+  if (status.pending) throw new Error('A reset is already in progress. Wait and reconnect');
+  const key = recoveryKey(); let submitted = false;
+  try {
+    const start = recoveryDocument(await setup(client,'/api/recovery/v1/start',
+      {version:1,device_id:identity.device_id,browser_public_key:key.public,request_nonce:key.nonce}),
+      ['device_id','boot_id','slot_id','pico_public_key','slot_expires_in_ms'],identity);
+    if (!/^[0-9a-f]{32}$/.test(start.slot_id) || start.slot_expires_in_ms !== 180000)
+      throw new Error('Invalid recovery reservation');
+    const body = recoverySeal(key,start,identity.device_id,phrase);
+    submitted = true;
+    const result = recoveryDocument(await setup(client,'/api/recovery/v1/submit',body),['state']);
+    if (result.state !== 'reset_pending') throw new Error('Reset result is unconfirmed');
+    return result;
+  } catch (error) {
+    if (submitted) error.unconfirmed = true;
+    throw error;
+  } finally {
+    key.secret.fill(0);
+    // A submitted reset can already have cleared credentials after a lost reply.
+    // It is never retried or followed by another mutation from this login.
+    if (submitted) client.clear();
+  }
+}
 
 const random = size => crypto.getRandomValues(new Uint8Array(size));
 const decodeKey = value => {

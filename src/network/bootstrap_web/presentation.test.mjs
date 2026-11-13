@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {titleFromDevice} from './presentation.js';
 const device='1'.repeat(32);
-globalThis.document={title:'Generic title'};
+const heading={textContent:'WsprryPico'};
+globalThis.document={title:'Generic title',getElementById:id=>id==='page-hostname'?heading:null};
 let metadata;
 globalThis.fetch=async(url,options)=>{
   assert.equal(options.credentials,'omit');assert.equal(options.redirect,'error');
@@ -9,11 +10,11 @@ globalThis.fetch=async(url,options)=>{
 };
 for(const suffix of ['Wi-Fi setup','Station setup','Recovery']) {
   metadata={schema:'device-presentation/1',device_id:device,boot_id:'2'.repeat(32),hostname:'pico-a.local'};
-  assert.equal(await titleFromDevice(suffix,device),'pico-a.local');assert.equal(document.title,'pico-a.local - '+suffix);
+  assert.equal(await titleFromDevice(suffix,device),'pico-a.local');assert.equal(document.title,'pico-a.local - '+suffix);assert.equal(heading.textContent,'pico-a.local');
 }
 for(const hostname of ['<script>.local','K.local','x'.repeat(64)+'.local','other.example','A.local']) {
-  document.title='Generic title';metadata.hostname=hostname;
-  assert.equal(await titleFromDevice('Recovery',device),undefined);assert.equal(document.title,'Generic title');
+  document.title='Generic title';heading.textContent='WsprryPico';metadata.hostname=hostname;
+  assert.equal(await titleFromDevice('Recovery',device),undefined);assert.equal(document.title,'Generic title');assert.equal(heading.textContent,'WsprryPico');
 }
 metadata.hostname='pico-b.local';metadata.device_id='3'.repeat(32);
 await titleFromDevice('Recovery',device);assert.equal(document.title,'Generic title');

@@ -36,15 +36,91 @@
     else {if(node.firstChild.nodeType===1 && node.firstChild.classList.contains('field-caption'))group.classList.add('field-caption');label.textContent=node.firstChild.textContent;node.firstChild.remove();node.prepend(group);}
     group.append(label);help(group,topic,path);
   }
-  // Setup Wi-Fi has no Internet route; keep recovery local and help offline.
+  // Setup Wi-Fi has no Internet route; hide online help.
   const apView = location.origin === 'http://192.168.4.1';
   document.documentElement.classList.toggle('ap-view', apView);
-  $('ap-recovery-navigation').hidden = !apView;
+  let resetPhrase = '', resetOrigin = 'device-reset-full', resetRunning = false, resetUncertain = false;
+  function clearResetConfirmation() {
+    $('device-reset-phrase').value='';
+    $('device-reset-one').checked=$('device-reset-two').checked=false;
+    resetPhrase='';$('device-reset-execute').disabled=true;
+    $('device-reset-confirm').hidden=true;
+  }
+  function resetUpdate() {
+    $('device-recovery').disabled=resetRunning || resetUncertain;
+    $('device-reset-execute').disabled=resetRunning || resetUncertain || !radio?.authenticated || !capabilities ||
+      !$('device-reset-one').checked || !$('device-reset-two').checked ||
+      !resetPhrase || $('device-reset-phrase').value!==resetPhrase;
+  }
+  globalThis.WsprryDeviceReset={access(authenticated) {
+    if(!authenticated && !resetRunning) {clearResetConfirmation();$('device-reset-actions').hidden=true;}
+    resetUpdate();
+  }};
+  $('device-recovery').onclick=()=>{
+    if(resetRunning || resetUncertain)return;
+    if(!radio?.authenticated) {
+      if(apView) {location.assign('/recovery.html');return;}
+      if(!radio) {$('device-reset-status').textContent='Use the Pico password on its consumer control page, or join setup Wi-Fi for recovery. This certificate view does not provide password-authenticated recovery.';return;}
+      $('device-reset-status').textContent='Unlock controls with the Pico password, then select Recovery and reset again.';
+      openAccess();return;
+    }
+    if(!capabilities) {$('device-reset-status').textContent='Read the current Pico capabilities before requesting recovery. No reset was requested.';return;}
+    clearResetConfirmation();$('device-reset-actions').hidden=false;
+    $('device-reset-status').textContent='Choose a recovery action. Nothing is cleared until you complete and submit its confirmation.';
+    $('device-reset-heading').focus();
+  };
+  function chooseReset(full) {
+    if(resetRunning || resetUncertain || !radio?.authenticated)return;
+    clearResetConfirmation();resetPhrase=full?'erase':'reset provisioning';
+    resetOrigin=full?'device-reset-full':'device-reset-provisioning';
+    $('device-reset-operation').textContent=full?'Confirm user wipe':'Confirm provisioning reset';
+    $('device-reset-consequences').textContent=full?
+      'This clears all saved user settings, including credentials, passwords, hostname, certificates, Bluetooth pairings, station details, radio, pin and calibration settings, schedules, consumed-slot watermarks, drafts, logging settings, retained clock estimates, and field mode. The installed firmware stays. The Pico restarts first-time setup. Reconnect to setup Wi-Fi and configure it again before normal use.':
+      'This clears the Pico password, network credentials, certificates, engineering access, Bluetooth pairings, and saved progress. Applied station details, schedules, and consumed-slot watermarks stay. The Pico restarts. Reconnect to setup Wi-Fi and enter network details before normal use.';
+    $('device-reset-phrase-label').textContent='Type '+resetPhrase+' exactly to confirm';
+    $('device-reset-execute').textContent=full?'Confirm user wipe':'Confirm provisioning reset';
+    $('device-reset-actions').hidden=true;$('device-reset-confirm').hidden=false;
+    resetUpdate();$('device-reset-operation').focus();
+  }
+  $('wifi-advanced').addEventListener('toggle',()=>{
+    if(!$('wifi-advanced').open && !resetRunning) {clearResetConfirmation();$('device-reset-actions').hidden=true;}
+  });
+  $('device-reset-full').onclick=()=>chooseReset(true);
+  $('device-reset-provisioning').onclick=()=>chooseReset(false);
+  for(const id of ['device-reset-one','device-reset-two','device-reset-phrase']) $(id).addEventListener('input',resetUpdate);
+  $('device-reset-cancel').onclick=()=>{
+    if(resetRunning)return;
+    clearResetConfirmation();$('device-reset-actions').hidden=false;$(resetOrigin).focus();
+  };
+  $('device-reset-form').onsubmit=event=>{
+    event.preventDefault();resetUpdate();if($('device-reset-execute').disabled)return;
+    const phrase=resetPhrase;
+    return action(async()=>{
+      resetRunning=true;resetUpdate();$('device-reset-cancel').disabled=true;
+      try {
+        await radio.resetSettings(localIdentity,phrase);
+        resetUncertain=true;beginLocalLock();
+        $('device-reset-status').textContent=phrase==='erase'?
+          'User wipe accepted. The Pico will restart first-time setup, keeping the installed firmware. Reconnect to setup Wi-Fi and configure it again before normal use.':
+          'Provisioning reset accepted. The Pico will restart. Reconnect to setup Wi-Fi and enter network details.';
+        clearResetConfirmation();$('device-reset-actions').hidden=true;
+      } catch(error) {
+        resetUncertain=Boolean(error.unconfirmed);
+        if(resetUncertain)beginLocalLock();
+        $('device-reset-status').textContent=resetUncertain?
+          'Reset result unknown. Do not repeat the request. Wait for restart, reconnect, and check the Pico.':error.message;
+        if(resetUncertain)clearResetConfirmation();
+      } finally {
+        resetRunning=false;$('device-reset-phrase').value='';
+        $('device-reset-cancel').disabled=resetUncertain;resetUpdate();
+      }
+    },{message:'Requesting the confirmed Pico reset.',refreshFrequency:false});
+  };
   const station = $('station-area'), wifi = $('wifi-host-area');
   const sections = new Map([
     ['radio-settings','station'],['message-section','station'],['advanced-scheduling','station'],['time-calibration','station'],['radio-pins','station'],
     ['field-access','wifi-host'],['wifi-settings','wifi-host'],['pico-password-section','wifi-host'],['hostname-section','wifi-host'],
-    ['connection-section','wifi-host'],['saved-settings','station'],['device-diagnostics','station']
+    ['connection-section','wifi-host'],['wifi-advanced','wifi-host'],['saved-settings','station'],['device-diagnostics','station']
   ]);
   const aliases = new Map([
     ['hostname-form','hostname-section'],['station-identity','radio-settings'],

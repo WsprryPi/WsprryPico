@@ -187,6 +187,7 @@ function renderAccess() {
   const authenticated=!accessClosing && !accessLoginPending && (radio ? localAuthenticated && radio.authenticated : localIdentity ? localAuthenticated && !localLocked : certificate && online);
   if(accessWasAuthenticated && !authenticated) clearPasswords();
   accessWasAuthenticated=authenticated;
+  globalThis.WsprryDeviceReset?.access(authenticated);
   const label=certificate ? 'Certificate access information' : authenticated ? 'Lock controls' : 'Unlock controls';
   $('access-toggle').setAttribute('aria-label',label);
   $('access-toggle').title=label;

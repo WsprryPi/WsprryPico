@@ -110,4 +110,3 @@ header .documentation-help:has(svg):hover{color:#fff}
 
 /* Local recovery remains reachable before unlocking AP controls. */
 .ap-view .documentation-help,.ap-view .documentation-note{display:none}
-#device-recovery-link{display:inline-flex;align-items:center;min-height:44px}

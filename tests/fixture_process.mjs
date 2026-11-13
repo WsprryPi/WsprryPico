@@ -15,7 +15,9 @@ export class FixtureProcess {
     this.fail=fail;
     this.process.stdout.on('data',bytes=>{
       this.buffer=Buffer.concat([this.buffer,bytes]);
-      if(this.buffer.length>1024*1024){fail(Error('stage=fixture-reply; response exceeds byte bound'));void this.stop().catch(()=>{});return;}
+      // A bounded 1 MiB HTTP body is hex-encoded inside the JSON reply.
+      // Reserve another 4 KiB for HTTP headers and the JSON envelope.
+      if(this.buffer.length>2*1024*1024+4096){fail(Error('stage=fixture-reply; response exceeds byte bound'));void this.stop().catch(()=>{});return;}
       let end;
       while((end=this.buffer.indexOf(10))>=0){
         const raw=this.buffer.subarray(0,end);this.buffer=this.buffer.subarray(end+1);

@@ -793,7 +793,7 @@ struct Driver {
             // correctly fails the production blank-authority gate instead.
             if (mode == "blank" || mode == "recovery")
                 network.linked = false;
-            else if (mode == "network") {
+            else if (mode == "network" || mode == "network-recovery") {
                 network.linked = true;
                 check(profiles.select(provisioning::ProfileSource::NetworkOnly,
                                       provisioning::serialize_network_profile(
@@ -805,7 +805,7 @@ struct Driver {
                 check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
             radio.admission(mode != "unavailable" && runtime.control_healthy(profiles) &&
                             runtime.consumer_browser_selected(profiles));
-            if (mode == "recovery") {
+            if (mode == "recovery" || mode == "network-recovery") {
                 server.configure_recovery(f.service.status().boot_id, access, random);
                 server.reset_control(
                     +[](provisioning::ResetLevel, const wtp::PayloadDigest&, void* context) {

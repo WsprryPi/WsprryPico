@@ -53,3 +53,6 @@ summary .help-heading>span{min-width:0}
 
 /* Setup and recovery pages are served only on the offline AP. */
 :root .documentation-help,:root .documentation-note{display:none}
+
+/* Configured hostnames can contain a full 63-character label. */
+header strong{min-width:0;overflow-wrap:anywhere}

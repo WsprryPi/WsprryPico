@@ -5,6 +5,7 @@ import {available, begin, seal} from './crypto.js';
 const names = ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected',
   'saved', 'retry', 'interrupted', 'unknown', 'service', 'browser'];
 const $ = (id) => document.getElementById(id);
+$('setup-recovery')?.addEventListener('click',()=>location.assign('/recovery.html'));
 const show = (name, moveFocus = false) => {
   const focused=submissions.origin || document.activeElement;
   for (const section of names) $(section).hidden = section !== name;

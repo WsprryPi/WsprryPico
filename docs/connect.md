@@ -34,6 +34,8 @@ When the saved infrastructure network is unavailable for 60 seconds, the Pico re
 
 An existing AP keeps browser status and permitted controls available while a job runs. Starting, stopping, or changing the AP waits for safe idle RF output and never aborts an accepted job. Explicit field mode keeps the AP available without the inactivity timeout. A password change also changes the protected AP join password; reconnect after the reply using the new password. If a save is unconfirmed, read saved state before trying another save. Physical and USB recovery remain available.
 
+The Pico page displays its configured hostname on setup and field Wi-Fi as well as the home network. A phone’s captive-browser window may retain a system label such as **Captive Wi-Fi**; the hostname inside the page identifies the Pico.
+
 ## Online help from the control page
 
 On the home-network control page, **Help** beside a section heading or group opens the relevant operator-manual instructions in a separate tab. Help is available while controls are locked and section headings are collapsed. It does not save settings, unlock controls, or stop transmissions. Keep the Pico tab open to retain unsaved entries and selected files.

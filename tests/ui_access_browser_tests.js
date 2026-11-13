@@ -59,6 +59,10 @@ async function authenticated() {
   const localRequests=local.calls.length;run(local,'accessClosing=true');
   await assert.rejects(run(local,'local("time/submit","POST",{})'),/locked/);
   assert.equal(local.calls.length,localRequests);run(local,'accessClosing=false');
+  const resetCertificate=await fixture(true,true,false,false,'',true);
+  const resetCalls=resetCertificate.calls.length;resetCertificate.elements['device-recovery'].onclick();
+  assert.match(resetCertificate.elements['device-reset-status'].textContent,/setup Wi-Fi/);
+  assert.equal(resetCertificate.calls.length,resetCalls,'certificate view never sends a password recovery request');
   const certificate=await fixture();let releaseCertificateBody;const certificateFetch=certificate.context.fetch;
   let holdCertificateBody=true;
   certificate.context.fetch=async(...args)=>{const response=await certificateFetch(...args);if(holdCertificateBody&&args[0].endsWith('/status')) {holdCertificateBody=false;const json=response.json;response.json=()=>new Promise(resolve=>releaseCertificateBody=async()=>resolve(await json()));}return response;};

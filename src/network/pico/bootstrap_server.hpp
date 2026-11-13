@@ -133,7 +133,8 @@ class PicoBootstrapServer {
     }
 
   private:
-    HttpResponse recovery(const HttpRequest& request);
+    HttpResponse recovery(const HttpRequest& request,
+                          std::span<const std::uint8_t> login = {});
     HttpResponse consumer_setup(const HttpRequest& request, std::uint64_t transaction,
                                 std::span<const std::uint8_t, 16> login);
     void setup_login_closed(std::span<const std::uint8_t, 16> login);
@@ -147,6 +148,7 @@ class PicoBootstrapServer {
     ConsumerRadioApi* radio_ = nullptr;
     bool setup_owner_status_committed_ = false;
     BootstrapSlot recovery_slot_;
+    std::optional<std::array<std::uint8_t, 16>> recovery_login_;
     PicoRecoveryCrypto recovery_crypto_;
     bool reset_pending_ = false;
     provisioning::ResetResult (*reset_begin_)(provisioning::ResetLevel, const wtp::PayloadDigest&,

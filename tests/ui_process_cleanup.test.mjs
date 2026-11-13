@@ -338,7 +338,7 @@ test('nonzero exit caused by orderly EOF cannot qualify fixture shutdown',{timeo
 });
 
 test('invalid UTF-8 and oversized JSON lines cannot become valid fixture responses',{timeout:10000},async()=>{
-    for(const answer of [`Buffer.from([123,34,120,34,58,34,255,34,125,10])`,`Buffer.alloc(1024*1024+1,32)`]){
+    for(const answer of [`Buffer.from([123,34,120,34,58,34,255,34,125,10])`,`Buffer.alloc(2*1024*1024+4097,32)`]){
         const f=new FixtureProcess(process.execPath,['-e',`process.stdin.once('data',()=>process.stdout.write(${answer}));`]);
         try{await assert.rejects(f.command({op:'probe'}),/malformed JSON\/UTF-8|byte bound/);}finally{await f.stop();}
     }

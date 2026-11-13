@@ -11,6 +11,7 @@ const p256 = globalThis.WsprryPicoOwnerKey;
 const sections = ['owner-settings', 'owner-wifi-first', 'owner-checking', 'owner-saved',
   'owner-accepted', 'owner-unconfirmed', 'owner-retry', 'owner-service', 'owner-browser'];
 const $ = (name) => document.getElementById(name);
+$('owner-recovery')?.addEventListener('click',()=>location.assign('/recovery.html'));
 const hex = (bytes) => [...bytes].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 const fromHex = (value, size) => {
   if (typeof value !== 'string' || !new RegExp(`^[0-9a-f]{${size * 2}}$`).test(value))

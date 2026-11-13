@@ -19,7 +19,7 @@ const axeSource=process.env.UI_REVIEW_AXE_PATH ? await readFile(process.env.UI_R
 const accessibility=[];
 const profile=await h.profile('p1511-chrome-');
 let f=await h.fixture(process.argv[2]);await f.time(1000);
-let dropNext=false, dropBootstrap=false, chrome, cdp, cdpB;
+let dropNext=false, dropBootstrap=false, dropResetAfter=0, chrome, cdp, cdpB;
 const fB=await h.fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
 const bClient=fB.client();await fB.login(bClient);const bResource=await bClient.request('hostname');const bName=await bResource.json();
 await bClient.request('hostname','PUT',{schema:'hostname',target:bName.target,hostname:'pico-b.local'},bResource.headers.get('etag'));
@@ -41,6 +41,7 @@ async function serve(req,res){
         const bytes=await fixtureHttpBody(target,response);
         requests.push({path:u.pathname,status:response.status,bytes:bytes.length});
         if(u.pathname === "/") await writeFile(path.join(output,"root.html"),bytes);
+        if(dropResetAfter && u.pathname==='/api/consumer/v1/request' && --dropResetAfter===0) {res.destroy();return;}
         if(dropNext && u.pathname.endsWith('/request')) { dropNext=false;res.destroy();return; }
         if(dropBootstrap && u.pathname==='/api/bootstrap/v1/submit') { dropBootstrap=false;res.destroy();return; }
         res.writeHead(response.status,Object.fromEntries(response.headers));res.end(bytes);
@@ -89,6 +90,7 @@ try {
     await f.stop();f=await h.fixture(process.argv[2],['1'.repeat(32),'--blank']);await f.time(1000);
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
     await until(()=>cdp.evaluate('document.getElementById("submit") && !document.getElementById("submit").disabled'),'first Wi-Fi form');
+    await until(()=>cdp.evaluate(`document.getElementById('page-hostname').textContent==='wsprrypico-0a60df.local'`),'configured hostname on initial AP page');
     assert.match(await cdp.evaluate(`document.querySelector('a[data-help="First Wi-Fi connection"]').href`),/^https:\/\/wsprrypico\.readthedocs\.io\/en\/(main|devel)\/connect\.html#first-wi-fi-connection$/);
     await field('ssid','Home Net');await field('password','test-password');await click('submit');
     await until(()=>cdp.evaluate('!document.getElementById("accepted").hidden'),'first Wi-Fi accepted');
@@ -107,9 +109,29 @@ try {
     assert.equal(await cdp.evaluate('document.getElementById("standalone-frequency").value'),'14095600');
     assert.equal(await cdp.evaluate('document.getElementById("consumer-ssid").value'),'Home Net');
     assert.equal((await f.command({op:'stats'})).config_sequence,'0');
-    assert.equal(await cdp.evaluate(`document.getElementById('ap-recovery-navigation').hidden`),true,'LAN does not offer AP-only recovery');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-recovery').tagName`),'BUTTON','recovery is a button on LAN');
     assert.equal(await cdp.evaluate(`getComputedStyle(document.getElementById('header-help')).display==='none'`),false,'LAN retains online help');
     await capture('wifi-only-lan-control','station-area');
+    await click('wifi-host-link');await click('device-recovery');await click('device-reset-full');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-reset-operation').textContent`),'Confirm user wipe');
+    await field('device-reset-phrase','erase');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-reset-execute').disabled`),true,'phrase alone does not confirm');
+    await click('device-reset-one');await cdp.evaluate(`document.getElementById('device-reset-one').dispatchEvent(new Event('input',{bubbles:true}))`);
+    assert.equal(await cdp.evaluate(`document.getElementById('device-reset-execute').disabled`),true,'one acknowledgment is insufficient');
+    await click('device-reset-two');await field('device-reset-phrase','erase ');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-reset-execute').disabled`),true,'phrase must match exactly');
+    await field('device-reset-phrase','erase');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-reset-execute').disabled`),false,'both acknowledgments and exact phrase admit confirmation');
+    await capture('lan-user-wipe-confirmation','wifi-advanced');
+    await click('device-reset-cancel');await click('device-reset-full');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-reset-phrase').value`),'');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-reset-one').checked || document.getElementById('device-reset-two').checked`),false);
+    await click('device-reset-cancel');await click('device-reset-full');
+    await field('device-reset-phrase','erase');
+    await cdp.evaluate(`document.getElementById('wifi-advanced').open=false`);
+    await until(()=>cdp.evaluate(`document.getElementById('device-reset-confirm').hidden && document.getElementById('device-reset-phrase').value===''`),'closing Advanced cancels confirmation');
+    assert.equal(requests.filter(r=>r.path.startsWith('/api/recovery/')).length,0,'confirmation and cancel do not request a reset');
+
     await click('wifi-host-link');
     await until(()=>cdp.evaluate('!!picoPasswordState && !document.getElementById("pico-password-settings").disabled'),'editable Pico password');
     assert.equal(await cdp.evaluate('picoPasswordState.data.wifi_default'),true);
@@ -325,13 +347,14 @@ try {
     }
     console.log('Recovery boundary: leave provisioning');await cdp.send('Page.navigate',{url:'about:blank'});await f.stop();console.log('Recovery boundary: new fixture');f=await h.fixture(process.argv[2]);await f.time(1000);
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
-    await until(()=>cdp.evaluate(`!!document.getElementById('device-recovery-link') && !document.getElementById('ap-recovery-navigation').hidden && document.getElementById('wifi-settings-lock').disabled`),'locked AP landing offers recovery');
+    await until(()=>cdp.evaluate(`!!document.getElementById('device-recovery') && document.getElementById('wifi-settings-lock').disabled`),'locked AP landing offers recovery');
     assert.equal(await cdp.evaluate(`Array.from(document.querySelectorAll('.documentation-help')).every(e=>getComputedStyle(e).display==='none')`),true,'AP hides all online help, including topic icons');
-    assert.equal(await cdp.evaluate(`document.getElementById('device-recovery-link').closest('fieldset')`),null,'recovery does not require unlocking');
+    assert.equal(await cdp.evaluate(`document.getElementById('device-recovery').closest('fieldset')`),null,'recovery does not require unlocking');
+    await until(()=>cdp.evaluate(`document.getElementById('device-name').textContent==='wsprrypico-0a60df.local' && document.title.startsWith('wsprrypico-0a60df.local - ')`),'configured hostname on locked AP controls');
     await capture('ap-recovery-navigation','wifi-host-area');
     await f.command({op:'page_profile',mode:'recovery'}); // Supply the existing reset boundary double after loading the configured landing page.
     const beforeRecovery=await f.command({op:'stats'});
-    await click('device-recovery-link');
+    await click('device-recovery');
 
     await until(()=>cdp.evaluate(`!!document.getElementById('provisioning') && !document.getElementById('provisioning').disabled`),'admitted recovery page');
     assert.equal(await cdp.evaluate(`Array.from(document.querySelectorAll('.documentation-help,.documentation-note')).every(e=>getComputedStyle(e).display==='none')`),true,'recovery hides online help and its note');
@@ -363,6 +386,9 @@ try {
     assert.equal(await cdp.evaluate(`document.getElementById('submit').disabled`),true);
     assert.equal(await cdp.evaluate(`Array.from(document.querySelectorAll('.documentation-help,.documentation-note')).every(e=>getComputedStyle(e).display==='none')`),true,'initial captive setup hides online help without Web Crypto');
     await capture('missing-crypto');
+    await cdp.evaluate(`document.getElementById('setup-advanced').open=true;document.getElementById('setup-recovery').click()`);
+    await until(()=>cdp.evaluate(`location.pathname==='/recovery.html' && !!document.getElementById('provisioning')`),'offline recovery button needs no URL bar');
+    assert.equal(await cdp.evaluate(`document.getElementById('provisioning').disabled`),true,'no crypto still prevents reset submission');
     await cdp.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:noCrypto.identifier});
     await f.command({op:'page_profile',mode:'unavailable'});
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
@@ -370,6 +396,28 @@ try {
     assert.equal(await cdp.evaluate(`document.forms.length`),0);
     assert.equal(await cdp.evaluate('document.documentElement.lang'),'en');
     await capture('unavailable-recovery');
+    // Reset effects are a RAM-only callback; never a physical Pico. Exercise
+    // accepted and lost-submit UI states through the production encrypted path.
+    for(const lost of [false,true]) {
+      await cdp.send('Page.navigate',{url:'about:blank'});await f.stop();
+      f=await h.fixture(process.argv[2]);await f.time(1000);
+      await f.command({op:'page_profile',mode:'network-recovery'});
+      await cdp.send('Page.navigate',{url:'http://192.168.1.53/wifi-host'});
+      await until(()=>cdp.evaluate('typeof radio!=="undefined" && !!localIdentity && !busy'),'recovery LAN login');
+      await field('local-password','test-password');await submitLogin();
+      await until(()=>cdp.evaluate('radio.authenticated && !busy && online'),'recovery LAN authenticated');
+      await click('device-recovery');await click('device-reset-full');
+      await click('device-reset-one');await click('device-reset-two');await field('device-reset-phrase','erase');
+      assert.equal(await cdp.evaluate(`document.getElementById('device-reset-execute').disabled`),false);
+      if(lost)dropResetAfter=3;
+      await cdp.evaluate(`document.getElementById('device-reset-form').requestSubmit()`);
+      await until(()=>cdp.evaluate(`document.getElementById('device-reset-status').textContent.includes(${JSON.stringify(lost?'Reset result unknown':'User wipe accepted')}) && !busy`),'recovery submit '+(lost?'unconfirmed':'accepted'));
+      assert.equal((await f.command({op:'stats'})).recovery_requests,1,'one explicit simulated reset with no replay');
+      assert.equal(await cdp.evaluate('radio.authenticated'),false);
+      assert.equal(await cdp.evaluate(`document.getElementById('device-reset-phrase').value`),'');
+      assert.equal(await cdp.evaluate(`document.getElementById('device-recovery').disabled`),true,'uncertain or accepted reset cannot be repeated');
+      await capture(lost?'lan-reset-unconfirmed':'lan-reset-accepted','wifi-advanced');
+    }
     await writeFile(path.join(output,'requests.json'),JSON.stringify(requests,null,2)+'\n');
     console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,production_routes:true,real_crypto:true,
       wifi_only_lan_after_reboot:true,optional_station_from_wifi_only:true,defaults:true,reciprocal_navigation:true,drafts:true,back_forward_reload:true,no_session_churn:true,no_navigation_mutations:true,station_save_without_message:true,receipt_reconciliation:true,zoom_200:true,section_keyboard_focus:true,accessible_message_name:true,inline_wifi_errors:true,transition_focus:true,recovery_cancel_origin:true}));
