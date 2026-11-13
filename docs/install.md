@@ -4,11 +4,58 @@
 
 Firmware is the application stored on the Pico. Install or update it using a USB data cable and a **Terminal application on your computer**, not the Pico's text Console or a browser address bar.
 
-Use native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. Windows, Git Bash, and WSL are unsupported. Run the installer as your ordinary user. On Linux, that user needs permission to access the USB device; see picotool's [USB permission instructions](https://github.com/raspberrypi/picotool/blob/master/BUILDING.md#linux--macos) if programming is refused for insufficient permissions.
+Use native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. Windows, Git Bash, and WSL are unsupported. **Run the installer as your ordinary user, without `sudo`.** On Linux, complete [USB permission setup](#linux-usb-permission-setup) below before installing or updating firmware.
 
 Programming also needs **picotool**, Raspberry Pi's USB programming utility, at **version 2.3 or newer within the 2.x series**, with USB support. The installer checks for an existing compatible executable and a previously retained private copy before offering a download. The installer reuses existing tools without download or cleanup questions. If neither is available, the installer offers a verified official package for macOS, Linux ARM64, or Linux x86-64. Other architectures need an existing compatible picotool. No SDK or compiler is needed.
 
 Install the **WsprryPico** firmware using the commands below.
+
+## Linux USB permission setup
+
+Complete these steps once on the Linux computer connected to the Pico, using the account that will run the installer. This includes a Raspberry Pi used as the installer computer. macOS users can skip this section.
+
+Linux needs a USB access rule and permission for your account to use it. Installing picotool or its dependencies alone does not grant this access. The installer does not change these system settings automatically. The steps below install Raspberry Pi's [picotool USB rule](https://github.com/raspberrypi/picotool/blob/2.3.1/udev/60-picotool.rules) and add your account to its `plugdev` access group. No SDK, compiler, or picotool build is needed.
+
+1. Open a terminal as your usual account. Run:
+
+   ```sh
+   whoami
+   ```
+
+   The result should be your login name, such as `pi` or `wsprdaemon`, rather than `root`. If it says `root`, leave that administrator session and sign in as your usual account before continuing.
+
+2. In a folder where you can save a file, download the rule:
+
+   ```sh
+   curl --fail --location --proto '=https' --proto-redir '=https' \
+     https://raw.githubusercontent.com/raspberrypi/picotool/2.3.1/udev/60-picotool.rules \
+     --output 60-picotool.rules
+   ```
+
+   Wait for the download to finish successfully. If it reports an error, stop and resolve that error before continuing.
+
+3. Run each line below in the same terminal. Copy the commands exactly; `$(id -un)` supplies your current login name automatically. `sudo` may ask for your login password; the terminal does not display characters while you type it. If your account cannot use `sudo`, ask the computer's administrator to complete this setup for your account.
+
+   ```sh
+   sudo install -m 0644 60-picotool.rules /etc/udev/rules.d/60-picotool.rules
+   sudo groupadd -f plugdev
+   sudo usermod -aG plugdev "$(id -un)"
+   sudo udevadm control --reload-rules
+   ```
+
+   Stop if any command reports an error. These are the system setup commands that need `sudo`; the firmware installer runs as your ordinary user.
+
+4. Log out of your Linux account and log back in so the new group membership takes effect. If connected through SSH, disconnect and reconnect. Opening another terminal in the same desktop login is insufficient. Run:
+
+   ```sh
+   id -nG
+   ```
+
+   Check that the list includes `plugdev`. If it does not, ask the administrator to check membership for the account shown by `whoami`.
+
+5. Disconnect and reconnect the Pico so the reloaded rule applies. Use BOOTSEL for a first installation, as described below; leave existing WsprryPico firmware running normally for an upgrade.
+
+Continue with the installer commands below **without `sudo`**. Running the installer as root uses a different private cache and recovery directory, and its managed picotool download refuses root. Membership in the serial-port group `dialout` alone does not grant BOOTSEL USB access. If programming still fails, retain the full error and follow [support instructions](support.md); do not erase the Pico to resolve a host permission error.
 
 ## Select recommended firmware
 
@@ -27,6 +74,11 @@ For development firmware, use the [published devel download](https://github.com/
 
 ## Get the installer and identify the Pico
 
+Prepare the Pico **before running discovery**:
+
+- **First WsprryPico installation, including a Pico running another program:** disconnect the Pico, hold its onboard **BOOTSEL** button while reconnecting the USB data cable, then release the button. Leave it connected in BOOTSEL for discovery and installation. Discovery recognizes BOOTSEL devices and the WsprryPico application USB identity; another running program may not appear.
+- **Update existing WsprryPico firmware:** complete [update preparation](#preserve-settings-during-an-update) and leave the firmware running normally. Use `upgrade`, and enter BOOTSEL only if the installer requests it. If an interrupted update already has a retained transaction, follow its printed recovery command.
+
 Open a terminal in a folder where you can keep the installer. Download the small launcher script as `install_usb.sh`, inspect it in a text editor, and run it as your ordinary user. Keep using this folder for subsequent commands that begin with `bash install_usb.sh`:
 
 ```sh
@@ -36,7 +88,7 @@ curl --fail --location --proto '=https' --proto-redir '=https' \
 bash install_usb.sh discover
 ```
 
-Discovery lists connected boards with their USB serial numbers and ports. Record the serial for the intended board, then replace `SERIAL` in the commands below with that exact USB serial. It differs from the full stable device ID shown by firmware. If discovery finds nothing, check the data cable and USB permissions.
+Discovery lists recognized connected boards with their USB serial numbers and ports. Record the serial for the intended board, then replace `SERIAL` in the commands below with that exact USB serial. It differs from the full stable device ID shown by firmware. If discovery finds nothing, check the preparation above and the USB data cable. Discovery can list a BOOTSEL device even when Linux permissions prevent picotool from accessing it; complete [Linux USB permission setup](#linux-usb-permission-setup) before programming.
 
 The launcher downloads the installer from GitHub by default, even when local installer files are present. To use local files explicitly, run `bash install_usb.sh --local-installer discover`, or replace `discover` with the intended operation and its options. Place `--local-installer` before the operation. Keep `usb_installer.py` and `ci/release-manifest-2.schema.json` beside the saved launcher, from the same source revision. Missing local files stop the command with an error. The local option requires a saved launcher; commands piped directly to Bash use GitHub downloads.
 
