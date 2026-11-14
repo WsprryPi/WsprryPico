@@ -27,7 +27,7 @@ Use an exact firmware version to select a published release. The recommended ver
 
 Use the published [recommended firmware, version **@RECOMMENDED_FIRMWARE_VERSION@**](https://github.com/WsprryPi/WsprryPico/releases/tag/v@RECOMMENDED_FIRMWARE_VERSION@). The installation, update, and image-check commands below include `--version @RECOMMENDED_FIRMWARE_VERSION@` to select that exact release. The version argument omits the tag's `v` prefix. The installer verifies image identity, source, workflow, and SHA-256 checksums before programming; it stops if the selected release is unavailable or fails verification.
 
-See the [RC.2 release notes and qualification scope](reference/releases.md) before selecting this prerelease.
+See the [recommended release notes and qualification scope](reference/releases.md) before selecting this prerelease.
 
 For development firmware, use the [published devel download](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel) and the [devel upgrade command](#upgrade-to-devel-firmware).
 
