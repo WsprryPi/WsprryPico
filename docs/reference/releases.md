@@ -1,5 +1,20 @@
 # Release notes
 
+## 1.0.0-rc.3
+
+RC.3 adds gray-line scheduling and improves setup, recovery, and USB installation on Pico 2 W.
+
+- Morning and evening gray-line periods have independent solar-elevation windows and optional WSPR dial or Morse-message frequency overrides. Existing schedules determine when transmissions are due. Calculations use the selected saved locator or a fresh GPS position; unavailable time or location holds the occurrence.
+- Daylight and night beacon schedules can use the saved station locator without GPS, with usable UTC.
+- Initial Wi-Fi setup includes hostname editing.
+- Recovery navigation is available from the AP interface and authenticated Advanced Wi-Fi controls, with contextual help. The firmware-preserving settings reset is labelled **User wipe**.
+- Scheduling controls and the presentation of unset calibration and gray-line settings are clearer.
+- USB installation provides clearer picotool diagnostics and Linux permission handling, including optional sudo limited to picotool operations. Installation instructions clarify BOOTSEL, native Windows UF2 use, and USB troubleshooting.
+
+The canonical build passed all 235 registered tests with zero failures or skips and reproduced identical firmware. Production Pi/Pico network and USB integration checks passed. Physical installation, upgrade preservation, timing, and RF qualification of this exact image were not performed. Si5351 automatic correction remains experimental.
+
+I²C LPF output control remains planning only and is not included in RC.3. See [scheduling configuration](../configure.md#gray-line-scheduling), [maintenance and recovery](../maintain.md), and [installation and preserving upgrades](../install.md).
+
 ## 1.0.0-rc.2
 
 RC.2 improves preparation of long transmission jobs, indicator scheduling, configuration validation, and GPS correction diagnostics on Pico 2 W.

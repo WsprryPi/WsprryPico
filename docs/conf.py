@@ -48,7 +48,7 @@ version = os.environ.get("READTHEDOCS_VERSION", "devel")
 release = f"{version} · {source_revision}"
 
 # Update this value when recommending a newly published firmware release.
-recommended_firmware_version = "1.0.0-rc.2"
+recommended_firmware_version = "1.0.0-rc.3"
 
 
 def substitute_recommended_firmware(app, docname, source):

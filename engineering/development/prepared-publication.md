@@ -26,6 +26,16 @@ Publication requires current authority. This implementation's deterministic test
 
 Deferred publication uses the same target branch/tag concurrency group as the ordinary canonical publisher, so simultaneous publication paths cannot race the source-ordered bookmark. Read-only validation uses its own queue and cannot block a publication behind validation work.
 
+## RC.3 published artifact provenance
+
+The [RC.3 prerelease](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-rc.3) contains the nine verified files from canonical [build 43598991515, attempt 1](https://github.com/WsprryPi/WsprryPico/actions/runs/43598991515). Its firmware source is `b4e966797cf016f6b8ed873dbe638522fc4d81c7`, and its annotated tag object is `0dd0379f5eeaeb49cd150da2113091bfacbc8d72`. The 6,406,144-byte UF2 has SHA-256 `160dc236a3e7911498b196f0937fe13c31c47b687ce20c7590c7d499d5c522c4`. The retained owner packet digest is `684e6c4962503fd39cc5b983c0b1df4b8d76a1d0a3ec9dbed47b36f504b83930`.
+
+Trusted [publisher 43601371512](https://github.com/WsprryPi/WsprryPico/actions/runs/43601371512) used the same source for publication tooling and published the retained files without rebuilding firmware or replacing assets. The original archives and independent revalidation receipts remain retained. Publishing this semantic prerelease did not advance the separate `ci-devel` selector or select latest stable.
+
+Canonical verification passed all 235 registered tests with zero failures or skips, along with the browser, installer, packaging, inhibited-image, and identical-reproducibility gates. Production [network and USB integration](https://github.com/WsprryPi/WsprryPi/actions/runs/43599024584) passed with Pi `6bcdf97f899f2ce387876368da06e7a79eca4ef2` and the exact Pico source. The canonical build's separately pinned companion and Harness revisions remain recorded in the manifest.
+
+Physical installation, upgrade preservation, timing, and RF qualification of this exact image were not performed. Si5351 automatic correction remains experimental. See the [qualification guide](pico-rf-qualification.md#evidence-and-claims) for evidence boundaries.
+
 ## RC.2 published artifact provenance
 
 The [RC.2 prerelease](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-rc.2) contains the nine verified files from canonical [build 42622652101, attempt 1](https://github.com/WsprryPi/WsprryPico/actions/runs/42622652101). Its firmware source is `971f7bf9f8075d64ff086f777356bdd06c3d8b53`, and its annotated tag object is `e34c6fb9758a1edaa664806dc194855ae92c75d5`. The 6,305,280-byte UF2 has SHA-256 `5e6c44049568c4a08e15b384c22af3b44661eb2fe120076c0befc44488bd3dd9`. The retained owner packet digest is `36df8dc23076b56e6f42ad1c1a52e43c9e383f132f086685786b66d3adeef030`.
