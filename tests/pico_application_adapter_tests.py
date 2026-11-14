@@ -334,7 +334,7 @@ namespace wsprrypico::network { std::string_view web_csp(){return "test-csp";} }
 Response json(std::string s){return {200,std::move(s),"application/json",{}};}
 unsigned time_us_64(){return 1;}
 bool owner_public_get_admitted(const Request&,const std::string&){return true;}
-Response bootstrap_http_response(const Request&,const std::string&,const std::string&,bool setup,bool,bool){return {200,setup?"setup":"identity","application/json",{}};}
+Response bootstrap_http_response(const Request&,const std::string&,const std::string&,bool setup,bool,bool,bool healthy){return {200,setup?"setup":healthy?"identity":"storage-fault","application/json",{}};}
 bool asset_available=true;
 std::array<std::string_view,2> radio_parts={"radio-","page"};
 std::optional<WebAsset> consumer_radio_asset(){
@@ -376,7 +376,7 @@ struct Progress {
 struct PicoBootstrapServer {
 DEFAULT
  bool setup_admitted_=default_setup_admission,active_=true,mutation_safe_=true;
- bool ap_active_=false,station_active_=false,ap_setup_admitted_=false;
+ bool ap_active_=false,station_active_=false,ap_setup_admitted_=false,storage_healthy_=true;
  ConsumerInterface client_interface_=ConsumerInterface::None;
  Radio* radio_=nullptr;Network* network_=nullptr;std::uint64_t radio_transaction_=17;
  bool pending=false;void (*setup_control_)(void*)=nullptr;void* setup_control_context_=nullptr;
@@ -410,6 +410,8 @@ int main() {
 #endif
  server.client_interface_=ConsumerInterface::AccessPoint;server.ap_active_=true;
  server.setup_admitted_=false;server.dispatch();check(server.response_.body=="identity");
+ server.storage_healthy_=false;server.dispatch();check(server.response_.body=="storage-fault");
+ server.storage_healthy_=true;
  for (auto path:{"/api/bootstrap/v1/status","/api/bootstrap/v1/submit","/api/owner/v1/claim/submit"}) {
   server.parser_.value.path=path;server.dispatch();check(server.response_.status==409);
  }
