@@ -30,6 +30,8 @@ The encrypted session establishes device, boot, profile generation, interface, a
 
 Automatic status reads use public resources even in an authenticated page. Public identity polling discards local authentication when the device or boot changes. Profile changes retain their existing authenticated policy/retirement rules; it never grants or renews authority. Time reads and observations do not renew the 30-minute login inactivity timer. The eight-hour absolute session limit remains. Ordinary operator actions retain existing renewal semantics. A closed session cannot submit new samples; its accepted clock may remain in finite holdover under the original source principal. Another session waits until that source expires or participates in explicit disagreement recovery.
 
+Browser time exchanges use the normal 30-second consumer request deadline. The HTTP wait and the Pico's sample freshness limit serve separate purposes: a slow status reply received within that deadline preserves the confirmed login, while a late time sample is still refused. An aborted or otherwise unconfirmed encrypted exchange retires the browser's session without replaying its sequence.
+
 ## UTC authority and holdover
 
 The authenticated AP page supplies browser time automatically after login and approximately every 30 seconds while active. It checks source status before sending observations and refreshes before job preparation when due. No clock confirmation dialog is required. Public commissioning hints do not establish transmit-ready UTC.
@@ -51,5 +53,7 @@ The UI says **Using browser time**, with **Time supplied by this device’s cloc
 ## Validation boundaries
 
 `field_access_tests` exercises persistent AP intent, fallback reopening, association retention, authenticated source arbitration, freshness, disagreement, and expiry. `field_time_sessions` exercises real HTTP/parser/AEAD handlers, journal revisions, strict request validation, replay, competing sessions, and non-renewing time refresh. NTP-timeout tests retain the independent controller/browser boundaries and explicit zero behavior. The required production Pi/Pico network and USB pairs remain the integration gate.
+
+`ap_unlock_browser.mjs`, also run by the organization browser suite, exercises the shipped AP landing and password unlock through production HTTP/AEAD handlers with a five-second time-status reply. It checks retained authentication, browser UTC, no replay, cleared password input, and mobile overflow. This synthetic Chrome regression does not establish physical iPhone captive-window acceptance.
 
 Simulated monotonic aging verifies software boundaries; it does not measure physical oscillator drift. Cross-linking establishes build integrity, not target timing or RF. Concurrent AP/RF use and claimed elapsed holdover duration require separately identified board, image, clock, mode, source, and conducted receiver/reference evidence.

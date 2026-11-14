@@ -35,6 +35,20 @@ async function run(name,fn) {
   finally {await f.stop();}
 }
 if(import.meta.url===new URL(process.argv[1],'file:').href) {
+await run('final TCP ACK releases both HTTP tasks before another service poll',async f=>{
+  const a=f.client('192.168.4.1',true);
+  f.holdNext=true;await a.publicStatus();const first=f.socket;
+  f.holdNext=true;await a.publicStatus();const second=f.socket;
+  assert.equal((await f.command({op:'stats'})).connections,2);
+  await f.command({op:'ack',socket:first,bytes:'1'});
+  assert.equal((await f.command({op:'stats'})).connections,2,'a partial ACK retains its task');
+  await f.command({op:'ack',socket:first,bytes:'65535'});
+  await f.command({op:'ack',socket:second,bytes:'65535'});
+  const stats=await f.command({op:'stats'});
+  assert.equal(stats.pending_bytes,0);
+  assert.equal(stats.connections,0,'release directly in the ACK callback, without another poll');
+  assert.equal((await a.publicStatus()).state,'empty','the next request still reaches the production handler');
+});
 await run('public settings and full observations are read-only without occupying or renewing a login',async f=>{
   for(const [host,ap] of [['192.168.1.53',false],['192.168.4.1',true]]) {
     const client=f.client(host,ap);await client.identity();

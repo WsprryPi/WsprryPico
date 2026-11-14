@@ -470,7 +470,8 @@ struct Driver {
             return;
         count = std::min(count, pcb.pending);
         pcb.pending -= count;
-        check(pcb.sent(pcb.arg, &pcb, count) == ERR_OK);
+        const auto result = pcb.sent(pcb.arg, &pcb, count);
+        check(result == (pcb.aborted ? ERR_ABRT : ERR_OK));
     }
     void poll(bool acknowledge, tcp_pcb& pcb) {
         for (unsigned i = 0; i < 100 && !pcb.closed; ++i) {

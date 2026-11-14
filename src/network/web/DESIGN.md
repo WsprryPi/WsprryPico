@@ -360,3 +360,5 @@ A single fixed, noninteractive tooltip uses the existing notice surface, body te
 ### RF and GPS field rows
 
 The RF engine/GPIO/Button row and GPS field groups share content-sized caption, control, and optional help tracks through CSS subgrid. Caption wrappers retain native labels and allow long text and the existing 44 px help targets to determine row height. Controls share the next track; inline messages occupy the following track. No fixed caption heights or individual field offsets are used. Si5351 hides the direct GPIO label and uses two columns above the existing 650 px stacking breakpoint. Native associations, values, and disabled state remain unchanged. Links inside field labels remain independent actions when controls are locked.
+
+Successful password login leaves the lock button unfocused. Locked and unlocked states use matching 4 px red and green borders with reduced internal padding to retain the 44 px button and centered icon. Cancel and Escape return focus to the lock; deliberate keyboard navigation retains the amber focus outline.

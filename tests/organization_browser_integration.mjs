@@ -7,6 +7,8 @@ import {readFile, writeFile, mkdir} from 'node:fs/promises';
 import path from 'node:path';
 import {BrowserHarness,until,fixtureJson} from './browser_harness.mjs';
 import {scanAccessibility} from './ui_review_accessibility.mjs';
+import {checkApUnlock} from './ap_unlock_browser.mjs';
+await checkApUnlock(process.argv[2],path.resolve(process.argv[3] || 'build/organization-browser-integration','ap-unlock'));
 const h=new BrowserHarness();
 await h.run(async()=>{
 

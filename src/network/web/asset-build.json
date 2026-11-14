@@ -7,7 +7,7 @@
     "app.min.js": {
       "inputs": {
         "locked-controls.js": "17d657eb75f51f840f320fefd8cc6c7f98ee2ca9fb36d42b741b7b05ad091320",
-        "submission.js": "6119ce1314b0ea7626242259173c2b54c0d97c1dae4434cc9360a3b18e4ac392",
+        "submission.js": "aa43e47fe56d85ab10164e90e2a8f9c95ffa18e5c22fb59fea407fb313d526fd",
         "control-contract.js": "f3ca81ff97b3ea48318372ab2195d8d0c5a830deb3b2efebd749b283cb0657e3",
         "si5351.js": "c0325caa6eebb5281bfa92843011312dd9fb87d5adaed86a5bebb7c6a001e889",
         "gps.js": "1d9a53e7e89aa6e12da1c73c65229998d9f10bf2a290185e258bf7db2bc5ad29",
@@ -24,10 +24,10 @@
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "eee46ee321424f4d7834b9ef785bafd1bdbf89800d83904bb4880fc9edfb85bf",
-        "app.js": "d9c597fccf48d1e36574281f4ebcdd1f36142237f115a456c5fbd6030f844085"
+        "app.js": "4ee5caacabddabbe1725a61f21a96b77e25738d541c76707a825e328f21fed9c"
       },
-      "sha256": "f5f2a1b39d51768398c2470b775a3342df6c26658fd9ddf40a20b5b58eb33e3c",
-      "bytes": 295374
+      "sha256": "d01cde2c5231b834fea38976ea0d98b2b590c4d223ee2f5677807d692d39ce50",
+      "bytes": 295465
     },
     "config-validation.min.js": {
       "inputs": {

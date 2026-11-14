@@ -258,7 +258,7 @@ try {
     await click('access-close');await login();
     assert.equal(await evaluate('localAuthenticated && radio.authenticated'),true);
     assert.equal(await evaluate('document.getElementById("local-access").open'),false);
-    assert.equal(await evaluate('document.activeElement.id'),'access-toggle');
+    assert.notEqual(await evaluate('document.activeElement.id'),'access-toggle');
     pass('native modal focus, Escape, password refusal, scrub and authenticated success');
     await section('message-section');
     await evaluate('document.getElementById("message-text").value="DRAFT";document.getElementById("message-text").dispatchEvent(new Event("input",{bubbles:true}));globalThis.savedRequest=radio.request.bind(radio);globalThis.savedRead=radio.publicRead.bind(radio);globalThis.requestOrder=[];radio.publicRead=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations" && !globalThis.releaseRead)await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRead(...args)};radio.request=async(...args)=>{requestOrder.push(args[0]);if(args[0]==="operations" && !globalThis.releaseRead)await new Promise(resolve=>globalThis.releaseRead=resolve);return savedRequest(...args)};document.getElementById("refresh").click()');

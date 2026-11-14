@@ -37,7 +37,11 @@
       doc.querySelector?.('main')?.removeAttribute('aria-busy');
       const restore = panel?.contains(doc.activeElement);
       if (panel?.open) panel.close();
-      if (restore) {
+      if (token.focus === null) {
+        // A successful login can explicitly leave the page without a focused
+        // button, including when native dialog close restores its trigger.
+        doc.activeElement?.blur?.();
+      } else if (restore) {
         const intended = token.focus || focus;
         const target = intended?.isConnected && !intended.matches(':disabled') && !intended.closest('[hidden]') && intended.getClientRects().length ? intended : doc.getElementById('access-toggle');
         target?.focus({preventScroll: true});
@@ -72,7 +76,11 @@
       // Page lifecycle invalidates presentation only. It does not claim that a
       // dispatched write was cancelled or admit a second operation on restore.
       describe(text) { if (active && message) message.textContent = text; },
-      focus(node) { if (active) active.focus = node; else node?.focus({preventScroll:true}); },
+      focus(node) {
+        if (active) active.focus = node;
+        else if (node === null) doc.activeElement?.blur?.();
+        else node?.focus({preventScroll:true});
+      },
       suspend() { suspended = true; if (panel?.open) panel.close(); },
       resume() { suspended = false; if (active && !active.background) present(active); }
     };

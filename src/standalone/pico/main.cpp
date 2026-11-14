@@ -1619,6 +1619,15 @@ int main() {
             number_field(result, "bootstrap_recovery_slot_state",
                          setup_resources.recovery_slot_state);
             number_field(result, "bootstrap_pending_tcp_bytes", setup_resources.pending_tcp_bytes);
+            number_field(result, "bootstrap_http_accepted", setup_resources.http.accepted, true);
+            number_field(result, "bootstrap_http_capacity_refused",
+                         setup_resources.http.capacity_refused, true);
+            number_field(result, "bootstrap_http_completed", setup_resources.http.completed, true);
+            number_field(result, "bootstrap_http_incomplete_closes",
+                         setup_resources.http.incomplete_closes, true);
+            number_field(result, "bootstrap_http_deadlines", setup_resources.http.deadlines, true);
+            number_field(result, "bootstrap_http_write_errors", setup_resources.http.write_errors,
+                         true);
             const auto ble_resources = gatt.diagnostics();
             number_field(result, "ble_active_connections", ble_resources.connected ? 1 : 0);
             number_field(result, "ble_connection_capacity", 1);

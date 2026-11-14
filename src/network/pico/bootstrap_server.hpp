@@ -113,6 +113,7 @@ class PicoBootstrapServer {
         unsigned owner_slot_state = 0;
         unsigned recovery_slot_state = 0;
         std::size_t pending_tcp_bytes = 0;
+        PicoHttpServer::Diagnostics http;
     };
     Resources resources() const {
         Resources result;
@@ -121,6 +122,7 @@ class PicoBootstrapServer {
         result.recovery_pending = reset_pending_;
         result.recovery_slot_state = static_cast<unsigned>(recovery_slot_.state());
         result.pending_tcp_bytes = http_.pending_bytes();
+        result.http = http_.diagnostics();
         result.network_slot_state = static_cast<unsigned>(slot_.state());
         result.owner_slot_state = static_cast<unsigned>(owner_slot_.state());
         return result;

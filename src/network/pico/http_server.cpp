@@ -45,6 +45,8 @@ err_t PicoHttpServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     const auto interface = self.classify_(self.context_, pcb, true);
     if (interface == ConsumerInterface::None || slot == self.clients_.end() ||
         self.next_transaction_ == std::numeric_limits<std::uint64_t>::max()) {
+        if (slot == self.clients_.end())
+            ++self.diagnostics_.capacity_refused;
         tcp_abort(pcb);
         return ERR_ABRT;
     }
@@ -53,6 +55,7 @@ err_t PicoHttpServer::accept(void* context, tcp_pcb* pcb, err_t err) {
     slot->interface = interface;
     slot->transaction = self.next_transaction_++;
     slot->accepted_ms = time_us_64() / 1000;
+    ++self.diagnostics_.accepted;
     tcp_arg(pcb, &*slot);
     tcp_recv(pcb, receive);
     tcp_sent(pcb, sent);
@@ -67,6 +70,8 @@ err_t PicoHttpServer::receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t e
         if (packet)
             pbuf_free(packet);
         const bool success = delivered(client);
+        if (!success)
+            ++self.diagnostics_.incomplete_closes;
         return self.close(client, success) ? ERR_ABRT : ERR_OK;
     }
     // Header maps and string growth precede HttpParser's body admission gate.
@@ -105,12 +110,19 @@ err_t PicoHttpServer::receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t e
 err_t PicoHttpServer::sent(void* context, tcp_pcb*, u16_t count) {
     auto& client = *static_cast<Client*>(context);
     client.pending -= std::min<std::size_t>(count, client.pending);
+    // ACK and a following SYN may arrive in the same foreground network poll.
+    // Release a fully delivered task here so accept cannot reject that SYN
+    // while waiting for the next application poll to reclaim an idle slot.
+    if (delivered(client))
+        return client.owner->close(client, true) ? ERR_ABRT : ERR_OK;
     return ERR_OK;
 }
 
 void PicoHttpServer::error(void* context, err_t) {
     auto& client = *static_cast<Client*>(context);
     // lwIP already freed the PCB. ACK state, never a peer FIN/RST, proves delivery.
+    if (!delivered(client))
+        ++client.owner->diagnostics_.incomplete_closes;
     client.owner->close(client, delivered(client), true);
 }
 
@@ -121,6 +133,8 @@ bool PicoHttpServer::delivered(const Client& client) {
 
 bool PicoHttpServer::close(Client& client, bool success, bool freed) {
     bool aborted = false;
+    if (success)
+        ++diagnostics_.completed;
     const auto transaction = client.transaction;
     if (client.pcb && !freed) {
         tcp_arg(client.pcb, nullptr);
@@ -150,8 +164,10 @@ bool PicoHttpServer::close(Client& client, bool success, bool freed) {
 void PicoHttpServer::step(Client& client, std::uint64_t now) {
     if (!client.pcb)
         return;
-    if (classify_(context_, client.pcb, false) != client.interface ||
-        now - client.accepted_ms >= lifetime_ms) {
+    const bool expired = now - client.accepted_ms >= lifetime_ms;
+    if (classify_(context_, client.pcb, false) != client.interface || expired) {
+        if (expired)
+            ++diagnostics_.deadlines;
         close(client, delivered(client));
         return;
     }
@@ -181,6 +197,7 @@ void PicoHttpServer::step(Client& client, std::uint64_t now) {
     if (result == ERR_MEM)
         return;
     if (result != ERR_OK) {
+        ++diagnostics_.write_errors;
         close(client, false);
         return;
     }

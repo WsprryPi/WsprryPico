@@ -33,6 +33,13 @@ class PicoHttpServer {
     std::size_t connections() const;
     std::size_t pending_bytes() const;
     bool reply_active() const;
+    struct Diagnostics {
+        std::uint64_t accepted = 0, capacity_refused = 0, completed = 0;
+        std::uint64_t incomplete_closes = 0, deadlines = 0, write_errors = 0;
+    };
+    const Diagnostics& diagnostics() const {
+        return diagnostics_;
+    }
 
   private:
     struct Client {
@@ -61,6 +68,7 @@ class PicoHttpServer {
     std::array<Client, capacity> clients_;
     std::size_t first_ = 0;
     std::uint64_t next_transaction_ = std::uint64_t{1} << 63;
+    Diagnostics diagnostics_;
 };
 
 // Fixed task metadata is separate from bounded parser bodies and lwIP pools.

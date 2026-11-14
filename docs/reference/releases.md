@@ -10,8 +10,10 @@ RC.3 adds gray-line scheduling and improves setup, recovery, and USB installatio
 - Recovery navigation is available from the AP interface and authenticated Advanced Wi-Fi controls, with contextual help. The firmware-preserving settings reset is labelled **User wipe**.
 - Scheduling controls and the presentation of unset calibration and gray-line settings are clearer.
 - USB installation provides clearer picotool diagnostics and Linux permission handling, including optional sudo limited to picotool operations. Installation instructions clarify BOOTSEL, native Windows UF2 use, and USB troubleshooting.
+- AP unlocking allows the normal request deadline when establishing browser time, and the HTTP server releases acknowledged responses promptly so following requests can connect. HTTP connection diagnostics are available through the USB console.
+- Locked and unlocked controls use equally bold red and green borders. Successful unlocking clears button focus; keyboard navigation retains its visible focus indicator.
 
-The canonical build passed all 235 registered tests with zero failures or skips and reproduced identical firmware. Production Pi/Pico network and USB integration checks passed. Physical installation, upgrade preservation, timing, and RF qualification of this exact image were not performed. Si5351 automatic correction remains experimental.
+The linked release build records the canonical software checks and firmware reproducibility result. Production Pi/Pico network and USB integration checks passed for the AP unlock changes. Development firmware was installed and preserving upgrades were verified on Pico C. Physical installation, iPhone automatic Wi-Fi sign-in, timing, and RF qualification of this exact published release image remain unverified. Si5351 automatic correction remains experimental.
 
 I²C LPF output control remains planning only and is not included in RC.3. See [scheduling configuration](../configure.md#gray-line-scheduling), [maintenance and recovery](../maintain.md), and [installation and preserving upgrades](../install.md).
 

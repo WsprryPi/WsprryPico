@@ -199,11 +199,11 @@ function renderAccess() {
     authenticated ? 'Controls unlocked in this browser.' : 'Controls locked.';
   $('login-submit').disabled=uiBusy() || accessLoginPending || accessClosing;
 }
-function closeAccess() {
+function closeAccess(returnFocus = true) {
   if(accessLoginPending) ++accessEpoch;
   clearPassword('local-password'); clearPassword('retirement-password');
   if($('local-access').open) $('local-access').close();
-  submissions.focus($('access-toggle'));
+  submissions.focus(returnFocus === false ? null : $('access-toggle'));
   renderAccess();
 }
 function openAccess() {
@@ -1333,7 +1333,7 @@ $('local-login').onsubmit = event => {
       localAuthenticated=true; localLocked=false;
       $('local-login').hidden=true; $('local-logout').hidden=false;
       $('local-status').textContent='Controls unlocked in this browser.';
-      closeAccess();
+      closeAccess(false);
       if(localIdentity.surface==='provisioned_preclock') await supplyPhoneTime();
       lastBrowserTimeRefresh = 0;
       await updateFieldTime(true);
@@ -2363,7 +2363,10 @@ async function updateFieldTime(readSettings = false) {
   if (lastBrowserTimeRefresh && now >= lastBrowserTimeRefresh && now-lastBrowserTimeRefresh < 30000) return;
   lastBrowserTimeRefresh = now;
   const read = async (path, method='GET', body) => {
-    const response = await radio.request(path,method,body,undefined,2000);
+    // Use the normal bounded request deadline. A short time-only fetch timeout
+    // can discard an already accepted sequence and retire a fresh AP login.
+    // The Pico independently rejects stale samples; waiting does not grant UTC.
+    const response = await radio.request(path,method,body);
     const value = await response.json();
     if (!response.ok) throw new Error(value.error?.code || 'Browser time update was not accepted');
     return checkedField(value,'browser-time',['source','clock_state','age_ns','uncertainty_ns','disagreement']);
