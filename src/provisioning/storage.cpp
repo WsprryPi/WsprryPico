@@ -327,9 +327,8 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
         (source_ == ProfileSource::ConsumerProfile && source != ProfileSource::ConsumerProfile &&
          source != ProfileSource::Unprovisioned) ||
         (source == ProfileSource::NetworkOnly &&
-         ((source_ != ProfileSource::NetworkOnly && !((source_ == ProfileSource::Unprovisioned ||
-                                                       source_ == ProfileSource::LegacyBootstrap) &&
-                                                      sequence_ == 0)) ||
+         ((source_ != ProfileSource::NetworkOnly && source_ != ProfileSource::Unprovisioned &&
+           !(source_ == ProfileSource::LegacyBootstrap && sequence_ == 0)) ||
           !valid_network_payload(canonical_profile))) ||
         (source == ProfileSource::ConsumerProfile &&
          (!((source_ == ProfileSource::LegacyBootstrap && sequence_ == 0) ||

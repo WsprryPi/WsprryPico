@@ -17,6 +17,7 @@
 #include "network/pico/bootstrap_server.hpp"
 #include "provisioning/field_runtime.hpp"
 #include "provisioning/pico/consumer_claim_platform.hpp"
+#include "provisioning/reset_storage.hpp"
 #endif
 
 #include <cstring>
@@ -314,6 +315,57 @@ struct Driver {
     provisioning::PicoConsumerClaimPlatform platform{network};
     unsigned restarts = 0;
     unsigned recovery_requests = 0;
+    struct RecoveryBonds : provisioning::BondStore {
+        bool erase(std::uint64_t) override {
+            return true;
+        }
+        bool erase_all() override {
+            return true;
+        }
+    } recovery_bonds;
+    std::optional<provisioning::ResetStorageTargets> recovery_targets;
+    std::optional<provisioning::ResetCoordinator> recovery_coordinator;
+    void real_recovery() {
+        f.store.progress(progress);
+        recovery_targets.emplace(
+            f.store, f.flash, media, recovery_bonds,
+            +[](void* context) {
+                auto& service = *static_cast<wtp::JobService*>(context);
+                const auto a = service.activity();
+                return provisioning::Activity{a.owned,
+                                              !service.maintenance(),
+                                              a.output_active,
+                                              a.state == wtp::State::Armed,
+                                              a.state == wtp::State::Running,
+                                              a.state == wtp::State::Failed};
+            },
+            &f.service);
+        recovery_targets->udp_logging(udp_store);
+        provisioning::LocalIdentity identity;
+        identity.default_password = "default-password";
+        recovery_coordinator.emplace(access, profiles, *recovery_targets, identity);
+        server.configure_recovery(f.service.status().boot_id, access, random);
+        server.reset_control(
+            +[](provisioning::ResetLevel level, const wtp::PayloadDigest& digest, void* context) {
+                auto& self = *static_cast<Driver*>(context);
+                if (!self.f.scheduler.idle() ||
+                    !provisioning::idle_for_access(self.recovery_targets->activity()))
+                    return provisioning::ResetResult::Busy;
+                if (self.access.state() == provisioning::AccessStoreState::Erased) {
+                    provisioning::AccessRecord record;
+                    record.epoch = 1;
+                    record.password = "default-password";
+                    const auto initialized = self.access.initialize(record);
+                    provisioning::scrub(record);
+                    if (!initialized)
+                        return provisioning::ResetResult::StorageFault;
+                }
+                ++self.recovery_requests;
+                return self.recovery_coordinator->begin(
+                    level, provisioning::ProfileSource::Unprovisioned, digest);
+            },
+            this);
+    }
     PicoBootstrapServer server{device, "p158-host",
                                +[](const tcp_pcb* p, void*) { return p->interface == 1; }, this};
     bool page_setup = true, production_listeners = false;
@@ -783,6 +835,60 @@ struct Driver {
             poll_server();
             return "{}";
         }
+        if (op == "saved_setup_fault") {
+            media = Media{};
+            check(profiles.load());
+            check(profiles.select(provisioning::ProfileSource::Unprovisioned));
+            check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
+            // Erased access cannot authorize a nonzero profile. This gives the
+            // actual wizard its fault response, while recovery remains usable.
+            access_media = AccessMedia{};
+            check(access.load());
+            radio.admission(false);
+            page_setup = true;
+            real_recovery();
+            if (const auto corrupt = v.get("corrupt"); corrupt && corrupt->boolean()) {
+                media.bytes.fill(0);
+                check(!profiles.load());
+                f.flash.bytes[0] ^= 1;
+                check(!f.store.load());
+            }
+            poll_server();
+            return "{}";
+        }
+        if (op == "finish_user_wipe") {
+            check(recovery_coordinator && recovery_coordinator->pending());
+            check(recovery_coordinator->resume() == provisioning::ResetResult::Complete);
+            return "{}";
+        }
+        if (op == "setup_access_state") {
+            provisioning::AccessRecord record;
+            record.epoch = 1;
+            record.password = "default-password";
+            check(access.initialize(record));
+            const auto variant = field(v, "variant");
+            if (variant == "password") {
+                record.default_password = false;
+                record.password = "changed-password";
+            } else if (variant == "field")
+                record.field_mode = true;
+            else if (variant == "bond") {
+                record.bond_count = 1;
+                record.bonds[0] = 1;
+            } else if (variant == "radio")
+                record.radio_password = "radio-password";
+            else if (variant == "pending") {
+                record.reset.level = provisioning::ResetLevel::Full;
+                record.reset.phase = provisioning::ResetPhase::Intent;
+                record.reset.target_source = provisioning::ProfileSource::Unprovisioned;
+                record.reset.request_digest.fill(1);
+            } else
+                check(variant == "default");
+            check(access.replace(record));
+            provisioning::scrub(record);
+            poll_server();
+            return "{}";
+        }
         if (op == "page_profile") {
             const auto mode = field(v, "mode");
             if (mode != "unavailable" && mode != "storage-fault") {
@@ -790,8 +896,8 @@ struct Driver {
                 check(profiles.load());
             }
             // Virgin blank setup requires an erased generation-zero journal.
-            // Selecting an Unprovisioned tombstone creates generation one and
-            // correctly fails the production blank-authority gate instead.
+            // A generation-one tombstone also needs reset-default access;
+            // erased access alone cannot authorize it as a virgin device.
             if (mode == "blank" || mode == "recovery")
                 network.linked = false;
             else if (mode == "network" || mode == "network-recovery") {

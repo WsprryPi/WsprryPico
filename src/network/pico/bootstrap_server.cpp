@@ -646,16 +646,22 @@ void PicoBootstrapServer::configure(
 
 bool PicoBootstrapServer::blank_authority() const {
     if (!access_ || !profile_ || !random_ || !network_ || !indicator_ || !profile_->healthy() ||
-        profile_->sequence() != 0 ||
+        profile_->sequence() == std::numeric_limits<std::uint64_t>::max() ||
+        (profile_->source() == provisioning::ProfileSource::LegacyBootstrap &&
+         profile_->sequence() != 0) ||
         (profile_->source() != provisioning::ProfileSource::Unprovisioned &&
          profile_->source() != provisioning::ProfileSource::LegacyBootstrap) ||
         !profile_->data().empty() || default_password_.empty())
         return false;
     if (access_->state() == provisioning::AccessStoreState::Erased)
-        return true;
+        return profile_->sequence() == 0;
     const auto* record = access_->record();
-    return record && !record->reset.pending() && !record->field_mode && record->bond_count == 0 &&
-           record->default_password && record->password == default_password_;
+    // A completed reset leaves a durable Unprovisioned tombstone rather than
+    // a generation-zero journal. Only reset-default access can commission it;
+    // erased access beside a nonzero profile must not grant blank authority.
+    return access_->healthy() && record && !record->reset.pending() && !record->field_mode &&
+           record->bond_count == 0 && record->radio_password.empty() && record->default_password &&
+           record->password == default_password_;
 }
 
 bool PicoBootstrapServer::network_setup_authority() const {

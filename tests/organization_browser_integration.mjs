@@ -412,6 +412,27 @@ try {
     await cdp.evaluate(`document.querySelector('a[href="/recovery.html"]').click()`);
     await until(()=>cdp.evaluate(`location.pathname==='/recovery.html' && !!document.getElementById('full') && !document.getElementById('full').disabled`),'storage fault recovery link opens available reset choices');
     assert.equal((await f.command({op:'stats'})).recovery_requests,resetsBeforeFault,'opening recovery does not request a reset');
+    await cdp.send('Page.navigate',{url:'about:blank'});await f.stop();
+    f=await h.fixture(process.argv[2]);await f.time(1000);
+    await f.command({op:'saved_setup_fault'});
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+    await until(()=>cdp.evaluate(`!!document.getElementById('service') && !document.getElementById('service').hidden`),'saved setup fault screen');
+    await capture('saved-setup-fault');
+    await click('setup-fault-recovery');
+    await until(()=>cdp.evaluate(`location.pathname==='/recovery.html' && !!document.getElementById('full') && !document.getElementById('full').disabled`),'wizard fault opens recovery independently of setup status');
+    assert.equal((await f.command({op:'stats'})).recovery_requests,0);
+    await click('full');
+    assert.equal(await cdp.evaluate(`document.getElementById('execute').disabled`),true);
+    await click('confirm-one');await click('confirm-two');await field('phrase','erase');
+    await capture('saved-setup-wipe-confirmation');
+    await cdp.evaluate(`document.getElementById('reset-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`document.getElementById('notice').textContent.includes('User wipe accepted')`),'real reset coordinator accepts confirmed User wipe');
+    assert.equal((await f.command({op:'stats'})).recovery_requests,1);
+    await f.command({op:'finish_user_wipe'});await f.command({op:'reboot'});await f.time(2000);
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+    await until(()=>cdp.evaluate(`!!document.getElementById('credentials') && !document.getElementById('credentials').hidden && !document.getElementById('submit').disabled`),'User wipe returns to usable first-time Wi-Fi setup');
+    assert.equal(await cdp.evaluate(`document.getElementById('service').hidden`),true);
+    await capture('user-wipe-fresh-setup');
     // Reset effects are a RAM-only callback; never a physical Pico. Exercise
     // accepted and lost-submit UI states through the production encrypted path.
     for(const lost of [false,true]) {

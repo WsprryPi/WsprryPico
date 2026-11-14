@@ -2,6 +2,8 @@
 
 ## Implementation and resource policy
 
+The AP recovery page and encrypted User wipe exchange remain independent of Wi-Fi setup validation. Setup fault screens link directly to recovery. A completed reset retains a nonzero-generation Unprovisioned profile tombstone; Wi-Fi commissioning accepts it only with healthy reset-default access, no pending reset, no field mode, no bonds, and no custom radio password. Erased access authorizes only a generation-zero profile. Profile storage permits a validated NetworkOnly replacement after an Unprovisioned tombstone while preserving generation increments, payload validation, and refusal to downgrade other configured sources.
+
 `PicoHttpServer` provides two fixed cooperative connection tasks on core 0. It uses no OS threads or RTOS. Raw lwIP callbacks parse/record input and ACKs; foreground polling dispatches application requests and streams replies. Crypto, BrowserApi, JobService, the scheduler, revision checks, and flash commits retain their one serialized owner. Core 1 remains dedicated to the RF worker.
 
 | Resource | Bound/behavior |

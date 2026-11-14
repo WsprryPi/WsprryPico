@@ -4,9 +4,45 @@ import assert from 'node:assert/strict';
 import {Fixture} from './consumer_sessions.test.mjs';
 import {fixtureHttpBody} from './fixture_http_body.mjs';
 import {begin as beginWifi,seal as sealWifi} from '../src/network/bootstrap_web/crypto.js';
+import {recoveryKey,recoverySeal} from '../src/network/bootstrap_web/recovery-crypto.js';
 import {p256} from '../src/network/bootstrap_web/node_modules/@noble/curves/nist.js';
 globalThis.WsprryPicoOwnerKey={keygen:()=>p256.keygen(),getPublicKey:(key,compressed)=>p256.getPublicKey(key,compressed)};
 async function run(name,fn,args=[]){const f=new Fixture(process.argv[2],args);try{await f.time(1000);await fn(f);console.log('PASS '+name);}finally{await f.stop();}}
+for(const variant of ['default','password','field','bond','radio','pending']) await run(`Reset tombstone commissioning requires reset-default access: ${variant}`,async f=>{
+ await f.command({op:'saved_setup_fault'});await f.command({op:'setup_access_state',variant});
+ const status=await(await f.fetch('192.168.4.1',true,'/api/bootstrap/v1/status')).json();
+ assert.equal(status.source,variant==='default'?'unprovisioned':'fault');
+ if(variant!=='default') {
+  const before=await f.command({op:'stats'}),pending=beginWifi();
+  const response=await f.fetch('192.168.4.1',true,'/api/bootstrap/v1/start',{method:'POST',marker:'Bootstrap',body:JSON.stringify({version:1,device_id:'1'.repeat(32),browser_public_key:pending.browserPublicKey,request_nonce:pending.requestNonce})});
+  pending.secretKey.fill(0);assert.ok(response.status>=400);
+  assert.equal((await f.command({op:'stats'})).profile_programs,before.profile_programs);
+ }
+});
+for(const corrupt of [false,true]) await run(`User wipe repairs ${corrupt?'corrupt journals':'saved setup fault'} and permits Wi-Fi setup after reboot`,async f=>{
+ const setup=async(path,body)=>f.fetch('192.168.4.1',true,path,{method:body?'POST':'GET',marker:'Bootstrap',body:body?JSON.stringify(body):undefined});
+ await f.command({op:'saved_setup_fault',corrupt});
+ if(!corrupt) assert.equal((await(await setup('/api/bootstrap/v1/status')).json()).source,'fault','nonzero profile with erased access does not grant commissioning');
+ else assert.equal((await setup('/api/bootstrap/v1/status')).status,409);
+ const identity=await(await setup('/api/recovery/v1/status')).json();
+ assert.equal(identity.pending,false);
+ const key=recoveryKey();
+ const start=await(await setup('/api/recovery/v1/start',{version:1,device_id:identity.device_id,browser_public_key:key.public,request_nonce:key.nonce})).json();
+ const sealed=recoverySeal(key,start,identity.device_id,'erase');key.secret.fill(0);
+ const result=await setup('/api/recovery/v1/submit',sealed);
+ assert.equal(result.status,200);assert.equal((await result.json()).state,'reset_pending');
+ assert.equal((await(await setup('/api/recovery/v1/status')).json()).pending,true);
+ await f.command({op:'finish_user_wipe'});await f.command({op:'reboot'});await f.time(2000);
+ const status=await(await setup('/api/bootstrap/v1/status')).json();
+ assert.equal(status.source,'unprovisioned');assert.equal(status.generation,1);
+ const pending=beginWifi();
+ const grant=await(await setup('/api/bootstrap/v1/start',{version:1,device_id:identity.device_id,browser_public_key:pending.browserPublicKey,request_nonce:pending.requestNonce})).json();
+ const attempt=sealWifi(pending,grant,identity.device_id,'Home Wi-Fi','test-password',{timeServer:'pool.ntp.org'});
+ assert.equal((await setup('/api/bootstrap/v1/submit',attempt.submit)).status,200);
+ await f.time(6000);await f.time(7000);
+ const saved=await(await setup('/api/bootstrap/v1/status')).json();
+ assert.equal(saved.source,'network_only',JSON.stringify(saved));assert.equal(saved.generation,2);assert.equal(saved.request_id_digest,attempt.requestDigest);
+});
 await run('Initial hostname commits with Wi-Fi, survives reboot, and remains through a Wi-Fi replacement',async f=>{
  const setup=async(path,body)=>f.fetch('192.168.4.1',true,path,{method:body?'POST':'GET',marker:'Bootstrap',body:body?JSON.stringify(body):undefined});
  const id=await(await setup('/local/v1/identity')).json();

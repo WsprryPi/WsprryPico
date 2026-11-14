@@ -83,6 +83,8 @@ If the Pico password is forgotten, request setup Wi-Fi with the [external button
 
 A user wipe resets user settings to fresh-setup defaults. It does not make every flash byte blank or promise forensic sanitization. Hardware identity and internal reset/access bookkeeping remain, and existing backups on computers are unaffected. It does not download, upgrade, or reinstall firmware.
 
+If Wi-Fi setup reports that it could not verify its saved setup state, choose **Open recovery and reset options** on that error screen. Recovery opens independently of saved setup validation. Choose **User wipe…**, review the settings that will be cleared, check both acknowledgments, and type the confirmation phrase shown. After the confirmed wipe and restart, reconnect to setup Wi-Fi to enter the new network details.
+
 The public recovery page is served at **http://192.168.4.1/recovery.html** during an available setup window. Infrastructure recovery uses the encrypted, password-authenticated browser session; the public recovery endpoints remain unavailable over infrastructure Wi-Fi. A configured protected AP requires its Pico password to join. If that password is forgotten, request a deliberate recovery window through the physical button or USB Console; a blank device or deliberate recovery window can expose open commissioning. Anyone able to access an open recovery window can use these recovery actions. The two checkboxes and typed confirmation phrase prevent accidents; they do not authenticate the operator. Keep transmission stopped. BOOTSEL is an installation gesture, not a runtime password reset button.
 
 For deliberate USB full flash erase, identify the USB serial first, then replace `USB_SERIAL` with that exact selected serial:

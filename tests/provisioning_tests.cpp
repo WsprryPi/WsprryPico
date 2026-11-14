@@ -1584,7 +1584,10 @@ void network_only_source_and_recovery() {
     CHECK(tombstone.load());
     CHECK(tombstone.select(provisioning::ProfileSource::Unprovisioned));
     CHECK(tombstone.sequence() == 1);
-    CHECK(!tombstone.select(provisioning::ProfileSource::NetworkOnly, payload));
+    CHECK(!tombstone.select(provisioning::ProfileSource::NetworkOnly, "{}"));
+    CHECK(tombstone.sequence() == 1);
+    CHECK(tombstone.select(provisioning::ProfileSource::NetworkOnly, payload));
+    CHECK(tombstone.sequence() == 2);
 
     MemoryMedia interrupted_media;
     provisioning::ProfileStore first(interrupted_media);
