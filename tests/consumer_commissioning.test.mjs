@@ -125,7 +125,8 @@ for(const delivered of [false,true])await run(`real station commissioning ${deli
 await run('failed station trial keeps exact receipt and accepts corrected explicit retry before terminal expiry',async f=>{
  const a=f.client();await f.login(a);const attempt=await a.prepareStation(await a.identity(),{callsign:'K1ABC',locator:'FN42',powerDbm:30});
  const before=await f.command({op:'stats'});f.holdNext=true;await a.submitSetup(attempt);const socket=f.socket;
- await f.command({op:'ack',socket,bytes:'65535'});await f.time(1000);await f.command({op:'bench_network',linked:false,safe:true,start_ok:false});await f.time(2000);
+ // Final ACK completes delivery immediately; fail the trial before releasing it.
+ await f.command({op:'bench_network',linked:false,safe:true,start_ok:false});await f.command({op:'ack',socket,bytes:'65535'});await f.time(1000);await f.time(2000);
  const failed=await f.command({op:'stats'});assert.equal(failed.profile_generation,before.profile_generation);assert.equal(failed.profile_programs,before.profile_programs);assert.notEqual(failed.owner_slot,0);
  await f.command({op:'bench_network',linked:true,safe:true,start_ok:true});await assert.rejects(a.request('status'));await f.time(3000);await f.login(a);
  assert.equal(await a.checkSetup(attempt),'failed');
