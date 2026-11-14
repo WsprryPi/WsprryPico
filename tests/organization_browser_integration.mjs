@@ -398,6 +398,20 @@ try {
     assert.equal(await cdp.evaluate(`document.forms.length`),0);
     assert.equal(await cdp.evaluate('document.documentElement.lang'),'en');
     await capture('unavailable-recovery');
+    // Use a separate boot: the preceding reset callback intentionally leaves
+    // its fixture pending, whereas this scenario starts with damaged storage.
+    await cdp.send('Page.navigate',{url:'about:blank'});await f.stop();
+    f=await h.fixture(process.argv[2]);await f.time(1000);
+    const resetsBeforeFault=(await f.command({op:'stats'})).recovery_requests;
+    await f.command({op:'page_profile',mode:'storage-fault'});
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
+    await until(()=>cdp.evaluate(`document.body.innerText.includes('saved storage failed validation')`),'storage fault guidance');
+    assert.equal(await cdp.evaluate('document.forms.length'),0);
+    assert.equal(await cdp.evaluate(`document.body.innerText.includes('clears all saved user settings')`),true);
+    await capture('storage-fault-recovery');
+    await cdp.evaluate(`document.querySelector('a[href="/recovery.html"]').click()`);
+    await until(()=>cdp.evaluate(`location.pathname==='/recovery.html' && !!document.getElementById('full') && !document.getElementById('full').disabled`),'storage fault recovery link opens available reset choices');
+    assert.equal((await f.command({op:'stats'})).recovery_requests,resetsBeforeFault,'opening recovery does not request a reset');
     // Reset effects are a RAM-only callback; never a physical Pico. Exercise
     // accepted and lost-submit UI states through the production encrypted path.
     for(const lost of [false,true]) {

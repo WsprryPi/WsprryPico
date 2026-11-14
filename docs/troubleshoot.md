@@ -1,5 +1,9 @@
 # Troubleshoot
 
+## Setup reports a saved-storage fault
+
+If setup reports that saved storage failed validation, data left by previous firmware or damaged saved settings may be blocking setup. Follow **Open recovery and reset options**, or open **http://192.168.4.1/recovery.html** while connected to the Pico's setup Wi-Fi. **User wipe** clears all saved user settings and keeps the installed firmware; read its confirmations before proceeding. See [maintenance and recovery](maintain.md) for reset choices and USB recovery if the browser action cannot complete.
+
 ## Pico answers ping but the browser cannot open its page
 
 After Wi-Fi setup, the Pico serves its control page on its home-network IP address over **HTTP on port 80**. Station details are not needed to open the page or sign in. A ping reply does not prove the web service is working. Try these checks in order:

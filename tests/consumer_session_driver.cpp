@@ -326,7 +326,7 @@ struct Driver {
             radio.admission(runtime.control_healthy(profiles) &&
                             runtime.consumer_browser_selected(profiles));
         const bool station = !production_listeners || (radio.available() && network.link_up());
-        server.poll(true, true, page_setup, station, true);
+        server.poll(true, true, page_setup && f.store.healthy(), station, true, f.store.healthy());
     }
     unsigned connections() const {
         return server.resources().connected ? 1 : 0;
@@ -785,7 +785,7 @@ struct Driver {
         }
         if (op == "page_profile") {
             const auto mode = field(v, "mode");
-            if (mode != "unavailable") {
+            if (mode != "unavailable" && mode != "storage-fault") {
                 media = Media{};
                 check(profiles.load());
             }
@@ -800,13 +800,18 @@ struct Driver {
                                       provisioning::serialize_network_profile(
                                           {device, "Home Net", "test-password"})));
             } else
-                check(mode == "unavailable");
-            page_setup = mode != "unavailable";
-            if (mode != "unavailable")
+                check(mode == "unavailable" || mode == "storage-fault");
+            page_setup = mode != "unavailable" && mode != "storage-fault";
+            if (mode == "storage-fault") {
+                f.flash.bytes[0] ^= 1;
+                check(!f.store.load());
+            }
+            if (mode != "unavailable" && mode != "storage-fault")
                 check(runtime.load(profiles, device, provisioning::BuildBundleState::Absent));
-            radio.admission(mode != "unavailable" && runtime.control_healthy(profiles) &&
+            radio.admission(mode != "unavailable" && mode != "storage-fault" &&
+                            runtime.control_healthy(profiles) &&
                             runtime.consumer_browser_selected(profiles));
-            if (mode == "recovery" || mode == "network-recovery") {
+            if (mode == "recovery" || mode == "network-recovery" || mode == "storage-fault") {
                 server.configure_recovery(f.service.status().boot_id, access, random);
                 server.reset_control(
                     +[](provisioning::ResetLevel, const wtp::PayloadDigest&, void* context) {

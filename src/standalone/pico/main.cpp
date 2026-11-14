@@ -2502,7 +2502,8 @@ int main() {
 #endif
 #endif
         bootstrap.poll(bootstrap_active, claim_platform.safe_to_commit(), setup_admitted,
-                       consumer_station, !softap_coordinator.status(field_now_ms).draining);
+                       consumer_station, !softap_coordinator.status(field_now_ms).draining,
+                       store.healthy());
         network.consumer_listener_status(consumer_station && bootstrap.listening());
         const bool softap_service_ready =
             softap.ready() &&

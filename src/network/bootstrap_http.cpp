@@ -6,7 +6,7 @@
 namespace wsprrypico::network {
 HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_view device,
                                      std::string_view firmware, bool setup_enabled, bool owner_page,
-                                     bool recovery_page) {
+                                     bool recovery_page, bool storage_healthy) {
     if (request.method != "GET")
         return http_error(405, "read_only");
     if (request.header("host") != "192.168.4.1") {
@@ -57,12 +57,24 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
             "recovery</title><link rel=icon type=\"image/x-icon\" href=\"/favicon.ico\"><link "
             "rel=stylesheet href='/style.css'><body>"
             "<header><strong>WsprryPico</strong><span>Recovery</span></header><main>"
-            "<h1>Setup is unavailable</h1><p>This profile provides device identity "
-            "and USB Console recovery.</p><p>Connect this Pico to a computer with "
-            "a USB data cable. Open its Console serial interface and send "
-            "<code>INFO</code> to inspect device identity and provisioning diagnostics. "
-            "Use the identity below when following the recovery instructions.</p><p>"
-            "Device: <code>" +
+            "<h1>Setup is unavailable</h1>" +
+                std::string(storage_healthy
+                                ? ""
+                                : "<p><strong>Saved settings could not be read.</strong> "
+                                  "Setup is blocked because saved storage failed validation. "
+                                  "Data left by previous firmware or damaged settings can cause "
+                                  "this.</p>") +
+                (recovery_page
+                     ? "<p><a href=\"/recovery.html\">Open recovery and reset options</a></p>"
+                       "<p>To start fresh, choose <strong>User wipe</strong> in recovery. "
+                       "This clears all saved user settings and keeps the installed firmware.</p>"
+                     : "") +
+                "<p>This profile provides device identity "
+                "and USB Console recovery.</p><p>Connect this Pico to a computer with "
+                "a USB data cable. Open its Console serial interface and send "
+                "<code>INFO</code> to inspect device identity and provisioning diagnostics. "
+                "Use the identity below when following the recovery instructions.</p><p>"
+                "Device: <code>" +
                 std::string(device) + "</code></p><p>Firmware: <code>" + std::string(firmware) +
                 "</code></p></main></body></html>",
             "text/html; charset=utf-8",

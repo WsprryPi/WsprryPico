@@ -78,7 +78,7 @@ try {
  assert.equal(captive.response.status,302);assert.equal(captive.response.headers.get('location'),'http://192.168.4.1/');
  const post=await complete(f,'captive.apple.com',true,'/wifi-host',{method:'POST'});
  assert.equal(post.response.status,405);assert.equal(post.response.headers.get('location'),null);
- for(const mode of ['blank','network','unavailable']) {
+ for(const mode of ['blank','network','unavailable','storage-fault']) {
    await f.command({op:'page_profile',mode});
    const image=await f.fetch('192.168.4.1',true,'/favicon.ico');
    assert.equal(image.status,200);assert.equal(image.headers.get('content-type'),'image/x-icon');
@@ -90,8 +90,19 @@ try {
      assert.equal(root.response.headers.get('location'),'/wifi-host');
      for(const route of ['/station','/radio','/wifi-host','/owner.html'])
        assert.match((await complete(f,'192.168.4.1',true,route)).html,/id="consumer-station-form"/);
+   } else if(mode==='storage-fault') {
+     assert.match(root.html,/saved storage failed validation/);
+     assert.match(root.html,/href="\/recovery.html"/);
+     assert.match(root.html,/clears all saved user settings/);
+     assert.match(root.html,/keeps the installed firmware/);
+     assert.ok(!root.html.includes('<form'));
+     for(const route of ['/index.html','/wifi-host','/station','/radio','/owner.html'])
+       assert.match((await complete(f,'192.168.4.1',true,route)).html,/saved storage failed validation/);
+     assert.equal((await complete(f,'192.168.4.1',true,'/recovery.html')).response.status,200);
+     assert.equal((await complete(f,'192.168.4.1',true,'/api/bootstrap/v1/status')).response.status,409);
    } else if(mode==='unavailable') {
      assert.ok(!root.html.includes('<form'));assert.match(root.html,/USB Console recovery/);
+     assert.doesNotMatch(root.html,/saved storage failed validation/);
    } else {
      assert.match(root.html,/id="wifi-form"/);
      assert.ok(!root.html.includes('id="owner-form"'));

@@ -59,7 +59,7 @@ class PicoBootstrapServer {
 #endif
     void poll(bool active, bool mutation_safe = false,
               bool setup_admitted = default_setup_admission, bool station_active = false,
-              bool ap_accepting = true);
+              bool ap_accepting = true, bool storage_healthy = true);
     void station_classifier(InterfaceClassifier classifier, void* context) {
         station_classifier_ = classifier;
         station_classifier_context_ = context;
@@ -194,6 +194,7 @@ class PicoBootstrapServer {
     std::array<std::uint8_t, 32> ack_verifier_{};
     bool mutation_safe_ = false;
     bool setup_admitted_ = default_setup_admission;
+    bool storage_healthy_ = true;
     provisioning::ConsumerClaimSlot owner_slot_;
     PicoOwnerClaimCrypto owner_crypto_;
     OwnerClaimCredentials owner_trial_;

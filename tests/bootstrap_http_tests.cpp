@@ -46,6 +46,18 @@ int main() {
     assert(page.find("Content-Security-Policy:") != std::string::npos);
     assert(page.find("<form") == std::string::npos);
     assert(page.find("password") == std::string::npos);
+    assert(page.find("saved storage failed validation") == std::string::npos);
+    assert(page.find("href=\"/recovery.html\"") == std::string::npos);
+    for (const bool healthy : {false, true}) {
+        const auto recovery = wsprrypico::network::bootstrap_http_response(
+            page_request.request(), "device-id", "firmware", false, false, true, healthy);
+        const auto html = recovery.body_text();
+        assert(html.find("href=\"/recovery.html\"") != std::string::npos);
+        assert((html.find("saved storage failed validation") != std::string::npos) == !healthy);
+        assert(html.find("clears all saved user settings") != std::string::npos);
+        assert(html.find("keeps the installed firmware") != std::string::npos);
+        assert(html.find("<form") == std::string::npos);
+    }
 
     const auto setup = wsprrypico::network::bootstrap_http_response(page_request.request(),
                                                                     "device-id", "firmware", true);

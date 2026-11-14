@@ -277,9 +277,9 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
              request.path.starts_with("/api/owner/v1/claim/"))
         response_ = owner_mutation(request);
     else
-        response_ =
-            bootstrap_http_response(request, device_, firmware_, ap_active_ && ap_setup_admitted_,
-                                    ap_active_ && ap_setup_admitted_, active_ && reset_begin_);
+        response_ = bootstrap_http_response(
+            request, device_, firmware_, ap_active_ && ap_setup_admitted_,
+            ap_active_ && ap_setup_admitted_, active_ && reset_begin_, storage_healthy_);
     if (response_.status == 200 && (request.path.starts_with("/api/bootstrap/v1/") ||
                                     request.path.starts_with("/api/owner/v1/")))
         remember_setup_reply(request, radio_transaction_);
@@ -387,7 +387,8 @@ void PicoBootstrapServer::stop() {
 }
 
 void PicoBootstrapServer::poll(bool active, bool mutation_safe, bool setup_admitted,
-                               bool station_active, bool ap_accepting) {
+                               bool station_active, bool ap_accepting, bool storage_healthy) {
+    storage_healthy_ = storage_healthy;
     ap_active_ = active;
     station_active_ = station_active;
     ap_accepting_ = ap_accepting;
