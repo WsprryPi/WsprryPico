@@ -149,7 +149,8 @@ struct Harness {
         if (!pcb.closed && pcb.pending) {
             const auto pending = pcb.pending;
             pcb.pending = 0;
-            check(pcb.sent(pcb.arg, &pcb, pending) == ERR_OK);
+            const auto result = pcb.sent(pcb.arg, &pcb, pending);
+            check(result == (pcb.aborted ? ERR_ABRT : ERR_OK));
         }
     }
     void complete(tcp_pcb& pcb) {
@@ -387,13 +388,11 @@ void acknowledgment_and_fragment_boundaries() {
         phone.sent(phone.arg, &phone, partial);
         h.server.poll();
         check(!h.finished.contains(token));
-        phone.sent(phone.arg, &phone, 1);
         phone.pending = 0;
         phone.close_fails = close_fails;
-        // A FIN after complete ACKs preserves success, even if close must abort.
-        check(phone.receive(phone.arg, &phone, nullptr, ERR_OK) ==
-              (close_fails ? ERR_ABRT : ERR_OK));
-        check(h.finished.at(token) && phone.aborted == close_fails);
+        // The final ACK reclaims the task immediately, even if close must abort.
+        check(phone.sent(phone.arg, &phone, 1) == (close_fails ? ERR_ABRT : ERR_OK));
+        check(phone.closed && h.finished.at(token) && phone.aborted == close_fails);
     }
     Harness h;
     tcp_pcb phone, mac;

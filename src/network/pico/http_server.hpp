@@ -34,8 +34,8 @@ class PicoHttpServer {
     std::size_t pending_bytes() const;
     bool reply_active() const;
     struct Diagnostics {
-        std::uint64_t accepted = 0, capacity_refused = 0, completed = 0;
-        std::uint64_t incomplete_closes = 0, deadlines = 0, write_errors = 0;
+        std::uint32_t accepted = 0, capacity_refused = 0, completed = 0;
+        std::uint32_t incomplete_closes = 0, deadlines = 0, write_errors = 0;
     };
     const Diagnostics& diagnostics() const {
         return diagnostics_;
