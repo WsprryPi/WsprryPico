@@ -9,6 +9,7 @@ import os
 import pty
 import plistlib
 import select
+import stat
 import shlex
 import shutil
 from pathlib import Path
@@ -188,6 +189,353 @@ class Network:
     def get(self, url, limit):
         self.calls.append(url)
         return self.files[installer.urllib.parse.unquote(url.rsplit('/', 1)[1])]
+
+
+class ManagementSerialAccessTests(unittest.TestCase):
+    board = {'serial': SERIAL, 'parent': '3-8', 'mode': 'application',
+             'ports': {'4': '/dev/ttyACM2'}}
+
+    def test_erase_serial_permission_failure_explains_repair_before_any_write(self):
+        for terminal, human, json_only in ((False, True, True), (False, True, False),
+                                            (True, False, False), (True, True, False)):
+            with self.subTest(terminal=terminal, human=human, json_only=json_only):
+                output = InteractiveSelectionTests.Terminal() if terminal else io.StringIO()
+                messages = InteractiveSelectionTests.Terminal()
+                denied = PermissionError(installer.errno.EACCES, 'Permission denied', '/dev/ttyACM2')
+                arguments = ['erase', '--software-bootsel', '--device', SERIAL,
+                             '--board', 'pico2_w', '--yes']
+                if terminal and human:
+                    arguments += ['--sudo-picotool']
+                if json_only:
+                    arguments += ['--json-only']
+                with contextlib.redirect_stdout(output), contextlib.redirect_stderr(messages), \
+                     patch.object(installer.platform, 'system', return_value='Linux'), \
+                     patch.object(installer.os, 'geteuid', return_value=1000), \
+                     patch.object(installer, 'discover', return_value=[self.board]), \
+                     patch.object(installer, 'device_lock', return_value=contextlib.nullcontext()), \
+                     patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
+                     patch.object(installer.os, 'open', side_effect=denied) as port_open, \
+                     patch.object(installer, 'private_directory') as private, \
+                     patch.object(installer.Management, 'exchange') as exchange, \
+                     patch.object(installer, 'command') as command, \
+                     patch.object(installer, 'finish_erase') as erase, \
+                     patch.object(installer, 'continue_with_serial_access',
+                                  side_effect=installer.Refusal('Automatic repair unavailable')) as repair:
+                    code = installer.main(arguments, human=human)
+                self.assertEqual(code, 2)
+                if terminal and human:
+                    repair.assert_called_once()
+                    self.assertEqual(output.getvalue(), '')
+                    guidance = ' '.join(messages.getvalue().split())
+                    self.assertIn('Unable to continue', guidance)
+                else:
+                    repair.assert_not_called()
+                    result = json.loads(output.getvalue())
+                    self.assertFalse(result['ok'])
+                    self.assertFalse(result['recovery_required'])
+                    guidance = result['error']
+                for text in ('/dev/ttyACM2', 'ordinary user', '--sudo-picotool',
+                             'sudo usermod -aG dialout "$(id -un)"',
+                             'Log out completely and log back in', 'newgrp dialout', 'id -nG',
+                             'ls -l /dev/ttyACM2', 'Do not run the installer with sudo'):
+                    self.assertIn(text, guidance)
+                port_open.assert_called_once_with('/dev/ttyACM2',
+                    os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+                private.assert_not_called()
+                exchange.assert_not_called()
+                command.assert_not_called()
+                erase.assert_not_called()
+
+    def test_macos_permission_failure_does_not_recommend_linux_groups(self):
+        denied = PermissionError(installer.errno.EACCES, 'Permission denied', '/dev/cu.usbmodem-test')
+        board = dict(self.board, ports={'4': '/dev/cu.usbmodem-test'})
+        with patch.object(installer, 'selected'), \
+             patch.object(installer.platform, 'system', return_value='Darwin'), \
+             patch.object(installer.os, 'open', side_effect=denied), \
+             self.assertRaises(installer.Refusal) as caught:
+            with installer.Management(board):
+                self.fail('A denied serial port must not open a session')
+        message = str(caught.exception)
+        self.assertIn('/dev/cu.usbmodem-test', message)
+        self.assertIn('Check this serial device\'s permissions', message)
+        self.assertNotIn('dialout', message)
+        self.assertNotIn('usermod', message)
+        self.assertIs(caught.exception.__cause__, denied)
+
+    def test_other_open_errors_keep_the_original_diagnostic(self):
+        missing = FileNotFoundError(installer.errno.ENOENT, 'No such file', '/dev/ttyACM2')
+        with patch.object(installer, 'selected'), \
+             patch.object(installer.os, 'open', side_effect=missing), \
+             self.assertRaises(FileNotFoundError) as caught:
+            with installer.Management(self.board):
+                self.fail('An unavailable serial port must not open a session')
+        self.assertIs(caught.exception, missing)
+
+    def test_protected_usb_lock_permission_failure_uses_same_repair_path(self):
+        with patch.object(installer.platform, 'system', return_value='Linux'), \
+             patch.object(Path, 'mkdir'), patch.object(Path, 'is_symlink', return_value=False), \
+             patch.object(installer, 'selected', return_value=self.board), \
+             patch.object(installer, 'open_device_lock', side_effect=PermissionError('lock denied')), \
+             self.assertRaises(installer.SerialAccessDenied) as caught:
+            with installer.device_lock(SERIAL):
+                self.fail('A denied lock cannot authorize device access')
+        self.assertEqual(caught.exception.port, '/run/lock/wsprrypico')
+        self.assertEqual(caught.exception.device, self.board)
+        self.assertIn('sudo usermod -aG dialout', str(caught.exception))
+
+
+class AutomaticSerialAccessTests(unittest.TestCase):
+    def setUp(self):
+        self.options = SimpleNamespace(device=SERIAL, selected_parent='3-8', sudo_picotool=False, terminal_ui=True,
+                                       picotool='/private tool/picotool', state_dir=Path('/tmp/private state'))
+        self.denied = installer.SerialAccessDenied('Serial access denied', '/dev/ttyACM2')
+        self.retry = installer.SerialAccessRetry(self.options, {'recovery_required': False}, self.denied)
+        self.group = SimpleNamespace(gr_gid=20, gr_mem=[])
+        self.port = SimpleNamespace(st_mode=stat.S_IFCHR | 0o660, st_gid=20)
+        self.user = SimpleNamespace(pw_name='george', pw_gid=1000)
+        self.stack = contextlib.ExitStack()
+        self.addCleanup(self.stack.close)
+        for module, name, value in ((installer.grp, 'getgrnam', self.group),
+                                    (installer.os, 'stat', self.port),
+                                    (installer.pwd, 'getpwuid', self.user),
+                                    (installer.os, 'getuid', 1000), (installer.os, 'geteuid', 1000),
+                                    (installer.os, 'getgid', 1000), (installer.os, 'getegid', 1000),
+                                    (installer.os, 'getgroups', [1000])):
+            self.stack.enter_context(patch.object(module, name, return_value=value))
+        self.stack.enter_context(patch.dict(installer.os.environ, {'WSPRRY_PICO_SERIAL_ACCESS_RETRIED': ''}))
+        self.stack.enter_context(patch.object(installer.shutil, 'which', side_effect=lambda name, **kw: '/usr/bin/' + name))
+        self.messages = self.stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
+        self.run = self.stack.enter_context(patch.object(installer.subprocess, 'run',
+                                                       return_value=SimpleNamespace(returncode=0)))
+
+    def test_missing_membership_is_added_then_same_installer_runs_as_user(self):
+        arguments = ['erase', '--software-bootsel', '--board', 'pico2_w', '--yes',
+                     '--state-dir', '/tmp/state with spaces;$(touch injected)']
+        self.assertEqual(installer.continue_with_serial_access(self.retry, arguments), 0)
+        calls = self.run.call_args_list
+        self.assertEqual(calls[0].args[0], ['/usr/bin/sudo', '-v'])
+        self.assertIs(calls[0].kwargs['stdin'], subprocess.DEVNULL)
+        self.assertEqual(calls[1].args[0], ['/usr/bin/sudo', '-n', '--', '/usr/bin/usermod',
+                                         '-aG', 'dialout', '--', 'george'])
+        self.assertEqual(calls[2].args[0][:3], ['/usr/bin/sg', 'dialout', '-c'])
+        self.assertEqual(shlex.split(calls[2].args[0][3]),
+                         ['exec', sys.executable, str(Path(installer.__file__).resolve()),
+                          *arguments, '--device', SERIAL])
+        self.assertEqual(calls[2].kwargs['env']['WSPRRY_PICO_SERIAL_ACCESS_RETRIED'], '1')
+        self.assertEqual(calls[2].kwargs['env']['WSPRRY_PICO_SERIAL_ACCESS_SERIAL'], SERIAL)
+        self.assertEqual(calls[2].kwargs['env']['WSPRRY_PICO_SERIAL_ACCESS_PARENT'], '3-8')
+        self.assertNotIn('shell', calls[2].kwargs)
+        self.assertIn('your user has been added to that group', ' '.join(self.messages.getvalue().split()))
+
+    def test_existing_membership_refreshes_without_sudo_and_preserves_exit_status(self):
+        self.group.gr_mem = ['george']
+        self.run.return_value.returncode = 3
+        self.assertEqual(installer.continue_with_serial_access(self.retry, ['erase']), 3)
+        self.run.assert_called_once()
+        self.assertEqual(self.run.call_args.args[0][:3], ['/usr/bin/sg', 'dialout', '-c'])
+
+    def test_pending_transaction_resumes_recovery_instead_of_repeating_erase(self):
+        self.group.gr_mem = ['george']
+        self.options.sudo_picotool = True
+        self.retry.result = {'recovery_required': True, 'transaction': '/tmp/private state/transaction.json',
+                             'serial': SERIAL}
+        installer.continue_with_serial_access(self.retry, ['erase', '--software-bootsel'])
+        launch = shlex.split(self.run.call_args.args[0][3])
+        self.assertEqual(launch[3:], ['recover', '--transaction', '/tmp/private state/transaction.json',
+            '--device', SERIAL, '--board', 'pico2_w', '--yes', '--picotool=/private tool/picotool',
+            '--state-dir', '/tmp/private state', '--tool-cleanup', 'ask', '--sudo-picotool'])
+
+    def test_failed_authorization_or_group_update_never_launches_installer(self):
+        for codes in ([1], [0, 1]):
+            with self.subTest(codes=codes):
+                self.run.reset_mock()
+                self.run.side_effect = [SimpleNamespace(returncode=code) for code in codes]
+                with self.assertRaises(installer.Refusal):
+                    installer.continue_with_serial_access(self.retry, ['erase'])
+                self.assertEqual(self.run.call_count, len(codes))
+
+    def test_preflight_failure_reuses_cached_public_or_developer_candidate(self):
+        self.group.gr_mem = ['george']
+        self.options.operation = 'upgrade'
+        self.options.branch = 'devel'
+        self.options.tool_cleanup = 'keep'
+        self.options.installed_bundle = Path('/tmp/original bundle')
+        self.options.require_control_sha256 = 'a' * 64
+        self.options.replace_unidentified_application = False
+        self.retry.result = {'recovery_required': False, 'branch': 'devel',
+                             'transaction': '/tmp/candidate/transaction.json'}
+        self.retry.bundle_directory = Path('/tmp/candidate')
+        for local in (False, True):
+            with self.subTest(local=local), patch.object(Path, 'is_file', return_value=local):
+                installer.continue_with_serial_access(self.retry, ['upgrade', '--local-build', '/source',
+                                                        '--build-dir', '/already-built'])
+                launch = shlex.split(self.run.call_args.args[0][3])
+                self.assertEqual(launch[3:6], ['upgrade', '--local-bundle' if local else '--bundle', '/tmp/candidate'])
+                self.assertNotIn('--local-build', launch)
+                self.assertNotIn('--build-dir', launch)
+                self.assertIn('/tmp/original bundle', launch)
+                self.assertIn('a' * 64, launch)
+                self.assertIn('--tool-cleanup', launch)
+
+    def test_relaunched_main_refuses_changed_physical_port_before_work(self):
+        with patch.dict(installer.os.environ, {'WSPRRY_PICO_SERIAL_ACCESS_RETRIED': '1',
+                'WSPRRY_PICO_SERIAL_ACCESS_SERIAL': SERIAL, 'WSPRRY_PICO_SERIAL_ACCESS_PARENT': '3-8'}), \
+             patch.object(installer, 'discover', return_value=[dict(serial=SERIAL, parent='other-port', mode='application')]), \
+             patch.object(installer, 'prepare_standalone_picotool') as tool, \
+             patch.object(installer, 'erase_transaction') as erase, \
+             contextlib.redirect_stdout(io.StringIO()) as output:
+            code = installer.main(['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes'])
+        self.assertEqual(code, 2)
+        self.assertIn('port', json.loads(output.getvalue())['error'].lower())
+        tool.assert_not_called()
+        erase.assert_not_called()
+
+    def test_non_dialout_device_and_repeat_failure_do_not_change_account(self):
+        for fault in ('wrong-group', 'regular-file', 'already-active', 'retry'):
+            with self.subTest(fault=fault), contextlib.ExitStack() as stack:
+                self.run.reset_mock()
+                port = SimpleNamespace(st_mode=stat.S_IFREG if fault == 'regular-file' else stat.S_IFCHR,
+                                       st_gid=30 if fault == 'wrong-group' else 20)
+                stack.enter_context(patch.object(installer.os, 'stat', return_value=port))
+                if fault == 'already-active':
+                    stack.enter_context(patch.object(installer.os, 'getgroups', return_value=[20]))
+                if fault == 'retry':
+                    stack.enter_context(patch.dict(installer.os.environ, {'WSPRRY_PICO_SERIAL_ACCESS_RETRIED': '1'}))
+                with self.assertRaises(installer.Refusal):
+                    installer.continue_with_serial_access(self.retry, ['erase'])
+                self.run.assert_not_called()
+
+    def test_only_owned_lock_directory_can_trigger_group_repair(self):
+        self.group.gr_mem = ['george']
+        self.retry.denied.port = '/run/lock/wsprrypico'
+        for owner, mode in ((0, 0o3770), (1000, 0o3770), (0, 0o777)):
+            with self.subTest(owner=owner, mode=mode), \
+                 patch.object(installer.os, 'stat', return_value=SimpleNamespace(
+                     st_mode=stat.S_IFDIR | mode, st_gid=20, st_uid=owner)):
+                self.run.reset_mock()
+                if owner == 0 and mode == 0o3770:
+                    self.assertEqual(installer.continue_with_serial_access(self.retry, ['erase']), 0)
+                    self.run.assert_called_once()
+                else:
+                    with self.assertRaises(installer.Refusal):
+                        installer.continue_with_serial_access(self.retry, ['erase'])
+                    self.run.assert_not_called()
+
+    def test_main_releases_resources_before_relaunch(self):
+        events = []
+        @contextlib.contextmanager
+        def transaction_scope():
+            try:
+                yield
+            finally:
+                events.append('released')
+        def operation(*args, **kwargs):
+            with transaction_scope():
+                raise self.retry
+        def resume(*args):
+            self.assertEqual(events, ['released'])
+            return 0
+        with patch.object(installer, '_main', side_effect=operation), \
+             patch.object(installer, 'continue_with_serial_access', side_effect=resume):
+            self.assertEqual(installer.main(['erase'], human=True), 0)
+
+    def test_candidate_survives_relaunch_before_any_transaction_exists(self):
+        self.retry.candidate = {'local-build.json': b'verified metadata', 'candidate.uf2': b'verified firmware'}
+        observed = []
+        def resume(retry, argv):
+            directory = retry.bundle_directory
+            self.assertTrue(directory.is_dir())
+            self.assertEqual((directory / 'candidate.uf2').read_bytes(), b'verified firmware')
+            self.assertEqual((directory / 'local-build.json').read_bytes(), b'verified metadata')
+            observed.append(directory)
+            return 0
+        # These mocks concern real temporary storage, not a USB path.
+        self.stack.close()
+        with patch.object(installer, '_main', side_effect=self.retry), \
+             patch.object(installer, 'continue_with_serial_access', side_effect=resume):
+            self.assertEqual(installer.main(['upgrade'], human=True), 0)
+        self.assertFalse(observed[0].exists())
+
+    def test_preflight_candidate_excludes_journal_files_and_still_passes_closed_validation(self):
+        self.stack.close()
+        files, manifest, _ = fixture()
+        self.retry.candidate = files
+        self.retry.result = {'recovery_required': False, 'transaction': '/unused/transaction.json'}
+        def resume(retry, argv):
+            saved = installer.read_bundle(retry.bundle_directory)
+            self.assertEqual(set(saved), set(files))
+            self.assertNotIn('transaction.json', saved)
+            checked, _ = installer.verify_bundle(saved, 'devel')
+            self.assertEqual(checked, manifest)
+            return 0
+        with patch.object(installer, '_main', side_effect=self.retry), \
+             patch.object(installer, 'continue_with_serial_access', side_effect=resume):
+            self.assertEqual(installer.main(['upgrade'], human=True), 0)
+
+    def test_transaction_failure_releases_tool_before_resuming_exact_transaction(self):
+        events = []
+        record = {'stage': 'failed', 'recovery_required': True,
+                  'serial': SERIAL, 'transaction': '/tmp/private state/transaction.json'}
+        manager = SimpleNamespace(cleanup=lambda *a: events.append('cleanup'),
+                                  close=lambda: events.append('close'))
+        def transaction(args):
+            try:
+                raise self.denied
+            except installer.SerialAccessDenied as error:
+                raise installer.TransactionFailure('Serial access denied', record,
+                    Path(record['transaction']), error) from error
+        def resume(retry, argv):
+            self.assertEqual(events, ['cleanup', 'close'])
+            self.assertEqual(retry.result['transaction'], record['transaction'])
+            self.assertTrue(retry.result['recovery_required'])
+            return 0
+        output, messages = InteractiveSelectionTests.Terminal(), InteractiveSelectionTests.Terminal()
+        with contextlib.redirect_stdout(output), contextlib.redirect_stderr(messages), \
+             patch.object(installer.platform, 'system', return_value='Linux'), \
+             patch.object(installer, 'prepare_standalone_picotool', return_value=manager), \
+             patch.object(installer, 'erase_transaction', side_effect=transaction), \
+             patch.object(installer, 'continue_with_serial_access', side_effect=resume):
+            code = installer.main(['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes'], human=True)
+        self.assertEqual(code, 0)
+        self.assertEqual(output.getvalue(), '')
+
+    def test_postboot_serial_permission_failure_reaches_repair_without_waiting(self):
+        with patch.object(installer, 'discover', return_value=[dict(serial=SERIAL, mode='application', parent='3-8')]), \
+             patch.object(installer, 'public_snapshot', side_effect=self.denied), \
+             patch.object(installer.time, 'sleep') as sleep, \
+             self.assertRaises(installer.SerialAccessDenied) as caught:
+            installer.verify_application(self.options, None, {'serial': SERIAL, 'parent': '3-8'},
+                                         Path('/tmp/transaction.json'), {}, None)
+        self.assertIs(caught.exception, self.denied)
+        sleep.assert_not_called()
+
+    def test_recovery_lock_failure_keeps_existing_recovery_requirement(self):
+        self.stack.close()
+        with tempfile.TemporaryDirectory() as name:
+            path = Path(name) / 'transaction.json'
+            path.write_text('{}')
+            output, messages = InteractiveSelectionTests.Terminal(), InteractiveSelectionTests.Terminal()
+            def resume(retry, argv):
+                self.assertTrue(retry.result['recovery_required'])
+                self.assertEqual(retry.result['transaction'], str(path))
+                self.assertEqual(retry.result['serial'], SERIAL)
+                return 0
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(messages), \
+                 patch.object(installer.os, 'geteuid', return_value=1000), \
+                 patch.object(installer.platform, 'system', return_value='Linux'), \
+                 patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
+                 patch.object(installer, 'recover_transaction', side_effect=self.denied), \
+                 patch.object(installer, 'continue_with_serial_access', side_effect=resume):
+                code = installer.main(['recover', '--transaction', str(path), '--device', SERIAL,
+                                       '--board', 'pico2_w', '--yes'], human=True)
+            self.assertEqual(code, 0)
+
+    def test_cancellation_during_relaunch_keeps_recovery_uncertain(self):
+        self.group.gr_mem = ['george']
+        self.run.side_effect = KeyboardInterrupt
+        with self.assertRaises(KeyboardInterrupt):
+            installer.continue_with_serial_access(self.retry, ['erase'])
+        self.assertTrue(self.retry.result['recovery_required'])
 
 
 class HttpFailureTests(unittest.TestCase):
@@ -2414,6 +2762,53 @@ class StandaloneGuidanceTests(unittest.TestCase):
                            CURL_LOG=str(root / 'curl.log'), CURL_SOURCE=str(source), TMPDIR=str(temporary),
                            WSPRRY_PICO_USB_INSTALLER_REVISION='')
         return environment, revision, record, temporary
+
+    @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
+    def test_piped_bootstrap_keeps_exact_temporary_installer_until_group_relaunch_exits(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            environment, revision, _, downloads = self.bootstrap_fixture(root)
+            source = root / 'source'
+            overrides = '''
+    if os.environ.get('WSPRRY_PICO_SERIAL_ACCESS_RETRIED') == '1':
+        print(json.dumps({'installer': __file__, 'uid': os.getuid(),
+                          'schema_present': (Path(__file__).parent / 'ci/release-manifest-2.schema.json').is_file(),
+                          'revision': os.environ['WSPRRY_PICO_USB_INSTALLER_REVISION']}))
+        sys.exit(0)
+    from types import SimpleNamespace
+    from unittest.mock import patch
+    group = SimpleNamespace(gr_gid=999999, gr_mem=[pwd.getpwuid(os.getuid()).pw_name])
+    port = SimpleNamespace(st_mode=stat.S_IFCHR | 0o660, st_gid=group.gr_gid)
+    original_stat = os.stat
+    def fixture_stat(path, *args, **kwargs):
+        return port if str(path) == '/dev/fixture-serial' else original_stat(path, *args, **kwargs)
+    args = SimpleNamespace(device='1545B6EFBF78028C', selected_parent='1-1.3')
+    retry = SerialAccessRetry(args, {'recovery_required': False},
+                              SerialAccessDenied('fixture permission denial', '/dev/fixture-serial'))
+    with patch.object(grp, 'getgrnam', return_value=group), patch.object(os, 'stat', side_effect=fixture_stat), \\
+         patch.object(os, 'getgroups', return_value=[]):
+        sys.exit(continue_with_serial_access(retry, ['discover']))
+'''
+            core = (ROOT / 'scripts/usb_installer.py').read_text().replace(
+                "if __name__ == '__main__':\n", "if __name__ == '__main__':\n" + overrides)
+            (source / 'usb_installer.py').write_text(core)
+            sg = root / 'tools/sg'
+            sg.write_text('#!/bin/sh\n[ "$1" = dialout ] && [ "$2" = -c ] || exit 91\nexec /bin/sh -c "$3"\n')
+            sg.chmod(0o700)
+            result = subprocess.run(['bash', '-s', '--', 'discover'],
+                                    input=(source / 'install_usb.sh').read_text(),
+                                    env=environment, cwd=root, text=True, capture_output=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            observed = json.loads(result.stdout)
+            self.assertTrue(observed['schema_present'])
+            self.assertEqual(observed['uid'], os.getuid())
+            self.assertEqual(observed['revision'], revision)
+            self.assertTrue(str(observed['installer']).startswith(str(downloads)))
+            self.assertFalse(Path(observed['installer']).exists())
+            self.assertEqual(list(downloads.iterdir()), [])
+            urls = (root / 'curl.log').read_text().splitlines()
+            self.assertEqual(len(urls), 3)
+            self.assertTrue(all('/' + revision + '/' in url for url in urls if not url.endswith('commits/devel')))
 
     @unittest.skipIf(os.geteuid() == 0, 'Bootstrap requires an ordinary user')
     def test_saved_bootstrap_uses_adjacent_pair_from_another_working_directory(self):

@@ -71,6 +71,27 @@ Picotool command failures include the invoked command, exit status, and availabl
 
 ## Linux picotool privilege boundary
 
+Standalone Linux terminal serial-access repair is independent of picotool
+elevation. A denied management-port open reports the exact device and manual
+serial-access guidance. For an ordinary-user terminal, automatic repair checks
+that the path is a character device owned by `dialout`, or the exact root-owned
+`/run/lock/wsprrypico` directory with `dialout` ownership and mode 3770, resolves the invoking
+account by UID, and uses `sudo -v` followed by `sudo -n -- usermod -aG dialout -- USER`
+only if the account lacks membership. Existing membership skips sudo. After
+sessions, device locks, and the managed-tool lock unwind, `sg dialout -c` launches
+the same Python interpreter and installer file with shell-quoted arguments.
+The parent waits, retaining a curled bootstrap's temporary installer and schema
+until the child exits. A retained recovery transaction selects `recover` with
+its exact transaction, serial, state directory, picotool, and cleanup choice.
+Preflight failures reuse cached candidate bytes; if compilation or resolution
+finished before transaction creation, a private temporary bundle remains until
+the child exits. Neither path rebuilds or selects another published image.
+Otherwise the original arguments retain the selected serial. The child checks
+the original serial and physical USB port before continuing. An inherited retry marker
+prevents repeated automatic repairs. Python never runs as root. Imported,
+redirected, unattended, and JSON-only flows retain the diagnostic without
+changing account membership. Failure preserves recovery guidance.
+
 The standalone Linux terminal flow first runs a read-only BOOTSEL `info -a` probe as the invoking user. A recognized USB-access failure can offer consent to use sudo for picotool only. `--sudo-picotool` supplies that consent in advance, but still requires an ordinary-user Linux terminal. Imported calls, unattended calls, JSON-only calls, macOS, and root invocations cannot select this option. Successful ordinary-user access does not invoke sudo.
 
 Sudo authenticates directly through its controlling terminal with `sudo -v`; Python neither reads nor captures the password. The selected serial, physical USB parent, RP2350 type, and chip identity are checked again through a privileged read-only probe before privileged programming can proceed. Subsequent USB commands use the exact selected picotool path through `sudo -n --`; no shell or root Python process is used. Tool version checks, help, image-file inspection, downloads, transaction writes, and application management remain unprivileged. A failed write is never retried with elevated permissions. Expired sudo authorization fails the command and retains the ordinary transaction recovery behavior.

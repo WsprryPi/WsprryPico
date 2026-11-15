@@ -24,6 +24,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 import errno
 import fcntl
+import grp
 import hashlib
 import io
 import json
@@ -31,6 +32,7 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import pwd
 import re
 import select
 import shlex
@@ -188,6 +190,21 @@ class TransactionFailure(Refusal):
 
 class MaintenanceDeclined(Refusal):
     """An explicit error response, with no ACK-authorized BOOTSEL request."""
+
+
+class SerialAccessDenied(Refusal):
+    def __init__(self, message, port, device=None):
+        super().__init__(message)
+        self.port = port
+        self.device = device
+
+
+class SerialAccessRetry(Exception):
+    """Unwind sessions, device locks, and tool-cache ownership before relaunch."""
+    def __init__(self, args, result, denied, candidate=None):
+        self.options, self.result, self.denied = args, result, denied
+        self.candidate = candidate
+        self.bundle_directory = None
 
 
 def require(condition, message):
@@ -1086,7 +1103,27 @@ class Management:
     def __enter__(self):
         require('4' in self.device['ports'], 'USB management role is unavailable')
         selected(self.device['serial'], 'application', self.device['parent'])
-        self.fd = os.open(self.device['ports']['4'], os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        port = self.device['ports']['4']
+        try:
+            self.fd = os.open(port, os.O_RDWR | os.O_NOCTTY | os.O_NONBLOCK)
+        except PermissionError as error:
+            message = (f'Permission denied opening USB management serial port {port}. '
+                       'Your ordinary user needs access to the running firmware\'s USB serial ports '
+                       'for settings checks, software BOOTSEL, and postboot verification. '
+                       '--sudo-picotool elevates picotool only; it does not grant serial-port access. ')
+            if platform.system() == 'Linux':
+                message += ('On Raspberry Pi OS, Debian, or Ubuntu, run: '
+                            'sudo usermod -aG dialout "$(id -un)". '
+                            'Log out completely and log back in, or run newgrp dialout to open a shell '
+                            'with serial access immediately. In the new session or shell, run id -nG '
+                            'and check for dialout, then retry there. '
+                            'Other Linux distributions may use a different serial-port group; '
+                            'check the owner and group with: ls -l ' + shlex.quote(port) + '. ')
+            else:
+                message += 'Check this serial device\'s permissions and your account\'s access. '
+            message += ('Retry as your ordinary user; use the printed recovery command if one was provided. '
+                        'Do not run the installer with sudo.')
+            raise SerialAccessDenied(message, port, self.device) from error
         try:
             fcntl.flock(self.fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
             fcntl.ioctl(self.fd, termios.TIOCEXCL)
@@ -1675,7 +1712,17 @@ def device_lock(serial):
             Path.home() / 'Library/Caches/WsprryPico/locks')
     root.mkdir(mode=0o700, parents=True, exist_ok=True)
     require(not root.is_symlink(), 'Unsafe lock directory')
-    fd = open_device_lock(root / (serial + '.lock'))
+    try:
+        fd = open_device_lock(root / (serial + '.lock'))
+    except PermissionError as error:
+        if platform.system() != 'Linux':
+            raise
+        raise SerialAccessDenied(
+            'Permission denied opening the Pico USB lock directory ' + str(root) + '. '
+            'Your ordinary user needs dialout access. --sudo-picotool does not grant this access. '
+            'On Debian, Ubuntu, or Raspberry Pi OS, run: sudo usermod -aG dialout "$(id -un)". '
+            'Then log out and back in, or run newgrp dialout and retry in that shell. '
+            'Do not run the installer with sudo.', str(root), selected(serial)) from error
     try:
         require(stat.S_ISREG(os.fstat(fd).st_mode), 'Unsafe device lock')
         if os.fstat(fd).st_uid == os.getuid():
@@ -2138,6 +2185,8 @@ def verify_application(args, tool, record, path, manifest, snapshot):
             try:
                 observed = public_snapshot(devices[0])
                 break
+            except SerialAccessDenied:
+                raise
             except (OSError, Refusal):
                 pass
         time.sleep(.25)
@@ -2588,7 +2637,7 @@ def bootsel_callout(args, result):
                              + continuation_command(args, result))
 
 
-def main(argv=None, schema_bytes=None, *, human=False):
+def _main(argv=None, schema_bytes=None, *, human=False):
     global SCHEMA_BYTES
     SCHEMA_BYTES = schema_bytes
     parser = argparse.ArgumentParser(description=__doc__)
@@ -2627,7 +2676,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
     args = parser.parse_args(argv)
     args.terminal_ui = human and not args.json_only and sys.stdout.isatty() and sys.stderr.isatty()
     os.umask(0o077)
-    managed_tool, recovery_pending = None, False
+    managed_tool, recovery_pending, candidate = None, False, None
     try:
         require(not args.software_bootsel or args.operation == 'erase',
                 '--software-bootsel is only supported for erase')
@@ -2660,6 +2709,12 @@ def main(argv=None, schema_bytes=None, *, human=False):
         require(args.require_control_sha256 is None or
                 (args.operation in ('plan', 'upgrade') and re.fullmatch(HEX64, args.require_control_sha256)),
                 'A settings schema SHA-256 is supported only for firmware plan or upgrade')
+        if os.environ.get('WSPRRY_PICO_SERIAL_ACCESS_RETRIED') == '1':
+            serial = os.environ.get('WSPRRY_PICO_SERIAL_ACCESS_SERIAL')
+            parent = os.environ.get('WSPRRY_PICO_SERIAL_ACCESS_PARENT')
+            require(serial and parent and args.device == serial,
+                    'Serial access continuation lost its selected device binding')
+            selected(serial, parent=parent)
         if args.operation in ('install', 'upgrade'):
             require(args.yes, 'Programming requires an explicit operation and --yes')
             require(args.board == 'pico2_w', 'Explicit --board pico2_w confirmation is required for BOOTSEL hardware')
@@ -2737,6 +2792,7 @@ def main(argv=None, schema_bytes=None, *, human=False):
                 files, manifest, image = resolve(client, args.branch, args.version, args.stable)
             if args.require_control_sha256 is not None:
                 admit_control_schema(image, args.require_control_sha256)
+            candidate = files
             result = {'stage': 'planned', 'branch': args.branch, 'version': manifest['firmware_version'],
                       'source': manifest['source']['revision'], 'workflow': manifest['workflow'],
                       'uf2': candidate_asset(files, manifest),
@@ -2776,6 +2832,12 @@ def main(argv=None, schema_bytes=None, *, human=False):
         return 0
     except TransactionFailure as error:
         recovery_pending = error.result.get('recovery_required') is not False
+        cause = error
+        while cause is not None and not isinstance(cause, SerialAccessDenied):
+            cause = cause.__cause__
+        if isinstance(cause, SerialAccessDenied) and args.terminal_ui and args.sudo_prompt and schema_bytes is None:
+            recovery_pending = True  # Retain the tool until the resumed process owns it.
+            raise SerialAccessRetry(args, error.result, cause, candidate) from error
         emit_result(args, {**error.result, 'schema': 'wsprrypico-usb-result/1',
                            'installer_version': INSTALLER_VERSION, 'ok': False,
                            'error': str(error), **error.details})
@@ -2788,6 +2850,11 @@ def main(argv=None, schema_bytes=None, *, human=False):
         # durable recovery flag. A preflight refusal has no new recovery work;
         # tool cleanup still checks every retained transaction independently.
         recovery_pending = False
+        if isinstance(error, SerialAccessDenied) and args.terminal_ui and args.sudo_prompt and schema_bytes is None:
+            recovery_pending = True
+            pending = ({'recovery_required': True, 'transaction': str(args.transaction), 'serial': args.device}
+                       if args.operation == 'recover' else {'recovery_required': False})
+            raise SerialAccessRetry(args, pending, error, candidate) from error
         emit_result(args, {'schema': 'wsprrypico-usb-result/1', 'installer_version': INSTALLER_VERSION,
                            'ok': False, 'error': str(error), 'recovery_required': False,
                            **getattr(error, 'details', {})})
@@ -2808,6 +2875,113 @@ def main(argv=None, schema_bytes=None, *, human=False):
             finally:
                 with contextlib.suppress(OSError):
                     managed_tool.close()
+
+
+def continue_with_serial_access(retry, argv):
+    """Repair dialout access to serial or the owned USB lock directory."""
+    require(os.environ.get('WSPRRY_PICO_SERIAL_ACCESS_RETRIED') != '1',
+            'Serial access still failed after refreshing group membership; automatic repair was not repeated.')
+    args, result = retry.options, retry.result
+    binding = retry.denied.device or result
+    parent = binding.get('parent') or getattr(args, 'selected_parent', None)
+    require(args.device and parent, 'Serial access continuation lost its selected USB port')
+    group = grp.getgrnam('dialout')
+    port = os.stat(retry.denied.port)
+    owned_lock = (retry.denied.port == '/run/lock/wsprrypico' and stat.S_ISDIR(port.st_mode) and
+                  port.st_uid == 0 and stat.S_IMODE(port.st_mode) == 0o3770)
+    require((stat.S_ISCHR(port.st_mode) or owned_lock) and port.st_gid == group.gr_gid,
+            'The USB access path is not a dialout-owned serial device or the protected Pico lock directory; '
+            'automatic group repair is unavailable.')
+    require(os.getuid() == os.geteuid() and os.getuid() != 0,
+            'Automatic serial access setup requires an ordinary login account.')
+    require(group.gr_gid not in {*os.getgroups(), os.getgid(), os.getegid()},
+            'This process already has dialout access; inspect the serial device permissions.')
+    user = pwd.getpwuid(os.getuid()).pw_name
+    sg = shutil.which('sg')
+    require(sg, 'The sg command is unavailable; refresh group membership with a new login.')
+    if user not in group.gr_mem and pwd.getpwuid(os.getuid()).pw_gid != group.gr_gid:
+        sudo = shutil.which('sudo')
+        usermod = shutil.which('usermod', path='/usr/sbin:/sbin:/usr/bin:/bin')
+        require(sudo and usermod, 'Sudo or usermod is unavailable; automatic group repair is unavailable.')
+        terminal_paragraph('Serial access requires dialout membership. Sudo may ask for your login password '
+                           'to add your account; the installer does not read or save it.')
+        authorized = subprocess.run([sudo, '-v'], stdin=subprocess.DEVNULL, timeout=120)
+        require(authorized.returncode == 0, 'Sudo authorization failed; group membership was not changed.')
+        changed = subprocess.run([sudo, '-n', '--', usermod, '-aG', 'dialout', '--', user], timeout=30)
+        require(changed.returncode == 0, 'Unable to add your account to dialout.')
+        terminal_paragraph('Group membership in dialout was necessary to continue; your user has been added '
+                           'to that group.')
+    else:
+        terminal_paragraph('Your user already belongs to dialout. Refreshing group access for this installer.')
+    if result.get('recovery_required'):
+        arguments = ['recover', '--transaction', str(Path(result['transaction']).absolute()),
+                     '--device', result['serial'], '--board', 'pico2_w', '--yes',
+                     '--picotool=' + str(args.picotool), '--state-dir', str(args.state_dir.absolute()),
+                     '--tool-cleanup', getattr(args, 'tool_cleanup', 'ask')]
+        if args.sudo_picotool:
+            arguments.append('--sudo-picotool')
+    elif retry.bundle_directory is not None:
+        # Preflight may already have built/resolved and cached the candidate.
+        # Reuse those verified bytes rather than rebuilding or selecting a new head.
+        directory = retry.bundle_directory
+        selector = '--local-bundle' if (directory / 'local-build.json').is_file() else '--bundle'
+        arguments = [args.operation, selector, str(directory), '--branch', result.get('branch', args.branch),
+                     '--device', args.device, '--board', 'pico2_w', '--yes',
+                     '--picotool=' + str(args.picotool), '--state-dir', str(args.state_dir.absolute()),
+                     '--tool-cleanup', args.tool_cleanup]
+        for option, value in (('--installed-bundle', args.installed_bundle),
+                              ('--require-control-sha256', args.require_control_sha256)):
+            if value is not None:
+                arguments += [option, str(value)]
+        if args.sudo_picotool:
+            arguments.append('--sudo-picotool')
+        if args.replace_unidentified_application:
+            arguments.append('--replace-unidentified-application')
+    else:
+        require(not result.get('transaction'), 'The original candidate bundle is unavailable; inspect the retained transaction.')
+        arguments = list(sys.argv[1:] if argv is None else argv)
+        if args.device and '--device' not in arguments and not any(a.startswith('--device=') for a in arguments):
+            arguments += ['--device', args.device]
+    environment = dict(os.environ, WSPRRY_PICO_SERIAL_ACCESS_RETRIED='1',
+                       WSPRRY_PICO_SERIAL_ACCESS_SERIAL=args.device,
+                       WSPRRY_PICO_SERIAL_ACCESS_PARENT=parent)
+    launch = 'exec ' + shlex.join([sys.executable, str(Path(__file__).resolve()), *arguments])
+    try:
+        return subprocess.run([sg, 'dialout', '-c', launch], env=environment).returncode
+    except KeyboardInterrupt:
+        # The child may have progressed beyond the parent's preflight state.
+        retry.result['recovery_required'] = True
+        raise
+
+
+def main(argv=None, schema_bytes=None, *, human=False):
+    try:
+        return _main(argv, schema_bytes, human=human)
+    except SerialAccessRetry as retry:
+        try:
+            # A lock refusal can occur after compilation but before a durable
+            # transaction exists. Keep those exact candidate bytes for the child.
+            with contextlib.ExitStack() as lifetime:
+                if retry.candidate is not None and not retry.result.get('recovery_required'):
+                    directory = Path(lifetime.enter_context(tempfile.TemporaryDirectory(prefix='wsprrypico-access-bundle-')))
+                    for name, data in retry.candidate.items():
+                        require(name == Path(name).name, 'Unsafe serial-access candidate bundle member')
+                        save_bytes(directory / name, data)
+                    retry.bundle_directory = directory
+                return continue_with_serial_access(retry, argv)
+        except (OSError, KeyError, Refusal, subprocess.SubprocessError, KeyboardInterrupt) as error:
+            cancelled = isinstance(error, KeyboardInterrupt)
+            result = {**retry.result, 'schema': 'wsprrypico-usb-result/1',
+                      'installer_version': INSTALLER_VERSION, 'ok': False,
+                      'error': ('Cancelled; inspect retained installer transactions before retrying. '
+                                'The resumed installer may have progressed beyond the original failure.') if cancelled else
+                               str(retry.denied) + '\n\nAutomatic serial access setup failed: ' + str(error)}
+            emit_result(retry.options, result)
+            with contextlib.suppress(OSError, ValueError):
+                bootsel_callout(retry.options, result)
+            if cancelled:
+                return 130
+            return 3 if result['recovery_required'] else 2
 
 
 if __name__ == '__main__':

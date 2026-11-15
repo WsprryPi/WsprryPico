@@ -17,7 +17,7 @@ If the installer cannot open the Pico, use [Linux BOOTSEL access checks](#check-
 
 Firmware is the program stored on the Pico. Use a USB **data** cable to install or update it. Enter the installer commands in a **Terminal application on your computer**. The Pico's text Console and your browser's address bar cannot run them.
 
-The recommended USB installer uses native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. The installer script does not support Windows, Git Bash, or WSL. Windows users can use the [manual UF2 path, available but not recommended](#windows-manual-uf2-installation-available-but-not-recommended). **Run the installer as your ordinary user, without `sudo`.** On Linux, the installer can ask to use `sudo` for picotool USB access while the rest runs as your ordinary user. Use a local login account with sudo rights for this option. To avoid sudo during installation, complete the optional [USB permission setup](#linux-usb-permission-setup).
+The recommended USB installer uses native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. The installer script does not support Windows, Git Bash, or WSL. Windows users can use the [manual UF2 path, available but not recommended](#windows-manual-uf2-installation-available-but-not-recommended). **Run the installer as your ordinary user, without `sudo`.** On Linux, the installer can use `sudo` for picotool USB access and to [repair serial group access](#check-running-firmware-serial-access), while Python continues as your ordinary user. Use a local login account with sudo rights. To avoid sudo during installation, complete the optional [USB permission setup](#linux-usb-permission-setup) and ensure your account has serial access.
 
 The curl commands in this guide omit `--proto '=https' --proto-redir '=https'` for brevity when typing or copying them. **Adding these options is recommended for protection:** they restrict downloads and redirects to HTTPS. Insert them after `curl -fsSL`, especially when piping a downloaded script directly to Bash. The bootstrap script keeps these restrictions on its own downloads.
 
@@ -175,7 +175,7 @@ This is optional if you allow the installer to use sudo for picotool. Use it whe
 
 Complete these steps once on the Linux computer connected to the Pico. Use the same login account you will use to run the installer. These steps also apply when that computer is a Raspberry Pi. macOS users can skip to [Select recommended firmware](#select-recommended-firmware).
 
-Linux needs a USB access rule and permission for your account to use it. Installing picotool or its dependencies alone does not grant this access. The installer does not change these system settings automatically. The steps below install Raspberry Pi's [picotool USB rule](https://github.com/raspberrypi/picotool/blob/2.3.1/udev/60-picotool.rules) and add your account to its `plugdev` access group. You do not need an SDK or compiler, and you do not need to build picotool.
+Linux needs a USB access rule and permission for your account to use it. Installing picotool or its dependencies alone does not grant this access. The standalone installer does not install this rule or add your account to `plugdev` automatically. The steps below install Raspberry Pi's [picotool USB rule](https://github.com/raspberrypi/picotool/blob/2.3.1/udev/60-picotool.rules) and add your account to its `plugdev` access group. You do not need an SDK or compiler, and you do not need to build picotool.
 
 1. Open a terminal as your usual account. Run:
 
@@ -224,7 +224,7 @@ For a normal terminal installation, the installer first tries to read the select
 
 The installer checks the same Pico again before continuing. Downloads, private backups, transaction records, saved-settings checks, and postboot verification remain part of the normal installation. The backup files stay owned by your ordinary user. A sudo refusal or failed device check stops the operation before programming. Failed programming commands are never automatically retried with sudo.
 
-Add `--sudo-picotool` to an install, upgrade, recover, or erase command to allow this access check without the extra consent question. Sudo can still ask for its password. This option requires a Linux terminal; it is unavailable to the imported WsprryPi installer, unattended runs, and `--json-only`. No sudoers rules or system USB permissions are changed automatically.
+Add `--sudo-picotool` to an install, upgrade, recover, or erase command to allow this access check without the extra consent question. Sudo can still ask for its password. This option requires a Linux terminal; it is unavailable to the imported WsprryPi installer, unattended runs, and `--json-only`. It does not install sudoers or udev rules. Automatic [serial-access repair](#check-running-firmware-serial-access) separately adds `dialout` membership when needed.
 
 Discovery can list a Pico even when your account cannot open its USB programming connection. If picotool reports **No accessible RP-series devices in BOOTSEL mode**, check access before retrying installation:
 
@@ -246,7 +246,20 @@ Once you can access the Pico as your ordinary user, return to the installer. If 
 
 Picotool-only sudo grants BOOTSEL programming access. Your ordinary account still needs access to the running firmware's USB serial ports for settings checks and verification after restart.
 
-On Ubuntu and Debian-based systems, if an error says access to a `/dev/ttyACM` port is denied, add your current login to the `dialout` group:
+In an ordinary-user Linux terminal, a serial permission failure on a
+`dialout`-owned device triggers automatic access setup. The same repair applies
+to WsprryPi's protected Pico USB lock directory. The installer uses sudo
+to add your account to `dialout`, preserving other memberships, reports the
+change, and continues in a process with that group enabled. Sudo may ask for
+your login password. An account already listed in `dialout` needs only the
+process refresh. The installer keeps the same downloaded code and schema;
+an existing recovery transaction is resumed instead of repeating programming.
+No logout or separate command is needed for that run. Existing unrelated shells
+retain their previous groups. Imported, redirected, JSON-only, and unattended
+runs do not change group membership or request sudo for serial access.
+
+If automatic setup is unavailable or fails, the error includes manual guidance.
+On Ubuntu and Debian-based systems, add your current login to the `dialout` group:
 
 ```sh
 sudo usermod -aG dialout "$(id -un)"
