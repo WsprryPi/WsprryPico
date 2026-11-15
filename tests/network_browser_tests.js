@@ -410,8 +410,9 @@ if (require.main === module) (async () => {
     await naming.elements['hostname-copy'].onclick(submit);
     assert.match(naming.elements['hostname-copy-status'].textContent,/Could not copy automatically/);
     const mismatchedCopy=await fixture();
-    mismatchedCopy.state.job.boot_id='b'.repeat(32);
-    vm.runInContext('renderHostnameLink()',mismatchedCopy.context);
+    // The server fixture is not the browser's delivered observation. Change
+    // the observed boot at this boundary without supplying a new hostname read.
+    vm.runInContext('snapshot={...snapshot,job:{...snapshot.job,boot_id:"b".repeat(32)}};renderHostnameLink()',mismatchedCopy.context);
     assert.equal(mismatchedCopy.elements['hostname-link-url'].textContent,'','a newly observed boot requires fresh hostname readback');
 
 

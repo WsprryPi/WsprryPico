@@ -205,6 +205,7 @@ try {
         await until(()=>cdp.evaluate(`document.getElementById('hostname-copy-status').textContent==='Link copied'`),'native settings copy');
         await cdp.evaluate(`{const e=document.createElement('textarea');e.id='copy-paste-probe';document.body.append(e);e.focus();}`);
         await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'v',code:'KeyV',commands:['Paste']});
+        await until(()=>cdp.evaluate(`document.getElementById('copy-paste-probe').value===${JSON.stringify(expected)}`),'pasted clipboard URL');
         assert.equal(await cdp.evaluate(`document.getElementById('copy-paste-probe').value`),expected);
         await cdp.evaluate(`document.getElementById('copy-paste-probe').remove()`);
         assert.equal(await cdp.evaluate('location.href'),address,'copy never navigates');
