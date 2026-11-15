@@ -531,6 +531,8 @@ function validWsprPlan(p) {
     p.alternate_callsign.length <= 12 && /^[A-Z0-9]+\/[A-Z0-9]+$/.test(p.alternate_callsign) : p.alternate_callsign === null;
 }
 let hostnameState = null, hostnameDraft = false, hostnameUncertain = false, hostnameReviewReady = false;
+let hostnameCopyReadback = null, hostnameCopyAttempt = null, hostnameCopyPending = false;
+let hostnameCopyKey = '', hostnameCopyEpoch = 0, hostnameCopyUrl = '';
 let reconnectEpoch = 0, reconnectRunning = false, restartSent = false;
 let returnReceipt = null;
 async function readApplication() {
@@ -994,6 +996,7 @@ function controls(connected) {
   $('hostname-default').disabled = $('hostname-save').disabled;
   $('hostname-review').hidden = !hostnameReviewReady;
   $('hostname-review').disabled = uiBusy() || !idle;
+  renderHostnameLink();
   $('restart').disabled = uiBusy() || !idle || snapshot?.job.state==='loaded' || !capabilities?.features?.restart || restartSent || Boolean(operationsSnapshot&&!operationsSnapshot.reset_allowed) || !consoleObservedMs || Date.now()-consoleObservedMs>15000;
   if (hostnameState?.pending_restart) {
     $('consumer-network-settings').disabled = true;
@@ -1908,6 +1911,79 @@ function fillPins(plan) {
 }
 for (const key of ['rf_engine','rf_gp','button_gp','amplifier_gp','indicator','indicator_gp']) $('config').elements[key].addEventListener('change',lockPins);
 
+// Local clipboard presentation remains usable inside authentication-locked
+// fieldsets. Only verified hostname readback supplies its device context.
+function renderHostnameLink() {
+  const panel=$('hostname-link-panel');
+  if(!panel)return;
+  const context=hostnameCopyAttempt?.target || hostnameCopyReadback?.target;
+  const draft=hostnameDraft && !hostnameUncertain && !hostnameCopyAttempt;
+  const label=$('hostname-input').value;
+  let name=hostnameCopyAttempt?.name || (draft ?
+    (/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(label) ? label.toLowerCase()+'.local' : null) : hostnameCopyReadback?.saved);
+  if(!context || localIdentity && context.device_id!==localIdentity.device_id ||
+     snapshot?.job.boot_id && context.boot_id!==snapshot.job.boot_id)name=null;
+  const intended=Boolean(hostnameCopyAttempt || draft);
+  let value='';
+  if(name)try {
+    const destination=new URL(globalThis.location.href);
+    if(!['http:','https:'].includes(destination.protocol))throw Error('Unsupported page address');
+    destination.username='';destination.password='';destination.hostname=name;
+    destination.pathname='/';destination.search='';destination.hash='';
+    value=destination.href;
+  }catch { /* An unavailable address never becomes a guessed link. */ }
+  const key=JSON.stringify([context?.device_id,context?.boot_id,value,intended]);
+  if(key!==hostnameCopyKey) {
+    hostnameCopyKey=key;++hostnameCopyEpoch;$('hostname-copy-status').textContent='';
+  }
+  hostnameCopyUrl=value;
+  if($('hostname-link-url').textContent!==value)$('hostname-link-url').textContent=value;
+  const copy=$('hostname-copy');
+  if(value)copy.href=value;else copy.removeAttribute('href');
+  copy.setAttribute('aria-disabled',String(!value || hostnameCopyPending || submissions.suspended));
+  $('hostname-link-state').textContent=!value ? 'Link unavailable. Read the hostname settings or enter a valid hostname.' :
+    intended ? 'Intended address. The saved result has not been confirmed for this name.' :
+      'Saved address last confirmed on this page. Name discovery and reachability are not confirmed.';
+}
+async function copyHostnameLink(event) {
+  event.preventDefault();
+  const allowed=()=>!submissions.suspended && (!submissions.pending || submissions.token?.background===true);
+  if(hostnameCopyPending || !allowed())return;
+  renderHostnameLink();
+  if(!hostnameCopyUrl)return;
+  const captured=hostnameCopyEpoch,value=hostnameCopyUrl,focused=document.activeElement;
+  const current=()=>captured===hostnameCopyEpoch && allowed() &&
+    !$('hostname-link-panel').closest?.('[hidden],details:not([open])');
+  const select=()=>{
+    try {
+      const selection=document.getSelection(),range=document.createRange();
+      range.selectNodeContents($('hostname-link-url'));selection.removeAllRanges();selection.addRange(range);
+      $('hostname-link-url').focus({preventScroll:true});
+      return true;
+    }catch { return false; }
+  };
+  hostnameCopyPending=true;renderHostnameLink();$('hostname-copy-status').textContent='';
+  try {
+    if(globalThis.isSecureContext && globalThis.navigator?.clipboard?.writeText)await navigator.clipboard.writeText(value);
+    else {
+      const selection=document.getSelection(),ranges=Array.from({length:selection.rangeCount},(_,i)=>selection.getRangeAt(i).cloneRange());
+      if(!select())throw Error('Selection unavailable');
+      if(!document.execCommand?.('copy'))throw Error('Copy unavailable');
+      if(current()) { selection.removeAllRanges();ranges.forEach(range=>selection.addRange(range));focused?.focus({preventScroll:true}); }
+    }
+    if(current())$('hostname-copy-status').textContent='Link copied';
+  }catch {
+    if(current()) {
+      if(document.activeElement===focused || document.activeElement===$('hostname-link-url'))select();
+      $('hostname-copy-status').textContent='Could not copy automatically. Select and copy this link.';
+    }
+  }finally { hostnameCopyPending=false;renderHostnameLink(); }
+}
+if($('hostname-copy')) {
+  $('hostname-copy').onclick=copyHostnameLink;
+  $('hostname-copy').addEventListener('keydown',event=>{if(event.key===' ')event.preventDefault();});
+  $('hostname-copy').addEventListener('keyup',event=>{if(event.key===' '){event.preventDefault();$('hostname-copy').click();}});
+}
 // P15.10: metadata never derives from the address bar, draft or browser storage.
 function markTitleStale() { pageIdentity.stale(); }
 function parseReturnReceipt() {
@@ -1980,6 +2056,8 @@ async function readHostname(token = pageIdentity.request()) {
   hostnameState = d; hostnameState.revision = result.revision;
   if (hostnameUncertain) hostnameReviewReady = true;
   if (!hostnameDraft) $('hostname-input').value = d.active.slice(0, -6);
+  hostnameCopyReadback={target:{...d.target},saved:d.saved,active:d.active};hostnameCopyAttempt=null;
+  renderHostnameLink();
   $('hostname-status').textContent = 'Active: ' + d.active + '. Saved: ' + d.saved + '. ' +
     (d.pending_restart ? 'Restart is required to use the new address. This page may disconnect; sign in again when the Pico returns.' :
       d.writable ? 'The saved address is active for this boot.' : d.reason === 'credential_bound_deployment' ?
@@ -2051,6 +2129,7 @@ $('hostname-form').onsubmit = event => { event.preventDefault(); return action(a
   if (hostnameUncertain || !hostnameState?.writable) throw new Error('Read the saved hostname before another save.');
   const expected = hostnameState;
   hostnameUncertain = true;
+  hostnameCopyAttempt={target:{...expected.target},name};renderHostnameLink();
   try {
     const result = await api('hostname','PUT',{schema:'hostname',target:expected.target,hostname:name},expected.revision);
     if (result.data.generation === expected.generation) { hostnameUncertain=false; hostnameDraft=false; await readHostname(); return; }
@@ -2075,9 +2154,10 @@ $('hostname-default').onclick = () => {
   if (hostnameState?.writable && confirm('Use the stable default hostname ' + hostnameState.default + '? Save hostname to confirm.')) {
     $('hostname-input').value=hostnameState.default.slice(0, -6); hostnameDraft=true;
     $('hostname-input').setAttribute('aria-invalid','false'); $('hostname-error').textContent='';
+    renderHostnameLink();
   }
 };
-$('hostname-input').addEventListener('input',()=>{hostnameDraft=true;$('hostname-input').setAttribute('aria-invalid','false');$('hostname-error').textContent='';cancelReconnect();});
+$('hostname-input').addEventListener('input',()=>{hostnameDraft=true;$('hostname-input').setAttribute('aria-invalid','false');$('hostname-error').textContent='';cancelReconnect();renderHostnameLink();});
 $('restart-cancel').onclick = () => { cancelReconnect(); $('restart-status').textContent='Reconnect checks canceled. No additional restart was sent. Use the continuation link or refresh after signing in.'; };
 for (const id of ['config','consumer-network-form','consumer-station-form','message-form','job'])
   $(id).addEventListener('input',cancelReconnect);
@@ -2087,11 +2167,13 @@ $('hostname-continue').onclick = event => {
   else cancelReconnect();
 };
 globalThis.addEventListener?.('pagehide',()=>{
+  ++hostnameCopyEpoch;if($('hostname-copy-status'))$('hostname-copy-status').textContent='';
   submissions.suspend(); clearPasswords(); cancelReconnect();
   if(busy) { accessInterrupted=true; accessClosing=true; beginLocalLock(); }
 });
 globalThis.addEventListener?.('pageshow',()=>{
   submissions.resume();
+  renderHostnameLink();
   if(accessClosing && !busy) void finishLock();
 });
 parseReturnReceipt();

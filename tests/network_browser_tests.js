@@ -9,6 +9,7 @@ const scripts = process.env.WSPRRY_PICO_BROWSER_SHIPPED ? ['device-presentation.
 const source = scripts.map(name=>fs.readFileSync(__dirname + '/../src/network/web/'+name,'utf8')).join('\n');
 async function fixture(activeConnections = true, configured = true, localMode = false, consumerMode = false, receipt = '', organizationMode = false, options = {}) {
     const ids = ['device-name','device-name-state','device-id','device-boot','apply-engineering-station-progress','apply-engineering-network-progress','save-engineering-network-progress','progress-engineering-station-status','progress-engineering-network-status','apply-progress','apply-station-progress','save-station-progress','save-engineering-station-progress','progress-settings-status','progress-station-status','settings-save-help','station-area','wifi-host-area','station-link','wifi-host-link','initial-config','engineering-station-form','engineering-station-settings','engineering-network-form','engineering-network-settings','hostname-review','hostname-form','hostname-settings','hostname-input','hostname-help','hostname-status','hostname-save','hostname-default','restart-status','restart-cancel','hostname-continue','saved-active-status','saved-readback-details','save-config','save-reconcile-status','saved-readback','read-saved','review-saved','login-recovery','inspect-logins','retire-login','retirement-target','retirement-status','retirement-password','local-logout','local-password-label','local-heading','local-description','consumer-identity-help','notice','local-access','local-login','local-password','local-status','restart','refresh','config','settings','wifi-off','job-settings','abort','release','state','output','clock','owner','network','discovery-help','recovery','job','job-result','job-file','start','message-settings','message-form','message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap','message-dash','message-intra','message-character','message-word','message-preview','message-start','job-progress','pin-settings','unused-i2c-choices'];
+    ids.push('hostname-link-panel','hostname-link-url','hostname-link-state','hostname-copy','hostname-copy-status');
     ids.push('setup-result-reveal','settings-recovery-access','network-save-result','station-save-result','consumer-save-recovery','setup-recovery-access','amplifier-pin-settings','radio-result-reveal','radio-pins','save-pins','pins-status','station-settings-lock','wifi-settings-lock');
     ids.push('access-toggle','access-state','access-shackle','access-close','login-submit','recovery-reveal','top','status-heading','section-menu','station-identity','radio-settings','time-calibration','advanced-scheduling','message-section','wifi-settings','pico-password-section','hostname-section','connection-section','saved-settings','device-diagnostics');
     ids.push('udp-logging-section','udp-logging-controls','console-frequency-label','console-state','console-warning','console-announcement','console-mode','console-frequency','console-message','console-progress','console-next','console-next-item','console-correction','console-reset','console-actions');
@@ -67,6 +68,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     for (const e of [...Object.values(elements),...Object.values(elements.config.elements)]) {
       e.attributes ||= {};e.setAttribute ||= function(k,v){this.attributes[k]=v;};
       e.getAttribute ||= function(k){return this.attributes[k]||null;};
+      e.removeAttribute ||= function(k){delete this.attributes[k];delete this[k];};
     }
     elements['local-access'].showModal=function(){this.open=true;};
     elements['local-access'].close=function(){this.open=false;};
@@ -374,9 +376,50 @@ if (require.main === module) (async () => {
     await compact.elements.refresh.onclick();assert.match(compact.elements['message-availability'].textContent,/RF output is unknown/);assert.equal(compact.elements.restart.disabled,true);
     const naming=await fixture();
     assert.equal(naming.elements['hostname-input'].value,'old');
+    assert.equal(naming.elements['hostname-link-url'].textContent,'http://old.local/');
+    const copied=[];
+    naming.context.isSecureContext=true;
+    naming.context.navigator={clipboard:{writeText:async value=>{copied.push(value);}}};
+    const copyCalls=naming.calls.length;
+    await naming.elements['hostname-copy'].onclick(submit);
+    assert.deepEqual(copied,['http://old.local/']);
+    assert.equal(naming.calls.length,copyCalls,'copy is local and sends no request');
+    assert.equal(naming.elements['hostname-copy-status'].textContent,'Link copied');
+    naming.elements['hostname-input'].value='Pico-New';naming.elements['hostname-input'].listeners.input();
+    assert.equal(naming.elements['hostname-link-url'].textContent,'http://pico-new.local/');
+    assert.match(naming.elements['hostname-link-state'].textContent,/^Intended/);
+    assert.equal(naming.elements['hostname-copy-status'].textContent,'');
+    naming.context.location.href='https://secret:password@127.0.0.1:8443/settings?secret=query#private';
+    vm.runInContext('renderHostnameLink()',naming.context);
+    assert.equal(naming.elements['hostname-link-url'].textContent,'https://pico-new.local:8443/');
+    let finishCopy;
+    naming.context.navigator.clipboard.writeText=value=>new Promise(resolve=>{copied.push(value);finishCopy=resolve;});
+    const pendingCopy=naming.elements['hostname-copy'].onclick(submit);
+    assert.equal(naming.elements['hostname-copy'].getAttribute('aria-disabled'),'true');
+    await naming.elements['hostname-copy'].onclick(submit);
+    assert.equal(copied.length,2,'only one outstanding clipboard write');
+    naming.elements['hostname-input'].value='another';naming.elements['hostname-input'].listeners.input();
+    finishCopy();await pendingCopy;
+    assert.equal(naming.elements['hostname-copy-status'].textContent,'','stale completion cannot confirm a changed link');
+    const suspendedCopy=naming.elements['hostname-copy'].onclick(submit);
+    naming.events.pagehide();finishCopy();await suspendedCopy;
+    assert.equal(naming.elements['hostname-copy-status'].textContent,'');
+    assert.equal(naming.elements['hostname-copy'].getAttribute('aria-disabled'),'true');
+    naming.events.pageshow();
+    naming.context.navigator.clipboard.writeText=async()=>{throw Error('Denied');};
+    await naming.elements['hostname-copy'].onclick(submit);
+    assert.match(naming.elements['hostname-copy-status'].textContent,/Could not copy automatically/);
+    const mismatchedCopy=await fixture();
+    mismatchedCopy.state.job.boot_id='b'.repeat(32);
+    vm.runInContext('renderHostnameLink()',mismatchedCopy.context);
+    assert.equal(mismatchedCopy.elements['hostname-link-url'].textContent,'','a newly observed boot requires fresh hostname readback');
+
+
     const namingWrites=naming.calls.filter(c=>c.options?.method && c.options.method!=='GET').length;
-    for(const invalid of ['bad name','new.local','.new','new.','a.b']) {
-        naming.elements['hostname-input'].value=invalid;await naming.elements['hostname-form'].onsubmit(submit);
+    for(const invalid of ['','x'.repeat(64),'K','bad name','new.local','.new','new.','a.b']) {
+        naming.elements['hostname-input'].value=invalid;naming.elements['hostname-input'].listeners.input();
+        assert.equal(naming.elements['hostname-link-url'].textContent,'');
+        assert.equal(naming.elements['hostname-copy'].getAttribute('aria-disabled'),'true');await naming.elements['hostname-form'].onsubmit(submit);
         assert.equal(naming.elements['hostname-input'].getAttribute('aria-invalid'),'true');
         assert.equal(naming.calls.filter(c=>c.options?.method && c.options.method!=='GET').length,namingWrites,'invalid label sends no mutation');
     }

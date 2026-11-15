@@ -110,3 +110,12 @@ header .documentation-help:has(svg):hover{color:#fff}
 
 /* Local recovery remains reachable before unlocking AP controls. */
 .ap-view .documentation-help,.ap-view .documentation-note{display:none}
+
+/* A local copy action remains usable inside authentication-locked fieldsets. */
+#hostname-link-panel{margin:1.5rem 0;max-width:65ch}
+#hostname-link-url{overflow-wrap:anywhere;user-select:text}
+.hostname-copy-control{display:inline-flex;align-items:center;min-height:44px;padding:.55rem 1rem;border:1px solid #687e90;border-radius:4px;background:white;color:#203a50;text-decoration:none;cursor:pointer}
+.hostname-copy-control[aria-disabled="true"]{opacity:.6;cursor:default}
+.hostname-copy-control:hover:not([aria-disabled="true"]){filter:brightness(.93)}
+
+#hostname-link-url:focus-visible{outline:3px solid #b37617;outline-offset:3px}

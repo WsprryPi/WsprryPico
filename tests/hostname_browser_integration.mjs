@@ -195,6 +195,23 @@ try {
     assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
     assert.equal(await cdp.evaluate(`document.getElementById('hostname-input').value`),'wsprrypico-0a60df');
     const programsBeforeInvalid=(await f.command({op:'stats'})).profile_programs;
+    async function copyLink(expected) {
+        const address=await cdp.evaluate('location.href');
+        const programs=(await f.command({op:'stats'})).profile_programs;
+        assert.equal(await cdp.evaluate(`document.getElementById('hostname-link-url').textContent`),expected);
+        await cdp.evaluate(`document.getElementById('hostname-copy-status').textContent='';document.getElementById('hostname-copy').focus()`);
+        await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',text:'\r',windowsVirtualKeyCode:13});
+        await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
+        await until(()=>cdp.evaluate(`document.getElementById('hostname-copy-status').textContent==='Link copied'`),'native settings copy');
+        await cdp.evaluate(`{const e=document.createElement('textarea');e.id='copy-paste-probe';document.body.append(e);e.focus();}`);
+        await cdp.send('Input.dispatchKeyEvent',{type:'rawKeyDown',key:'v',code:'KeyV',commands:['Paste']});
+        assert.equal(await cdp.evaluate(`document.getElementById('copy-paste-probe').value`),expected);
+        await cdp.evaluate(`document.getElementById('copy-paste-probe').remove()`);
+        assert.equal(await cdp.evaluate('location.href'),address,'copy never navigates');
+        assert.equal((await f.command({op:'stats'})).profile_programs,programs,'copy never saves settings');
+    }
+    await copyLink('http://wsprrypico-0a60df.local/');
+
     for(const invalid of ['pico-a.local','pico-a.','.pico-a','a.b']) {
         await field('hostname-input',invalid);
         await cdp.evaluate(`document.getElementById('hostname-form').dispatchEvent(new Event('submit',{cancelable:true}))`);
@@ -212,16 +229,28 @@ try {
     await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     assert.equal(await cdp.evaluate('document.activeElement.id'),'hostname-save');
     await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
-    await capture('max-name-draft');
+    await capture('max-name-draft','hostname-link-panel');
+    const longCopy='http://'+'x'.repeat(63)+'.local/';
+    await copyLink(longCopy);
+    await cdp.evaluate(`globalThis.nativeExecCopy=document.execCommand;document.execCommand=()=>false;document.getElementById('hostname-copy').click()`);
+    assert.match(await cdp.evaluate(`document.getElementById('hostname-copy-status').textContent`),/Could not copy/);
+    assert.equal(await cdp.evaluate(`document.getSelection().toString()`),longCopy,'failed copy leaves the complete visible URL selected');
+    await cdp.evaluate(`document.execCommand=nativeExecCopy`);
+
     await field('message-text','KEEP DRAFT');
     await field('hostname-input','pico-a');
+    await copyLink('http://pico-a.local/');
     const before=await f.command({op:'stats'});
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !localAuthenticated'),'profile save logs in again');
     assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
     assert.equal((await f.command({op:'stats'})).profile_generation,'2');
+    await copyLink('http://pico-a.local/'); // Remains usable after generation-change logout.
+
     await login();
     assert.equal(await cdp.evaluate('hostnameState.saved'),'pico-a.local');
+    await copyLink('http://pico-a.local/');
+    assert.match(await cdp.evaluate(`document.getElementById('hostname-link-state').textContent`),/^Saved/);
     assert.equal(await cdp.evaluate(`document.getElementById('hostname-input').value`),await cdp.evaluate('hostnameState.active.slice(0,-6)'));
     assert.equal(await cdp.evaluate(`document.getElementById('device-name').textContent`),'wsprrypico-0a60df.local');
     assert.equal(await cdp.evaluate('document.title'),'wsprrypico-0a60df.local - Station control (rename pending)');
@@ -229,7 +258,7 @@ try {
     await click('hostname-review');
     await identity('wsprrypico-0a60df.local');
     assert.match(await cdp.evaluate(`document.getElementById('device-name-state').textContent`),/Saved for restart: pico-a.local/);
-    await capture('saved-rename-pending');
+    await capture('saved-rename-pending','hostname-link-panel');
     await cdp.evaluate(`document.getElementById('message-section').open=true`);
     // Capture the actual first countdown callback while monitorRestart enters
     // synchronously. Restore the global scheduler before any unrelated task runs.
@@ -285,6 +314,8 @@ try {
     await cdp.evaluate(`document.getElementById('hostname-form').requestSubmit()`);
     await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy && !radio.authenticated'),'lost save reply');
     assert.equal((await f.command({op:'stats'})).profile_generation,'3');
+    await copyLink('http://wsprrypico-0a60df.local/');
+    assert.match(await cdp.evaluate(`document.getElementById('hostname-link-state').textContent`),/^Intended/);
     assert.match(await cdp.evaluate('document.title'),/last confirmed|connection unknown/);
     await login();assert.equal(await cdp.evaluate('hostnameState.saved'),'wsprrypico-0a60df.local');
     assert.equal(await cdp.evaluate(`document.getElementById('hostname-save').disabled`),true);
