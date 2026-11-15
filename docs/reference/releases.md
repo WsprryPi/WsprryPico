@@ -8,6 +8,7 @@ RC.3 adds gray-line scheduling and improves setup, recovery, and USB installatio
 - Daylight and night beacon schedules can use the saved station locator without GPS, with usable UTC.
 - Initial Wi-Fi setup includes hostname editing.
 - Recovery navigation is available from the AP interface and authenticated Advanced Wi-Fi controls, with contextual help. The firmware-preserving settings reset is labelled **User wipe**.
+- Saved-setup fault screens link directly to recovery. User wipe can clear invalid setup data, and Wi-Fi setup accepts the reset state so new network details can be saved after restart.
 - Scheduling controls and the presentation of unset calibration and gray-line settings are clearer.
 - USB installation provides clearer picotool diagnostics and Linux permission handling, including optional sudo limited to picotool operations. Installation instructions clarify BOOTSEL, native Windows UF2 use, and USB troubleshooting.
 - AP unlocking allows the normal request deadline when establishing browser time, and the HTTP server releases acknowledged responses promptly so following requests can connect. HTTP connection diagnostics are available through the USB console.

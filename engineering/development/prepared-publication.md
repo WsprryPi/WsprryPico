@@ -26,9 +26,9 @@ Publication requires current authority. This implementation's deterministic test
 
 Deferred publication uses the same target branch/tag concurrency group as the ordinary canonical publisher, so simultaneous publication paths cannot race the source-ordered bookmark. Read-only validation uses its own queue and cannot block a publication behind validation work.
 
-## RC.3 published artifact provenance
+## Original RC.3 publication
 
-The [RC.3 prerelease](https://github.com/WsprryPi/WsprryPico/releases/tag/v1.0.0-rc.3) contains the nine verified files from canonical [build 43598991515, attempt 1](https://github.com/WsprryPi/WsprryPico/actions/runs/43598991515). Its firmware source is `b4e966797cf016f6b8ed873dbe638522fc4d81c7`, and its annotated tag object is `0dd0379f5eeaeb49cd150da2113091bfacbc8d72`. The 6,406,144-byte UF2 has SHA-256 `160dc236a3e7911498b196f0937fe13c31c47b687ce20c7590c7d499d5c522c4`. The retained owner packet digest is `684e6c4962503fd39cc5b983c0b1df4b8d76a1d0a3ec9dbed47b36f504b83930`.
+The original RC.3 publication contained the nine verified files from canonical [build 43598991515, attempt 1](https://github.com/WsprryPi/WsprryPico/actions/runs/43598991515). Its firmware source was `b4e966797cf016f6b8ed873dbe638522fc4d81c7`, and its annotated tag object was `0dd0379f5eeaeb49cd150da2113091bfacbc8d72`. The 6,406,144-byte UF2 had SHA-256 `160dc236a3e7911498b196f0937fe13c31c47b687ce20c7590c7d499d5c522c4`. The retained owner packet digest was `684e6c4962503fd39cc5b983c0b1df4b8d76a1d0a3ec9dbed47b36f504b83930`. These identities describe the original packet; the [current RC.3 release manifest](https://github.com/WsprryPi/WsprryPico/releases/download/v1.0.0-rc.3/release-manifest.json) identifies the republished firmware and its canonical verification run.
 
 Trusted [publisher 43601371512](https://github.com/WsprryPi/WsprryPico/actions/runs/43601371512) used the same source for publication tooling and published the retained files without rebuilding firmware or replacing assets. The original archives and independent revalidation receipts remain retained. Publishing this semantic prerelease did not advance the separate `ci-devel` selector or select latest stable.
 
