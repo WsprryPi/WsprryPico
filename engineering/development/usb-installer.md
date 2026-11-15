@@ -10,6 +10,8 @@ The canonical [installation/update guide](../../docs/install.md) and [recovery/e
 
 The explicit erase operation removes all 4 MiB of external flash, verifies every byte against `0xff`, leaves BOOTSEL active and creates no credential backup. Immutable ROM, chip identity, and OTP are outside external flash. Same-board serial/port/chip checks, durable intent, and retry behavior remain shared with the transaction implementation. A failed or interrupted check is unresolved. Existing host backups remain retained.
 
+Interactive erase shares the install/upgrade terminal selection menu and requires `--board pico2_w --yes` before selection. Both running firmware and BOOTSEL boards can be selected. The selected serial, mode, and USB parent are rechecked under the device lock before preparing an erase transaction. Imported callers, unattended runs, and `--json-only` require an explicit serial; recovery retains its explicit serial and transaction requirements.
+
 The deterministic erase checks include identity/port, explicit confirmation, uniform/blank flash, full-range comparison, a nonblank last byte, interruption, recovery, and preservation of existing backups. Reproduction commands remain in [the development guide](README.md).
 
 ### Physical erase applicability

@@ -1050,6 +1050,9 @@ def selected(serial, mode=None, parent=None):
 
 
 def require_operation_mode(operation, board):
+    if operation == 'erase':
+        require(board['mode'] in ('application', 'bootsel'), 'Unsupported Pico mode for erase')
+        return
     expected = 'bootsel' if operation == 'install' else 'application'
     if board['mode'] == expected:
         return
@@ -1854,7 +1857,8 @@ def erase_transaction(args):
     require(args.device and args.yes and args.board == 'pico2_w',
             'Erasing firmware and all saved data requires --device SERIAL --board pico2_w --yes')
     with device_lock(args.device):
-        board = selected(args.device)
+        board = selected(args.device, mode=getattr(args, 'selected_mode', None),
+                         parent=getattr(args, 'selected_parent', None))
         # Software maintenance is opt-in. Legacy/manual preparation remains
         # available; neither route stops a job or copies credential-bearing flash.
         if board['mode'] == 'application':
@@ -2512,7 +2516,9 @@ def select_interactive_device(operation):
         print('\nSelect the Pico to ' + operation + ':\n', file=sys.stderr, flush=True)
         for number, device in enumerate(devices, 1):
             mode = 'Running firmware' if device['mode'] == 'application' else 'BOOTSEL'
-            available = 'Use upgrade to keep settings' if device['mode'] == 'application' else 'First installation or recovery'
+            available = ('Erases firmware and all saved settings' if operation == 'erase' else
+                         'Use upgrade to keep settings' if device['mode'] == 'application' else
+                         'First installation or recovery')
             print(f"  {number}. USB {device['serial']}\n     {mode}; USB port {device['parent']}",
                   file=sys.stderr, flush=True)
             print('     ' + available + '\n', file=sys.stderr, flush=True)
@@ -2675,8 +2681,12 @@ def main(argv=None, schema_bytes=None, *, human=False):
             require(not (args.version or args.stable or args.local_build or args.local_bundle or args.bundle or
                          args.output or args.transaction or args.build_dir or args.source_revision or args.allow_dirty or
                          args.branch != 'devel'), 'Erase does not accept firmware image selectors, output or transaction options')
-            require(args.device and args.yes and args.board == 'pico2_w',
-                    'Erase requires --device SERIAL --board pico2_w --yes')
+            require(args.yes and args.board == 'pico2_w',
+                    'Erase requires --board pico2_w --yes')
+            if not args.device:
+                require(human and not args.json_only, 'Erase requires explicit --device SERIAL for unattended use')
+                device = select_interactive_device(args.operation)
+                args.device, args.selected_parent, args.selected_mode = device['serial'], device['parent'], device['mode']
             if human:
                 managed_tool = prepare_standalone_picotool(args)
             args.picotool = args.picotool or 'picotool'

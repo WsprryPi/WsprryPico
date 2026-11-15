@@ -1679,6 +1679,25 @@ class EraseTests(unittest.TestCase):
         self.assertEqual([c[0] for c in self.calls], ['info', 'erase', 'verify'])
         self.assertEqual({p.name for p in Path(result['transaction']).parent.iterdir()}, {'transaction.json', 'blank.bin'})
 
+    def test_terminal_menu_reaches_verified_erase_for_only_the_chosen_board(self):
+        class Terminal(io.StringIO):
+            def isatty(self): return True
+        other = dict(serial='2545B6EFBF78028C', mode='bootsel', parent='other-port', ports={})
+        with patch.object(installer, 'open', return_value=Terminal('1\n'), create=True), \
+             patch.object(installer, 'discover', return_value=[other, self.board]), \
+             patch.object(installer, 'prepare_standalone_picotool', return_value=None), \
+             contextlib.redirect_stdout(io.StringIO()) as out, \
+             contextlib.redirect_stderr(Terminal()) as messages:
+            code = installer.main(['erase', '--board', 'pico2_w', '--yes'], human=True)
+        result = json.loads(out.getvalue())
+        self.assertEqual(code, 0)
+        self.assertEqual(result['serial'], SERIAL)
+        self.assertEqual(result['parent'], self.board['parent'])
+        self.assertTrue(result['erase_verified'])
+        self.assertFalse(result['recovery_required'])
+        self.assertEqual(self.flash, b'\xff' * installer.FLASH_SIZE)
+        self.assertIn('Erases firmware and all saved settings', messages.getvalue())
+
     def test_confirmation_and_image_selectors_refuse_before_usb(self):
         for extra in ([], ['--device', SERIAL], ['--device', SERIAL, '--yes'],
                       ['--device', SERIAL, '--board', 'pico2_w'],
@@ -1708,6 +1727,19 @@ class EraseTests(unittest.TestCase):
                 installer.erase_transaction(self.args)
         self.assertTrue(all(c[0] == 'info' for c in self.calls))
         self.assertEqual(self.flash[0], 0x5a)
+
+    def test_menu_selection_is_rechecked_under_lock_before_erase(self):
+        for changed in ([], [dict(self.board, parent='other-port')],
+                        [dict(self.board, mode='application')]):
+            with self.subTest(changed=changed), \
+                 patch.object(installer, 'discover', return_value=changed), \
+                 patch.object(installer, 'private_directory') as private:
+                self.args.selected_parent = self.board['parent']
+                self.args.selected_mode = self.board['mode']
+                with self.assertRaises(installer.Refusal):
+                    installer.erase_transaction(self.args)
+                private.assert_not_called()
+                self.assertFalse(self.calls)
 
     def test_uniform_blank_and_content_size_guesses_do_not_block_confirmed_board_erase(self):
         for initial in (0x5a, 0xff):
@@ -1942,12 +1974,14 @@ class InteractiveSelectionTests(unittest.TestCase):
              patch.object(installer, 'Https', return_value=net) as network, \
              patch.object(installer, 'prepare_standalone_picotool', return_value=None) as tools, \
              patch.object(installer, 'transaction', side_effect=transaction) as programming, \
+             patch.object(installer, 'erase_transaction', side_effect=transaction) as erasing, \
              patch.object(installer, 'Picotool', side_effect=AssertionError('Real USB tool opened')), \
              patch.object(installer, 'public_snapshot', side_effect=AssertionError('Unselected USB device opened')), \
              contextlib.redirect_stdout(io.StringIO()) as output, contextlib.redirect_stderr(messages):
             code = installer.main(['upgrade', '--board', 'pico2_w', '--yes'] if arguments is None else arguments, human=human)
         return SimpleNamespace(code=code, result=json.loads(output.getvalue()), messages=messages.getvalue(),
-                               opened=opened, discovery=discovery, network=network, programming=programming, tools=tools)
+                               opened=opened, discovery=discovery, network=network, programming=programming,
+                               erasing=erasing, tools=tools)
 
     def refused(self, result):
         self.assertEqual(result.code, 2)
@@ -1955,6 +1989,43 @@ class InteractiveSelectionTests(unittest.TestCase):
         self.assertFalse(result.result['recovery_required'])
         result.network.assert_not_called()
         result.programming.assert_not_called()
+        result.erasing.assert_not_called()
+
+    def test_erase_menu_accepts_running_and_bootsel_boards_with_destructive_guidance(self):
+        for answer, serial, mode, parent in (('1\n', SERIAL, 'application', '1-1.3'),
+                                            ('2\n', self.OTHER, 'bootsel', '1-1.4')):
+            with self.subTest(mode=mode):
+                result = self.invoke(['erase', '--board', 'pico2_w', '--yes'], answer=answer)
+                self.assertEqual(result.code, 0)
+                result.programming.assert_not_called()
+                result.network.assert_not_called()
+                args = result.erasing.call_args.args[0]
+                self.assertEqual((args.device, args.selected_mode, args.selected_parent), (serial, mode, parent))
+                self.assertTrue(args.yes)
+                self.assertEqual(args.board, 'pico2_w')
+                self.assertIn('Select the Pico to erase:', result.messages)
+                self.assertIn('Erases firmware and all saved settings', result.messages)
+                self.assertNotIn('Use upgrade to keep settings', result.messages)
+
+    def test_erase_menu_refuses_without_confirmation_terminal_or_current_identity(self):
+        arguments = ['erase', '--board', 'pico2_w', '--yes']
+        cases = [dict(answer='\n'), dict(answer=''), dict(answer='q\n'), dict(tty=False),
+                 dict(open_error=OSError('no terminal')), dict(boards=[]), dict(human=False),
+                 dict(arguments=arguments + ['--json-only']), dict(arguments=['erase', '--yes']),
+                 dict(arguments=['erase', '--board', 'pico2_w']),
+                 dict(arguments=arguments + ['--version', 'anything']),
+                 dict(fresh=[]), dict(fresh=[dict(serial=SERIAL, mode='bootsel', parent='1-1.3')]),
+                 dict(fresh=[dict(serial=SERIAL, mode='application', parent='other-port')])]
+        for kwargs in cases:
+            with self.subTest(kwargs=kwargs):
+                self.refused(self.invoke(**({'arguments': arguments} | kwargs)))
+
+    def test_explicit_erase_device_bypasses_menu_for_all_entry_points(self):
+        for human, extra in ((True, []), (False, []), (True, ['--json-only'])):
+            result = self.invoke(['erase', '--device', SERIAL, '--board', 'pico2_w', '--yes', *extra], human=human)
+            self.assertEqual(result.code, 0)
+            result.opened.assert_not_called()
+            result.erasing.assert_called_once()
 
     def test_menu_orders_serials_and_passes_only_chosen_device_to_preserving_transaction(self):
         result = self.invoke()
