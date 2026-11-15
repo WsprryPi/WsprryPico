@@ -1,10 +1,12 @@
 import '../web/submission.js';
 import {titleFromDevice} from './presentation.js';
 import {available, begin, seal} from './crypto.js';
+import {createSetupLink} from './setup-link.js';
 
 const names = ['credentials', 'checking', 'accepted', 'unconfirmed', 'connected',
   'saved', 'retry', 'interrupted', 'unknown', 'service', 'browser'];
 const $ = (id) => document.getElementById(id);
+const setupLink = createSetupLink(document, {allowed:() => !submissions.pending && !submissions.suspended});
 $('setup-recovery')?.addEventListener('click',()=>location.assign('/recovery.html'));
 const show = (name, moveFocus = false) => {
   const focused=submissions.origin || document.activeElement;
@@ -13,7 +15,9 @@ const show = (name, moveFocus = false) => {
     name === 'connected' ? 'Wi-Fi connected' : 'Connect this Pico to Wi-Fi';
   $('setup-intro').hidden = name !== 'credentials';
   $('setup-footer').hidden = name !== 'credentials';
-  if ($('next-connection')) $('next-connection').hidden = !['accepted','unconfirmed','connected','saved','unknown'].includes(name);
+  if ($('next-connection')) $('next-connection').hidden = !['checking','accepted','unconfirmed','connected','saved','unknown'].includes(name);
+  linkScreen = name;
+  refreshLink();
   if (moveFocus || focused?.closest('[hidden]')) submissions.focus($('page-title'));
 };
 const notice = (message, error = false) => {
@@ -28,6 +32,17 @@ let formEdited = false;
 let lastTimeHintMs;
 let requestedHostname;
 let hostnameEdited = false, hostnameLoaded = false;
+let currentHostname, profileKnown = false, linkAttempt, linkScreen = 'credentials';
+const validHostnameLabel = value => /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(value);
+function effectiveHostname() {
+  if (!profileKnown) return;
+  const label = $('hostname').disabled ? '' : $('hostname').value;
+  return label ? (validHostnameLabel(label) ? label.toLowerCase() + '.local' : undefined) : currentHostname;
+}
+function refreshLink() {
+  setupLink.update({hostname:linkAttempt ? linkAttempt.hostname : effectiveHostname(),
+    phase:linkAttempt?.confirmed ? 'saved' : 'intended', screen:linkScreen});
+}
 const hexId = (value) => typeof value === 'string' && /^[0-9a-f]{32}$/.test(value);
 const hasSavedNetwork = (status) =>
   status.source === 'network_only' || status.source === 'consumer';
@@ -89,13 +104,10 @@ async function fillCurrentHostname() {
     return;
   }
   hostnameLoaded = true;
+  currentHostname = hostname;
   if (!hostnameEdited) $('hostname').value = hostname.slice(0, -6);
   $('hostname-read-status').hidden = true;
-  if ($('setup-hostname')) {
-    $('setup-hostname').textContent = hostname;
-    $('setup-hostname').href = 'http://' + hostname + '/';
-    $('setup-hostname').hidden = false;
-  }
+  refreshLink();
 }
 
 async function fillSavedNetwork() {
@@ -188,7 +200,9 @@ async function update() {
     if (!Number.isSafeInteger(status.generation) || status.generation < 0)
       throw new Error('invalid generation');
     currentGeneration = status.generation;
+    profileKnown = status.source === 'unprovisioned' || hasSavedNetwork(status);
     $('hostname').disabled = status.source === 'consumer';
+    refreshLink();
     if (status.source === 'consumer') $('hostname-help').textContent =
       'Change this configured Pico’s hostname in Wi-Fi/Host → Device hostname after signing in.';
     if (status.source === 'fault' && status.slot_state === 'reconcile' && sealed &&
@@ -209,10 +223,11 @@ async function update() {
         status.request_id_digest === sealed.requestDigest;
       if (saved) {
         completed = true;
-        if (requestedHostname && $('setup-hostname')) {
-          $('setup-hostname').textContent = requestedHostname;
-          $('setup-hostname').href = 'http://' + requestedHostname + '/';
-          $('setup-hostname').hidden = false;
+        if (linkAttempt) {
+          linkAttempt.confirmed = true;
+          // A subsequent blank-field save retains the verified saved name,
+          // which can differ from this boot's initial presentation name.
+          if (linkAttempt.hostname) currentHostname = linkAttempt.hostname;
         }
         show(durableJoin(status) ? 'connected' : 'saved');
         notice(durableJoin(status) ? 'Wi-Fi saved and connected.' :
@@ -301,13 +316,15 @@ async function submitWork(event) {
     notice('Enter a valid time server name or IPv4 address.', true);
     return;
   }
-  if (hostnameLabel && !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?$/.test(hostnameLabel)) {
+  if (hostnameLabel && !validHostnameLabel(hostnameLabel)) {
     fieldError('hostname','Use 1–63 letters, digits, or hyphens; start and end with a letter or digit. Dots are not allowed.');
     submissions.focus($('hostname'));
     notice('Enter a hostname without dots, such as pico-c.', true);
     return;
   }
   requestedHostname = hostnameLabel ? hostnameLabel.toLowerCase() + '.local' : undefined;
+  linkAttempt = {hostname:requestedHostname || currentHostname, confirmed:false};
+  refreshLink();
   const formHadFocus=document.activeElement?.closest('form')===$('wifi-form');
   saving = true;
   $('submit').disabled = true;
@@ -362,6 +379,7 @@ function change() {
   if (submissions.pending) { notice('Wait for the current Pico request to finish. No additional action was sent.',true); return; }
   clearAttempt();
   completed = false;
+  linkAttempt = undefined;
   show('credentials');
   notice('Enter the Wi-Fi network this Pico should use.');
 }
@@ -375,7 +393,7 @@ async function boot() {
   $('interrupted-button').addEventListener('click', () => location.reload());
   $('unknown-button').addEventListener('click', () => location.reload());
   $('wifi-form').addEventListener('submit', submit);
-  $('wifi-form').addEventListener('input', event => { formEdited = true; if (event.target.id === 'hostname') hostnameEdited = true; if (['ssid','password','time-server','hostname'].includes(event.target.id)) fieldError(event.target.id,''); });
+  $('wifi-form').addEventListener('input', event => { formEdited = true; if (event.target.id === 'hostname') { hostnameEdited = true; refreshLink(); } if (['ssid','password','time-server','hostname'].includes(event.target.id)) fieldError(event.target.id,''); });
   if (location.origin !== host || typeof fetch !== 'function' ||
       typeof AbortController !== 'function' || !available()) {
     show('browser');
@@ -412,5 +430,5 @@ globalThis.addEventListener?.('beforeunload', event => {
   if (formEdited) { event.preventDefault(); event.returnValue = ''; }
 });
 
-globalThis.addEventListener?.('pagehide',()=>submissions.suspend());
-globalThis.addEventListener?.('pageshow',()=>submissions.resume());
+globalThis.addEventListener?.('pagehide',()=>{ setupLink.suspend(); submissions.suspend(); });
+globalThis.addEventListener?.('pageshow',()=>{ submissions.resume(); setupLink.resume(); });

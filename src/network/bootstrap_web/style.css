@@ -56,3 +56,8 @@ summary .help-heading>span{min-width:0}
 
 /* Configured hostnames can contain a full 63-character label. */
 header strong{min-width:0;overflow-wrap:anywhere}
+
+#setup-link-panel{margin:1.25rem 0}
+#setup-link-panel[hidden]{display:none}
+.setup-link-actions{display:flex;align-items:center;flex-wrap:wrap;gap:.5rem 1rem}
+.setup-link-actions a{min-height:44px;display:inline-flex;align-items:center;min-width:0}

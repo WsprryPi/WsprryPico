@@ -11,7 +11,7 @@ for (const name of ['credentials', 'checking', 'accepted', 'unconfirmed', 'conne
                     'setup-footer', 'wifi-form', 'ssid', 'password', 'time-server',
                     'password-toggle', 'password-slash', 'submit', 'change-connected',
                     'change-saved', 'retry-button', 'interrupted-button', 'unknown-button']) {
-  elements.set(name, {hidden: true, textContent: '', value: '', type: 'password', disabled: false,
+  elements.set(name, {id:name, hidden: true, textContent: '', value: '', type: 'password', disabled: false,
     attributes: {}, focus() {}, setAttribute(key, value) { this.attributes[key] = value; },
     toggleAttribute(key,value) { this.attributes[key]=value; },
     events: {}, classList: {toggle() {}}, addEventListener(event, handler) {
@@ -21,6 +21,13 @@ for (const name of ['credentials', 'checking', 'accepted', 'unconfirmed', 'conne
 elements.get('credentials').hidden = false;
 elements.get('time-server').value = 'time.example.org';
 elements.get('submit').disabled = true;
+
+for (const id of ['setup-link-panel','setup-url','setup-hostname','copy-setup-link',
+  'setup-copy-status','setup-link-state','setup-link-help','setup-link-edit','setup-link-result','next-connection']) {
+  elements.set(id, {value:'',textContent:'',hidden:true,events:{},
+    addEventListener(event,fn) { this.events[event]=fn; },
+    append(child) { child.parentElement=this; }, removeAttribute(name) { delete this[name]; }});
+}
 globalThis.document = {getElementById: (name) => elements.get(name)};
 let reloads = 0;
 globalThis.location = {origin: 'http://192.168.4.1', reload() { reloads++; }};
@@ -140,13 +147,30 @@ elements.get('password').value = 'test-only-password';
 await elements.get('password-toggle').events.click();
 assert.equal(elements.get('password').type, 'text');
 assert.equal(elements.get('password-toggle').attributes['aria-label'], 'Hide Wi-Fi password');
+let copiedUrl, finishCopy;
+globalThis.isSecureContext=true;
+Object.defineProperty(globalThis,'navigator',{configurable:true,value:{clipboard:{writeText(value) {
+  copiedUrl=value;return new Promise(resolve=>{finishCopy=resolve;});
+}}}});
+const copying=elements.get('copy-setup-link').events.click();
+assert.equal(copiedUrl,'http://picoc.local/');
+assert.equal(elements.get('copy-setup-link').disabled,true);
+assert.equal(elements.get('submit').disabled,false,'pending clipboard does not inhibit Save');
 await elements.get('wifi-form').events.submit({preventDefault() {}});
+finishCopy();await copying;
+assert.equal(elements.get('setup-copy-status').textContent,'','pre-save copy cannot announce a later setup state');
 assert.equal(starts, 1);
 assert.ok(submitted);
 assert.equal(elements.get('password').value, '');
 assert.equal(elements.get('password').type, 'password');
 assert.equal(elements.get('accepted').hidden, false);
 assert.equal(elements.get('page-title').textContent, 'Wi-Fi settings accepted');
+assert.equal(elements.get('setup-url').value,'http://picoc.local/');
+assert.match(elements.get('setup-link-state').textContent,/^Intended/);
+elements.get('hostname').value='late-edit';
+elements.get('wifi-form').events.input({target:elements.get('hostname')});
+assert.equal(elements.get('setup-url').value,'http://picoc.local/','submitted target is frozen');
+
 assert.equal(elements.get('setup-intro').hidden, true);
 assert.equal(elements.get('setup-footer').hidden, true);
 dropStatus = true;
@@ -162,11 +186,16 @@ await poll();
 assert.equal(elements.get('connected').hidden, false);
 assert.equal(elements.get('page-title').textContent, 'Wi-Fi connected');
 await timers.findLast((item) => item.delay === 250).callback();
+assert.match(elements.get('setup-link-state').textContent,/^Saved/);
+assert.equal(elements.get('setup-url').value,'http://picoc.local/');
 assert.equal(ack.request_id, submitted.request_id);
 assert.equal(ack.ack_tag.length, 43);
 
 elements.get('change-connected').events.click();
 assert.equal(elements.get('credentials').hidden, false);
+elements.get('hostname').value='';
+elements.get('wifi-form').events.input({target:elements.get('hostname')});
+assert.equal(elements.get('setup-url').value,'http://picoc.local/','blank retains the verified saved name');
 elements.get('ssid').value = 'NewNet';
 elements.get('password').value = 'new-test-password';
 holdStatus = true;
@@ -195,6 +224,7 @@ assert.equal(elements.get('connected').hidden, true); // Foreign result is not o
 status = {...status, slot_state: 'terminal'};
 await poll();
 assert.equal(elements.get('unknown').hidden, false); // Never call a foreign commit ours.
+assert.match(elements.get('setup-link-state').textContent,/^Intended/);
 elements.get('change-connected').events.click();
 elements.get('ssid').value = 'ThirdNet';
 elements.get('password').value = 'third-test-password';

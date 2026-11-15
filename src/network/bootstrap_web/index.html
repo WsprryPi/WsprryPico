@@ -55,6 +55,17 @@
         <small id="time-server-error" class="field-error"></small>
         <p id="time-server-help" class="quiet">Used when the Pico joins Wi-Fi. You can keep the suggested server.</p>
         <p class="quiet">This page encrypts your network details before sending them over the Pico setup Wi-Fi.</p>
+        <div id="setup-link-edit">
+          <div id="setup-link-panel" hidden>
+            <p><strong>Keep your Pico’s link</strong></p>
+            <p id="setup-link-help" class="quiet">Copy this link before saving. After the Pico restarts, reconnect to your normal Wi-Fi and paste it into your browser.</p>
+            <label for="setup-url">Pico link</label>
+            <input id="setup-url" type="text" readonly spellcheck="false" aria-describedby="setup-link-state setup-copy-status">
+            <p id="setup-link-state" class="quiet"></p>
+            <div class="setup-link-actions"><button id="copy-setup-link" type="button" disabled>Copy link</button><a id="setup-hostname" hidden></a></div>
+            <p id="setup-copy-status" class="quiet" role="status" aria-live="polite" aria-atomic="true"></p>
+          </div>
+        </div>
         <button id="submit" type="submit" class="primary" disabled>Connect to Wi-Fi</button>
       </form>
     </section>
@@ -118,7 +129,8 @@
     </section>
     <section id="next-connection" hidden>
       <div class="help-heading"><h2>Find this Pico after setup</h2><a class="documentation-help" title="Find this Pico after setup — online help opens in a new tab" data-help="Find this Pico after setup" href="@WSPRRY_PICO_HELP_BASE@connect.html#open-the-control-page" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Find this Pico after setup (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></div>
-      <p>Join your normal Wi-Fi network, then try the configured hostname <a id="setup-hostname" hidden></a> or the Pico’s current IP address from your router. Name discovery and reachability are not confirmed by this page. Open Station/Transmission there for optional station settings.</p>
+      <div id="setup-link-result"></div>
+      <p>Join your normal Wi-Fi network, then try the Pico link or the Pico’s current IP address from your router. Name discovery and reachability are not confirmed by this page. Open Station/Transmission there for optional station settings.</p>
       <p>If contact was lost before confirmation, return to this open page on the Pico setup Wi-Fi to check the result. Do not submit the same save again while its result is unknown.</p>
     </section>
     <details><summary><span class="help-heading"><span>Setup Wi-Fi access window</span><a class="documentation-help" title="Setup Wi-Fi access window — online help opens in a new tab" data-help="Setup Wi-Fi access window" href="@WSPRRY_PICO_HELP_BASE@connect.html#request-setup-wi-fi-with-the-external-button" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer" aria-label="Help: Setup Wi-Fi access window (online, opens in a new tab)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4"/><circle cx="12" cy="16.5" r=".9" fill="currentColor" stroke="none"/></svg></a></span></summary><p>Setup Wi-Fi stays available while a device is connected. After the last device disconnects, it closes after ten minutes without a connection. If nobody joins, the initial window lasts ten minutes. A USB Console request initially gives two minutes to join. Saving settings that restart the Pico can interrupt the connection. Release the configured switch and make a new nine-second hold to request setup again. The factory switch is GP14 to ground; saved custom or disabled assignments take precedence. USB access remains available.</p></details>

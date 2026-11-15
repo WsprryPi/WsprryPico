@@ -17,6 +17,13 @@ async function openPage(readback, editDuringRead = false, nameMode = 'ready') {
       addEventListener(event, handler) { this.events[event] = handler; }});
   }
   elements.get('time-server').value = 'pool.ntp.org';
+
+  for (const id of ['setup-link-panel','setup-url','setup-hostname','copy-setup-link',
+    'setup-copy-status','setup-link-state','setup-link-help','setup-link-edit','setup-link-result','next-connection']) {
+    elements.set(id, {value:'',textContent:'',hidden:true,events:{},
+      addEventListener(event,fn) { this.events[event]=fn; },
+      append(child) { child.parentElement=this; }, removeAttribute(name) { delete this[name]; }});
+  }
   globalThis.document = {getElementById: (name) => elements.get(name)};
   globalThis.location = {origin: 'http://192.168.4.1'};
   globalThis.setTimeout = () => 1;
@@ -31,7 +38,7 @@ async function openPage(readback, editDuringRead = false, nameMode = 'ready') {
       ++nameReads;
       if (nameMode === 'unavailable' || nameMode === 'retry' && nameReads === 1) return {ok:false};
       if (nameMode === 'ssid-edit' || nameMode === 'name-edit') await new Promise(resolve => { releaseName = resolve; });
-      return {ok:true,json:async()=>({schema:'device-presentation/1',device_id:device,boot_id:'1'.repeat(32),hostname:'current-pico.local'})};
+      return {ok:true,json:async()=>({schema:'device-presentation/1',device_id:nameMode === 'wrong-device' ? 'f'.repeat(32) : device,boot_id:'1'.repeat(32),hostname:nameMode === 'malformed' ? 'bad.example' : 'current-pico.local'})};
     }
     if (path === '/local/v1/identity')
       return {ok: true, json: async () => ({device_id: device})};
@@ -42,7 +49,7 @@ async function openPage(readback, editDuringRead = false, nameMode = 'ready') {
       return {ok: true, json: async () => readback};
     }
     if (path === '/api/bootstrap/v1/status')
-      return {ok: true, json: async () => ({source: 'consumer', generation: 5})};
+      return {ok: true, json: async () => ({source: readback.source === 'network_only' ? 'network_only' : 'consumer', generation: 5})};
     if (path === '/api/bootstrap/v1/time')
       return {ok: true, json: async () => options.body ? {state: 'accepted'} : {challenge_ns: '1'}};
     throw new Error('unexpected request ' + path);
@@ -98,3 +105,27 @@ const unavailable=await openPage(saved,false,'unavailable');
 assert.equal(unavailable.get('hostname').value,'');
 assert.match(unavailable.get('hostname-read-status').textContent,/unavailable/);
 console.log('Actual current-name value, retry, unrelated-edit independence, and hostname-draft preservation passed');
+
+const consumer = await openPage(saved);
+assert.equal(consumer.get('hostname').disabled,true);
+consumer.get('hostname').value='ignored-draft';
+consumer.get('wifi-form').events.input({target:consumer.get('hostname')});
+assert.equal(consumer.get('setup-url').value,'http://current-pico.local/');
+const draft = await openPage({...saved,source:'network_only'},false,'name-edit');
+assert.equal(draft.get('setup-url').value,'http://my-draft.local/');
+for (const [label,expected] of [['PicoC','http://picoc.local/'],['','http://current-pico.local/'],
+  ['x'.repeat(63),'http://'+'x'.repeat(63)+'.local/'],['bad.local',''],['-bad',''],['K','']]) {
+  draft.get('hostname').value=label;
+  draft.get('wifi-form').events.input({target:draft.get('hostname')});
+  assert.equal(draft.get('setup-url').value,expected);
+  assert.equal(draft.get('copy-setup-link').disabled,!expected);
+}
+assert.equal(unavailable.get('setup-url').value,'');
+assert.equal(unavailable.get('copy-setup-link').disabled,true);
+console.log('Setup link draft, consumer authority, invalid name, blank retention, and missing metadata passed');
+
+for (const mode of ['wrong-device','malformed']) {
+  const rejected=await openPage({...saved,source:'network_only'},false,mode);
+  assert.equal(rejected.get('setup-url').value,'');
+  assert.equal(rejected.get('copy-setup-link').disabled,true);
+}

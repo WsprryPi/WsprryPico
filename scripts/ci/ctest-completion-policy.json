@@ -290,7 +290,7 @@
   "contexts": {
     "npm": {
       "kind": "node-test",
-      "count": 26
+      "count": 27
     },
     "packaging": {
       "kind": "unittest",
