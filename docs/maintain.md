@@ -90,11 +90,10 @@ The public recovery page is served at **http://192.168.4.1/recovery.html** durin
 For deliberate USB full flash erase in a terminal, select the intended Pico from the numbered menu. The menu lists each board's USB serial, mode, and USB port; even a single board requires a deliberate selection. Press Enter to cancel:
 
 ```sh
-bash install_usb.sh discover
 bash install_usb.sh erase --board pico2_w --yes
 ```
 
-Add `--device USB_SERIAL` to select a known board directly. Unattended runs and `--json-only` require this explicit serial. On Linux, add `--sudo-picotool` to allow the USB-access check to use sudo for picotool; run the installer as your ordinary user.
+Optionally add `--device SERIAL` to select a known board directly instead of using the menu. Replace `SERIAL` with the exact USB serial shown by `bash install_usb.sh discover`. Unattended runs and `--json-only` require this explicit serial. On Linux, add `--sudo-picotool` to allow the USB-access check to use sudo for picotool; run the installer as your ordinary user.
 
 The installer requires an idle, unowned device with its saved standalone schedule disabled or unconfigured. In a terminal, it pauses for up to three minutes while you reconnect the same board to the same USB port in BOOTSEL. Leave the installer running: it automatically continues the erase and verification after detecting that board. No second command is needed. If the wait times out or you press Ctrl+C, run the printed recovery command after reconnecting in BOOTSEL. Redirected output and `--json-only` return the prepared transaction without waiting; use its recovery command to continue. Success requires a full blank comparison and reports **erase_verified: true** and **4194304** erased bytes. An interrupted or failed check does not prove erasure. Existing host backups remain. [Install firmware again](install.md) before normal use.
 

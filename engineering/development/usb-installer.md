@@ -106,10 +106,10 @@ If no compatible executable is available on `PATH`, the installer checks its pri
 
 ```sh
 python3 scripts/usb_installer.py upgrade --branch devel \
-  --device SERIAL --board pico2_w --yes --download-picotool --tool-cleanup remove
+  --board pico2_w --yes --download-picotool --tool-cleanup remove
 ```
 
-The same arguments work with the piped `install_usb.sh` bootstrap. Interactive install/upgrade commands may omit `--device` to select a Pico from the terminal menu. Tool download and cleanup prompts read the controlling terminal, leaving piped script input and JSON stdout separate.
+The same arguments work with the piped `install_usb.sh` bootstrap. Interactive install, upgrade, and erase commands use a numbered Pico selector by default, including when only one board is connected. Optional `--device SERIAL` bypasses the menu for an explicit board; unattended and `--json-only` programming require it. Tool download and cleanup prompts read the controlling terminal, leaving piped script input and JSON stdout separate.
 
 ### Official packages and verification
 
@@ -177,7 +177,7 @@ python3 scripts/usb_installer.py plan --branch devel \
   --local-build /path/to/WsprryPico --source-revision FULL_SOURCE_SHA \
   --build-dir /new/private/build --allow-dirty --output /new/local-bundle
 python3 scripts/usb_installer.py upgrade --branch devel --local-bundle /new/local-bundle \
-  --device SERIAL --board pico2_w --yes --picotool /path/to/picotool
+  --board pico2_w --yes --picotool /path/to/picotool
 ```
 
 
@@ -194,7 +194,7 @@ To upgrade an existing local deployment whose compact reference is absent or sta
 ```sh
 python3 scripts/usb_installer.py upgrade --branch devel \
   --installed-bundle /path/to/original-local-bundle \
-  --device SERIAL --board pico2_w --yes --picotool /path/to/picotool
+  --board pico2_w --yes --picotool /path/to/picotool
 ```
 
 `--installed-bundle` is an explicit baseline import, not a target-image selector or a force option. It accepts the original verified public bundle or a local `0.0.0-devel` bundle independently of the candidate selector. Public baselines retain their original manifest, CI receipt and image bytes even after an editable semantic tag changes. The running firmware version and embedded source must match the original bundle before reset; the actual application flash must then match before programming. Equal semantic versions never substitute for byte identity. A moved public tag without its original verified bundle refuses before reset. Public imports never rewrite a local development-image reference. The original bundle's source identity must match the running application, and source ancestry checks still apply. The importer copies the validated bundle into private transaction storage before guarded maintenance, then requires the selected board's full flash backup to match the supplied application image exactly. Only after that comparison does it repair the compact reference; no firmware programming is authorized by a version string, receipt, or reference edit alone. The normal reserved-flash and saved-semantics checks cover the subsequent upgrade. An incomplete or mismatched bundle refuses without replacing the reference; a flash mismatch after guarded reset retains the backup and recovery transaction without programming firmware.

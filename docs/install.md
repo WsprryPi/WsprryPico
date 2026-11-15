@@ -33,9 +33,9 @@ For development firmware, use the [published devel download](https://github.com/
 
 ## Get the installer and identify the Pico
 
-Prepare the Pico **before running discovery**:
+Prepare the Pico **before running the installer**:
 
-- **First WsprryPico installation, including a Pico running another program:** disconnect the Pico, hold its onboard **BOOTSEL** button while reconnecting the USB data cable, then release the button. Leave it connected in BOOTSEL for discovery and installation. Discovery recognizes BOOTSEL devices and the WsprryPico application USB identity; another running program may not appear.
+- **First WsprryPico installation, including a Pico running another program:** disconnect the Pico, hold its onboard **BOOTSEL** button while reconnecting the USB data cable, then release the button. Leave it connected in BOOTSEL for selection and installation. The installer recognizes BOOTSEL devices and the WsprryPico application USB identity; another running program may not appear.
 - **Update existing WsprryPico firmware:** complete [update preparation](#preserve-settings-during-an-update) and leave the firmware running normally. Use `upgrade`, and enter BOOTSEL only if the installer requests it. If an interrupted update already has a retained transaction, follow its printed recovery command.
 
 Open a terminal in a folder where you can keep the installer. Download the small launcher script as `install_usb.sh`, inspect it in a text editor, and run it as your ordinary user. Keep using this folder for subsequent commands that begin with `bash install_usb.sh`:
@@ -44,10 +44,21 @@ Open a terminal in a folder where you can keep the installer. Download the small
 curl -fsSL \
   https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
   --output install_usb.sh
-bash install_usb.sh discover
 ```
 
-The discovery command lists the boards it recognizes, with their USB serial numbers and ports. Record the serial for the intended board, then replace `SERIAL` in the commands below with that exact USB serial. It differs from the full stable device ID shown by firmware. If discovery finds nothing, check the preparation above and the USB data cable. Discovery can list a BOOTSEL device even when Linux permissions prevent picotool from accessing it; allow the installer's picotool sudo prompt, or complete [Linux USB permission setup](#linux-usb-permission-setup).
+Run the installation or update command below, then choose the intended Pico from the numbered menu. The menu shows each board's USB serial, mode, and USB port. Compare these details before choosing; even a single board requires a deliberate selection. Press Enter to cancel. You do not need to copy a serial number into the normal terminal commands.
+
+If no Pico appears, check the preparation above and the USB data cable. A BOOTSEL device can appear in the menu even when Linux permissions prevent picotool from accessing it; allow the installer's picotool sudo prompt, or complete [Linux USB permission setup](#linux-usb-permission-setup).
+
+### Optional explicit or unattended selection
+
+Add `--device SERIAL` to an `install`, `upgrade`, or `erase` command to select a known board directly instead of using the menu. Replace `SERIAL` with that board's exact USB serial, which differs from the full stable device ID shown by firmware. Explicit selection is optional in a terminal and required for unattended or `--json-only` programming. See the [unattended example](#picotool-download-and-cleanup) for tool download and cleanup options.
+
+To list recognized boards without starting an installation or update, use:
+
+```sh
+bash install_usb.sh discover
+```
 
 ### Run directly with curl
 
@@ -61,11 +72,11 @@ curl -fsSL \
   | bash -s -- install --board pico2_w --yes --version @RECOMMENDED_FIRMWARE_VERSION@
 ```
 
-This installs the exact recommended firmware release after checking the existing flash. The installer stops if it finds existing saved data. Keep `--version @RECOMMENDED_FIRMWARE_VERSION@` in the command; `--branch devel` does not select this exact release.
+Choose the intended Pico from the numbered menu. This installs the exact recommended firmware release after checking the existing flash. The installer stops if it finds existing saved data. Keep `--version @RECOMMENDED_FIRMWARE_VERSION@` in the command; `--branch devel` does not select this exact release.
 
 For an existing WsprryPico, complete [the update preparation below](#preserve-settings-during-an-update), leave its firmware running, and replace `install` with `upgrade` in the command. Starting an upgrade in BOOTSEL stops before downloading tools or firmware. Reconnect without holding BOOTSEL before retrying. If an update already has a retained transaction, use its printed recovery command.
 
-The installer can still ask to download picotool, select a Pico, and remove downloaded tools: these prompts use the terminal rather than the piped script input. With several boards attached, compare the listed USB serial and port before choosing. For unattended use, supply `--device SERIAL` and the explicit download/cleanup options below. Resolve reported network or DNS errors before retrying. If an installer transaction was created, follow its status and recovery guidance before starting another update.
+The selection menu and any picotool download or cleanup questions use the terminal rather than the piped script input. Optional `--device SERIAL` selection bypasses the menu; unattended use requires it and the explicit download/cleanup options below. Resolve reported network or DNS errors before retrying. If an installer transaction was created, follow its status and recovery guidance before starting another update.
 
 Terminal runs show progress and a readable result. Add `--json-only` for JSON without questions or terminal guidance. Programming in this mode requires `--device SERIAL`. Redirecting standard output also retains the JSON result while terminal questions and guidance stay on standard error.
 
