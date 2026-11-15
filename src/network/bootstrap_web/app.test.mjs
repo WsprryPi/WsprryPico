@@ -40,6 +40,7 @@ let submitted, ack, starts = 0, dropStatus = false, holdStatus = false, releaseS
 let holdSubmit = false, releaseSubmit, failSubmit = false, failStart = false;
 let busyStarts = 0;
 let dropSubmitResponse = false;
+let holdAck = false, releaseAck;
 let now = 1_800_000_000_000;
 Date.now = () => now;
 const timeHints = [];
@@ -97,6 +98,7 @@ globalThis.fetch = async (url, options = {}) => {
   }
   if (path === '/api/bootstrap/v1/ack') {
     ack = body;
+    if (holdAck) return new Promise(resolve => { releaseAck = () => resolve({ok:true,json:async()=>({state:'accepted'})}); });
     return {ok: true, json: async () => ({state: 'accepted'})};
   }
   throw new Error('unexpected path ' + path);
@@ -185,7 +187,18 @@ status = {...status, source: 'network_only', generation: 1, slot_state: 'termina
 await poll();
 assert.equal(elements.get('connected').hidden, false);
 assert.equal(elements.get('page-title').textContent, 'Wi-Fi connected');
-await timers.findLast((item) => item.delay === 250).callback();
+holdAck = true;
+const acknowledging = timers.findLast((item) => item.delay === 250).callback();
+await new Promise(setImmediate);
+assert.ok(releaseAck);
+const startsBeforeCopy = starts;
+const resultCopy = elements.get('copy-setup-link').events.click();
+assert.equal(copiedUrl,'http://picoc.local/');
+assert.equal(elements.get('copy-setup-link').disabled,true,'local copy admitted while background ACK is pending');
+finishCopy();await resultCopy;
+assert.equal(elements.get('setup-copy-status').textContent,'Link copied');
+assert.equal(starts,startsBeforeCopy,'background copy starts no setup transaction');
+holdAck = false;releaseAck();await acknowledging;
 assert.match(elements.get('setup-link-state').textContent,/^Saved/);
 assert.equal(elements.get('setup-url').value,'http://picoc.local/');
 assert.equal(ack.request_id, submitted.request_id);

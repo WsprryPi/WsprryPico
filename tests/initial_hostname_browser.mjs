@@ -40,6 +40,7 @@ await h.run(async()=>{
   assert.equal(await cdp.evaluate(`document.getElementById('hostname').value`),presentation.hostname.slice(0,-6));
   assert.equal(await cdp.evaluate(`document.getElementById('hostname').hasAttribute('placeholder')`),false);
   assert.equal(await cdp.evaluate(`document.querySelector('label[for="hostname"]').textContent`),'Hostname');
+  await cdp.evaluate(`globalThis.nativeCopyEvents=0;document.addEventListener('copy',()=>++nativeCopyEvents)`);
   async function field(id,value){await cdp.evaluate(`{const e=document.getElementById(${JSON.stringify(id)});e.value=${JSON.stringify(value)};e.dispatchEvent(new Event('input',{bubbles:true}));}`);}
   async function copy() {
     await cdp.evaluate(`document.getElementById('copy-setup-link').focus()`);
@@ -87,17 +88,30 @@ await h.run(async()=>{
   }
   await field('hostname','PicoC');
   assert.equal(await cdp.evaluate(`document.getElementById('setup-url').value`),'http://picoc.local/');
+  // Hold only browser delivery after the actual ACK request/response. All
+  // handlers and journal effects remain production; no server queue is held.
+  await cdp.evaluate(`globalThis.actualFetch=fetch.bind(globalThis);globalThis.releaseAck=undefined;fetch=async(...args)=>{const response=await actualFetch(...args);if(String(args[0]).endsWith('/api/bootstrap/v1/ack'))await new Promise(resolve=>globalThis.releaseAck=resolve);return response;}`);
   await cdp.evaluate(`document.getElementById('wifi-form').requestSubmit()`);
   await until(()=>cdp.evaluate(`document.getElementById('notice').textContent==='Wi-Fi saved and connected.'`),'network and hostname saved');
   assert.equal(submits,1);
   assert.equal(await cdp.evaluate(`document.getElementById('setup-hostname').textContent`),'picoc.local');
   assert.match(await cdp.evaluate(`document.getElementById('setup-link-state').textContent`),/^Saved/);
+  await until(()=>cdp.evaluate(`typeof releaseAck==='function'`),'background ACK response');
   await until(()=>cdp.evaluate(`!document.getElementById('submission-busy')?.open`),'setup modal released');
+  const beforeBackgroundCopy=mutations.length;
+  const backgroundCopies=await cdp.evaluate('nativeCopyEvents');
+  await copy();
+  assert.equal(await cdp.evaluate('nativeCopyEvents'),backgroundCopies+1,'background ACK cannot block local copy');
+  assert.equal(await cdp.evaluate(`document.getElementById('setup-copy-status').textContent`),'Link copied');
+  assert.equal(mutations.length,beforeBackgroundCopy);
+  await cdp.evaluate(`releaseAck();fetch=actualFetch`);
   await capture('saved');
   // Rendering and copying need no network after the verified result is present.
   await cdp.send('Network.enable');await cdp.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:-1,uploadThroughput:-1});
   const beforeOffline=mutations.length;
+  const offlineCopies=await cdp.evaluate('nativeCopyEvents');
   await copy();
+  assert.equal(await cdp.evaluate('nativeCopyEvents'),offlineCopies+1,'offline copy executes rather than retaining prior feedback');
   await until(()=>cdp.evaluate(`document.getElementById('setup-copy-status').textContent==='Link copied'`),'offline result copy');
   assert.equal(mutations.length,beforeOffline);
   await cdp.evaluate(`document.getElementById('change-connected').click()`);
