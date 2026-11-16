@@ -2,7 +2,7 @@
 #pragma once
 #include <cstddef>
 #include <string_view>
-#define WSPRRY_PICO_CONTROL_SCHEMA_SHA256 "a71d09fc1086bf7fd9bafd397a852717da53afa8dd4f43eae313549c3a0f8feb"
+#define WSPRRY_PICO_CONTROL_SCHEMA_SHA256 "f15cc3a24a8c25ddff220879866df93abe8fa7891ade859da9384b8ed57e1df6"
 namespace wsprrypico::network {
 inline constexpr std::string_view control_contract = "Wsprry-Control/1";
 inline constexpr std::string_view control_prefix = "/api/control/v1/";

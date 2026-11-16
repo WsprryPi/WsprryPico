@@ -83,7 +83,7 @@ struct Network : network::NetworkControl {
     bool enabled = false;
     std::optional<bool> pending;
     std::string status() const override {
-        return network_diagnostics_fixture(enabled);
+        return network_diagnostics_fixture(enabled, pending);
     }
     std::string operations_status() const override {
         return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
@@ -177,6 +177,12 @@ int main() {
         [&](const network::HttpRequest& request, std::uint64_t transaction) {
             if (request.path.starts_with("/api/usb/v1/time/"))
                 return time.handle(request, transaction);
+            if (request.path == "/api/usb/v1/ap") {
+                const auto activity = service.activity();
+                return network::local_usb_ap_request(request, device, service.status().boot_id,
+                    browser.revision(), scheduler.idle() && !activity.owned && !activity.output_active &&
+                        activity.state != wtp::State::Failed && runtime.control_healthy(profiles));
+            }
             return api.handle(request, transaction);
         },
         [&](std::uint64_t transaction, bool delivered) { api.finish(transaction, delivered); });

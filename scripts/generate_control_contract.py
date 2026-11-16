@@ -2,7 +2,7 @@
 """Generate bounded control constants/catalog from the authoritative schema."""
 import argparse
 import json
-from check_control_policy import check_files, schema_digest
+from check_control_policy import check_files, schema_digest, pi_resource_descriptors
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -67,6 +67,11 @@ def outputs():
     javascript += 'const capabilityKeys=' + json.dumps(list(spec['$defs']['capabilities']['properties'])) + ';\n'
     javascript += 'const capabilityRequired=' + json.dumps(spec['$defs']['capabilities']['required']) + ';\n'
     javascript += 'const featureRequired=' + json.dumps(spec['$defs']['capabilities']['properties']['features']['required']) + ';\n'
+    controller = spec['controller_adapter']
+    javascript += 'const controllerSchemas=' + json.dumps({name:spec['$defs'][name] for name in controller['definitions']}, separators=(',', ':')) + ';\n'
+    javascript += 'const controllerDocuments=' + json.dumps(controller['documents']) + ';\n'
+    javascript += 'const controllerAdapter=' + json.dumps(controller, separators=(',', ':')) + ';\n'
+    javascript += 'const piDescriptors=' + json.dumps(pi_resource_descriptors(spec), separators=(',', ':')) + ';\n'
     javascript += r'''
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const canonical=v=>JSON.stringify(v,(_key,item)=>object(item)?Object.fromEntries(Object.keys(item).sort().map(k=>[k,item[k]])):item);
@@ -102,36 +107,39 @@ function jsonType(value,type){
  if(type==='object')return object(value);
  if(type==='array')return Array.isArray(value);
  if(type==='integer')return Number.isInteger(value)&&value>=-2147483648&&value<=2147483647;
+ if(type==='number')return typeof value==='number'&&Number.isFinite(value);
  if(type==='string')return typeof value==='string';
  if(type==='boolean')return typeof value==='boolean';
  if(type==='null')return value===null;
  return false;
 }
-function wtpSchema(value,rule,depth=0){
- if(depth>16)return false;
- if(rule.$ref)return wtpSchema(value,wtpSchemas[rule.$ref.split('/').pop()],depth+1);
- if(rule.allOf&&!rule.allOf.every(r=>wtpSchema(value,r,depth+1)))return false;
- if(rule.type&&!jsonType(value,rule.type))return false;
+function wtpSchema(value,rule,depth=0,schemas=wtpSchemas){
+ if(depth>16||!rule||typeof rule!=='object')return false;
+ if(rule.$ref)return wtpSchema(value,schemas[rule.$ref.split('/').pop()],depth+1,schemas);
+ if(rule.allOf&&!rule.allOf.every(r=>wtpSchema(value,r,depth+1,schemas)))return false;
+ if(rule.oneOf&&rule.oneOf.filter(r=>wtpSchema(value,r,depth+1,schemas)).length!==1)return false;
+ if(rule.anyOf&&!rule.anyOf.some(r=>wtpSchema(value,r,depth+1,schemas)))return false;
+ if(rule.type&&!(rule.type==='integer'&&schemas===controllerSchemas?Number.isSafeInteger(value):jsonType(value,rule.type)))return false;
  if(Object.hasOwn(rule,'const')&&!equal(value,rule.const)||rule.enum&&!rule.enum.some(x=>equal(x,value)))return false;
  if(object(value)){
   if(rule.required&&rule.required.some(k=>!Object.hasOwn(value,k)))return false;
   const props=rule.properties||{};
   for(const [key,item]of Object.entries(value)){
-   if(Object.hasOwn(props,key)){if(!wtpSchema(item,props[key],depth+1))return false;}
+   if(Object.hasOwn(props,key)){if(!wtpSchema(item,props[key],depth+1,schemas))return false;}
    else if(rule.additionalProperties===false)return false;
   }
  }
  if(Array.isArray(value)){
   if(value.length<(rule.minItems??0)||value.length>(rule.maxItems??512))return false;
   if(rule.uniqueItems&&new Set(value.map(v=>JSON.stringify(v))).size!==value.length)return false;
-  if(rule.items&&!value.every(v=>wtpSchema(v,rule.items,depth+1)))return false;
+  if(rule.items&&!value.every(v=>wtpSchema(v,rule.items,depth+1,schemas)))return false;
  }
  if(typeof value==='number'&&(rule.minimum!==undefined&&value<rule.minimum||rule.maximum!==undefined&&value>rule.maximum))return false;
  if(typeof value==='string'){
   const chars=[...value];if(chars.length<(rule.minLength??0)||chars.length>(rule.maxLength??65536))return false;
   let bytes=0;for(const char of chars){const n=char.codePointAt(0);if(n>=0xd800&&n<=0xdfff)return false;bytes+=n<128?1:n<2048?2:n<65536?3:4;}
   if(rule['x-maxUtf8Bytes']!==undefined&&bytes>rule['x-maxUtf8Bytes'])return false;
-  if(rule.pattern&&!new RegExp('^(?:'+rule.pattern+')$').test(value))return false;
+  if(rule.pattern){const matched=new RegExp('^(?:'+rule.pattern+')$').exec(value);if(!matched||matched[0].length!==value.length)return false;}
   if(rule['x-maximum']!==undefined&&(!/^[0-9]+$/.test(value)||BigInt(value)>BigInt(rule['x-maximum'])))return false;
  }
  return true;
@@ -151,7 +159,42 @@ function validCapabilities(value){
  if(jobs!==undefined&&(!object(jobs)||Object.keys(jobs).sort().join(',')!=='max_characters,max_repeat_count,modes,operation,tail_ns'||jobs.operation!=='LOAD_MESSAGE'||jobs.tail_ns!=='1000'||!Number.isInteger(jobs.max_characters)||jobs.max_characters<1||jobs.max_characters>32||!Number.isInteger(jobs.max_repeat_count)||jobs.max_repeat_count<1||jobs.max_repeat_count>512||!Array.isArray(jobs.modes)||jobs.modes.length<1||jobs.modes.length>16||new Set(jobs.modes).size!==jobs.modes.length||jobs.modes.some(v=>typeof v!=='string'||!/^[a-z][a-z0-9_-]{0,31}$/.test(v))))return false;
  return true;
 }
-const api=Object.freeze({contract:'Wsprry-Control/1',prefix:'/api/control/v1/',descriptors:Object.freeze(descriptors),publicResources:Object.freeze(publicResources),publicPrefix,supported,validCapabilities,validWtpCapabilities});
+function validControllerDocument(value,name){
+ try{return controllerDocuments.includes(name)&&wtpSchema(value,controllerSchemas[name],0,controllerSchemas)&&
+  (name!=='targets'||new Set(value.targets.map(target=>target.device_id)).size===value.targets.length)&&
+  (name!=='target-context'||['device_id','profile_generation','connection_generation'].every(key=>value.target[key]===value.binding[key])&&
+   new Set(value.capabilities.map(capability=>capability.resource)).size===value.capabilities.length&&
+   value.capabilities.every(capability=>capability.activation!=='unsupported'||!capability.write))&&
+  (name!=='target-status'||value.execution_owner===value.binding.device_id)&&
+  (name!=='host-readiness'||(value.state!=='ready'||value.device_id!==null)&&
+    (!value.recovery_editable||value.role==='transmitter'&&value.state==='configuration_recovery'&&value.device_id!==null)&&
+    (value.role!=='controller-only'||!['configuration_recovery','output_recovery'].includes(value.state)))&&
+  (name!=='configuration-recovery'||(!value.writable||value.binding!==null&&value.validation!=='storage_unavailable')&&
+    new Set(value.defaulted_fields).size===value.defaulted_fields.length);}
+ catch(_){return false;}
+}
+function controllerRecoveryRead(resource){return typeof resource==='string'&&Object.prototype.hasOwnProperty.call(controllerAdapter.reconciliation_reads,resource)?controllerAdapter.reconciliation_reads[resource]:'';}
+function controllerPiConfigurationField(section,key){
+ const properties=controllerSchemas['pi-config'].properties;
+ if(!Object.prototype.hasOwnProperty.call(properties,section)||!Object.prototype.hasOwnProperty.call(properties[section].properties,key))return null;
+ const resolve=(rule,depth)=>{
+  if(depth>16)throw new Error('configuration_shape_depth');
+  if(Array.isArray(rule))return rule.map(value=>resolve(value,depth+1));
+  if(!object(rule))return rule;
+  if(rule.$ref){const prefix='#/$defs/';if(!rule.$ref.startsWith(prefix)||!Object.prototype.hasOwnProperty.call(controllerSchemas,rule.$ref.slice(prefix.length)))throw new Error('configuration_shape_reference');return resolve(controllerSchemas[rule.$ref.slice(prefix.length)],depth+1);}
+  return Object.fromEntries(Object.entries(rule).map(([name,value])=>[name,resolve(value,depth+1)]));
+ };
+ return resolve(properties[section].properties[key],0);
+}
+function supportedPiResource(value){
+ try{const expected=piDescriptors[value.resource];return !!expected&&wtpSchema(value,controllerSchemas['target-capability'],0,controllerSchemas)&&
+  value.schema_id===expected.schema_id&&value.schema_digest===expected.schema_digest&&
+  (value.activation!=='unsupported'||!value.write);}
+ catch(_){return false;}
+}
+Object.values(piDescriptors).forEach(Object.freeze);
+Object.freeze(controllerAdapter.reconciliation_reads);
+const api=Object.freeze({contract:'Wsprry-Control/1',prefix:'/api/control/v1/',descriptors:Object.freeze(descriptors),publicResources:Object.freeze(publicResources),publicPrefix,supported,validCapabilities,validWtpCapabilities,controllerAdapter:Object.freeze(controllerAdapter),validControllerDocument,controllerRecoveryRead,controllerPiConfigurationField,controllerPiDescriptors:Object.freeze(piDescriptors),supportedPiResource});
 root.WsprryControl=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);
 '''

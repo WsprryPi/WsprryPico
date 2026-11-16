@@ -1013,28 +1013,14 @@ int main() {
             if (request.path.starts_with("/api/usb/v1/time/"))
                 return usb_time.handle(request, transaction);
             if (request.path == "/api/usb/v1/ap") {
-                auto payload = network::control_payload(request.body_view());
-                std::string payload_bytes = payload ? std::move(*payload) : std::string{};
-                network::ControlStringWiper wipe_payload(payload_bytes);
-                const auto root = payload ? wtp::json::parse(payload_bytes) : std::nullopt;
-                if (request.method != "POST" || !root ||
-                    !wtp::json::fields(*root, {"schema", "target"}) ||
-                    root->get("schema")->type() != '\"' ||
-                    root->get("schema")->string() != "ap-request" ||
-                    !wtp::json::fields(*root->get("target"), {"scope", "device_id", "boot_id"}) ||
-                    root->get("target")->get("scope")->string() != "member" ||
-                    root->get("target")->get("device_id")->string() != identities.device_id() ||
-                    root->get("target")->get("boot_id")->string() != service.status().boot_id)
-                    return network::http_error(400, "invalid_ap_request");
-                if (request.header("if-match") != browser_api.revision())
-                    return network::http_error(412, "revision_conflict");
                 const auto activity = service.activity();
-                if (!scheduler.idle() || activity.owned || activity.output_active ||
-                    activity.state == wtp::State::Failed || !radio_identity_ok)
-                    return network::http_error(409, "ap_unavailable");
-                usb_ap_transaction = transaction;
-                return network::control_response(network::HttpResponse{
-                    202, "{\"requested\":true}", "application/json", browser_api.revision()});
+                auto response = network::local_usb_ap_request(request, identities.device_id(),
+                    service.status().boot_id, browser_api.revision(),
+                    scheduler.idle() && !activity.owned && !activity.output_active &&
+                        activity.state != wtp::State::Failed && radio_identity_ok);
+                if (response.status == 202)
+                    usb_ap_transaction = transaction;
+                return response;
             }
             return usb_api.handle(request, transaction);
         },
