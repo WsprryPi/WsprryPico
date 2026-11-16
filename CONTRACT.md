@@ -121,3 +121,16 @@ retain their licenses, attribution and exact source provenance. Credentials,
 local SDK paths, captures and generated firmware stay out of maintained source.
 Build inputs and release integrity procedures are defined in the
 [development guide](engineering/development/README.md).
+
+### Controller migration documents
+
+The current authoritative Control/1 schema includes the controller's exact
+`target-migration` request/readback/rollback families and local
+`controller-retirement` intent, receipt, and bounded book projection. Pi consumers
+use generated closures and descriptors; unknown fields, versions, bindings,
+duplicate assignment identities, and inconsistent receipts refuse. These shared
+definitions do not advertise a Pico migration handler or change Pico recurrence,
+WTP, transport authentication, or storage versions. Target-local Pi migration and
+a controller's own protected browser retirement are distinct from authenticated
+machine retirement, whose security gate remains required before remote-Pi
+handover. New schedule enablement is unavailable through these documents.

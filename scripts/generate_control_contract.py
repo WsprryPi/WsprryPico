@@ -131,7 +131,7 @@ function wtpSchema(value,rule,depth=0,schemas=wtpSchemas){
  }
  if(Array.isArray(value)){
   if(value.length<(rule.minItems??0)||value.length>(rule.maxItems??512))return false;
-  if(rule.uniqueItems&&new Set(value.map(v=>JSON.stringify(v))).size!==value.length)return false;
+  if(rule.uniqueItems&&new Set(value.map(v=>canonical(v))).size!==value.length)return false;
   if(rule.items&&!value.every(v=>wtpSchema(v,rule.items,depth+1,schemas)))return false;
  }
  if(typeof value==='number'&&(rule.minimum!==undefined&&value<rule.minimum||rule.maximum!==undefined&&value>rule.maximum))return false;
@@ -162,6 +162,8 @@ function validCapabilities(value){
 function validControllerDocument(value,name){
  try{return controllerDocuments.includes(name)&&wtpSchema(value,controllerSchemas[name],0,controllerSchemas)&&
   (name!=='targets'||new Set(value.targets.map(target=>target.device_id)).size===value.targets.length)&&
+  (name!=='controller-retirements'||new Set(value.assignments.map(row=>row.target_id)).size===value.assignments.length&&new Set(value.assignments.map(row=>row.assignment_id)).size===value.assignments.length&&value.assignments.every(row=>(row.state!=='legacy'||row.receipt===null)&&(!['retiring','retired'].includes(row.state)||row.receipt!==null&&row.receipt.state===row.state)&&(row.receipt===null||row.receipt.controller_id===value.controller_id&&row.receipt.target_id===row.target_id&&row.receipt.assignment_id===row.assignment_id&&BigInt(row.receipt.generation)<=BigInt(value.generation))))&&
+  (!['target-migration','target-migration-read','target-migration-rollback'].includes(name)||['controllers','retirements','jobs'].every(key=>!value[key]||new Set(value[key].map(row=>row.controller_id+'/'+(row.assignment_id??row.job_id))).size===value[key].length))&&
   (name!=='target-context'||['device_id','profile_generation','connection_generation'].every(key=>value.target[key]===value.binding[key])&&
    new Set(value.capabilities.map(capability=>capability.resource)).size===value.capabilities.length&&
    value.capabilities.every(capability=>capability.activation!=='unsupported'||!capability.write))&&
