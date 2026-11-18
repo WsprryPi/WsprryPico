@@ -71,6 +71,7 @@ def outputs():
     javascript += 'const controllerSchemas=' + json.dumps({name:spec['$defs'][name] for name in controller['definitions']}, separators=(',', ':')) + ';\n'
     javascript += 'const controllerDocuments=' + json.dumps(controller['documents']) + ';\n'
     javascript += 'const controllerAdapter=' + json.dumps(controller, separators=(',', ':')) + ';\n'
+    javascript += 'const controlSchemaDigest=' + json.dumps(schema_digest(spec)) + ';\n'
     javascript += 'const piDescriptors=' + json.dumps(pi_resource_descriptors(spec), separators=(',', ':')) + ';\n'
     javascript += r'''
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
@@ -137,7 +138,7 @@ function wtpSchema(value,rule,depth=0,schemas=wtpSchemas){
  if(typeof value==='number'&&(rule.minimum!==undefined&&value<rule.minimum||rule.maximum!==undefined&&value>rule.maximum))return false;
  if(typeof value==='string'){
   const chars=[...value];if(chars.length<(rule.minLength??0)||chars.length>(rule.maxLength??65536))return false;
-  let bytes=0;for(const char of chars){const n=char.codePointAt(0);if(n>=0xd800&&n<=0xdfff)return false;bytes+=n<128?1:n<2048?2:n<65536?3:4;}
+  let bytes=0;for(const char of chars){const n=char.codePointAt(0);if(n>=0xd800&&n<=0xdfff||rule['x-noControls']&&(n<32||n>=127&&n<=159))return false;bytes+=n<128?1:n<2048?2:n<65536?3:4;}
   if(rule['x-maxUtf8Bytes']!==undefined&&bytes>rule['x-maxUtf8Bytes'])return false;
   if(rule.pattern){const matched=new RegExp('^(?:'+rule.pattern+')$').exec(value);if(!matched||matched[0].length!==value.length)return false;}
   if(rule['x-maximum']!==undefined&&(!/^[0-9]+$/.test(value)||BigInt(value)>BigInt(rule['x-maximum'])))return false;
@@ -162,11 +163,23 @@ function validCapabilities(value){
 function validControllerDocument(value,name){
  try{return controllerDocuments.includes(name)&&wtpSchema(value,controllerSchemas[name],0,controllerSchemas)&&
   (name!=='targets'||new Set(value.targets.map(target=>target.device_id)).size===value.targets.length)&&
+  (name!=='pair-discovery'||(value.available||value.discoveries.length===0)&&
+   new Set(value.discoveries.map(entry=>entry.discovery_id)).size===value.discoveries.length&&
+   new Set(value.discoveries.map(entry=>entry.device_id)).size===value.discoveries.length&&
+   value.discoveries.every(entry=>entry.host==='wsprry-management-'+entry.device_id+'.local.'&&entry.control_schema_digest===controlSchemaDigest))&&
   (name!=='controller-retirements'||new Set(value.assignments.map(row=>row.target_id)).size===value.assignments.length&&new Set(value.assignments.map(row=>row.assignment_id)).size===value.assignments.length&&value.assignments.every(row=>(row.state!=='legacy'||row.receipt===null)&&(!['retiring','retired'].includes(row.state)||row.receipt!==null&&row.receipt.state===row.state)&&(row.receipt===null||row.receipt.controller_id===value.controller_id&&row.receipt.target_id===row.target_id&&row.receipt.assignment_id===row.assignment_id&&BigInt(row.receipt.generation)<=BigInt(value.generation))))&&
   (!['target-migration','target-migration-read','target-migration-rollback'].includes(name)||['controllers','retirements','jobs'].every(key=>!value[key]||new Set(value[key].map(row=>row.controller_id+'/'+(row.assignment_id??row.job_id))).size===value[key].length))&&
   (name!=='target-context'||['device_id','profile_generation','connection_generation'].every(key=>value.target[key]===value.binding[key])&&
    new Set(value.capabilities.map(capability=>capability.resource)).size===value.capabilities.length&&
-   value.capabilities.every(capability=>capability.activation!=='unsupported'||!capability.write))&&
+   value.capabilities.every(capability=>capability.activation!=='unsupported'||!capability.write)&&
+   (value.gateway===null?(value.authorization===null||value.target.product==='WsprryPi'):
+    value.target.product==='WsprryPico'&&value.authorization!==null&&equal(value.gateway.child,value.binding)&&
+    value.gateway.parent.device_id!==value.gateway.child.device_id&&value.gateway.pair_id===value.authorization.pair_id&&
+    value.gateway.authorization_generation===value.authorization.authorization_generation))&&
+  (name!=='pairing-state'||(value.state!=='paired'||value.manager!==null&&value.authorization_generation!=='0')&&
+    (!['unpaired','access_recovery'].includes(value.state)||value.manager===null)&&
+    (!['access_recovery','unavailable'].includes(value.state)||value.window===null)&&
+    (value.manager===null||value.manager.device_id!==value.device_id))&&
   (name!=='target-status'||value.execution_owner===value.binding.device_id)&&
   (name!=='host-readiness'||(value.state!=='ready'||value.device_id!==null)&&
     (!value.recovery_editable||value.role==='transmitter'&&value.state==='configuration_recovery'&&value.device_id!==null)&&
