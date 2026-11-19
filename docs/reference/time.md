@@ -41,7 +41,7 @@ In **Transmitter status**, choose **Refresh** and read **Clock**:
 | `using last time update` | Fresh time observations have stopped. The Pico estimates UTC from its last accepted time. A finite NTP timeout retains its source-age limit; a zero timeout allows indefinite NTP holdover. Restore the time source when available. |
 | **Unknown** or **Unavailable** | The browser has no current clock report. Restore the connection and refresh before relying on it. |
 
-The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. UTC uncertainty is displayed for your judgment and does not automatically block first-party transmissions. Set the source-age timeout in **Time and calibration**; **0** allows indefinite NTP holdover while keeping uncertainty visible. An external WTP controller can explicitly request its own timing limit. After a restart, the Pico needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
+The value after **±** is the estimated timing uncertainty, in **ms** (milliseconds), not a countdown. UTC uncertainty is displayed for your judgment and does not automatically block first-party transmissions. Set the source-age timeout in **Time and calibration**; **0** allows indefinite NTP holdover while keeping uncertainty visible. After a restart, the Pico needs fresh time observations; saved clock-rate estimates do not preserve the current date and time.
 
 ## Use GPS time without a network
 

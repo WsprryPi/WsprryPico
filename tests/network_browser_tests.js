@@ -17,6 +17,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     ids.push('wifi-advanced','device-recovery','device-reset-status','device-reset-actions','device-reset-heading','device-reset-provisioning','device-reset-full','device-reset-confirm','device-reset-operation','device-reset-consequences','device-reset-form','device-reset-one','device-reset-two','device-reset-phrase','device-reset-phrase-label','device-reset-execute','device-reset-cancel');
     ids.push('message-frequency-label','message-frequency-help','message-shift-help','message-result');
     ids.push('schedule-save-help','standalone-status','save-beacon-policy','automatic-beacon-settings');
+    ids.push('native-stop','native-stop-read','native-stop-status');
     ids.push('public-status-note','message-duration','message-scheduling','message-delivery','message-recurrence','message-interval','message-until','message-submit','message-schedule-controls','message-schedule-status','message-schedule-read','message-schedule-adopt','message-schedule-pause','message-schedule-help');
     const elements = Object.fromEntries(ids.map(id => [id,{disabled:false,value:'',textContent:'',classList:{toggle(){}},files:[]}]));
     elements['message-delivery'].value='recurring';elements['message-interval'].value='10';
@@ -85,7 +86,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
     }
     const calls = [];
     let sequence = 0;
-    const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512,...options};
+    const f = {elements,state,calls,config,confirm:true,failArm:false,failConfig:false,offline:false,localMode,mappedSession:'d'.repeat(32),restartMode:'success',now:Date.now(),maximumDuration:'3600000000000',maximumEvents:512,scheduleSupport:true,nativeStopSupport:true,...options};
     class TestDate extends Date { static now() { return f.now; } }
     elements['station-link'].getAttribute=()=>'/station';
     elements['wifi-host-link'].getAttribute=()=>'/wifi-host';
@@ -102,7 +103,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
             if (path === '/local/v1/identity' && f.localDiscoveryFailure) throw new Error('synthetic discovery timeout');
             if (['/local/v1/logout','/local/v1/login'].includes(path)) data={ok:true};
             else if (path === '/local/v1/identity') { status = f.localMode ? 200 : 404; data = f.localMode ? {device_id:'1'.repeat(32),surface:'normal'} : {error:{code:'not_found'}}; }
-            else if (path === '/local/v1/status') data = {wtp_session:f.mappedSession};
+            else if (path === '/local/v1/status') data = {control_session:f.mappedSession};
             else if (path.endsWith('hostname')) {
                 if (options.method === 'PUT') { f.savedHostname=JSON.parse(options.body).hostname; f.hostnameGeneration=(f.hostnameGeneration||1)+1; }
                 data = {schema:'hostname',target:{scope:'member',device_id:f.hostnameDevice||'1'.repeat(32),boot_id:state.job.boot_id},
@@ -127,12 +128,28 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                 station:{saved:structuredClone(config.station)},hardware:f.appHardware || {saved:config.pins || null,active:null,pending_restart:true,application_error:null},
                 recurrence:{},capabilities:{station_encoding:'wspr_type123_auto'},reboot_required:false,wspr_plan:null};
             else if (path.endsWith('wspr-plan')) data={schema:'wspr-plan',supported:true,frame_types:['type1'],frames:1,slot_separation_s:120,rationale:'Type 1',type2_ambiguous:false,alternate_callsign:null};
-            else if (path.endsWith('capabilities')) data = {...Object.fromEntries(capabilityKeys.map(key=>[key,structuredClone(currentCapabilities[key])])),...(f.operations?{operations_status:structuredClone(currentCapabilities.operations_status)}:{}),...(f.scheduleSupport?{message_schedule:{schema:'message-schedule',path:'/api/control/v1/message-schedule',pause:'/api/control/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'config-update',path:'/api/control/v1/config/update',method:'POST',modes:['merge'],max_update_bytes:2048,max_config_bytes:4096},features:{...currentCapabilities.features,restart:true},active_job_connections:activeConnections,message_jobs:{...currentCapabilities.message_jobs,max_characters:32},wtp:{...structuredClone(currentCapabilities.wtp),maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
+            else if (path.endsWith('capabilities')) data = {...Object.fromEntries(capabilityKeys.map(key=>[key,structuredClone(currentCapabilities[key])])),...(f.operations?{operations_status:structuredClone(currentCapabilities.operations_status)}:{}),...(f.scheduleSupport?{message_schedule:{schema:'message-schedule',path:'/api/control/v1/message-schedule',pause:'/api/control/v1/message-schedule/pause',min_period_s:60,max_period_s:86400,preparation_lead_ns:'2000000000',max_storage_bytes:1984}}:{}),configuration_updates:{schema:'config-update',path:'/api/control/v1/config/update',method:'POST',modes:['merge'],max_update_bytes:2048,max_config_bytes:4096},features:{...currentCapabilities.features,restart:true},active_execution_connections:activeConnections,message_limits:{...currentCapabilities.message_limits,max_characters:32},execution:{...structuredClone(currentCapabilities.execution),maximum_arm_uncertainty_ns:'1000000',max_job_duration_ns:f.maximumDuration,max_events:f.maximumEvents}};
             else if (path.endsWith('restart')) {
                 if (f.restartMode === 'lost') throw new Error('lost restart response');
                 if (f.restartMode === 'success') { state.job.boot_id = 'b'.repeat(32); if(f.operations) f.operations.target.boot_id=f.operations.job.boot_id=f.operations.standalone.boot_id=state.job.boot_id; }
                 status = 202; data = {restart_requested:true};
             } else if (path.endsWith('consumer/password')) data = {schema:'pico-password',target:{scope:'member',device_id:'1'.repeat(32),boot_id:'a'.repeat(32)},wifi_default:true,saved:true};
+            else if(path.endsWith('schedules/stop')) {
+                if(options.method==='POST') {
+                    const body=JSON.parse(options.body);
+                    assert.equal(body.schema,'schedule-stop');assert.equal(body.stop,true);
+                    assert.equal(body.target.boot_id,state.job.boot_id);
+                    f.nativeStopWrites=(f.nativeStopWrites||0)+1;
+                    config.enabled=false;if(f.savedMessageSchedule)f.savedMessageSchedule.enabled=false;
+                    state.job.state='aborted';state.job.owner_id=null;state.job.output_active=false;
+                    f.nativeStopped=true;f.savedRevision='"native-stop-'+f.nativeStopWrites+'"';
+                    if(f.nativeStopLost)throw Error('lost native stop response');
+                }
+                data={schema:'schedule-stop',target:{scope:'member',device_id:'1'.repeat(32),boot_id:state.job.boot_id},
+                    wspr_enabled:config.enabled,message_enabled:!!f.savedMessageSchedule?.enabled,owned:state.job.owner_id!==null,
+                    output_active:state.job.output_active,stopped:!!f.nativeStopped};
+                if(f.nativeStopWrongTarget)data.target.device_id='2'.repeat(32);
+            }
             else if(path.endsWith('operations')) { if(f.delayObservation) await f.delayObservation; data=structuredClone(f.operations); }
             else if (path.endsWith('status')) data = structuredClone(state);
             else if (path.endsWith('config/update')) {
@@ -170,6 +187,8 @@ async function fixture(activeConnections = true, configured = true, localMode = 
                     throw new Error('lost ' + request.operation + ' response');
                 }
             } else throw new Error('Unexpected request ' + path);
+            if(path==='/api/control/v1/capabilities'&&f.nativeStopSupport)
+                data.schedule_stop=JSON.parse(fs.readFileSync(__dirname+'/../engineering/protocol/control-1.schema.json')).resource_descriptors.schedule_stop;
             return {status,ok:status>=200&&status<300,json:async()=>{if(path.endsWith('config/update') && options.method==='POST'){if(f.configSaveMode==='json')throw new Error('lost body');if(f.configSaveMode==='empty')return {};if(f.configSaveMode==='wrong')return {config:'wrong'};if(f.configSaveMode==='expiry')return {config:{...data.config,expires_utc_s:'bad'}};if(f.configSaveMode==='pins')return {config:{...data.config,pins:{...data.config.pins,indicator:{}}}};if(f.configSaveMode==='null')return {config:null};}return path.startsWith('/api/control/v1/') ? {contract:'Wsprry-Control/1',...data} : data;},headers:{get:()=> f.savedRevision || '"original-revision"'}};
         }});
     f.events = {}; context.addEventListener=(name,handler)=>{f.events[name]=handler;};
@@ -217,7 +236,7 @@ async function fixture(activeConnections = true, configured = true, localMode = 
         elements.start.value = new Date(Date.now()+60000).toISOString().slice(0,19);
     };
     f.prepareMessage = (mode='qrss',text='E') => {
-        const values = {text,mode,delivery:'once',frequency:'135500',shift:'5',dot:'3',repeats:'1',gap:'1',dash:'3',intra:'1',character:'3',word:'7',start:new Date(f.now+60000).toISOString().slice(0,19)};
+        const values = {text,mode,delivery:'recurring',frequency:'135500',shift:'5',dot:'3',repeats:'1',gap:'1',dash:'3',intra:'1',character:'3',word:'7',start:new Date(f.now+60000).toISOString().slice(0,19)};
         for (const [key,value] of Object.entries(values)) elements['message-'+key].value=value;
     };
     return f;
@@ -226,7 +245,7 @@ module.exports={fixture};
 if (require.main === module) (async () => {
     const recurrence=await fixture();recurrence.scheduleSupport=true;recurrence.elements['message-delivery'].value='once';
     vm.runInContext('capabilities=null',recurrence.context);await recurrence.elements.refresh.onclick();
-    assert.equal(recurrence.elements['message-schedule-controls'].hidden,true,'no saved schedule clutter for Send once');
+    assert.equal(recurrence.elements['message-schedule-controls'].hidden,false,'native recurring message controls remain available');
     recurrence.prepareMessage('qrss','CQ CQ DE AA0NT EM18 QRSS TEST 73');recurrence.elements['message-interval'].value='20';recurrence.elements['message-delivery'].value='recurring';
     recurrence.elements['message-form'].oninput();
     assert.equal(recurrence.elements['message-schedule-controls'].hidden,false);
@@ -240,16 +259,13 @@ if (require.main === module) (async () => {
     recurrence.elements['message-text'].value='UNSAVED';recurrence.elements['message-delivery'].value='once';
     recurrence.elements['message-form'].oninput();await recurrence.elements.refresh.onclick();
     assert.equal(recurrence.elements['message-text'].value,'UNSAVED');
-    assert.equal(recurrence.elements['message-delivery'].value,'once');
     assert.equal(recurrence.elements['message-schedule-controls'].hidden,false,'existing schedule remains accessible during Send once');
     assert.equal(recurrence.elements['message-schedule-adopt'].hidden,false);
     const beforeRestore=recurrence.calls.length;
     recurrence.context.confirm=()=>false;recurrence.elements['message-schedule-adopt'].onclick();
     assert.equal(recurrence.elements['message-text'].value,'UNSAVED');
-    assert.equal(recurrence.elements['message-delivery'].value,'once');
     recurrence.context.confirm=()=>true;
     recurrence.elements['message-schedule-adopt'].onclick();assert.equal(recurrence.elements['message-text'].value,'CQ CQ DE AA0NT EM18 QRSS TEST 73');
-    assert.equal(recurrence.elements['message-delivery'].value,'recurring');
     assert.equal(recurrence.calls.length,beforeRestore,'restore changes the editor without network requests');
     recurrence.loseScheduleSave=true;await recurrence.elements['message-form'].onsubmit({preventDefault(){}});
     assert.equal(recurrence.scheduleSaves,2);
@@ -567,81 +583,20 @@ if (require.main === module) (async () => {
         message.prepareMessage(mode,' '.repeat(31)+'E');
         assert.equal(vm.runInContext('messagePlan().events',message.context),2);
     }
-    message.prepareMessage();
-    for (const [dot,expected] of [['3599.999998999',3599999999999n],['3599.999999',3600000000000n]]) {
-        message.elements['message-dot'].value=dot;
-        assert.equal(vm.runInContext('messagePlan().duration',message.context),expected);
-    }
-    message.elements['message-dot'].value='3599.999999001';
-    assert.throws(()=>vm.runInContext('messagePlan()',message.context),/Maximum: 60 min/);
-    message.prepareMessage(); message.elements['message-dot'].value='1';
-    message.elements['message-repeats'].value='256';
-    assert.equal(vm.runInContext('messagePlan().events',message.context),512);
-    message.elements['message-repeats'].value='257';
-    assert.throws(()=>vm.runInContext('messagePlan()',message.context),/514 events/);
-    message.prepareMessage(); message.elements['message-dot'].value='3599.999999';
-    await message.elements['message-form'].onsubmit({preventDefault(){}});
-    assert.deepEqual(message.calls.filter(c=>c.path.endsWith('jobs')).map(c=>JSON.parse(c.options.body).operation),['HELLO','CLAIM','LOAD_MESSAGE','ARM']);
-    const arm=JSON.parse(message.calls.filter(c=>c.path.endsWith('jobs')).at(-1).options.body);
-    message.state.job.state='running';message.state.job.output_active=true;
-    message.state.standalone.utc_now_ns=(BigInt(arm.body.start_utc_ns)+1800000000000n).toString();
-    await message.elements.refresh.onclick();
-    assert.match(message.elements['job-progress'].textContent,/50.0%/);
-    assert.equal(message.elements.abort.disabled,false);
-    message.state.standalone.utc_now_ns=(BigInt(arm.body.start_utc_ns)+4000000000000n).toString();
-    await message.elements.refresh.onclick();
-    assert.match(message.elements['job-progress'].textContent,/Running.*100.0%/);
-    assert.equal(message.elements.output.textContent,'Active');
-    message.offline=true; await message.elements.refresh.onclick();
-    assert.match(message.elements['job-progress'].textContent,/status unknown/);
-    message.offline=false;message.state.job.boot_id='c'.repeat(32);message.maximumDuration='110592000000';message.maximumEvents=162;
-    await message.elements.refresh.onclick();
-    assert.equal(message.elements['job-progress'].textContent,'');
+    message.maximumDuration='110592000000';message.maximumEvents=162;message.state.job.boot_id='c'.repeat(32);
+    await message.elements.refresh.onclick();message.prepareMessage('qrss','?'.repeat(32));
     assert.throws(()=>vm.runInContext('messagePlan()',message.context),/Maximum: 1 min 50.592 s/);
-    message.prepareMessage('qrss','?'.repeat(32));message.elements['message-dot'].value='0.1';
+    message.elements['message-dot'].value='0.1';
     assert.throws(()=>vm.runInContext('messagePlan()',message.context),/device limit of 162/);
-    const pause = await fixture(false);pause.prepareMessage();
-    await pause.elements['message-form'].onsubmit({preventDefault(){}});
-    assert.match(pause.elements.notice.textContent,/New network connections pause/);
-    for (const operation of ['LOAD_MESSAGE','ARM']) {
-        const lost=await fixture();lost.prepareMessage();lost.loseOperation=operation;lost.offlineAfterLoss=true;
-        await lost.elements['message-form'].onsubmit({preventDefault(){}});
-        assert.equal(lost.calls.filter(c=>c.path.endsWith('jobs') && JSON.parse(c.options.body).operation===operation).length,1);
-        assert.equal(lost.elements.output.textContent,'Unknown');
+    const unknown=await fixture();
+    for(const output of [null,undefined,true]){
+        unknown.state.job.output_active=output;await unknown.elements.refresh.onclick();
+        assert.equal(unknown.elements['message-settings'].disabled,true);
     }
-    for (const operation of ['CLAIM','LOAD','ARM']) {
-        for (const offline of [false,true]) {
-            const lost = await fixture(); lost.prepareJob();
-            lost.loseOperation = operation; lost.offlineAfterLoss = offline;
-            await lost.elements.job.onsubmit({preventDefault(){}});
-            const operations = lost.calls.filter(c=>c.path.endsWith('jobs')).map(c=>JSON.parse(c.options.body).operation);
-            assert.deepEqual(operations,['HELLO','CLAIM','LOAD','ARM'].slice(0,['CLAIM','LOAD','ARM'].indexOf(operation)+2));
-            assert.equal(lost.elements['job-settings'].disabled,true);
-            assert.match(lost.elements.notice.textContent,new RegExp('lost ' + operation));
-            if (offline) {
-                assert.equal(lost.elements.output.textContent,'Unknown');
-                assert.equal(lost.elements.abort.disabled,true);
-                assert.equal(lost.elements.release.disabled,true);
-                assert.match(lost.elements.notice.textContent,/Outcome unconfirmed/);
-                assert.doesNotMatch(lost.elements.notice.textContent,/Status has been checked/);
-            }
-        }
-    }
-    const unknown = await fixture();
-    for (const output of [null,undefined,true]) {
-        unknown.state.job.output_active = output;
-        await unknown.elements.refresh.onclick();
-        assert.equal(unknown.elements['job-settings'].disabled,true);
-    }
-    const ownUnknown = await fixture(); ownUnknown.prepareJob(); ownUnknown.failArm = true;
-    await ownUnknown.elements.job.onsubmit({preventDefault(){}});
-    ownUnknown.state.job.output_active = null;
-    await ownUnknown.elements.refresh.onclick();
-    assert.equal(ownUnknown.elements.release.disabled,true);
-    for (const state of ['loaded','armed','running']) {
-        const foreign = await fixture(); foreign.state.job.owner_id = 'f'.repeat(32); foreign.state.job.state = state;
+    for(const state of ['loaded','armed','running']){
+        const foreign=await fixture();foreign.state.job.owner_id='f'.repeat(32);foreign.state.job.state=state;
         await foreign.elements.refresh.onclick();
-        for (const control of ['abort','release','job-settings','settings']) assert.equal(foreign.elements[control].disabled,true);
+        for(const control of ['message-settings','settings'])assert.equal(foreign.elements[control].disabled,true);
     }
     const fresh = await fixture(true, false);
     assert.equal(fresh.form.ntp_ipv4.value,'pool.ntp.org');
@@ -665,24 +620,10 @@ if (require.main === module) (async () => {
     }
     f.state.network.mdns_state = 'conflict'; await f.elements.refresh.onclick();
     assert.match(f.elements['discovery-help'].textContent,/will not rename/);
-    f.prepareJob(); f.failArm = true;
-    await f.elements.job.onsubmit({preventDefault(){}});
-    assert.equal(f.elements.abort.disabled,false); assert.equal(f.elements.release.disabled,false); assert.equal(f.elements['job-settings'].disabled,true);
-    assert.match(f.elements.notice.textContent,/ARM_TOO_LATE/); assert.equal(f.form.callsign.value,'N0NEW');
-    f.state.job.state = 'armed'; await f.elements.refresh.onclick(); assert.equal(f.elements.release.disabled,true);
-    await f.elements.abort.onclick(); assert.match(f.elements['job-result'].textContent,/aborted/);
-    await f.elements.release.onclick(); assert.match(f.elements['job-result'].textContent,/aborted/);
-    f.state.job.state = 'complete'; await f.elements.refresh.onclick(); assert.match(f.elements['job-result'].textContent,/complete/);
-    f.state.job.state = 'failed'; await f.elements.refresh.onclick(); assert.equal(f.elements.release.disabled,true);
-    f.offline = true; await f.elements.refresh.onclick(); assert.match(f.elements['device-name-state'].textContent,/Last confirmed/); assert.equal(f.elements.settings.disabled,true); assert.equal(f.elements.abort.disabled,true);
-    const rf = await fixture(false); rf.prepareJob();
-    const statusReads = rf.calls.filter(c=>c.path.endsWith('status')).length;
-    await rf.elements.job.onsubmit({preventDefault(){}});
-    assert.equal(rf.calls.filter(c=>c.path.endsWith('status')).length,statusReads);
-    assert.match(rf.elements.notice.textContent,/Job armed/); assert.match(rf.elements.notice.textContent,/USB Console ABORT/);
-    assert.equal(rf.elements.abort.disabled,true);
-    rf.offline = true; await rf.elements.refresh.onclick(); assert.match(rf.elements.notice.textContent,/New network connections pause/);
-    assert.doesNotMatch(rf.elements.notice.textContent,/certificate/);
+    f.offline=true;await f.elements.refresh.onclick();
+    assert.match(f.elements['device-name-state'].textContent,/Last confirmed/);
+    assert.equal(f.elements.settings.disabled,true);
+    assert.equal(f.elements['native-stop'].disabled,true);
     const reboot = await fixture();
     await reboot.elements.restart.onclick();
     await new Promise(setImmediate);
@@ -789,5 +730,5 @@ if (require.main === module) (async () => {
     assert.equal(numeric.context.numericFields.enabled,true);
     assert.equal(numeric.context.numericFields.schedules[0].period_s,'2147483648');
     assert.equal(numeric.context.numericFields.expires_utc_s,'2208988800');
-    console.log('Browser edit preservation, conflicts, ownership, failure and RF pause tests passed');
+    console.log('Browser native scheduling, draft preservation, conflicts, bindings and recovery passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

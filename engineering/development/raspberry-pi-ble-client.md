@@ -1,8 +1,6 @@
 # Raspberry Pi/Linux BLE local-control client
 
-`scripts/wsprrypico_ble.py` is the supported native BlueZ client for the WsprryPico GATT service. It gives a Raspberry Pi an encrypted, application-authorized local-control path to the device's existing job service. The UUIDs, framing, authorization exchanges, provisioning vocabulary, and WTP mapping are defined by the frozen [Field-GATT/1 protocol and super-user guide](../protocol/Field-GATT.md) and its [machine-readable conformance vectors](../protocol/Field-GATT-v1-vectors.json). Firmware and this client are source/host conforming to that contract. Physical evidence does not establish general peer/fleet interoperability.
-
-This tool is a local/bench client. For normal remote job transfer and job control, authenticated TLS/TCP remains a first-class WTP transport. USB CDC remains the canonical reference transport. All three carry complete jobs to the same device `JobService`; symbol timing never depends on BLE, USB, or network packet timing.
+`scripts/wsprrypico_ble.py` is the native BlueZ client for the retained commissioning, identity, field access, provisioning, security, and controller-time operations. The [Field-GATT guide](../protocol/Field-GATT.md) and [conformance vectors](../protocol/Field-GATT-v1-vectors.json) define its current contract. BLE execution UUIDs and the `wtp-status` command are retired. No BLE job upload, remote job control, or carrier-selection operation is provided. Native recurrence executes locally through the shared JobService.
 
 ## Prerequisites and security boundary
 
@@ -11,7 +9,7 @@ The client uses the system BlueZ D-Bus API. Raspberry Pi OS needs BlueZ, `python
 Before connecting, obtain both of these values through an already trusted inventory or the explicit USB-local recovery/inspection path:
 
 - the controller's exact Bluetooth address; and
-- the full 32-lowercase-hex WTP device ID.
+- the full 32-lowercase-hex device ID.
 
 The advertising suffix is not an identity. The client selects only the supplied address, then reads the encrypted identity characteristic, and rejects the connection unless its full device ID matches. It never sets BlueZ `Trusted` and never removes another bond. Its transient `NoInputNoOutput` pairing agent is unregistered when the command exits. A successful first authorization promotes the target-side provisional bond under the existing access policy; later commands preserve and reuse that bond.
 
@@ -45,11 +43,9 @@ python3 scripts/wsprrypico_ble.py --address AA:BB:CC:DD:EE:FF \
   --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa identify
 python3 scripts/wsprrypico_ble.py --address AA:BB:CC:DD:EE:FF \
   --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa sync-time
-python3 scripts/wsprrypico_ble.py --address AA:BB:CC:DD:EE:FF \
-  --device-id aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa wtp-status
 ```
 
-`sync-time` uses a principal/session/device/nonce-bound challenge. The target begins charging latency when it starts the final challenge response indication, a conservative boundary before the controller can first sample UTC. The Linux client sends the ordered `time_submit` fragments with the encrypted GATT write-without-response property so per-fragment ATT replies do not consume that fixed budget; the bound response indication remains the end-to-end success/failure result. Missing or reordered fragments still time out or fail closed, and the fixed uncertainty ceiling is unchanged. `wtp-status` subscribes to the separate encrypted GATT WTP endpoint, negotiates `WTP/1`, verifies device and boot identity, and requests `STATUS`. It proves the local client can carry the unchanged WTP stream; it does not start a job. The CLI intentionally exposes no RF-starting shortcut.
+`sync-time` uses a principal/session/device/nonce-bound challenge. The target begins charging latency when it starts the final challenge response indication, a conservative boundary before the controller can first sample UTC. The Linux client sends the ordered `time_submit` fragments with the encrypted GATT write-without-response property so per-fragment ATT replies do not consume that fixed budget; the bound response indication remains the end-to-end success/failure result. Missing or reordered fragments still time out or fail closed, and the fixed uncertainty ceiling is unchanged.
 
 Use `--adapter hci1` only when the exact controller is known to be on another adapter. `--timeout` accepts a positive value no greater than 120 seconds; the default is 30 seconds. A command disconnects on exit but retains the BlueZ and target bonds.
 
@@ -95,10 +91,10 @@ The client never prints the profile, Wi-Fi password, private key, or application
 
 ## Failure and recovery
 
-Stable error names are printed without target payloads or secrets. Wrong identity, malformed/duplicate/out-of-order frames, WTP CRC or response mismatch, authorization rejection, and timeout all fail closed. Pairing failure commonly means the enrollment window is closed, target bond capacity is full, the wrong address was supplied, or OS policy denied pairing. Check target `ACCESS STATUS` over the authenticated USB Console and the local BlueZ service; do not weaken the device policy or mark it trusted as a workaround.
+Stable error names are printed without target payloads or secrets. Wrong identity, malformed/duplicate/out-of-order frames, response binding mismatch, authorization rejection, and timeout all fail closed. Pairing failure commonly means the enrollment window is closed, target bond capacity is full, the wrong address was supplied, or OS policy denied pairing. Check target `ACCESS STATUS` over the authenticated USB Console and the local BlueZ service; do not weaken the device policy or mark it trusted as a workaround.
 
 If a profile apply response is accepted, network activation follows the target's existing delivery-safe boundary. Reconnect and verify the new generation and safe device state through an authorized path. A lost BLE connection, missing reply, or process exit is never evidence that RF output is inactive.
 
 ## Evidence boundary
 
-`tests/raspberry_pi_ble_client_tests.py` deterministically covers framing, identity binding, authorization, field controls, WTP negotiation/status, the bound step-up/apply transaction, confirmation polling, cancellation, the exact 7,168-byte transfer, and local file controls. The vector-driven provisioning contract check keeps firmware, Linux, documentation, and the frozen limits synchronized. These deterministic checks establish no RF, general reliability, or physical UTC-accuracy qualification.
+`tests/raspberry_pi_ble_client_tests.py` deterministically covers framing, identity binding, authorization, field controls, retired execution-command refusal, the bound step-up/apply transaction, confirmation polling, cancellation, the exact 7,168-byte transfer, and local file controls. The vector-driven provisioning contract check keeps firmware, Linux, documentation, and the frozen limits synchronized. These deterministic checks establish no RF, general reliability, or physical UTC-accuracy qualification.

@@ -53,7 +53,7 @@ Save pin, drive, amplifier, and selector changes, then explicitly restart the Pi
 
 Setup Wi-Fi is available for initial configuration when no home network is saved. Read the Pico's reported hostname rather than copying an example address. The setup Wi-Fi name, device identity, and saved custom hostname are separate values. See [Connect to your Pico](../connect.md).
 
-To collect USB diagnostics, enable **USB log export** on the Pico, then enable **Collect this Pico's USB logs** on WsprryPi. Routine USB WTP/Management port open/close events and routine synchronized/holdover transitions require **All levels, including debug** on the Pico and a Pi view filter that includes Debug. USB export has an enable control and a severity selection; individual event-code filters belong to UDP export. See [USB diagnostic logging](../usb.md#usb-diagnostic-logging) and [UDP diagnostic logging](../udp.md).
+To collect USB diagnostics, enable **USB log export** on the Pico, then enable **Collect this Pico's USB logs** on WsprryPi. Routine USB Management port open/close events and routine synchronized/holdover transitions require **All levels, including debug** on the Pico and a Pi view filter that includes Debug. USB export has an enable control and a severity selection; individual event-code filters belong to UDP export. See [USB diagnostic logging](../usb.md#usb-diagnostic-logging) and [UDP diagnostic logging](../udp.md).
 
 ## CW message editor
 

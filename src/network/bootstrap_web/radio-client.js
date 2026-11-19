@@ -142,6 +142,7 @@ export class RadioClient {
     try {
       for (let attempt=0;attempt<2;attempt++) {
         const result=await this.request('management'),value=await result.json();
+        if(!value||typeof value!=='object'||Array.isArray(value))throw new Error('Authenticated control policy is malformed.');
         const identity=this.identityContext,current=await this.identity(),target=value?.target,limits=value?.limits;
         const maximum={http_body:32768,consumer_plaintext:32724,config:4096,update:2048,login_ms:60000,idle_ms:86400000,absolute_ms:86400000,consumer_sessions:16,consumer_pending_logins:16};
         const selected=value.selected;
@@ -157,9 +158,8 @@ export class RadioClient {
             !Array.isArray(value.carriers) || value.carriers.length!==knownCarriers.length || new Set(value.carriers.map(v=>v?.carrier)).size!==knownCarriers.length ||
             !value.carriers.some(v=>v.carrier===selected && v.built_in===true && v.available===true) ||
             value.carriers.some(v=>!v || Object.keys(v).sort().join(',')!=='available,built_in,carrier' || !knownCarriers.includes(v.carrier) || typeof v.built_in!=='boolean' || typeof v.available!=='boolean' || v.available && !v.built_in) ||
-            !value.operations || Object.keys(value.operations).sort().join(',')!=='GET,POST,PUT' ||
-            Object.values(value.operations).some(v=>!Array.isArray(v) || v.length>64 || new Set(v).size!==v.length || v.some(path=>typeof path!=='string' || path.length>128 || !(path==='jobs/{id}/abort' || /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/.test(path)))) ||
-            !Array.isArray(value.unsupported) || value.unsupported.length>16 || new Set(value.unsupported).size!==value.unsupported.length || value.unsupported.some(v=>typeof v!=='string' || v.length>64))
+            !globalThis.WsprryControl.validManagementOperations(value.operations) ||
+            JSON.stringify(value.unsupported)!==JSON.stringify(['plain_wtp_json','tls_wtp_json','ble_json']))
           throw new Error('Authenticated control policy is unsupported. Update both applications before changing settings.');
         if (value.profile_generation!==current.generation) {
           if (attempt===0) continue; // One read-only retry for the single station transfer.

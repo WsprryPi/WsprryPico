@@ -356,13 +356,6 @@ bool PicoNetwork::add(std::string_view label) {
         wsprry_mdns_remove(station, 0);
         return false;
     }
-    if (wtp_binding_ != WtpBinding::None &&
-        wsprry_mdns_add_wtp_service(station, owned.c_str(), static_cast<u16_t>(wtp_port_),
-                                    wtp_binding_ == WtpBinding::Plain ? "plain" : "tls") !=
-            ERR_OK) {
-        wsprry_mdns_remove(station, 0);
-        return false;
-    }
     return true;
 }
 void PicoNetwork::consumer_listener_status(bool ready) {
@@ -376,22 +369,7 @@ void PicoNetwork::consumer_listener_status(bool ready) {
     else
         mdns_.disable(false);
 }
-void PicoNetwork::wtp_listener_status(WtpBinding binding, unsigned port) {
-    if (binding == WtpBinding::None || port == 0 || port > 65535) {
-        binding = WtpBinding::None;
-        port = 0;
-    }
-    if (binding == wtp_binding_ && port == wtp_port_)
-        return;
-    wtp_binding_ = binding;
-    wtp_port_ = port;
-    if (withdrawal_started_us_ || service_withdrawal_started_us_)
-        return;
-    if (mdns_.withdraw(link_up()))
-        service_withdrawal_started_us_ = time_us_64();
-    else
-        mdns_.disable(false);
-}
+
 void PicoNetwork::remove(bool goodbye) {
     wsprry_mdns_remove(&cyw43_state.netif[CYW43_ITF_STA], goodbye);
 }

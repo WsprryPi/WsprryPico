@@ -35,63 +35,8 @@ void console_release(void* data) {
         ++console_releases;
     std::free(data);
 }
-struct Port {
-    bool connected = false;
-    std::size_t capacity = 64;
-    std::deque<std::uint8_t> rx;
-    std::vector<std::uint8_t> pending;
-    std::vector<std::uint8_t> delivered;
-};
-std::array<Port, USB_CDC_COUNT> ports;
-void reset() {
-    tud_umount_cb();
-    ports = {};
-    wsprrypico::usb::service();
-    (void)wsprrypico::usb::take_wtp_reset();
-}
-void open(unsigned port) {
-    ports[port].connected = true;
-    tud_cdc_line_state_cb(port, true, false);
-    wsprrypico::usb::service();
-}
 } // namespace
-extern "C" bool tud_cdc_n_connected(std::uint8_t p) {
-    return ports.at(p).connected;
-}
-extern "C" std::uint32_t tud_cdc_n_write_available(std::uint8_t p) {
-    return CFG_TUD_CDC_TX_BUFSIZE - ports.at(p).pending.size();
-}
-extern "C" std::uint32_t tud_cdc_n_write(std::uint8_t p, const void* data, std::uint32_t n) {
-    auto& port = ports.at(p);
-    auto count = std::min<std::size_t>(n, port.capacity - port.pending.size());
-    auto bytes = static_cast<const std::uint8_t*>(data);
-    port.pending.insert(port.pending.end(), bytes, bytes + count);
-    return count;
-}
-extern "C" std::uint32_t tud_cdc_n_read(std::uint8_t p, void* data, std::uint32_t n) {
-    auto& rx = ports.at(p).rx;
-    auto count = std::min<std::size_t>(n, rx.size());
-    auto bytes = static_cast<std::uint8_t*>(data);
-    for (std::size_t i = 0; i < count; ++i) {
-        bytes[i] = rx.front();
-        rx.pop_front();
-    }
-    return count;
-}
-extern "C" std::uint32_t tud_cdc_n_write_flush(std::uint8_t p) {
-    auto& port = ports.at(p);
-    port.delivered.insert(port.delivered.end(), port.pending.begin(), port.pending.end());
-    auto count = port.pending.size();
-    port.pending.clear();
-    return count;
-}
-extern "C" bool tud_cdc_n_write_clear(std::uint8_t p) {
-    ports.at(p).pending.clear();
-    return true;
-}
-extern "C" void tud_cdc_n_read_flush(std::uint8_t p) {
-    ports.at(p).rx.clear();
-}
+#include "usb_transport_fixture.hpp"
 
 int main() {
     using namespace wsprrypico::usb;
@@ -116,11 +61,11 @@ int main() {
     CHECK(!console_output_pending());
     const std::array<std::uint8_t, 5> binary{0, 255, 10, 13, 128};
     CHECK(!console_write("offline"));
-    CHECK(wtp_transport_write(binary) == 0);
+    CHECK(bench_transport_write(binary) == 0);
     open(USB_CDC_CONSOLE);
-    open(USB_CDC_WTP);
-    CHECK(take_wtp_reset());
-    CHECK(!take_wtp_reset());
+    open(USB_CDC_RESERVED);
+    CHECK(take_bench_reset());
+    CHECK(!take_bench_reset());
     // Merely connecting does not reserve 8 KiB. Failed optional diagnostics
     // preserve the safety reserve; a successful retry and disconnect release it.
     wsprrypico::wtp::allocate_input = console_allocate;
@@ -245,9 +190,9 @@ int main() {
     ports[1].capacity = 2;
     std::size_t sent = 0;
     while (sent < binary.size()) {
-        sent += wtp_transport_write(std::span(binary).subspan(sent));
+        sent += bench_transport_write(std::span(binary).subspan(sent));
         if (sent < binary.size()) {
-            CHECK(wtp_transport_write(binary) == 0);
+            CHECK(bench_transport_write(binary) == 0);
         }
         service();
     }
@@ -257,13 +202,13 @@ int main() {
     ports[1].capacity = 0;
     CHECK(console_write(std::string(kConsoleCapacity, 'a')));
     CHECK(!console_write("π"));
-    CHECK(wtp_transport_write(binary) == 0);
+    CHECK(bench_transport_write(binary) == 0);
     for (unsigned i = 0; i < 10; ++i)
         service();
     // A stalled console does not stall binary WTP output, and a stalled WTP
     // does not stall a wrapped, full console ring once Console resumes reading.
     ports[1].capacity = 64;
-    CHECK(wtp_transport_write(binary) == binary.size());
+    CHECK(bench_transport_write(binary) == binary.size());
     service();
     CHECK(ports[1].delivered.size() == 2 * binary.size());
     ports[1].capacity = 0;
@@ -286,21 +231,21 @@ int main() {
     std::array<std::uint8_t, 256> input{};
     CHECK(console_transport_read(input) == kServiceBytes);
     CHECK(ports[0].rx.size() == 200 - kServiceBytes);
-    auto count = wtp_transport_read(input);
+    auto count = bench_transport_read(input);
     CHECK(count == frame.size());
     wsprrypico::wtp::FrameParser parser;
     auto events = parser.feed(std::span(input).first(count), 0);
     CHECK(events.size() == 1);
     CHECK(events[0].payload == std::vector<std::uint8_t>(payload.begin(), payload.end()));
     ports[1].rx = std::deque<std::uint8_t>(200, 'w');
-    CHECK(wtp_transport_read(input) == kServiceBytes);
+    CHECK(bench_transport_read(input) == kServiceBytes);
     // Falling/rising DTR between polls must still clear stale data/reset parser.
     ports[1].capacity = 64;
-    CHECK(wtp_transport_write(binary) == binary.size());
+    CHECK(bench_transport_write(binary) == binary.size());
     tud_cdc_line_state_cb(1, false, false);
     tud_cdc_line_state_cb(1, true, false);
     service();
-    CHECK(take_wtp_reset());
+    CHECK(take_bench_reset());
     CHECK(ports[1].rx.empty());
     CHECK(ports[1].pending.empty());
     CHECK(ports[1].delivered == std::vector<std::uint8_t>(binary.begin(), binary.end()));
@@ -316,15 +261,15 @@ int main() {
     // Four independent streams, including stalled Logging and its own DTR reset.
     open(USB_CDC_MANAGEMENT);
     open(USB_CDC_LOGGING);
-    (void)take_wtp_reset();
+    (void)take_bench_reset();
     (void)take_console_reset();
     (void)take_management_reset();
     (void)take_logging_reset();
     ports[USB_CDC_LOGGING].capacity = 0;
     CHECK(logging_write(std::string(kLoggingCapacity, 'l')));
     CHECK(!logging_write("overflow"));
-    ports[USB_CDC_WTP].capacity = 64;
-    CHECK(wtp_transport_write(binary) == binary.size());
+    ports[USB_CDC_RESERVED].capacity = 64;
+    CHECK(bench_transport_write(binary) == binary.size());
     CHECK(management_transport_write(binary) == binary.size());
     CHECK(console_write("Console while Logging is stalled\n"));
     service();
@@ -337,9 +282,9 @@ int main() {
     CHECK(console_transport_read(input) == 1 && input[0] == 'C');
     tud_cdc_line_state_cb(USB_CDC_LOGGING, false, false);
     CHECK(take_logging_reset());
-    CHECK(!take_wtp_reset() && !take_console_reset() && !take_management_reset());
+    CHECK(!take_bench_reset() && !take_console_reset() && !take_management_reset());
     service();
-    CHECK(take_logging_reset() && !take_wtp_reset());
+    CHECK(take_logging_reset() && !take_bench_reset());
     CHECK(logging_write("short-write record\n"));
     ports[USB_CDC_LOGGING].capacity = 3;
     for (unsigned i = 0; i < 20; ++i)
@@ -347,21 +292,21 @@ int main() {
     CHECK(std::string(ports[USB_CDC_LOGGING].delivered.begin(),
                       ports[USB_CDC_LOGGING].delivered.end()) == "short-write record\n");
     tud_cdc_line_state_cb(USB_CDC_CONSOLE, false, false);
-    CHECK(take_console_reset() && !take_logging_reset() && !take_wtp_reset());
+    CHECK(take_console_reset() && !take_logging_reset() && !take_bench_reset());
     service();
     CHECK(logging_write("Console closed\n"));
     for (unsigned i = 0; i < 20; ++i)
         service();
-    CHECK(logging_connected() && management_connected() && wtp_connected());
+    CHECK(logging_connected() && management_connected() && bench_connected());
     // USB reconfiguration resets all sessions even if polls miss disconnect.
     ports[1].rx.push_back(99);
     tud_mount_cb();
-    CHECK(take_wtp_reset());
+    CHECK(take_bench_reset());
     CHECK(take_console_reset());
     CHECK(ports[1].rx.empty());
     CHECK(take_logging_reset() && take_management_reset());
     reset();
-    CHECK(!wtp_connected());
-    CHECK(wtp_transport_read(input) == 0);
+    CHECK(!bench_connected());
+    CHECK(bench_transport_read(input) == 0);
     std::cout << "USB transport behavior passed\n";
 }

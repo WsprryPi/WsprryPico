@@ -25,34 +25,26 @@ int main() {
         assert(logger.start(device, boot));
         logging::UsbControlStateLogger observer;
         struct Observation {
-            bool wtp, management;
+            bool management;
             std::uint64_t monotonic;
             std::vector<std::string> messages;
         };
-        // A single short-lived WTP open can expose the host's initial DTR,
-        // explicit low interval, deliberate assertion and eventual close.
-        // Simultaneous changes must preserve both port identities separately.
+        // Management DTR churn is independent of Console, reserved CDC and Logging.
         const Observation observations[] = {
-            {false, false, 0, {}},
-            {true, false, 551'000'000, {"USB WTP port opened"}},
-            {false, false, 555'000'000, {"USB WTP port closed"}},
-            {true, false, 654'000'000, {"USB WTP port opened"}},
-            {false, false, 1'325'000'000, {"USB WTP port closed"}},
-            {false, true, 2'000'000'000, {"USB Management port opened"}},
-            {true, true, 3'000'000'000, {"USB WTP port opened"}},
-            {false, true, 4'000'000'000, {"USB WTP port closed"}},
-            {true, false, 5'000'000'000, {"USB WTP port opened", "USB Management port closed"}},
-            {false, false, 6'000'000'000, {"USB WTP port closed"}},
-            {true, true, 7'000'000'000, {"USB WTP port opened", "USB Management port opened"}},
-            {false, false, 8'000'000'000, {"USB WTP port closed", "USB Management port closed"}}};
+            {false, 0, {}},
+            {true, 551'000'000, {"USB Management port opened"}},
+            {false, 555'000'000, {"USB Management port closed"}},
+            {true, 654'000'000, {"USB Management port opened"}},
+            {true, 1'325'000'000, {}},
+            {false, 2'000'000'000, {"USB Management port closed"}}};
         for (const auto& sample : observations) {
             const auto utc = sample.monotonic < 1'000'000'000
                                  ? 0
                                  : 1'700'000'000'000'000'000ULL + sample.monotonic;
-            observer.observe(logger, sample.wtp, sample.management, sample.monotonic, utc);
+            observer.observe(logger, sample.management, sample.monotonic, utc);
             // Polling an unchanged port, including activity on independent
             // Console/Logging functions, must not generate another event.
-            observer.observe(logger, sample.wtp, sample.management, sample.monotonic + 1, utc);
+            observer.observe(logger, sample.management, sample.monotonic + 1, utc);
             const auto count = maximum == 7 ? sample.messages.size() : 0;
             assert(logger.queued() == count && udp.queued() == count);
             assert(logger.dropped() == 0 && udp.counters().redacted_rejected == 0);
@@ -87,18 +79,18 @@ int main() {
         // Filtered control churn must not consume the INFO/WARNING admission
         // budget or replay when the operator subsequently enables DEBUG.
         for (unsigned i = 0; i < 40; ++i)
-            observer.observe(logger, i % 2 == 0, false, 9'000'000'000ULL + i);
+            observer.observe(logger, i % 2 == 0, 9'000'000'000ULL + i);
         if (maximum < 7) {
             assert(logger.queued() == 0 && udp.queued() == 0 && logger.dropped() == 0);
             logger.settings({true, 7});
-            observer.observe(logger, false, false, 9'000'000'100ULL);
+            observer.observe(logger, false, 9'000'000'100ULL);
             assert(logger.queued() == 0);
             logger.event(4, "CLOCK_STATE", "UTC unavailable", 9'000'000'101ULL);
             assert(logger.queued() == 1);
             assert(logger.front().find("UTC unavailable") != std::string_view::npos);
         }
     }
-    // Retain historical forwarding, while admitting only the four new fixed
+    // Retain historical forwarding, while admitting only the retained fixed
     // messages. Port labels must never become an arbitrary-text export path.
     assert(wsprry::logging::export_safe_pico("USB_STATE", "USB control connection changed"));
     assert(!wsprry::logging::export_safe_pico("USB_STATE", "USB WTP port opened password=secret"));

@@ -14,11 +14,9 @@ import subprocess
 from fixture_process import FixtureProcess, process_scope
 from network_control import NetworkControl
 from network_socket import connect_socket
-from network_replies import ReplyCollector, StrictFrameDecoder
 import sys
 import time
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "scripts"))
-from validate_wtp_contract import frame
 
 
 # CTest has 90 seconds; reserve six-second teardown and four-second harness margin.
@@ -197,8 +195,9 @@ with process_scope(timeout=80):
         assert http(headers={'Host': '127.0.0.1:18443', 'Origin': 'https://' + authority})[0] == 403
         assert http(headers={'Origin': 'https://evil.local:18443'})[0] == 403
         caps = json.loads(http('/api/control/v1/capabilities')[2])
-        assert caps['active_job_connections'] and caps['max_network_connections'] == 2
-        assert caps['max_wtp_connections'] == 1
+        assert caps['active_execution_connections'] and caps['max_network_connections'] == 2
+        assert 'max_wtp_connections' not in caps and 'wtp' not in caps and 'jobs' not in caps['features']
+        assert caps['execution']['max_events']==512
         for fragmented in (False, True):
             control('WRITE FRAGMENT' if fragmented else 'WRITE NORMAL')
             # Reach device-side certificate verification, not merely any TLS/TCP failure.
@@ -348,146 +347,32 @@ with process_scope(timeout=80):
             assert b'400' in stream.recv(4096)
         released()
         assert http()[0] == 200
-        with connect(context(protocols=('wtp/1',))) as stream:
-            assert stream.selected_alpn_protocol() == 'wtp/1'
-            decoder = StrictFrameDecoder()
-            def ask(operation, body=None, padded=False, deadline=None):
-                # Unique IDs are supplied from the test's deterministic counter.
-                ask.sequence += 1
-                request_id = f'{ask.sequence:032x}'
-                request = json.dumps({'type':'request','protocol':'WTP/1','session_id':'1'*32,
-                    'request_id':request_id,'op':operation,'body':body or {}},separators=(',',':')).encode()
-                if padded: request += b' ' * (65536 - len(request))
-                if operation == 'HELLO':ask.collector=ReplyCollector('1'*32)
-                end = min(io_end(), deadline if deadline is not None else float('inf'))
-                io_budget(stream,end)
-                stream.sendall(frame(request))
-                while True:
-                    io_budget(stream,end)
-                    chunk = stream.recv(4096)
-                    assert time.monotonic() < end, 'late WTP response cannot qualify'
-                    assert chunk, 'WTP connection closed before its response'
-                    response=ask.collector.accept(decoder.feed(chunk),request_id,operation)
-                    if response is not None:
-                        assert time.monotonic() < end, 'late parsed WTP response cannot qualify'
-                        gap=ask.collector.gap;ask.collector.gap=False
-                        if gap and operation!='STATUS':
-                            assert ask('STATUS',deadline=end)['ok'], 'advisory gap requires authoritative STATUS'
-                            print('Advisory gap observed: authoritative STATUS refreshed')
-                        return response
-            ask.sequence = 0
-            assert ask('HELLO',{'versions':['WTP/1'],'client_name':'TLS test','client_version':'1'})['ok']
-            # Deferring expensive handshake steps leaves the established WTP owner
-            # responsive, and the paused handshake resumes without a reconnect.
-            control('HANDSHAKE PAUSE')
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                waiting = pool.submit(http)
-                await_state(lambda value: value['active'] == 2 and value['rx'] > 0 and value['steps'] == 0, 'paused handshake has actual queued TLS bytes')
-                assert not waiting.done(), 'Handshake progressed while paused'
-                assert ask('STATUS')['ok']
-                control('HANDSHAKE RESUME')
-                assert waiting.result(timeout=5)[0] == 200
-            # The same bounded USB-reply grace also pauses an established HTTP
-            # request/response, while the established WTP owner remains responsive.
-            with connect(context('other')) as paused_http:
-                paused_http.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
-                control('HTTP PAUSE')
-                paused_http.sendall(b'\r\n')
-                await_state(lambda value: value['active'] == 2 and value['rx'] > 0 and value['steps'] == 0, 'HTTP request retained behind observed pause')
-                assert ask('STATUS')['ok']
-                assert state()['rx'] > 0, 'HTTP bytes consumed while paused and WTP made foreground progress'
-                control('HTTP RESUME')
-                paused_http.settimeout(5)
-                response = receive_all(paused_http)
-                assert response.startswith(b'HTTP/1.1 200'), response
-            # Persistent WTP remains negotiated while independent certificates read HTTP.
-            for _ in range(8):
-                assert http(identity='other')[0] == 200
-                assert ask('PING',{'token':'owner-retained'})['ok']
-            with concurrent.futures.ThreadPoolExecutor() as pool:
-                maximum = pool.submit(http, '/api/control/v1/jobs', 'POST', {}, None, True, 'other', 32768)
-                assert ask('PING',{'token':'maximum-size-frame'},padded=True)['ok']
-                assert maximum.result()[0] == 400
-            # Independent stalled HTTP must not prevent the established owner from progressing.
-            with connect(context('other')) as slow:
-                slow.sendall(b'GET /api/control/v1/status HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n')
-                with connect_socket(('127.0.0.1',18443),deadline=process.deadline,timeout=3) as pending:
-                    await_state(lambda value: value['active'] == 2 and value['pending'] == 1, 'capacity pending slot entered')
-                    with connect_socket(('127.0.0.1',18443),deadline=process.deadline,timeout=3) as extra:
-                        try: assert not extra.recv(1), 'Capacity overflow was not rejected'
-                        except ConnectionError: pass
-                    assert ask('PING')['ok']
-            released(active=1)
-            # Idle admission does not authorize a config change completed after CLAIM.
-            before_claim = http('/api/control/v1/config')
-            revision = before_claim[1]['ETag']
-            with connect(context('other')) as management:
-                payload = json.dumps(config_update(config)).encode()
-                header = (f'POST /api/control/v1/config/update HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n'
-                          f'Origin: https://127.0.0.1:18443\r\nContent-Type: application/json\r\n'
-                          f'X-WsprryPico-Request: 1\r\nIf-Match: {revision}\r\nContent-Length: {len(payload)}\r\n\r\n').encode()
-                management.sendall(header + payload[:1])
-                assert ask('CLAIM',{'owner_id':'1'*32,'lease_ms':60000})['ok']
-                management.sendall(payload[1:])
-                response = receive_all(management)
-                assert response.startswith(b'HTTP/1.1 409'), response
-            after_claim = http('/api/control/v1/config')
-            assert after_claim[1]['ETag'] == revision, 'busy refusal must not append the persisted configuration journal'
-            assert json.loads(after_claim[2])['config'] == json.loads(before_claim[2])['config'], 'busy refusal must preserve saved configuration'
-            plan = {'job_id':'3'*32,'profile':'rf-events/1','mode':'tone','total_duration_ns':'10240000000',
-                    'events':[{'offset_ns':str(i*20000000),'duration_ns':'20000000','rf_on':True,
-                               'frequency_nhz':'1000000'} for i in range(512)]}
-            assert ask('LOAD',plan)['ok']
-            clock = ask('GET_CLOCK')['body']
-            assert ask('ARM',{'job_id':'3'*32,'start_utc_ns':str(int(clock['utc_now_ns'])+2000000000),
-                              'max_start_uncertainty_ns':'1000000'})['ok']
-            assert json.loads(http(identity='other')[2])['job']['state'] == 'armed'
-            # Same certificate/different session and foreign certificate cannot adopt ownership.
-            sequence = 1000
-            def browser(op, body, identity='other', session=None):
-                global sequence
-                sequence += 1
-                session = session or ('4' if identity == 'client' else '6')*32
-                return http('/api/control/v1/jobs','POST',{'session_id':session,'request_id':f'{sequence:032x}',
-                            'operation':op,'body':body},identity=identity)
-            for identity in ('client','other'):
-                assert browser('HELLO',{'versions':['WTP/1'],'client_name':'observer','client_version':'1'},identity)[0] == 200
-                assert browser('CLAIM',{'owner_id':'4'*32,'lease_ms':60000},identity)[0] == 409
-                assert browser('ABORT',{'job_id':'3'*32},identity)[0] == 409
-                assert browser('RELEASE',{},identity)[0] == 409
-            advance(1999999)
-            assert json.loads(http(identity='other')[2])['job']['state'] == 'armed'
-            advance(1)
-            running = json.loads(http(identity='other')[2])
-            assert running['job']['state'] == 'running', running
-            assert ask('PING')['ok']
-        # No network input drives the job after ARM; query retained completion later.
-        control('LINK OFF')
-        advance(10239999)
-        assert state()['job'] == 'running'
-        advance(1)
-        assert state()['job'] == 'complete'
-        control('LINK ON')
-        status, _, body = http()
-        assert status == 200 and json.loads(body)['job']['state'] == 'complete', body
-        # Owner lease survives controller disconnect. Use the original authenticated
-        # session explicitly to release; no foreign browser recovery shortcut.
-        assert browser('RELEASE',{},'client','1'*32)[0] == 200
-        assert browser('CLAIM',{'owner_id':'4'*32,'lease_ms':60000})[0] == 200
-        plan['job_id'] = '5'*32
-        small = {'job_id':'5'*32,'profile':'rf-events/1','mode':'tone','total_duration_ns':'2000000000',
-                 'events':[{'offset_ns':'0','duration_ns':'2000000000','rf_on':True,'frequency_nhz':'1000000'}]}
-        assert browser('LOAD',small)[0] == 200
-        # Obtain UTC through a temporary WTP observer, then close it before browser ARM.
-        # The status includes the standalone clock's current UTC observation.
-        observed = json.loads(http()[2])['standalone']
-        start_utc = int(observed['utc_now_ns']) + 2000000000
-        assert browser('ARM',{'job_id':'5'*32,'start_utc_ns':str(start_utc),'max_start_uncertainty_ns':'1000000'})[0] == 200
-        assert json.loads(http()[2])['job']['state'] == 'armed'
-        with connect() as slow:
-            slow.sendall(b'GET /')
-            assert browser('ABORT',{'job_id':'5'*32})[0] == 200
-        assert browser('RELEASE',{})[0] == 200
+        try:
+            with connect(context(protocols=('wtp/1',))):
+                raise AssertionError('Retired ALPN admitted')
+        except ssl.SSLError:
+            pass
+        released()
+        for method in ('GET','POST','PUT'):
+            for path in ('jobs','jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/abort','jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'):
+                assert http('/api/control/v1/'+path,method,{} if method!='GET' else None)[0]==404
+        def native(operation):
+            control('NATIVE '+operation)
+            assert controls.line().strip()=='NATIVE '+operation+' 1'
+        native('CLAIM');native('LOAD')
+        assert json.loads(http()[2])['job']['state']=='loaded'
+        native('ARM')
+        assert json.loads(http()[2])['job']['state']=='armed'
+        revision=http('/api/control/v1/config')[1]['ETag']
+        assert http('/api/control/v1/config/update','POST',config_update(config),{'If-Match':revision})[0]==409
+        advance(2000000)
+        assert json.loads(http()[2])['job']['state']=='running'
+        # No network command sustains the native worker. Closing management
+        # cannot release its owner or cancel its accepted occurrence.
+        advance(1000000)
+        completed=json.loads(http()[2])['job']
+        assert completed['state']=='complete' and completed['output_active'] is False
+        native('RELEASE')
         # Concurrent revisions admit exactly one distinct update.
         revision = http('/api/control/v1/config')[1]['ETag']
         # Establish both admitted TLS sessions before releasing concurrent requests.
@@ -514,7 +399,7 @@ with process_scope(timeout=80):
                 pending = json.loads(http('/api/control/v1/network')[2])
                 assert pending['enabled'] and pending['test_pending'] and pending['test_applied'] == 0
                 if outcome == 'claim':
-                    assert browser('CLAIM',{'owner_id':'6'*32,'lease_ms':60000})[0] == 200
+                    native('CLAIM')
                 if outcome != 'disconnect':
                     control('ACK RELEASE')
             released()
@@ -522,7 +407,7 @@ with process_scope(timeout=80):
             assert network_state['enabled'] and not network_state['test_pending'], network_state
             assert network_state['test_applied'] == (1 if outcome == 'apply' else 0), network_state
             if outcome == 'claim':
-                assert browser('RELEASE',{})[0] == 200
+                native('RELEASE')
         baseline = json.loads(http()[2])["transport"]["tls_allocated_bytes"]
         # Servicing each real reset must release its slot before one fresh request.
         # Synchronize the adapter boundary instead of racing its single pending
@@ -535,18 +420,13 @@ with process_scope(timeout=80):
             assert http()[0] == 200
         stats = json.loads(http()[2])['transport']
         assert stats['tls_allocated_bytes'] <= baseline + 1024, (baseline, stats)
-        with connect(context(protocols=('wtp/1',))) as stream:
-            decoder = StrictFrameDecoder()
-            assert ask('HELLO',{'versions':['WTP/1'],'client_name':'close-metric','client_version':'1'})['ok']
+        with connect() as stream:
             control('LINK OFF')
-            control('CLOSE METRICS')
-            assert controls.line().strip() == 'CLOSE 1 0'
-        control('LINK ON')
-        assert http()[0] == 200
-        control('CLOSE METRICS')
-        assert controls.line().strip() == 'CLOSE 1 0'  # HTTP cannot overwrite the WTP cause.
+            try:assert not stream.recv(4096)
+            except (ConnectionError,ssl.SSLError):pass
+        control('LINK ON');assert http()[0]==200
         print('Transport metrics:', stats)
-        print('Actual TLS 1.3 mTLS/ALPN, HTTP framing, origin, revisions, assets and WTP tests passed')
+        print('Actual TLS 1.3 mTLS/ALPN, HTTP framing, origin, revisions, assets, native ownership/worker, retired routes, and ALPN refusal passed')
     finally:
         process.finish()
         stderr = process.stderr_text()

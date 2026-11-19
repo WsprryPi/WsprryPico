@@ -17,6 +17,7 @@ from wtp_monitor import FrameDecoder, configure_raw
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.error("External WTP tooling is retired; use retained native management or Console diagnostics.")
     parser.add_argument("port", type=Path)
     parser.add_argument("--run", action="store_true", help="explicitly perform USB device I/O")
     args = parser.parse_args()

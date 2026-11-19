@@ -19,7 +19,6 @@ constexpr std::size_t kServiceBytes = 64;
 void service();
 bool console_connected();
 bool console_output_pending();
-bool wtp_connected();
 bool management_connected();
 bool logging_connected();
 bool take_logging_reset();
@@ -28,15 +27,18 @@ std::size_t logging_transport_read(std::span<std::uint8_t> bytes);
 bool take_management_reset();
 std::size_t management_transport_write(std::span<const std::uint8_t> bytes);
 std::size_t management_transport_read(std::span<std::uint8_t> bytes);
-// Consume a session-reset notification, including a close/open between polls.
-bool take_wtp_reset();
 bool take_console_reset();
 // All-or-nothing enqueue; disconnected/full console drops the entire diagnostic.
 bool console_write(std::string_view text);
 std::size_t console_transport_read(std::span<std::uint8_t> bytes);
 // Non-blocking prefix acceptance. Caller retains/retries the unaccepted suffix.
 // A disconnect aborts the stream; accepted bytes are not delivery acknowledgments.
-std::size_t wtp_transport_write(std::span<const std::uint8_t> bytes);
-std::size_t wtp_transport_read(std::span<std::uint8_t> bytes);
+#ifdef WSPRRY_PICO_RF_BENCH
+// Optional RFBench Commands is the sole active use of the reserved allocation.
+bool bench_connected();
+bool take_bench_reset();
+std::size_t bench_transport_write(std::span<const std::uint8_t> bytes);
+std::size_t bench_transport_read(std::span<std::uint8_t> bytes);
+#endif
 
 } // namespace wsprrypico::usb

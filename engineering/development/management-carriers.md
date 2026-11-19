@@ -1,6 +1,6 @@
 # Management carriers
 
-Job transport and JSON administration have separate authority. WTP carries complete jobs to one JobService; management configuration uses the shared validators, target/revision checks, and journals. Neither negotiated management nor a successful login grants transmitter ownership.
+Device-owned execution and JSON administration have separate authority. Native schedulers share one JobService; management configuration uses the shared validators, target/revision checks, and journals. Neither negotiated management nor a successful login grants transmitter ownership.
 
 ## Carrier and profile policy
 
@@ -10,10 +10,8 @@ Job transport and JSON administration have separate authority. WTP carries compl
 | Engineering field HTTPS | Server TLS plus AP-scoped password/cookie session | Provisioned field allowlist; blank/preclock Configure denied; hostname and GET config unavailable; no selected Pi field-cookie client |
 | Consumer station/AP HTTP | Saved Wi-Fi-password Consumer-Radio/1 encrypted session | Actual interface, exact authority, device/boot/profile generation; association+IPv4 suffice for management; job UTC policy is independent |
 | USB management/time CDC | Internal `usb_physical` local authority | No Wi-Fi/password/UTC prerequisite for negotiation and ordinary saves; UMP1 boot/session/target binding, revision, and matching response ACK |
-| Plain LAN WTP / consumer TLS-WTP | No JSON administration | Complete WTP jobs only; management requires an independently selected carrier |
-| BLE WTP | No shared JSON administration | Engineering Field-GATT/password/session policy; dedicated provisioning commands stay outside WTP/1 |
 
-Normal and explicitly inhibited consumer/engineering application variants admit USB WTP and the separate management/time CDC. Console, WTP, and UMP1 framing remain separate; USB connectivity alone does not negotiate a JSON capability. Consumer public setup mutations are AP-only. Authenticated LAN setup uses the same transactional profile authority through the encrypted wrapper. Raw station HTTP never acquires public AP mutation authority.
+Normal and explicitly inhibited application variants retain the independent management/time CDC. The former WTP CDC allocation is Reserved and inert; RFBench Commands is the sole diagnostic exception. Console and UMP1 framing remain separate. BLE retains commissioning/time/security only, without the retired execution UUIDs or carrier-selection operation. Consumer public setup mutations are AP-only. Authenticated LAN setup uses the same transactional profile authority through the encrypted wrapper. Raw station HTTP never acquires public AP mutation authority.
 
 Consumer sessions use three fixed slots and at most one pending ordinary login; full capacity refuses without eviction. Pending login has a 30-second deadline, active sessions retain thirty-minute idle/eight-hour absolute limits, and the separate [recovery exchange](session-recovery.md) has a five-second proof workspace. Two bounded port-80 tasks service requests cooperatively. Slot, transport, and memory capacities are independent; they do not promise simultaneous maximum-size allocation. HTTP page delivery remains unauthenticated.
 

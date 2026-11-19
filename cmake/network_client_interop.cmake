@@ -13,9 +13,6 @@ if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     add_executable(wtp_network_interop_test
         ${source}/tests/wtp_network_interop_test.cpp
         ${source}/wtp_integration/tls.cpp ${source}/wtp_integration/network_http.cpp
-        ${source}/wtp_integration/application.cpp ${source}/wtp_integration/status.cpp
-        ${source}/wtp_integration/scheduler.cpp ${source}/wtp_integration/backend.cpp
-        ${source}/wtp_integration/execution_plan.cpp
         ${source}/WSPR-Transmitter/src/execution_plan_compiler.cpp
         ${source}/WSPR-Transmitter/src/transmission_controller.cpp)
     target_include_directories(wtp_network_interop_test PRIVATE ${source})

@@ -148,6 +148,7 @@ class BrowserApi {
     ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
     HttpResponse message_schedule_resource(const HttpRequest& request);
+    HttpResponse schedule_stop_resource(const HttpRequest& request);
     HttpResponse config() const;
     HttpResponse gpio_drive() const;
     HttpResponse si5351() const;
@@ -161,7 +162,6 @@ class BrowserApi {
     HttpResponse station_config() const;
     HttpResponse hardware_config() const;
     HttpResponse application_config() const;
-    HttpResponse job(const HttpRequest& request, std::string_view principal);
     wtp::JobService& service_;
     standalone::Store& store_;
     standalone::Scheduler& scheduler_;

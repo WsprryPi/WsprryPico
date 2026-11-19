@@ -43,25 +43,8 @@ def outputs():
     javascript += 'const descriptors=' + json.dumps(descriptors, separators=(',', ':')) + ';\n'
     javascript += 'const runtime=' + json.dumps(spec['descriptor_runtime_fields'], separators=(',', ':')) + ';\n'
     javascript += 'const policies=' + json.dumps(spec['descriptor_policies'], separators=(',', ':')) + ';\n'
-    wtp = json.loads((ROOT/'engineering/protocol/wtp-1.schema.json').read_text())
-    wtp_definitions = {}
-    def include_wtp(name):
-        if name in wtp_definitions:
-            return
-        definition = wtp['$defs'][name]
-        wtp_definitions[name] = definition
-        def references(value):
-            if isinstance(value, dict):
-                if '$ref' in value:
-                    include_wtp(value['$ref'].split('/')[-1])
-                for item in value.values():
-                    references(item)
-            elif isinstance(value, list):
-                for item in value:
-                    references(item)
-        references(definition)
-    include_wtp('capsResponse')
-    javascript += 'const wtpSchemas=' + json.dumps(wtp_definitions, separators=(',', ':')) + ';\n'
+    javascript += 'const executionSchemas=' + json.dumps({'native-execution': spec['$defs']['native-execution']}, separators=(',', ':')) + ';\n'
+    javascript += 'const managementOperations=' + json.dumps(spec['management_routes'], separators=(',', ':')) + ';\n'
     javascript += 'const publicResources=' + json.dumps(spec['public_resources'], separators=(',', ':')) + ';\n'
     javascript += 'const publicPrefix=' + json.dumps(spec['public_prefix']) + ';\n'
     javascript += 'const capabilityKeys=' + json.dumps(list(spec['$defs']['capabilities']['properties'])) + ';\n'
@@ -77,6 +60,12 @@ def outputs():
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const canonical=v=>JSON.stringify(v,(_key,item)=>object(item)?Object.fromEntries(Object.keys(item).sort().map(k=>[k,item[k]])):item);
 const equal=(a,b)=>{try{return canonical(a)===canonical(b);}catch(_error){return false;}};
+function validManagementOperations(value){
+ return object(value)&&Object.keys(value).sort().join(',')==='GET,POST,PUT'&&
+  Object.entries(managementOperations).every(([method,expected])=>Array.isArray(value[method])&&
+   value[method].length===expected.length&&new Set(value[method]).size===expected.length&&
+   value[method].every(resource=>typeof resource==='string'&&expected.includes(resource)));
+}
 function policy(rule,x,value,base){
  if(rule.type==='integer'&&!Number.isInteger(x))return false;
  if(rule.type==='boolean'&&typeof x!=='boolean')return false;
@@ -114,7 +103,7 @@ function jsonType(value,type){
  if(type==='null')return value===null;
  return false;
 }
-function wtpSchema(value,rule,depth=0,schemas=wtpSchemas){
+function wtpSchema(value,rule,depth=0,schemas=executionSchemas){
  if(depth>16||!rule||typeof rule!=='object')return false;
  if(rule.$ref)return wtpSchema(value,schemas[rule.$ref.split('/').pop()],depth+1,schemas);
  if(rule.allOf&&!rule.allOf.every(r=>wtpSchema(value,r,depth+1,schemas)))return false;
@@ -145,19 +134,19 @@ function wtpSchema(value,rule,depth=0,schemas=wtpSchemas){
  }
  return true;
 }
-function validWtpCapabilities(value){
- try{return wtpSchema(value,wtpSchemas.capsResponse)&&value.frequency_ranges.every(r=>BigInt(r.minimum_nhz)<=BigInt(r.maximum_nhz))&&BigInt(value.minimum_arm_lead_ns)<=BigInt(value.maximum_arm_ahead_ns);}
+function validExecutionCapabilities(value){
+ try{return wtpSchema(value,executionSchemas['native-execution'])&&value.frequency_ranges.every(r=>BigInt(r.minimum_nhz)<=BigInt(r.maximum_nhz))&&BigInt(value.minimum_arm_lead_ns)<=BigInt(value.maximum_arm_ahead_ns);}
  catch(_){return false;}
 }
 function validCapabilities(value){
  if(!object(value)||value.contract!=='Wsprry-Control/1'||Object.keys(value).some(k=>!capabilityKeys.includes(k))||capabilityRequired.some(k=>!Object.hasOwn(value,k)))return false;
- if(!object(value.features)||Object.keys(value.features).length>64||featureRequired.some(k=>!Object.hasOwn(value.features,k))||Object.entries(value.features).some(([k,v])=>!/^[a-z][a-z0-9_]{0,79}$/.test(k)||typeof v!=='boolean'))return false;
- if(!validWtpCapabilities(value.wtp)||typeof value.active_job_connections!=='boolean')return false;
- for(const key of ['max_network_connections','max_wtp_connections','max_pending_connections','max_handshakes'])if(!Number.isInteger(value[key])||value[key]<1||value[key]>32)return false;
+ if(Object.hasOwn(value.features||{},'jobs')||!object(value.features)||Object.keys(value.features).length>64||featureRequired.some(k=>!Object.hasOwn(value.features,k))||Object.entries(value.features).some(([k,v])=>!/^[a-z][a-z0-9_]{0,79}$/.test(k)||typeof v!=='boolean'))return false;
+ if(!validExecutionCapabilities(value.execution)||typeof value.active_execution_connections!=='boolean')return false;
+ for(const key of ['max_network_connections','max_pending_connections','max_handshakes'])if(!Number.isInteger(value[key])||value[key]<1||value[key]>32)return false;
  if(!Number.isInteger(value.max_body_bytes)||value.max_body_bytes<1||value.max_body_bytes>32768)return false;
  for(const name of Object.keys(descriptors))if(Object.hasOwn(value,name)&&!supported(name,value[name]))return false;
- const jobs=value.message_jobs;
- if(jobs!==undefined&&(!object(jobs)||Object.keys(jobs).sort().join(',')!=='max_characters,max_repeat_count,modes,operation,tail_ns'||jobs.operation!=='LOAD_MESSAGE'||jobs.tail_ns!=='1000'||!Number.isInteger(jobs.max_characters)||jobs.max_characters<1||jobs.max_characters>32||!Number.isInteger(jobs.max_repeat_count)||jobs.max_repeat_count<1||jobs.max_repeat_count>512||!Array.isArray(jobs.modes)||jobs.modes.length<1||jobs.modes.length>16||new Set(jobs.modes).size!==jobs.modes.length||jobs.modes.some(v=>typeof v!=='string'||!/^[a-z][a-z0-9_-]{0,31}$/.test(v))))return false;
+ const jobs=value.message_limits;
+ if(jobs!==undefined&&(!object(jobs)||Object.keys(jobs).sort().join(',')!=='max_characters,max_repeat_count,modes,tail_ns'||jobs.tail_ns!=='1000'||!Number.isInteger(jobs.max_characters)||jobs.max_characters<1||jobs.max_characters>32||!Number.isInteger(jobs.max_repeat_count)||jobs.max_repeat_count<1||jobs.max_repeat_count>512||!Array.isArray(jobs.modes)||jobs.modes.length<1||jobs.modes.length>16||new Set(jobs.modes).size!==jobs.modes.length||jobs.modes.some(v=>typeof v!=='string'||!/^[a-z][a-z0-9_-]{0,31}$/.test(v))))return false;
  return true;
 }
 function validControllerDocument(value,name){
@@ -184,7 +173,7 @@ function validControllerDocument(value,name){
   (name!=='host-readiness'||(value.state!=='ready'||value.device_id!==null)&&
     (!value.recovery_editable||value.role==='transmitter'&&value.state==='configuration_recovery'&&value.device_id!==null)&&
     (value.role!=='controller-only'||!['configuration_recovery','output_recovery'].includes(value.state)))&&
-  (name!=='configuration-recovery'||(!value.writable||value.binding!==null&&value.validation!=='storage_unavailable')&&
+  (name!=='configuration-recovery'||(!value.writable||value.binding!==null&&!['storage_unavailable','migration_required'].includes(value.validation))&&
     new Set(value.defaulted_fields).size===value.defaulted_fields.length);}
  catch(_){return false;}
 }
@@ -209,7 +198,7 @@ function supportedPiResource(value){
 }
 Object.values(piDescriptors).forEach(Object.freeze);
 Object.freeze(controllerAdapter.reconciliation_reads);
-const api=Object.freeze({contract:'Wsprry-Control/1',prefix:'/api/control/v1/',descriptors:Object.freeze(descriptors),publicResources:Object.freeze(publicResources),publicPrefix,supported,validCapabilities,validWtpCapabilities,controllerAdapter:Object.freeze(controllerAdapter),validControllerDocument,controllerRecoveryRead,controllerPiConfigurationField,controllerPiDescriptors:Object.freeze(piDescriptors),supportedPiResource});
+const api=Object.freeze({contract:'Wsprry-Control/1',prefix:'/api/control/v1/',descriptors:Object.freeze(descriptors),publicResources:Object.freeze(publicResources),publicPrefix,supported,validManagementOperations,validCapabilities,validExecutionCapabilities,controllerAdapter:Object.freeze(controllerAdapter),validControllerDocument,controllerRecoveryRead,controllerPiConfigurationField,controllerPiDescriptors:Object.freeze(piDescriptors),supportedPiResource});
 root.WsprryControl=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);
 '''

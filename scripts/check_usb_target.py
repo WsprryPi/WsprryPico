@@ -64,6 +64,7 @@ def write_all(fd, data):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.error("External WTP tooling is retired; use retained native management or Console diagnostics.")
     parser.add_argument('--console', required=True)
     parser.add_argument('--wtp', required=True)
     parser.add_argument('--output', required=True, type=Path)

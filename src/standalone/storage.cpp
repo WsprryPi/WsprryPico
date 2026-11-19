@@ -352,6 +352,26 @@ bool Store::save(const Config& config) {
     current_ = std::move(selected);
     return true;
 }
+bool Store::disable_schedules() {
+    if (!healthy())
+        return false;
+    if ((!current_ || !current_->enabled) && (!message_ || !message_->enabled))
+        return true;
+    auto config = current_;
+    auto message = message_;
+    if (config)
+        config->enabled = false;
+    if (message)
+        message->enabled = false;
+    const auto text = state_record(config, message, logging_, filters_);
+    if (text.size() > max_state_bytes || !config_.append(text)) {
+        healthy_ = false;
+        return false;
+    }
+    current_ = std::move(config);
+    message_ = std::move(message);
+    return true;
+}
 bool Store::save_logging(logging::Settings settings) {
     if (!healthy() || settings.maximum_severity > 7)
         return false;

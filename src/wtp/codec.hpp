@@ -1,4 +1,5 @@
 #pragma once
+#include "wtp/observation.hpp"
 #include "wtp/job_service.hpp"
 #include "wtp/json.hpp"
 #include "wtp/output_buffer.hpp"
@@ -48,7 +49,4 @@ class LoadResponseStream {
     std::size_t size_ = 0;
     std::uint32_t checksum_ = 0;
 };
-std::string error_json(ErrorCode code);
-std::string status_json(const ServiceStatus& status);
-std::string state_name(State state);
 } // namespace wsprrypico::wtp

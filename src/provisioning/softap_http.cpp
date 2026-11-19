@@ -135,7 +135,7 @@ SoftApHttpAuthority SoftApHttpAdmission::authorize(const network::HttpRequest& r
     if (surface == SoftApSurface::BlankReadOnly ||
         (surface == SoftApSurface::ProvisionedPreClock &&
          operation != SoftApOperation::Hello && operation != SoftApOperation::Status &&
-         operation != SoftApOperation::Time) ||
+         operation != SoftApOperation::Time && operation != SoftApOperation::NativeStop) ||
         !same_origin(request, request.method != "GET"))
         return {AccessCode::AuthenticationRequired, {}, false, {}};
     const auto token = cookie_token(request);

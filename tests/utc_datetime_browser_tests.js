@@ -86,17 +86,16 @@ async function main() {
   process.env.WSPRRY_PICO_BROWSER_SHIPPED='1';
   const {fixture:browser}=require('./network_browser_tests.js');
   for(const mode of ['qrss','fskcw','dfcw']) {
-    const f=await browser();f.prepareMessage(mode,'CQ CQ DE AA0NT EM18 QRSS TEST 73');
+    const f=await browser();f.prepareMessage(mode,'CQ CQ DE AA0NT EM18 QRSS TEST 73');f.elements['message-interval'].value='60';
     const stale=new Date(f.now-5*3600000).toISOString().slice(0,19);f.elements['message-start'].value=stale;
     await f.elements['message-form'].onsubmit({preventDefault(){}});
     assert.equal(f.calls.filter(c=>c.path.endsWith('jobs')).length,0,'a past UTC time never claims or loads');
-    assert.match(f.elements['message-result'].textContent,/future UTC start time/);assert.equal(f.elements['message-start'].value,stale);
+    assert.equal(f.savedMessageSchedule.first_start_utc_ns,String(BigInt(Date.parse(stale+'Z'))*1000000n),'past first starts preserve the native timing grid');
     const future=new Date(f.now+120000).toISOString().slice(0,19);f.elements['message-start'].value=future;
     await f.elements['message-form'].onsubmit({preventDefault(){}});
-    const jobs=f.calls.filter(c=>c.path.endsWith('jobs')).map(c=>JSON.parse(c.options.body));
-    assert.deepEqual(jobs.map(j=>j.operation),['HELLO','CLAIM','LOAD_MESSAGE','ARM']);
-    assert.equal(jobs.at(-1).body.start_utc_ns,String(BigInt(Date.parse(future+'Z'))*1000000n));
-    assert.match(f.elements['job-result'].textContent,/observed \d{2}:\d{2}:\d{2} UTC/);
+    const schedules=f.calls.filter(c=>c.path.endsWith('message-schedule')&&c.options.method==='PUT').map(c=>JSON.parse(c.options.body));
+    assert.equal(schedules.length,2);assert.equal(schedules.at(-1).schedule.first_start_utc_ns,String(BigInt(Date.parse(future+'Z'))*1000000n));
+    assert.equal(f.calls.filter(c=>c.path.endsWith('jobs')).length,0);
   }
 }
 if (!process.env.WSPRRY_PICO_UTC_TEST_ZONE) {
@@ -104,5 +103,5 @@ if (!process.env.WSPRRY_PICO_UTC_TEST_ZONE) {
     const result = spawnSync(process.execPath,[__filename],{env:{...process.env,TZ:zone,WSPRRY_PICO_UTC_TEST_ZONE:'1'},encoding:'utf8'});
     assert.equal(result.status,0,zone + '\n' + result.stdout + result.stderr);
   }
-  console.log('UTC picker defaults, paired edits, date boundaries and pre-claim validation passed in four timezones');
+  console.log('UTC picker defaults, paired edits, date boundaries and native schedule grids passed in four timezones');
 } else main().catch(error=>{console.error(error);process.exitCode=1;});

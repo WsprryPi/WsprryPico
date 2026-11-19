@@ -7,7 +7,6 @@
 #include "network/pico/psa_lifetime.hpp"
 #include "network/softap_api.hpp"
 #include "provisioning/profile.hpp"
-#include "wtp/endpoint.hpp"
 
 #include <array>
 
@@ -19,15 +18,14 @@ void install_tls_time_source(wtp::JobService& service);
 // Core-0-only TLS/lwIP/application owner. Physical waveform servicing is isolated.
 class PicoServer {
   public:
-    enum class Admission { ClientCertificate, LocalWtp, SoftApOnly };
-    PicoServer(wtp::JobService&, BrowserApi&, std::string device, std::string firmware,
+    enum class Admission { ClientCertificate, SoftApOnly };
+    PicoServer(wtp::JobService&, BrowserApi&, std::string device,
                provisioning::CredentialMaterial,
                Admission admission = Admission::ClientCertificate);
     ~PicoServer();
     PicoServer(const PicoServer&) = delete;
     PicoServer& operator=(const PicoServer&) = delete;
     bool start();
-    bool start_plain(unsigned port);
     bool configure_credentials(provisioning::CredentialMaterial credentials) {
         if (setup_)
             return false;
@@ -55,12 +53,6 @@ class PicoServer {
     bool listening() const {
         return listener_ != nullptr;
     }
-    bool plain_listening() const {
-        return plain_listener_ != nullptr;
-    }
-    unsigned plain_port() const {
-        return plain_port_;
-    }
     bool configured() const;
     bool softap_active() const {
         for (const auto& connection : connections_)
@@ -78,9 +70,6 @@ class PicoServer {
         std::uint64_t admitted = 0, rejected = 0, closed = 0, timeouts = 0;
         std::uint64_t max_handshake_us = 0, max_poll_us = 0;
         unsigned peak_active = 0;
-        // Last established WTP closure only; HTTP cleanup cannot overwrite it.
-        unsigned last_wtp_close_reason = 0;
-        int last_wtp_tls_result = 0;
     };
     const Metrics& metrics() const {
         return metrics_;
@@ -108,8 +97,8 @@ class PicoServer {
 
   private:
     struct Connection {
-        Connection(PicoServer&, std::string device, std::string firmware);
-        void activate(tcp_pcb*, bool softap, bool plain);
+        explicit Connection(PicoServer&);
+        void activate(tcp_pcb*, bool softap);
         void poll(bool link_up, std::string_view authority,
                   provisioning::SoftApSurface softap_surface, bool allow_http_steps);
         void close(bool apply = false, unsigned reason = 0, int tls_result = 0);
@@ -121,7 +110,6 @@ class PicoServer {
         PicoServer& owner_;
         wtp::JobService& service_;
         BrowserApi& api_;
-        wtp::Endpoint endpoint_;
         std::uint64_t generation_ = 0;
         tcp_pcb* client_ = nullptr;
         mbedtls_ssl_context ssl_{};
@@ -141,13 +129,11 @@ class PicoServer {
         }
         std::size_t response_offset_ = 0;
         std::uint64_t accepted_ms_ = 0, progress_ms_ = 0;
-        bool setup_ = false, handshake_ = false, wtp_ = false, peer_closed_ = false,
-             responded_ = false, close_notify_ = false, handshake_failed_ = false, softap_ = false,
-             plain_tcp_ = false;
+        bool setup_ = false, handshake_ = false, peer_closed_ = false,
+             responded_ = false, close_notify_ = false, handshake_failed_ = false, softap_ = false;
     };
     static err_t accept(void*, tcp_pcb*, err_t);
-    static err_t accept_plain(void*, tcp_pcb*, err_t);
-    err_t accept_connection(tcp_pcb*, err_t, bool plain);
+    err_t accept_connection(tcp_pcb*, err_t);
     static err_t pending_receive(void*, tcp_pcb*, pbuf*, err_t);
     static void pending_error(void*, err_t);
     void close_pending();
@@ -160,11 +146,9 @@ class PicoServer {
     Admission admission_;
     std::array<Connection, 2> connections_;
     tcp_pcb* listener_ = nullptr;
-    tcp_pcb* plain_listener_ = nullptr;
-    unsigned plain_port_ = 0;
     tcp_pcb* pending_ = nullptr;
     Connection* pending_slot_ = nullptr;
-    bool pending_softap_ = false, pending_plain_ = false;
+    bool pending_softap_ = false;
     std::uint64_t pending_since_ms_ = 0, generation_ = 0;
     std::size_t turn_ = 0;
     mbedtls_ssl_config config_{};

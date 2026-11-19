@@ -5,8 +5,7 @@ import json
 from pathlib import Path
 import time
 
-from check_usb_target import port, write_all
-from rf_wtp import read_line
+from console_io import port, write_all, read_line
 
 ACTIONS = {"info": "INFO", "status": "STATUS", "storage": "STORAGE", "stop": "STOP", "abort": "ABORT", "reboot": "REBOOT",
            "bootsel": "BOOTSEL", "wifi-off": "WIFI OFF", "wifi-on": "WIFI ON", "netlink": "NETLINK",

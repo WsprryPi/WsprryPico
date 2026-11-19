@@ -4,7 +4,7 @@
 #include "encoding/wspr.hpp"
 #include "time/mapping.hpp"
 #include "time/sntp.hpp"
-#include "wtp/codec.hpp"
+#include "wtp/observation.hpp"
 #include "wtp/memory_budget.hpp"
 
 #include <algorithm>
@@ -514,6 +514,23 @@ bool Scheduler::finish_message_pause() {
     message_saved();
     return true;
 }
+std::string Scheduler::stop_schedules() {
+    const bool resume_by_enable = !suspended_ || native_stop_suspended_;
+    const auto stopped = command("STOP");
+    const auto result = wtp::json::parse(stopped);
+    if (!result || !result->get("ok") || result->get("ok")->raw != "true")
+        return stopped;
+    native_stop_suspended_ = resume_by_enable;
+    service_.freeze_pair_calibration(false);
+    // Do not write flash while output cleanup is unresolved. Success below
+    // means both inactive/unowned output and a durable disabled readback.
+    if (!store_.disable_schedules() ||
+        (store_.message_in_flight() && !store_.clear_message_flight()))
+        return error("storage_fault");
+    message_job_.reset();
+    message_saved();
+    return status();
+}
 bool Scheduler::pause_message() {
     if (!store_.message_schedule() && !store_.message_in_flight())
         return true;
@@ -790,6 +807,7 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
                "\",\"latest_offset\":" + std::to_string(store_.cursor_offset()) +
                ",\"record_size\":" + std::to_string(store_.cursor_record_size()) + "}}\n";
     if (line == "STOP") {
+        native_stop_suspended_ = false; // Preserve the separate Console STOP latch.
         suspended_ = true;
         pair_.reset();
         const auto current = service_.status();

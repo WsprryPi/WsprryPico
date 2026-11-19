@@ -1,6 +1,6 @@
 # Pico RF bench
 
-The separately built `WsprryPico-RFBench` image provides CPU benchmarks and finite GP2 tones. It boots idle, uses USB CDC Commands, and reports `monotonic-relative-only` with `utc_synchronized=false`. It has no WTP endpoint; these commands neither change WTP nor establish UTC timing conformance. The standard `WsprryPico` build remains the inhibited WTP endpoint. The operator chooses transmissions and measurements.
+The separately built `WsprryPico-RFBench` image provides CPU benchmarks and finite GP2 tones. It boots idle, uses USB CDC Commands, and reports `monotonic-relative-only` with `utc_synchronized=false`. It has no WTP endpoint; these commands neither change WTP nor establish UTC timing conformance. The standard `WsprryPico` application executes device-owned schedules; `WsprryPico-Inhibited` supplies inhibited execution for software tests. The operator chooses transmissions and measurements.
 
 The subsequent [stream completion contract](rf-stream.md#completion-and-local-state-observations) adds `FRAME`, intentional abort/rearm, higher-resolution analysis, and simultaneous GPSDO comparison. Reference ratios remain tied to their identified source and setup.
 

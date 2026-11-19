@@ -946,6 +946,18 @@ struct Driver {
             return "{}";
         }
 #endif
+        if (op == "native_load") {
+            const std::string session(32, '1');
+            check(network_test::internal_command(f.service, "HELLO", wtp::HelloBody{{"WTP/1"}}, "native-fixture", session).ok);
+            check(network_test::internal_command(f.service, "CLAIM", wtp::ClaimBody{session, 60000}, "native-fixture", session).ok);
+            wtp::Job job;
+            job.job_id = std::string(32, '2');
+            job.mode = "tone";
+            job.total_duration_ns = 1'000'000'000;
+            job.events.push_back({0, job.total_duration_ns, true, 3'570'100'000'000'000});
+            check(network_test::internal_command(f.service, "LOAD", std::move(job), "native-fixture", session).ok);
+            return "{}";
+        }
         if (op == "wire") {
             std::uint64_t index;
             check(wtp::json::decimal(*v.get("socket"), index) && index < 2);

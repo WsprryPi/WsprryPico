@@ -49,7 +49,7 @@ using HttpLogin = SoftApHttpResponse (SoftApHttpAdmission::*)(
 using TimeSubmit = wsprrypico::time::ControllerTimeCode
     (wsprrypico::time::ControllerTimeArbiter::*)(std::string_view, std::string_view,
                                                 std::string_view, std::string_view,
-                                                std::uint64_t);
+                                                std::uint64_t, bool);
 GattStart volatile retained_gatt_start = &PicoGattTransport::start;
 GattPoll volatile retained_gatt_poll = &PicoGattTransport::poll;
 SoftApStart volatile retained_softap_start = &PicoSoftAp::start;
@@ -83,7 +83,7 @@ int main() {
     Manager manager(profile_store, validator, device, &activation);
     CommandAdapter command(manager, device, Transport::Ble);
     BleCommandSession session(access, command, manager, device, activity, nullptr);
-    PicoGattTransport gatt(session, nullptr, command.identity(), identity->advertising_name, now,
+    PicoGattTransport gatt(session, command.identity(), identity->advertising_name, now,
                            nullptr);
     PicoIndicatorOutput led;
     PicoSoftAp softap;

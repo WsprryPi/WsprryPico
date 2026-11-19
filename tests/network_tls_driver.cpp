@@ -95,6 +95,7 @@ void restore(std::uint32_t) {}
 } // namespace
 int main(int argc, char** argv) {
     using namespace wsprrypico;
+    if(argc>3){std::cerr<<"Retired WTP carrier selection\n";return 2;}
     std::signal(SIGPIPE, SIG_IGN);
     std::signal(SIGTERM, stop);
     const auto* selected_address = std::getenv("WSPRRY_TEST_LISTEN_ADDRESS");
@@ -171,53 +172,20 @@ int main(int argc, char** argv) {
         std::abort();
     auto invalid_credentials = credentials;
     invalid_credentials.server_certificate = "not a certificate";
-    network::PicoServer invalid_server(service, api, device, "invalid-credentials",
-                                       invalid_credentials);
+    network::PicoServer invalid_server(service, api, device, invalid_credentials);
     if (invalid_server.start() || network::PsaCryptoOwner::owners())
         std::abort();
     bool softap_interface = std::getenv("WSPRRY_TEST_SOFTAP_INTERFACE") != nullptr;
     auto classify_softap = [](const tcp_pcb*, void* context) {
         return *static_cast<bool*>(context);
     };
-    {
-        network::PicoServer no_tls(service, api, device, "plain-only", {},
-                                   network::PicoServer::Admission::SoftApOnly);
-        no_tls.softap_handler(nullptr, classify_softap, &softap_interface);
-        if (no_tls.configured() || !no_tls.start_plain(18445) ||
-            network::PsaCryptoOwner::owners() || no_tls.tls_allocated())
-            std::abort();
-        no_tls.stop();
-    }
-    const bool plain_with_tls = argc > 3 && std::string_view(argv[3]) == "--plain-with-tls";
-    const bool plain = plain_with_tls || (argc > 3 && std::string_view(argv[3]) == "--plain-wtp");
-    const auto admission = plain && !plain_with_tls ? network::PicoServer::Admission::SoftApOnly
-                           : argc > 3 && std::string_view(argv[3]) == "--local-wtp"
-                               ? network::PicoServer::Admission::LocalWtp
-                               : network::PicoServer::Admission::ClientCertificate;
-    network::PicoServer server(service, api, device, "test-worker-firmware",
-                               admission == network::PicoServer::Admission::LocalWtp
-                                   ? provisioning::CredentialMaterial{}
-                                   : credentials,
-                               admission);
+    network::PicoServer server(service,api,device,credentials);
     server.softap_handler(nullptr, classify_softap, &softap_interface);
-    if (admission == network::PicoServer::Admission::LocalWtp &&
-        (server.configured() || !server.configure_credentials(credentials) || !server.configured()))
-        std::abort();
-    if (!server.start() || network::PsaCryptoOwner::owners() != 1 ||
-        network::PsaCryptoOwner::peak_owners() < 2) {
-        std::cerr << "TLS start error " << server.last_error() << "\n";
-        finished = true;
-        worker.join();
-        return 1;
+    if(!server.start()||network::PsaCryptoOwner::owners()!=1||network::PsaCryptoOwner::peak_owners()<2){
+        std::cerr<<"TLS start error "<<server.last_error()<<'\n';finished=true;worker.join();return 1;
     }
-    if (admission == network::PicoServer::Admission::LocalWtp &&
-        server.configure_credentials(credentials))
-        std::abort();
-    if (plain &&
-        (!server.start_plain(18444) || !server.plain_listening() || server.start_plain(18444)))
-        std::abort();
     {
-        network::PicoServer competing(service, api, device, "duplicate", credentials);
+        network::PicoServer competing(service, api, device, credentials);
         if (competing.start() || network::PsaCryptoOwner::owners() != 1)
             std::abort();
     }
@@ -225,7 +193,7 @@ int main(int argc, char** argv) {
     if (network::PsaCryptoOwner::owners())
         std::abort();
     {
-        network::PicoServer destructor_server(service, api, device, "destructor", credentials);
+        network::PicoServer destructor_server(service, api, device, credentials);
         if (!destructor_server.start() || network::PsaCryptoOwner::owners() != 1)
             std::abort();
     }
@@ -240,8 +208,6 @@ int main(int argc, char** argv) {
     wtp::available_memory = nullptr;
     if (server.tls_allocated() || !server.start() || network::PsaCryptoOwner::owners() != 1)
         std::abort();
-    if (plain && !server.start_plain(18444))
-        std::abort();
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
     bool link = true;
     bool allow_http_steps = true;
@@ -249,7 +215,7 @@ int main(int argc, char** argv) {
     std::uint64_t sync_sequence = 0;
     bool discarding_command = false;
     std::cout << "READY " << server.port() << " PSA " << network::PsaCryptoOwner::owners()
-              << " PEAK " << network::PsaCryptoOwner::peak_owners() << (plain ? " PLAIN 18444" : "")
+              << " PEAK " << network::PsaCryptoOwner::peak_owners()
               << std::endl;
     while (!stopping) {
         char bytes[128];
@@ -331,9 +297,22 @@ int main(int argc, char** argv) {
                           << staged.pending_connections << ' ' << refused << ' '
                           << closed.buffered_rx_bytes << ' ' << closed.pending_connections << ' '
                           << (allocated == server.tls_allocated()) << std::endl;
-            } else if (command == "CLOSE METRICS")
-                std::cout << "CLOSE " << server.metrics().last_wtp_close_reason << ' '
-                          << server.metrics().last_wtp_tls_result << std::endl;
+            } else if(command.starts_with("NATIVE ")) {
+                const auto op=command.substr(7);const std::string session(32,'d'),job_id(32,'e');
+                const auto invoke=[&](std::string operation,wtp::RequestBody body={}){
+                    return network_test::internal_command(service,std::move(operation),std::move(body),"native-fixture",session).ok;
+                };
+                bool ok=false;
+                if(op=="CLAIM")ok=invoke("HELLO",wtp::HelloBody{{"WTP/1"}})&&invoke("CLAIM",wtp::ClaimBody{session,60000});
+                else if(op=="LOAD"){
+                    wtp::Job job;job.job_id=job_id;job.mode="tone";job.total_duration_ns=1'000'000'000;
+                    job.events.push_back({0,job.total_duration_ns,true,3'570'100'000'000'000});
+                    ok=invoke("LOAD",std::move(job));
+                }else if(op=="ARM")ok=invoke("ARM",wtp::ArmBody{job_id,clock.snapshot().utc_now_ns+2'000'000'000,1000000});
+                else if(op=="ABORT")ok=invoke("ABORT",wtp::AbortBody{job_id});
+                else if(op=="RELEASE")ok=invoke("RELEASE");
+                std::cout<<"NATIVE "<<op<<' '<<ok<<std::endl;
+            }
             else if (command == "PSA STATUS")
                 std::cout << "PSA " << network::PsaCryptoOwner::owners() << ' '
                           << network::PsaCryptoOwner::peak_owners() << std::endl;

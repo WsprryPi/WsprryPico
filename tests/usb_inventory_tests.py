@@ -74,7 +74,7 @@ class InventoryTests(unittest.TestCase):
                                 'scripts/usb_inventory.py'), '--serial', 'missing',
                                  '--device-id', 'missing'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
-        self.assertIn('--run requires', result.stderr)
+        self.assertIn('WTP tooling is retired', result.stderr)
 
     def test_records_activity_without_claiming_idle(self):
         info = {'ok': True, 'device_id': 'a', 'status': {'boot_id': 'b', 'engine': 'physical',

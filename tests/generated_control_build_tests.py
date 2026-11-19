@@ -17,7 +17,7 @@ class GeneratedControlBuildTests(unittest.TestCase):
     def test_incremental_build_refuses_stale_generated_limit(self):
         deadline = time.monotonic() + 90  # Failure watchdog, not a speed assertion.
         source_revision = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
-        tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '-z']).decode().split('\0')
+        tracked = subprocess.check_output(['git', '-C', str(ROOT), 'ls-files', '--cached', '--others', '--exclude-standard', '-z']).decode().split('\0')
         self.assertTrue(any(tracked))
         with tempfile.TemporaryDirectory(prefix='wsprry-generated-control-') as temporary:
             work = Path(temporary)

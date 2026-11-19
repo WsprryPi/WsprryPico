@@ -463,16 +463,12 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
             service.output_inhibited());
     REQUIRE(m.f.store.config() == saved && m.f.store.config_sequence() == sequence &&
             m.f.store.watermark() == watermark && api.revision() == revision);
-    auto hello = request(
-        "POST", "/api/control/v1/jobs",
-        R"({"session_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","request_id":"dddddddddddddddddddddddddddddddd","operation":"HELLO","body":{"versions":["WTP/1"],"client_name":"fault-recovery-test","client_version":"1"}})");
-    REQUIRE(api.handle(network_test::control_request(hello), "test", "127.0.0.1:8443").status == 200);
-    auto claim = request(
-        "POST", "/api/control/v1/jobs",
-        R"({"session_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","request_id":"cccccccccccccccccccccccccccccccc","operation":"CLAIM","body":{"owner_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","lease_ms":60000}})");
-    const auto refused = api.handle(network_test::control_request(claim), "test", "127.0.0.1:8443");
-    REQUIRE(refused.status == 409 &&
-            wtp::json::parse(refused.body_view())->get("error")->get("code")->string() == "BUSY");
+    REQUIRE(api.handle(network_test::control_request(request("POST","/api/control/v1/jobs","{}")),"test","127.0.0.1:8443").status==404);
+    const auto hello=[&](wtp::JobService &core){return network_test::internal_command(core,"HELLO",wtp::HelloBody{{"WTP/1"}});};
+    const auto claim=[&](wtp::JobService &core){return network_test::internal_command(core,"CLAIM",wtp::ClaimBody{std::string(32,'b'),60000});};
+    REQUIRE(hello(service).ok);
+    const auto refused=claim(service);
+    REQUIRE(!refused.ok&&refused.error==wtp::ErrorCode::Busy);
     REQUIRE(!service.activity().owned);
     standalone::Store rebooted_store(m.f.flash);
     REQUIRE(rebooted_store.load() && rebooted_store.config() == saved &&
@@ -485,13 +481,10 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
             !rebooted_service.output_inhibited());
     network::BrowserApi rebooted_api(rebooted_service, rebooted_store, rebooted_scheduler,
                                      m.f.network, std::string(32, 'a'), "test");
-    REQUIRE(rebooted_api.handle(network_test::control_request(hello), "test", "127.0.0.1:8443").status == 200);
-    REQUIRE(rebooted_api.handle(network_test::control_request(claim), "test", "127.0.0.1:8443").status == 200);
+    REQUIRE(rebooted_api.handle(network_test::control_request(request("POST","/api/control/v1/jobs","{}")),"test","127.0.0.1:8443").status==404);
+    REQUIRE(hello(rebooted_service).ok&&claim(rebooted_service).ok);
     REQUIRE(rebooted_service.activity().owned);
-    auto release = request(
-        "POST", "/api/control/v1/jobs",
-        R"({"session_id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","request_id":"eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee","operation":"RELEASE","body":{}})");
-    REQUIRE(rebooted_api.handle(network_test::control_request(release), "test", "127.0.0.1:8443").status == 200);
+    REQUIRE(network_test::internal_command(rebooted_service,"RELEASE").ok);
     REQUIRE(!rebooted_service.activity().owned);
     Member maximum;
     auto config = *maximum.f.store.config();

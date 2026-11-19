@@ -117,10 +117,11 @@ async function capture(state) {
       }
       if(area==='station') {
         await checkStatusTypography(`${state} ${width} ${theme}`);
-        const buttons=await evaluate(`['restart','abort','release'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect();return {top:r.top,left:r.left,right:r.right,height:r.height}})`);
+        const buttons=await evaluate(`['restart','native-stop'].map(id=>{const e=document.getElementById(id),r=e.getBoundingClientRect();return {top:r.top,left:r.left,right:r.right,height:r.height}})`);
         assert.ok(buttons.every(b=>b.height>=44),'transmitter actions retain touch targets');
         if(width>=650) assert.equal(new Set(buttons.map(b=>b.top)).size,1,'transmitter actions share a row when space permits');
-        else assert.ok(new Set(buttons.map(b=>b.top)).size>1,'transmitter actions wrap on narrow screens');
+        assert.ok(buttons.every(b=>b.left>=0 && b.right<=width),'current safety actions fit narrow screens without overflow');
+        assert.equal(await evaluate("document.getElementById('abort')===null && document.getElementById('release')===null"),true,'retired job actions are absent');
       }
     }
     // Inspect both layouts in one batched round; this UI deliberately keeps its light palette.

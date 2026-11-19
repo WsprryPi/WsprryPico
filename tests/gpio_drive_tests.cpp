@@ -189,14 +189,8 @@ void drafts_and_failures() {
     REQUIRE(n.drive("2").status == 200);
     REQUIRE(n.api.handle(network_test::control_request(stale), "test", "127.0.0.1:8443").status == 412);
     Member busy;
-    auto hello = request(
-        "POST", "/api/control/v1/jobs",
-        R"({"session_id":"11111111111111111111111111111111","request_id":"44444444444444444444444444444444","operation":"HELLO","body":{"versions":["WTP/1"],"client_name":"drive-test","client_version":"1"}})");
-    REQUIRE(busy.api.handle(network_test::control_request(hello), "test", "127.0.0.1:8443").status == 200);
-    auto claim = request(
-        "POST", "/api/control/v1/jobs",
-        R"({"session_id":"11111111111111111111111111111111","request_id":"22222222222222222222222222222222","operation":"CLAIM","body":{"owner_id":"33333333333333333333333333333333","lease_ms":30000}})");
-    REQUIRE(busy.api.handle(network_test::control_request(claim), "test", "127.0.0.1:8443").status == 200);
+    REQUIRE(network_test::internal_command(busy.f.service,"HELLO",wtp::HelloBody{{"WTP/1"}}).ok);
+    REQUIRE(network_test::internal_command(busy.f.service,"CLAIM",wtp::ClaimBody{std::string(32,'3'),30000}).ok);
     REQUIRE(busy.drive("8").status == 409);
 }
 } // namespace

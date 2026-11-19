@@ -26,6 +26,15 @@ class Scheduler {
     std::string gray_line_status() const;
     std::optional<std::uint64_t> next_wspr_start() const;
     bool pause_message();
+    // Explicit authenticated native stop: suspend, reconcile scheduler-owned
+    // output, then durably disable both schedules. No foreign-owner takeover.
+    std::string stop_schedules();
+    void resume_wspr_schedule() {
+        if (native_stop_suspended_ && store_.config() && store_.config()->enabled && idle() && !message_recovery_required()) {
+            suspended_ = false;
+            native_stop_suspended_ = false;
+        }
+    }
     bool message_pause_pending() const {
         return message_pause_pending_;
     }
@@ -36,8 +45,10 @@ class Scheduler {
         message_pause_pending_ = false;
         message_recovery_required_ = false;
         message_error_ = wtp::ErrorCode::None;
-        if (resume)
+        if (resume) {
             suspended_ = false;
+            native_stop_suspended_ = false;
+        }
     }
 
     bool reset_permitted() const;
@@ -141,6 +152,7 @@ class Scheduler {
     bool message_pause_pending_ = false, message_recovery_required_ = false;
     wtp::ErrorCode message_error_ = wtp::ErrorCode::None;
     bool reboot_required_ = false, suspended_ = false, pin_restart_required_ = false;
+    bool native_stop_suspended_ = false;
     bool external_network_restart_required_ = false;
     bool boot_configured_ = false;
     bool hardware_application_failed_ = false;

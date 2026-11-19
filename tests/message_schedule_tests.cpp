@@ -2,6 +2,8 @@
 #include "network/local_usb_api.hpp"
 #include "network_support.hpp"
 #include "standalone/message_schedule.hpp"
+#include "wtp/codec.hpp"
+#include "wtp/sha256.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -567,16 +569,23 @@ int main() {
         auto s = schedule(f.clock.snapshot().utc_now_ns + 60 * ns);
         assert(f.store.save_message_schedule(s));
         const auto session = std::string(32, 'b');
-        assert(call(f, "POST", "/api/control/v1/jobs",
-                    "{\"session_id\":\"" + session + "\",\"request_id\":\"" + std::string(32, 'c') +
-                        "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/"
-                        "1\"],\"client_name\":\"test\",\"client_version\":\"1\"}}")
-                   .status == 200);
-        assert(call(f, "POST", "/api/control/v1/jobs",
-                    "{\"session_id\":\"" + session + "\",\"request_id\":\"" + std::string(32, 'd') +
-                        "\",\"operation\":\"CLAIM\",\"body\":{\"owner_id\":\"" + session +
-                        "\",\"lease_ms\":60000}}")
-                   .status == 200);
+        // Retained ownership safety is exercised through the internal core,
+        // independently of the retired HTTP job wrapper.
+        const auto other = [&](std::string_view operation, wtp::RequestBody body, char id) {
+            wtp::Request request;
+            request.principal = "internal-owner-fixture";
+            request.session_id = session;
+            request.request_id = std::string(32, id);
+            request.operation = operation;
+            request.body = std::move(body);
+            request.payload_digest = wtp::sha256(std::span(
+                reinterpret_cast<const std::uint8_t*>(request.request_id.data()), request.request_id.size()));
+            return f.service.handle_internal(std::move(request));
+        };
+        assert(other("HELLO", wtp::HelloBody{{"WTP/1"}}, 'c').ok);
+        assert(other("CLAIM", wtp::ClaimBody{session, 60000}, 'd').ok);
+        assert(f.scheduler.stop_schedules().find("external_owner") != std::string::npos);
+        assert(f.service.status().owner_id == session && f.store.message_schedule()->enabled);
         advance(f, 56 * ns);
         assert(f.store.watermark() == 0 && f.service.status().owner_id == session);
         assert(f.scheduler.pause_message() && f.scheduler.message_pause_pending());
@@ -627,6 +636,94 @@ int main() {
                200);
         assert(!f.store.message_schedule()->enabled);
     }
-    std::cout << "UTC recurrence, persistence, dispatch recovery, expiry, deferred pause and API "
+    {
+        network_test::Fixture f;
+        const auto bytes = f.flash.bytes;
+        const auto before = wtp::status_json(f.service.status());
+        for (const auto path : {"/api/control/v1/jobs", "/api/control/v1/jobs/",
+                 "/api/control/v1/jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/abort",
+                 "/api/control/v1/jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/arm"})
+            for (const auto method : {"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"})
+                for (const auto carrier : {network::ManagementCarrier::EngineeringStation,
+                         network::ManagementCarrier::EngineeringField,
+                         network::ManagementCarrier::ConsumerStation,
+                         network::ManagementCarrier::ConsumerAp,
+                         network::ManagementCarrier::UsbPhysical})
+                    for (const auto principal : {"", "authenticated-owner", "authenticated-other"}) {
+                        network::HttpRequest request;
+                        request.path = path;request.method = method;request.body = "{";
+                        const auto result = f.api.handle(request, principal, "", 0, carrier);
+                        assert(result.status == 404);
+                    }
+        assert(f.flash.bytes == bytes && wtp::status_json(f.service.status()) == before);
+    }
+    for (bool message : {false, true}) {
+        network_test::Fixture f;
+        auto config = *standalone::parse_config(network_test::config);
+        config.enabled = !message;
+        config.wspr_dial_frequency_hz = 14095600;
+        assert(f.store.save(config));
+        if (message)
+            assert(f.store.save_message_schedule(schedule(f.clock.utc + 120 * ns)));
+        advance(f, 118 * ns);
+        assert(f.service.activity().state == wtp::State::Armed);
+        advance(f, (message ? 120 : 121) * ns);
+        assert(f.service.activity().state == wtp::State::Running);
+        const auto watermark = f.store.watermark();
+        const auto read = call(f, "GET", "/api/control/v1/schedules/stop");
+        const auto stop = "{\"schema\":\"schedule-stop\",\"target\":" +
+            application::target(std::string(32, 'a'), f.service.status().boot_id) + ",\"stop\":true}";
+        const auto bytes = f.flash.bytes;
+        assert(call(f, "POST", "/api/control/v1/schedules/stop", stop).status == 428);
+        assert(call(f, "POST", "/api/control/v1/schedules/stop", stop, "\"stale\"").status == 412);
+        auto wrong = stop;
+        wrong.replace(wrong.find(std::string(32, 'a')), 32, std::string(32, 'b'));
+        assert(call(f, "POST", "/api/control/v1/schedules/stop", wrong, read.etag).status == 409);
+        auto extra = stop;
+        extra.insert(1, "\"job_id\":\"arbitrary\",");
+        assert(call(f, "POST", "/api/control/v1/schedules/stop", extra, read.etag).status == 400);
+        assert(f.flash.bytes == bytes && f.service.activity().state == wtp::State::Running);
+        const auto stopped = call(f, "POST", "/api/control/v1/schedules/stop", stop, read.etag);
+        assert(stopped.status == 200 && stopped.etag != read.etag);
+        const auto result = wtp::json::parse(stopped.body);
+        assert(result && result->get("stopped")->raw == "true");
+        assert(f.scheduler.idle() && !f.service.activity().owned && !f.service.activity().output_active);
+        assert(!f.store.config()->enabled && f.store.watermark() == watermark);
+        assert(!f.store.message_schedule() || !f.store.message_schedule()->enabled);
+        assert(!f.store.message_in_flight());
+        standalone::Store reboot(f.flash);
+        assert(reboot.load() && !reboot.config()->enabled);
+        assert(!reboot.message_schedule() || !reboot.message_schedule()->enabled);
+        assert(reboot.watermark() == watermark && !reboot.message_in_flight());
+        advance(f, 240 * ns);
+        assert(!f.service.activity().output_active && !f.service.activity().owned);
+        assert(call(f, "POST", "/api/control/v1/schedules/stop", stop, read.etag).status == 412);
+        const auto enabled = "{\"schema\":\"config-update\",\"target\":" +
+            application::target(std::string(32, 'a'), f.service.status().boot_id) +
+            ",\"mode\":\"merge\",\"config\":{\"enabled\":true}}";
+        auto current = call(f, "GET", "/api/control/v1/schedules/stop");
+        assert(call(f, "POST", "/api/control/v1/config/update", enabled, current.etag).status == 200);
+        assert(!f.scheduler.suspended()); // Only an explicit native enable resumes this stop.
+        assert(f.scheduler.command("STOP").find("true") != std::string::npos);
+        current = call(f, "GET", "/api/control/v1/schedules/stop");
+        assert(call(f, "POST", "/api/control/v1/config/update", enabled, current.etag).status == 200);
+        assert(f.scheduler.suspended()); // A separate Console STOP still needs its existing recovery.
+    }
+    {
+        network_test::Fixture f;
+        assert(f.store.save_message_schedule(schedule(f.clock.utc + 5 * ns)));
+        advance(f, ns);
+        advance(f, 5 * ns);
+        assert(f.service.activity().state == wtp::State::Running);
+        const auto read = call(f, "GET", "/api/control/v1/schedules/stop");
+        const auto stop = "{\"schema\":\"schedule-stop\",\"target\":" +
+            application::target(std::string(32, 'a'), f.service.status().boot_id) + ",\"stop\":true}";
+        f.flash.fail = true;
+        assert(call(f, "POST", "/api/control/v1/schedules/stop", stop, read.etag).status == 503);
+        assert(!f.service.activity().owned && !f.service.activity().output_active && f.scheduler.suspended());
+        const auto state = call(f, "GET", "/api/control/v1/schedules/stop");
+        assert(wtp::json::parse(state.body)->get("stopped")->raw == "false");
+    }
+    std::cout << "UTC recurrence, native schedule stop/restart/refusal, persistence, dispatch recovery, expiry, deferred pause and API "
                  "admission passed\n";
 }

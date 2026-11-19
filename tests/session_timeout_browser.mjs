@@ -104,6 +104,8 @@ try{await scope.run(async()=>{
     browserAcquired=true;browser=await scope.own(chrome,value=>value.stop());
     const pages=await browser.ready;
     cdp=await scope.own(new Cdp(pages.find(page=>page.type==='page').webSocketDebuggerUrl),value=>value.stop());await cdp.open();
+    cdp.on('Runtime.exceptionThrown',event=>{throw Error('Shipped page exception: '+(event.exceptionDetails?.exception?.description||event.exceptionDetails?.text));});
+    await send('Runtime.enable');
     await send('Page.enable');
     await send('Page.navigate',{url:'http://192.168.1.53/'});
     await until(()=>evaluate('typeof radio!=="undefined" && !!radio && !busy'),'shipped consumer page');
@@ -132,6 +134,7 @@ try{await scope.run(async()=>{
     await capture('idle-expired');
     await login();
     assert.equal(await draft(),'240 / 0','Expired sessions must preserve the unsaved draft');
+    await until(()=>evaluate("writeState==='review'"),'fresh login readback review').catch(async error=>{console.error(await evaluate("({writeState,dirty,notice:document.getElementById('notice')?.textContent,reconcile:document.getElementById('save-reconcile-status')?.textContent})"));throw error;});
     assert.equal(await evaluate('writeState'),'review');
     const fresh=now;
     for(let elapsed=1000000;elapsed<28800000;elapsed+=1000000){await time(fresh+elapsed);await evaluate('radio.request("management")');await refresh();assert.equal(await evaluate('radio.authenticated'),true);}

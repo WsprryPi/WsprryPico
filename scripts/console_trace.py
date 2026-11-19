@@ -7,7 +7,7 @@ Trace traffic is additional diagnostic activity.
 """
 import time
 
-from usb_inventory import exchange, require
+from console_io import exchange, require
 
 
 class TraceReader:

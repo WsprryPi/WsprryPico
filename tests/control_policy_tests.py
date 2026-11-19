@@ -98,7 +98,8 @@ rejected(released, changed)
 rejected({**released, 'first_release': '1.0.0-beta.1'}, schema)
 rejected({**policy, 'schema_sha256': schema_digest(schema)}, schema)
 # Independent WTP content is outside resource naming rules and retains its own version.
-assert schema['$defs']['wtp']['$defs']['capsResponse']['properties']['profiles']['items']['const'] == 'rf-events/1'
+assert 'wtp' not in schema['$defs']
+assert json.loads((ROOT / 'engineering/protocol/wtp-1.schema.json').read_text())['$defs']['capsResponse']['properties']['profiles']['items']['const'] == 'rf-events/1'
 with tempfile.TemporaryDirectory() as directory:
     p, s = Path(directory) / 'policy.json', Path(directory) / 'schema.json'
     p.write_text(json.dumps(policy)); s.write_text(json.dumps(schema))

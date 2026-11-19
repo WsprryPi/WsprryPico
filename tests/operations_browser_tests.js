@@ -36,7 +36,7 @@ function recurring(v) {
   assert.equal(ops.formatFrequencies(['135500000000000','135500000000001']),'135.500000000000/135.500000000001 kHz','one nanohertz remains distinguishable');
   assert.equal(ops.formatFrequencies(['999000000000','1000000000000']),'0.999/1.000 kHz','one common unit across its boundary');
   assert.equal(ops.formatFrequencies([]),'Unavailable');
-  const compactCaps={wtp:{maximum_holdover_age_ns:'3600000000000',maximum_arm_uncertainty_ns:'1000000'}};
+  const compactCaps={execution:{maximum_holdover_age_ns:'3600000000000',maximum_arm_uncertainty_ns:'1000000'}};
   for(const mode of ['qrss','fskcw','dfcw','wspr','cw','tone']) {
     const value=observation();active(value,mode);
     if(['wspr','cw','tone'].includes(mode))value.accepted.message=null;
@@ -91,7 +91,7 @@ function recurring(v) {
   assert(ops.validError({code:'INTERNAL_ERROR',message:'é'.repeat(128),retryable:false,detail:{}}));
   const detailed=observation();detailed.message_schedule.last_error={code:'INTERNAL_ERROR',message:'error',retryable:false,detail:{stage:'prepare'}};
   assert(ops.valid(detailed),'the current optional WTP error detail is valid for message errors too');
-  const caps={wtp:{maximum_holdover_age_ns:'3600000000000',maximum_arm_uncertainty_ns:'1000000'}};
+  const caps={execution:{maximum_holdover_age_ns:'3600000000000',maximum_arm_uncertainty_ns:'1000000'}};
   const next=x=>ops.model(x,caps,'x').next;
   let scheduled=observation();recurring(scheduled);assert(ops.valid(scheduled));
   assert.equal(next(scheduled),'QRSS: CQ AA0NT');
@@ -137,7 +137,7 @@ function recurring(v) {
   assert.equal(ops.model(v,caps,'9'.repeat(32)).state,'Schedules disabled');
   v.standalone.enabled=true;assert.equal(ops.model(v,caps,'9'.repeat(32)).state,'Waiting for next occurrence');
   assert.equal(ops.model(v,caps,'9'.repeat(32)).next,'');
-  v.standalone.sync_age_ns='0';assert.equal(ops.model(v,{wtp:{maximum_holdover_age_ns:'0'}},'x').state,'Waiting for time');
+  v.standalone.sync_age_ns='0';assert.equal(ops.model(v,{execution:{maximum_holdover_age_ns:'0'}},'x').state,'Waiting for time');
   v.standalone.sync_age_ns='3600000000001';assert.equal(ops.model(v,caps,'9'.repeat(32)).state,'Waiting for time');
   v.message_schedule.saved={enabled:false,first_start_utc_ns:'1800000000000000000',period_s:120,expires_utc_s:0,message:{mode:'qrss',message:'PRIVATE',frequency_nhz:'135500000000000',space_frequency_nhz:'0',timing:{dot_ns:'1000000000',dash_ns:'3000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},repeat_count:1,repeat_gap_ns:'0',allow_frequency_adjustment:true}};v.message_schedule.state='paused';v.standalone.sync_age_ns='0';assert.equal(ops.model(v,caps,'x').state,'Waiting for next occurrence');
   const failed=observation();failed.standalone.enabled=true;failed.standalone.clock_state='synchronized';
@@ -230,7 +230,11 @@ function recurring(v) {
   assert.equal(pub.elements['console-warning'].hidden,true);assert.equal(pub.elements.restart.disabled,true);assert.match(pub.elements['console-message'].textContent,/Unavailable/);
   pub.state.job.state='complete';pub.state.job.output_active=true;await pub.elements.refresh.onclick();assert.equal(pub.elements['console-state'].textContent,'Recovery required');assert.match(pub.elements['console-warning'].textContent,/RF is reported active/);
   const expired=await fixture(true,true,false,true);await expired.elements['local-login'].onsubmit({preventDefault(){}});expired.elements['saved-active-status'].textContent='PRIVATE';expired.elements['saved-readback-details'].hidden=false;expired.radio.authenticated=false;await vm.runInContext('api("status").catch(()=>{})',expired.context);vm.runInContext('controls(true)',expired.context);assert.equal(expired.elements['station-settings-lock'].disabled,true);assert.equal(expired.elements['save-config'].disabled,true);
-  const lost=await fixture(true,true,false,true);await lost.elements['local-login'].onsubmit({preventDefault(){}});lost.state.job.owner_id=vm.runInContext('session',lost.context);lost.state.job.state='armed';lost.state.job.job_id='3'.repeat(32);await lost.elements.refresh.onclick();assert.equal(lost.elements.abort.disabled,false);lost.radio.authenticated=false;vm.runInContext('controls(true)',lost.context);assert.equal(lost.elements.abort.disabled,true);assert.equal(lost.elements.restart.disabled,true);assert.equal(lost.elements['station-settings-lock'].disabled,true);
+  const lost=await fixture(true,true,false,true);await lost.elements['local-login'].onsubmit({preventDefault(){}});
+  lost.operations=observation();Object.assign(lost.operations.network,lost.state.network);await lost.elements.refresh.onclick();
+  vm.runInContext("operationsTarget={scope:'member',device_id:'1'.repeat(32),boot_id:'a'.repeat(32)};controls(true)",lost.context);
+  assert.equal(lost.elements['native-stop'].disabled,false);lost.radio.authenticated=false;vm.runInContext('controls(true)',lost.context);
+  assert.equal(lost.elements['native-stop'].disabled,true);assert.equal(lost.elements.restart.disabled,true);assert.equal(lost.elements['station-settings-lock'].disabled,true);
   for(const phase of ['confirmation','readback']) { const late=await fixture();if(phase==='confirmation')late.confirmAdvance=16000;else late.expireResetRead=true;await late.elements.restart.onclick();assert.equal(late.calls.filter(c=>c.path.endsWith('restart')).length,0);assert.match(late.elements.notice.textContent,/No reset was sent/);assert.doesNotMatch(late.elements.notice.textContent,/Cannot read/); }
   const reset=await fixture();reset.operations=observation();Object.assign(reset.operations.network,reset.state.network);vm.runInContext('capabilities=null',reset.context);await reset.elements.refresh.onclick();await reset.elements.restart.onclick();await new Promise(setImmediate);assert.match(reset.elements['restart-status'].textContent,/Same Pico and new boot confirmed/);assert.equal(reset.calls.filter(c=>c.path.endsWith('restart')).length,1);
   console.log('Operations: precedence, modes, keyed gaps, privacy, freshness, cancellation and retained drafts passed');

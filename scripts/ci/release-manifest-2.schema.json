@@ -594,7 +594,6 @@
         },
         "protocols": {
           "const": [
-            "WTP/1",
             "USB-Management/1",
             "Consumer-Radio/1",
             "Field-GATT/1"

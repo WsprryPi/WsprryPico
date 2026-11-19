@@ -109,6 +109,7 @@ def monitor(path: Path) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.error("External WTP tooling is retired; use retained native management or Console diagnostics.")
     parser.add_argument("port", nargs="?", type=Path, help="WTP serial device")
     parser.add_argument("--list", action="store_true", help="list candidate serial devices")
     args = parser.parse_args()

@@ -158,13 +158,16 @@ add_library(wsprrypico_core
     src/usb/management_endpoint.cpp
     src/usb/time_exchange.cpp
     src/wtp/json.cpp
-    src/wtp/codec.cpp
-    src/wtp/endpoint.cpp
-    src/wtp/frame_parser.cpp
+    src/wtp/observation.cpp
     src/wtp/inhibited_rf_engine.cpp
     src/wtp/job_service.cpp
     src/wtp/sha256.cpp
 )
+# Offline host fixtures retain bounded decoder/ownership/memory regression
+# coverage. Neither decoder nor external execution endpoint enters firmware.
+if(WSPRRY_PICO_BUILD_TESTS)
+    target_sources(wsprrypico_core PRIVATE src/wtp/codec.cpp src/wtp/endpoint.cpp src/wtp/frame_parser.cpp tests/browser_load_response.cpp)
+endif()
 target_include_directories(wsprrypico_core PUBLIC src)
 target_compile_features(wsprrypico_core PUBLIC cxx_std_20)
 target_link_libraries(wsprrypico_core PUBLIC microchrony)
@@ -366,6 +369,8 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/usb_inventory_tests.py)
     add_test(NAME firmware_payload_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/firmware_payload_tests.py)
+    add_test(NAME console_io_tests COMMAND ${Python3_EXECUTABLE}
+        ${CMAKE_SOURCE_DIR}/tests/console_io_tests.py)
     add_test(NAME console_trace_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/console_trace_tests.py)
     add_executable(rf_worker_tests tests/rf_worker_tests.cpp)
@@ -460,6 +465,11 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/operations_browser_tests.js)
         add_test(NAME network_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/network_browser_tests.js)
+        add_test(NAME native_schedule_stop_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/native_schedule_stop_browser_tests.js)
+        add_test(NAME native_schedule_stop_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
+            WSPRRY_PICO_BROWSER_SHIPPED=1 ${WSPRRY_PICO_NODE_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/native_schedule_stop_browser_tests.js)
         add_test(NAME unsaved_changes_browser_tests COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE}
             ${CMAKE_SOURCE_DIR}/tests/unsaved_changes_browser_tests.js)
         add_test(NAME unsaved_changes_shipped_tests COMMAND ${CMAKE_COMMAND} -E env
@@ -875,16 +885,23 @@ if(WSPRRY_PICO_BUILD_TESTS)
     add_test(NAME rf_bench_capture_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_bench_capture_tests.py)
     add_test(NAME rf_bench_client_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_bench_client_tests.py)
     add_test(NAME rf_feasibility_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_feasibility_tests.py)
+    add_test(NAME retired_tools_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/retired_tools_tests.py)
     add_test(NAME wtp_probe_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/wtp_probe_tests.py)
     add_test(NAME rf_wtp_client_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_wtp_client_tests.py)
     add_test(NAME endpoint_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/endpoint_tests.py $<TARGET_FILE:endpoint_driver>)
-    add_executable(usb_transport_tests tests/usb_transport_tests.cpp src/usb/transport.cpp)
+    add_executable(usb_transport_tests tests/usb_inert_transport_tests.cpp src/usb/transport.cpp)
     target_include_directories(usb_transport_tests PRIVATE tests/usb_mock)
     target_link_libraries(usb_transport_tests PRIVATE wsprrypico_core)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(usb_transport_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
     add_test(NAME usb_transport_tests COMMAND usb_transport_tests)
+    add_executable(rfbench_usb_transport_tests tests/usb_transport_tests.cpp src/usb/transport.cpp)
+    target_include_directories(rfbench_usb_transport_tests PRIVATE tests/usb_mock)
+    target_link_libraries(rfbench_usb_transport_tests PRIVATE wsprrypico_core)
+    target_compile_definitions(rfbench_usb_transport_tests PRIVATE WSPRRY_PICO_RF_BENCH=1)
+    target_compile_options(rfbench_usb_transport_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
+    add_test(NAME rfbench_usb_transport_tests COMMAND rfbench_usb_transport_tests)
     set(WSPRRY_PICO_TEST_TINYUSB_PATH "" CACHE PATH "Optional local TinyUSB source for descriptor tests")
     if(WSPRRY_PICO_TEST_TINYUSB_PATH)
         enable_language(C)
@@ -900,6 +917,14 @@ if(WSPRRY_PICO_BUILD_TESTS)
             target_compile_options(usb_descriptor_tests PRIVATE -UNDEBUG)
         endif()
         add_test(NAME usb_descriptor_tests COMMAND usb_descriptor_tests)
+        add_executable(rfbench_usb_descriptor_tests tests/usb_descriptor_tests.c firmware/usb_descriptors.c)
+        set_target_properties(rfbench_usb_descriptor_tests PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS OFF)
+        target_include_directories(rfbench_usb_descriptor_tests PRIVATE
+            tests/descriptor_mock firmware src "${WSPRRY_PICO_TEST_TINYUSB_PATH}/src")
+        target_compile_definitions(rfbench_usb_descriptor_tests PRIVATE
+            WSPRRY_PICO_RF_BENCH=1 CFG_TUSB_MCU=OPT_MCU_NONE TUP_DCD_ENDPOINT_MAX=16)
+        target_compile_options(rfbench_usb_descriptor_tests PRIVATE -UNDEBUG)
+        add_test(NAME rfbench_usb_descriptor_tests COMMAND rfbench_usb_descriptor_tests)
     endif()
     add_executable(pool_metrics_tests tests/pool_metrics_tests.cpp)
     target_link_libraries(pool_metrics_tests PRIVATE wsprrypico_core)

@@ -154,7 +154,6 @@ class HttpParser {
 };
 // Preserve the materialized path for small LOAD replies; large immutable
 // adjustment lists use a bounded generator instead of a complete JSON body.
-HttpResponse browser_load_response(const wtp::Request&, const wtp::Response&);
 wtp::ResponseSourcePtr response_source(HttpResponse response);
 HttpResponse http_error(unsigned status, std::string_view code);
 } // namespace wsprrypico::network

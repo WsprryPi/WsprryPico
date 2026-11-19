@@ -38,7 +38,7 @@ enum {
     STRID_PRODUCT,
     STRID_SERIAL,
     STRID_CONSOLE,
-    STRID_WTP,
+    STRID_RESERVED,
     STRID_MANAGEMENT,
     STRID_LOGGING,
 };
@@ -51,9 +51,9 @@ enum {
 #define EPNUM_CONSOLE_NOTIF 0x81
 #define EPNUM_CONSOLE_OUT 0x02
 #define EPNUM_CONSOLE_IN 0x82
-#define EPNUM_WTP_NOTIF 0x83
-#define EPNUM_WTP_OUT 0x04
-#define EPNUM_WTP_IN 0x84
+#define EPNUM_RESERVED_NOTIF 0x83
+#define EPNUM_RESERVED_OUT 0x04
+#define EPNUM_RESERVED_IN 0x84
 #define EPNUM_MANAGEMENT_NOTIF 0x85
 #define EPNUM_MANAGEMENT_OUT 0x06
 #define EPNUM_MANAGEMENT_IN 0x86
@@ -82,7 +82,7 @@ static uint8_t const configuration_descriptor[] = {
     TUD_CONFIG_DESCRIPTOR(1, USB_ITF_COUNT, 0, CONFIG_TOTAL_LEN, 0, 100),
     TUD_CDC_DESCRIPTOR(USB_ITF_CONSOLE, STRID_CONSOLE, EPNUM_CONSOLE_NOTIF, 8, EPNUM_CONSOLE_OUT,
                        EPNUM_CONSOLE_IN, 64),
-    TUD_CDC_DESCRIPTOR(USB_ITF_WTP, STRID_WTP, EPNUM_WTP_NOTIF, 8, EPNUM_WTP_OUT, EPNUM_WTP_IN, 64),
+    TUD_CDC_DESCRIPTOR(USB_ITF_RESERVED, STRID_RESERVED, EPNUM_RESERVED_NOTIF, 8, EPNUM_RESERVED_OUT, EPNUM_RESERVED_IN, 64),
     TUD_CDC_DESCRIPTOR(USB_ITF_MANAGEMENT, STRID_MANAGEMENT, EPNUM_MANAGEMENT_NOTIF, 8,
                        EPNUM_MANAGEMENT_OUT, EPNUM_MANAGEMENT_IN, 64),
     TUD_CDC_DESCRIPTOR(USB_ITF_LOGGING, STRID_LOGGING, EPNUM_LOGGING_NOTIF, 8, EPNUM_LOGGING_OUT,
@@ -112,16 +112,13 @@ uint16_t const* tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
         "RFBench Commands",
         "WsprryPico Management",
         "WsprryPico Logging",
-#elif defined(WSPRRY_PICO_RF_WTP)
-        NULL,         "WsprryPi",  "WsprryPico-RFWTP",      serial,
-        "RFWTP Time", "RFWTP WTP", "WsprryPico Management", "WsprryPico Logging",
 #else
         NULL,
         "WsprryPi",
         "WsprryPico",
         serial,
         "WsprryPico Console",
-        "WsprryPico WTP",
+        "WsprryPico Reserved",
         "WsprryPico Management",
         "WsprryPico Logging",
 #endif

@@ -143,7 +143,7 @@ Near the poles, the Pico follows the Sun's calculated position even on days with
 
 These calculations do not account for weather, terrain, or obstructions. A gray-line period may offer useful propagation, but it does not guarantee reception or identify the best Sun angle.
 
-These settings apply only to WSPR schedules and repeating Morse messages that the Pico runs itself. They do not control when an external WTP controller sends a job, and they do not add gray-line scheduling to WsprryPi's Fleet or other Pi-run schedules.
+These settings apply only to WSPR schedules and repeating Morse messages that the Pico runs itself. Each device applies its own native schedule; management does not dispatch remote occurrences.
 
 (pins-and-drive)=
 ## Pins and drive

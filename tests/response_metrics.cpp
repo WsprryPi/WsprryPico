@@ -1,3 +1,4 @@
+#include "browser_load_response.hpp"
 #include "network_support.hpp"
 #include "standalone/progress.hpp"
 #include "usb/management_endpoint.hpp"

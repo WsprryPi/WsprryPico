@@ -9,7 +9,7 @@ const assert=require('node:assert/strict');
   const plan=()=>vm.runInContext('messagePlan()',f.context);
   const preview=()=>e['message-form'].oninput();
   const submit=()=>e['message-form'].onsubmit({preventDefault(){}});
-  const jobs=()=>f.calls.filter(c=>c.path.endsWith('jobs')).map(c=>JSON.parse(c.options.body));
+  const jobs=()=>f.calls.filter(c=>c.path.endsWith('message-schedule')&&c.options.method==='PUT').map(c=>JSON.parse(c.options.body));
   assert.equal(e['message-frequency-label'].textContent,'Carrier frequency (Hz)');
   assert.equal(e['message-shift'].disabled,true);
   for(const [mode,first,second,names,duration] of [
@@ -20,10 +20,10 @@ const assert=require('node:assert/strict');
     preview();const p=plan();assert.equal(p.body.frequency_nhz,first);assert.equal(p.body.space_frequency_nhz,second);
     assert.equal(p.duration,duration);assert.equal(p.events,12);assert(e['message-preview'].textContent.includes(names));
     const before=jobs().length;await submit();const sent=jobs().slice(before);
-    assert.deepEqual(sent.map(j=>j.operation),['HELLO','CLAIM','LOAD_MESSAGE','ARM']);
-    assert.deepEqual(sent[2].body,JSON.parse(JSON.stringify({...p.body,job_id:sent[2].body.job_id})));
-    assert.equal(sent[2].body.allow_frequency_adjustment,true);
-    assert.deepEqual(Object.keys(sent[2].body).sort(),['allow_frequency_adjustment','frequency_nhz','job_id','message','mode','repeat_count','repeat_gap_ns','space_frequency_nhz','timing']);
+    assert.equal(sent.length,1);
+    assert.deepEqual(sent[0].schedule.message,JSON.parse(JSON.stringify(p.body)));
+    assert.equal(sent[0].schedule.message.allow_frequency_adjustment,true);
+    assert.deepEqual(Object.keys(sent[0].schedule.message).sort(),['allow_frequency_adjustment','frequency_nhz','message','mode','repeat_count','repeat_gap_ns','space_frequency_nhz','timing']);
   }
   f.prepareMessage('fskcw','AE');e['message-frequency'].value='14096900.123456789';e['message-shift'].value='0.000000001';preview();
   assert.equal(plan().body.frequency_nhz,'14096900123456790');assert.equal(plan().body.space_frequency_nhz,'14096900123456789');
@@ -48,7 +48,7 @@ const assert=require('node:assert/strict');
   for(const value of ['0','-1','bad','1.0000000001','Infinity','NaN','1e2','+1','.5','1.','18446744073.709551616']) {
     e['message-frequency'].value=value;const n=jobs().length;await submit();assert.equal(jobs().length,n);assert.equal(e['message-frequency'].value,value);
   }
-  vm.runInContext(`capabilities.wtp.frequency_ranges=[{minimum_nhz:'1000000000',maximum_nhz:'10000000000'}]`,f.context);
+  vm.runInContext(`capabilities.execution.frequency_ranges=[{minimum_nhz:'1000000000',maximum_nhz:'10000000000'}]`,f.context);
   for(const mode of ['dfcw','fskcw']) {
     f.prepareMessage(mode);e['message-frequency'].value='1';e['message-shift'].value='9';
     assert.equal(mode==='dfcw'?plan().body.space_frequency_nhz:plan().body.frequency_nhz,'10000000000');

@@ -50,7 +50,7 @@ def testing_metadata(source):
     return {
         'prerelease': True, 'installer_default_eligible': False,
         'gpio_drive_ma': {'choices': [2, 4, 8, 12], 'default': 4},
-        'protocols': ['WTP/1', 'USB-Management/1', 'Consumer-Radio/1', 'Field-GATT/1'],
+        'protocols': ['USB-Management/1', 'Consumer-Radio/1', 'Field-GATT/1'],
         'api': ['Wsprry-Control/1'],
         'storage': {'configuration': 1, 'saved_progress_read': [1, 2, 3],
                     'layout': '80 KiB reserved; application ends at 0x103ec000; E10 is SDK workaround only',
@@ -292,6 +292,12 @@ def inspect_profile(directory, identifier, version, source, picotool='picotool',
             'Private build data in image')
     symbols = capture('arm-none-eabi-nm', '-C', elf)
     validate_engine(symbols, 'rf' if identifier == 'consumer' else 'inhibited')
+    for retired in ('wsprrypico::wtp::Endpoint::', 'wsprrypico::wtp::FrameParser::',
+                    'wsprrypico::wtp::decode_request(', 'wsprrypico::wtp::encode_response(',
+                    'wsprrypico::network::browser_load_response(', 'PicoServer::start_plain(',
+                    'PicoGattTransport::ensure_wtp_endpoint(', 'wsprry_mdns_add_wtp_service'):
+        require(retired not in symbols, 'Retired external execution entry linked: ' + retired)
+
     map_text = (directory / (target + '.elf.map')).read_text()
     require(re.search(rf'^FLASH\s+0x10000000\s+0x{application_end-0x10000000:08x}\s+xr$', map_text, re.M), 'Wrong current flash reservation')
     commands = read_json(directory / 'compile_commands.json', limit=MAX_FILE)
@@ -308,7 +314,7 @@ def inspect_profile(directory, identifier, version, source, picotool='picotool',
     for item in selected:
         flags = set(shlex.split(item['command']))
         require('-DWSPRRY_PICO_RF_SAMPLE_RATE_HZ=138000000' in flags, 'Wrong application clock')
-        require('-DWSPRRY_PICO_CONSUMER_LAN_MODE=1' in flags, 'Wrong consumer LAN profile')
+        require(not any(flag.startswith('-DWSPRRY_PICO_CONSUMER_LAN_MODE') for flag in flags), 'Retired WTP LAN profile input')
         require('-DCYW43_ENABLE_BLUETOOTH=1' in flags, 'Wrong linked CYW43 firmware selection')
         if identifier == 'consumer':
             require('-DWSPRRY_PICO_STANDALONE_RF=1' in flags and

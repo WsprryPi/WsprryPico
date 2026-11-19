@@ -83,24 +83,24 @@ int main() {
         bench.poll();
         tud_task();
         wsprrypico::usb::service();
-        if (wsprrypico::usb::take_wtp_reset()) {
+        if (wsprrypico::usb::take_bench_reset()) {
             (void)bench.command("STOP");
             used = sent = 0;
             overflow = false;
             response.clear();
         }
-        if (!wsprrypico::usb::wtp_connected())
+        if (!wsprrypico::usb::bench_connected())
             continue;
         if (sent < response.size()) {
             const auto* bytes = reinterpret_cast<const std::uint8_t*>(response.data());
-            sent += wsprrypico::usb::wtp_transport_write(
+            sent += wsprrypico::usb::bench_transport_write(
                 std::span(bytes + sent, response.size() - sent));
             continue;
         }
         if (reboot_at)
             continue;
         std::array<std::uint8_t, 1> input{};
-        if (wsprrypico::usb::wtp_transport_read(input) == 0)
+        if (wsprrypico::usb::bench_transport_read(input) == 0)
             continue;
         if (input[0] == '\n') {
             const std::string_view command(line.data(), used);

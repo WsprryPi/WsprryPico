@@ -348,6 +348,7 @@ def run_case(peer, name):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.error("External WTP tooling is retired; use retained native management or Console diagnostics.")
     parser.add_argument("--run", action="store_true", help="requires separate exact-batch physical approval")
     parser.add_argument("--address", help="explicit observed IPv4; this is not an mDNS test")
     parser.add_argument("--hostname")

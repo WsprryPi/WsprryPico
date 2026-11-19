@@ -5,10 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 
-REQUIRED = (
-    "src/codec.cpp", "src/frame_parser.cpp", "src/wire.cpp", "src/session.cpp",
-    "src/detail/json.cpp", "include/wtp/codec.hpp", "include/wtp/session.hpp",
-)
+REQUIRED = ("include/wtp/transport.hpp", "tests/transport_test.cpp", "Makefile")
 
 
 def verify(source):

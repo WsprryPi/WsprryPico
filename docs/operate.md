@@ -1,14 +1,12 @@
 # Operate
 
-When a submitted action is in progress, the page dims and shows a request message. Wait for the result before choosing another action. **Cancel login**, **Lock controls**, and **Abort this browser’s job** remain available when applicable. Abort waits for the current request and checks ownership before stopping this browser's job. It does not disable automatic schedules. If the result is unconfirmed, follow the saved-result or saved-settings review instructions. Closing or refreshing the page does not cancel an accepted save or transmission.
+When an action is in progress, the page shows a request message. Wait for the result before another change. **Cancel login** and **Lock controls** remain available when applicable. If a result is unconfirmed, read and review the saved result before another explicit change. Closing or refreshing the page does not cancel an accepted save or transmission.
 
 ## Before transmitting
 
 Open the Pico's [control page](connect.md#open-the-control-page), sign in, and choose **Station Control**. In **Transmitter status**, choose **Refresh**. Check the device identity, saved station and frequency, active pins, RF load/filter, and clock. Resolve any restart or output-inhibit message before starting. **Output inhibit** means the Pico blocks another transmission until the reported condition is resolved.
 
-A **job** is one complete transmission, including its repeats and gaps. Its **owner** is the controller that reserved the Pico for that job: this browser, WsprryPi, or the Pico's own scheduler. Signing in gives access to the page; submitting a job requests control of the transmitter. The browser handles that request automatically when you choose **Load and arm message** or **Load and arm job**. Opening a new tab cannot take over another controller's job.
-
-The **Owner** field identifies current control: **Pico schedule** for the Pico's local scheduler, **This browser** for this tab, and **Available** when no controller holds it. Other controllers may appear as session identifiers.
+A **job** is one complete scheduled transmission, including its repeats and gaps. The Pico's scheduler reserves the transmitter and runs each occurrence locally. Signing in permits management; it does not reserve the transmitter. The **Owner** field reports the Pico schedule or available control. An unexpected owner or unknown output requires recovery before another transmission.
 
 (read-the-status-console)=
 ## Read the status console
@@ -73,21 +71,19 @@ A pair starts its second frame 120 seconds after the first. The Pico reserves bo
 (send-qrss-fskcw-or-dfcw)=
 ## Send QRSS, FSKCW, or DFCW
 
-The initial draft selects **QRSS**, a **3-second** dot, one message copy, and a **3-second** repeat gap. The message starts as `73 DE ` followed by the applied station callsign, and it follows callsign changes until you edit it manually. Replace `N0CALL` before transmitting. The carrier frequency remains blank; FSKCW and DFCW prefill a **5 Hz** shift. **Repeat on a schedule** is selected with a **10-minute** interval, the next ten-minute UTC boundary as the start, and no end date. Review the entries and explicitly save and start the schedule. Opening the page starts no transmission. Saved schedules and edited drafts take precedence over these prefills. The [CW defaults table](reference/defaults.md#cw-message-editor) lists all initial editor values together.
+The initial draft selects **QRSS**, a **3-second** dot, one message copy, and a **3-second** repeat gap. The message starts as `73 DE ` followed by the applied station callsign, and it follows callsign changes until you edit it manually. Replace `N0CALL` before transmitting. The carrier frequency remains blank; FSKCW and DFCW prefill a **5 Hz** shift. The schedule starts with a **10-minute** interval, the next ten-minute UTC boundary as the start, and no end date. Review the entries and explicitly save and start the schedule. Opening the page starts no transmission. Saved schedules and edited drafts take precedence over these prefills. The [CW defaults table](reference/defaults.md#cw-message-editor) lists all initial editor values together.
 
 1. Under **Station Control → CW Configuration**, select the mode and enter your **Message**. Letters, numbers, spaces, and `/ ? . , - + =` are supported. Spaces count toward the **32-character** limit.
 2. Enter the mode’s direct RF frequency in hertz: **Carrier frequency (Hz)** for QRSS, **Space frequency (Hz)** for FSKCW, or **Dot frequency (Hz)** for DFCW. For FSKCW and DFCW, enter a positive **Frequency shift (Hz)**; mark is above space and dash is above dot by that amount. QRSS leaves shift unused and keeps its entry for another mode. Frequency and shift accept up to nine decimal places. Each requested frequency must fit the engine ranges and saved frequency permissions. These inputs do not use the standalone WSPR dial, add a WSPR offset, or choose random placement.
 3. Set **Dot length (seconds)**, **Repeat count**, and **Gap between repeats (seconds)**. A repeat count of **1** sends the message once; **2** sends it twice in total. The repeat gap is in seconds, and output is off between repeats, including in FSKCW.
 4. Review **Transmission length** below the message, shown in minutes and seconds, including repeats and gaps. Review the named carrier or both frequencies and event count below the timing fields. An **event** is a timed part of the transmission, such as a mark or gap. The whole job must fit **512 events and 60 minutes**, including repeats and end-of-job timing. A 32-character message can still exceed those limits.
-5. Use the UTC **Date** and **Time** controls or enter a future **Start time (UTC)** as `YYYY-MM-DD HH:MM:SS`, then choose **Load and arm message**. Opening either picker fills both parts when either is empty; later date and time selections keep the other valid part. See [time settings](reference/time.md). **Armed** means accepted and waiting to start. Check the reported result and **Transmitter status** before submitting anything again.
+5. Use the UTC **Date** and **Time** controls or enter a **Start time (UTC)** as `YYYY-MM-DD HH:MM:SS`. Review the repeat interval and optional end, then choose **Save and start schedule**. Opening either picker fills both parts when either is empty; later selections keep the other valid part. Check **Saved message schedule** and **Transmitter status** before another action. See [time settings](reference/time.md).
 
 QRSS sends dots and dashes at the entered carrier, with RF off for gaps. FSKCW sends dots and dashes at the mark frequency and uses the entered space frequency during intra-element, character, and word gaps. DFCW sends dots at the entered frequency and dashes at the higher frequency; both have the selected dot length, and gaps have RF off. Gaps between repeated messages have RF off in every mode.
 
 For an entered frequency of `14096900 Hz` and shift of `5 Hz`, QRSS uses carrier `14096900 Hz`; FSKCW uses space `14096900 Hz` and mark `14096905 Hz`; DFCW uses dot `14096900 Hz` and dash `14096905 Hz`. These are requested nominal frequencies; the backend’s realizable frequency and saved manual correction remain separate.
 
-Switching modes keeps the raw frequency, shift, message, and timing entries while immediately changing their labels and preview. Reviewing a preview or changing modes does not submit a job or save settings. Correct invalid entries beside the form before submitting. A rejected or unconfirmed request keeps your entries and reports its result beside **Load and arm message**; refresh status before deliberately trying again.
-
-For a finite test tone from WsprryPi, choose **Mode → Finite tone** in a supported [Fleet output schedule](https://wsprry-pi.readthedocs.io/en/devel/User_Interface/Setup/index.html#assign-an-output-schedule). Its continuous **Test Tone** control is unavailable for the Pico WTP backend.
+Switching modes keeps the raw frequency, shift, message, and timing entries while immediately changing their labels and preview. Reviewing a preview or changing modes does not submit a job or save settings. Correct invalid entries beside the form before submitting. A rejected or unconfirmed request keeps your entries and reports its result beside **Save and start schedule**. Read the saved schedule before another explicit save.
 
 (cw-timing)=
 ### Timing settings
@@ -97,30 +93,22 @@ For a finite test tone from WsprryPi, choose **Mode → Finite tone** in a suppo
 **Repeat count** is the number of message copies within one complete job (1–512). **Gap between repeats (seconds)** is a duration in seconds, separate from the timing multipliers; it must be positive when sending more than one copy. Read the calculated preview after editing. The complete job, including repeats and gaps, must fit the reported duration and event limits. Invalid entries remain in the editor for correction; no job is submitted until **Load and arm message** succeeds. A recurring schedule repeats this whole job at its start-to-start interval; it does not replace these message repeats.
 
 (prepared-job-files)=
-### Load a job file
-
-**Load a job file** accepts a prepared JSON transmission of at most **30,000 bytes**. JSON is a structured text format. This file contains a complete job prepared by compatible software; ordinary message text files and station-settings backups cannot be used here. Use **CW Configuration** for the built-in Morse editor. Use a file prepared for this Pico's supported modes and output limits. The Pico validates events, frequencies, duration, and clock requirements before accepting the job. All event timing runs locally after acceptance; the browser does not stream individual symbols.
-
-Choose **Job JSON file**, enter a future **Start time (UTC)**, and select **Load and arm job** only after checking the RF path and current status. The control page needs an unlocked connection, available control, and an acceptable clock. Read the result and refresh **Transmitter status**. A rejected job does not start a transmission; correct the reported problem before resubmitting. If the reply is lost, inspect status before trying another submission. Closing the page does not stop an accepted job; use the [stop controls](#status-stop-and-connection-loss). Opening Help keeps the selected file and start-time entry in this tab.
-
 (repeat-a-message-on-a-schedule)=
 ### Repeat a message on a schedule
 
-Choose **Repeat on a schedule** in **Delivery** to save the complete message for automatic transmission with the browser closed. Set **Start time (UTC)** as the first start and **Repeat interval (minutes)** from 1 to 1440. The interval is measured from one planned start to the next, including across midnight; it is not a delay after completion. For example, a first start of 12:05 UTC and a 20-minute interval gives 12:05, 12:25, and 12:45 UTC. **Repeat count** still controls copies inside each complete transmission.
+The complete message is saved for automatic transmission with the browser closed. Set **Start time (UTC)** as the first start and **Repeat interval (minutes)** from 1 to 1440. The interval is measured from one planned start to the next, including across midnight; it is not a delay after completion. For example, a first start of 12:05 UTC and a 20-minute interval gives 12:05, 12:25, and 12:45 UTC. **Repeat count** still controls copies inside each complete transmission.
 
 Leave **Schedule end (UTC, optional)** empty to continue without expiry, or enter an end that allows the complete final transmission to finish. The complete transmission plus preparation time must fit inside the interval. Disable and apply standalone WSPR schedules before enabling a message schedule. Each Pico stores one message schedule; saving it does not change the WSPR dial frequency, station, or pin settings.
 
 Choose **Save and start schedule** while the transmitter is available. Check **Saved message schedule** for confirmed saved settings, state, and the next UTC start. **Transmitter status → Refresh** also reads the saved schedule without replacing your entries.
 
-**Restore saved schedule** replaces the editor's message, mode, frequencies, timing, and schedule fields after confirmation; it selects **Repeat on a schedule** but does not start transmission.
-
-The saved schedule remains accessible when **Delivery** is **Send once**. Preparing a one-time message does not pause an enabled schedule.
+**Restore saved schedule** replaces the editor's message, mode, frequencies, timing, and schedule fields after confirmation; it does not start transmission.
 
 A past first start keeps its original timing grid and selects the next eligible occurrence. Missed, occupied, and clock-unready starts are skipped, without catch-up transmissions. A usable clock and the existing output and ownership checks remain required.
 
 Choose **Pause schedule** to prevent later message starts while allowing an accepted current job to finish. Keep the Pico powered until the page confirms the pause was saved; a pending pause is not durable until the job finishes and flash can be written. The pause action disappears while pending and when already paused.
 
-To resume, select **Repeat on a schedule**, restore or review the entries, then choose **Save and start schedule**.
+To resume, restore or review the entries, then choose **Save and start schedule** explicitly.
 
 Reset or loss of an accepted job's final outcome blocks recurrence as **Recovery required**. Once output is inactive and control is released, choose **Acknowledge interrupted schedule** to pause and acknowledge that outcome, then deliberately save an enabled schedule to resume. No accepted occurrence is replayed. Use the immediate stop controls separately if you must interrupt a transmission. Pausing the message schedule does not disable standalone WSPR schedules.
 
@@ -141,7 +129,7 @@ Use **Transmitter status → Refresh** to read the Pico's current report:
 | Progress | **Loaded**, **Armed** with UTC start, **Running · ~50%**, or **Complete**, **Aborted**, **Missed**, **Failed**. A matching two-frame WSPR job shows its frame number. Percentages are estimates; 100% does not confirm completion. Unsynchronized time suppresses the estimate. |
 | RF output | **Active**, **Inactive**, or **Unknown** is the Pico's reported output state; RF may be off during a running job's keyed gaps |
 | Clock | **Synchronized**, **Holdover**, or **Unsynchronized**, with estimated timing uncertainty after `±`; see [clock status](reference/time.md#read-the-clock-status) |
-| Owner | **Available**, **This browser**, **Pico schedule**, or **Other controller** identifies control without displaying an owner ID |
+| Owner | **Available**, **Pico schedule**, or an unexpected owner identifies control without displaying an owner ID |
 | Next transmission | Mode and available message for the next eligible enabled automatic transmission; hidden when no eligible next transmission is confirmed |
 | Manual correction (ppm) | The saved manual frequency correction selected for the next job preparation, with three decimal places |
 | Wi-Fi | Connection state and current IP address |
@@ -150,12 +138,14 @@ Values wrap naturally on small screens. Raw jobs may show a complete nominal fre
 
 A successful login alone does not mean the Pico is ready to transmit. A connection failure makes observations stale or unknown. Complete jobs execute locally; closing a browser or unplugging a controller does not stop them.
 
-For a job owned by this browser, choose **Abort my job**, refresh and confirm **RF output: Inactive**, then choose **Release control**. Release frees the transmitter for another job; it does not disable standalone scheduling. After a completed browser job, release control when you have finished using it. Another owner's job must normally be stopped through its controller. Disable and apply standalone schedules separately to prevent later jobs.
+Choose **Stop native schedules** to interrupt the Pico's current native transmission and disable both saved WSPR and keyed-message schedules. A confirmed result means both schedules are disabled and output is inactive and unowned. The saved settings, schedule timing grid, and occurrence history remain available. Review the saved settings before explicitly enabling a schedule again.
+
+If stop is refused or the reply is lost, use **Read stop status**. Do not infer inactive output from a timeout or disconnected browser, and do not replay the earlier request. A fresh status read does not enable a schedule or replace your drafts. Use local Console recovery if the Pico cannot be reached.
 
 When browser control is unavailable, the configured [external button](connect.md#request-setup-wi-fi-with-the-external-button) or the physical [USB Console stop command](usb.md#stop-output-from-the-console) can request shutdown. Check the resulting output state before touching the RF path.
 
 After an abort, fault, or restart, read the current state before trying again. Resolve the reported cause, review configuration and ownership, and submit a new job deliberately. Neither reconnect nor refresh re-arms the old job.
 
-A shutdown/STOP suspension survives configuration saves. To resume standalone operation, first review the saved schedule and frequency, confirm that output is inactive and the Pico is idle, then explicitly **Reset Pico** in **Station Control → Transmitter status**. Restart clears STOP; an enabled saved schedule can then run at the next eligible slot after time and other readiness checks pass. Leave it disabled before restart if automatic output is not intended.
+A local button or Console **STOP** suspension survives configuration saves. This local suspension is separate from **Stop native schedules**, which durably disables both schedules and permits a later explicit native enable. To resume standalone operation, first review the saved schedule and frequency, confirm that output is inactive and the Pico is idle, then explicitly **Reset Pico** in **Station Control → Transmitter status**. Restart clears STOP; an enabled saved schedule can then run at the next eligible slot after time and other readiness checks pass. Leave it disabled before restart if automatic output is not intended.
 
-The signed-out operator page shows read-only transmitter state, RF output, clock, availability, Wi-Fi, and active hostname, refreshed every five seconds. Unavailable readings show unknown. Select the hostname lock to open the sign-in dialog; the Pico password field receives focus when the dialog opens. You must sign in to change settings or submit a job.
+The signed-out operator page shows read-only transmitter state, RF output, clock, availability, Wi-Fi, and active hostname, refreshed every five seconds. Unavailable readings show unknown. Select the hostname lock to open the sign-in dialog; the Pico password field receives focus when the dialog opens. You must sign in to change settings or stop native schedules.

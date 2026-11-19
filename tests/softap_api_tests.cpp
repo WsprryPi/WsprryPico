@@ -290,28 +290,16 @@ void policy() {
             200);
     REQUIRE(f.store.config()->allow_unqualified_frequency && f.store.config()->callsign == "K1ABC");
 
-    auto hello = request("POST", "/api/control/v1/jobs",
-                         "{\"session_id\":\"" + std::string(session) +
-                             "\",\"request_id\":\"44444444444444444444444444444444\","
-                             "\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
-                             "\"client_name\":\"softap-test\",\"client_version\":\"1\"}}");
-    hello.headers["cookie"] = cookie;
-    REQUIRE(f.api.handle(network_test::control_request(hello), provisioning::SoftApSurface::Normal, hostname, 9, 12).status ==
-            200);
-    auto malformed_hello = hello;
-    const auto stripped = network::control_payload(wtp::InputView(hello.body));
-    REQUIRE(stripped);
-    malformed_hello.body = *stripped;
-    REQUIRE(f.api.handle(malformed_hello, provisioning::SoftApSurface::Normal, hostname, 9, 19).status == 400);
-    malformed_hello = hello;
-    malformed_hello.body.replace(malformed_hello.body_text().find("Wsprry-Control/1"), 15, "Wsprry-Control/2");
-    REQUIRE(f.api.handle(malformed_hello, provisioning::SoftApSurface::Normal, hostname, 9, 20).status == 400);
+    auto hello=request("POST","/api/control/v1/jobs","{}");hello.headers["cookie"]=cookie;
+    REQUIRE(f.api.handle(network_test::control_request(hello),provisioning::SoftApSurface::Normal,hostname,9,12).status==404);
+    auto malformed_hello=hello;malformed_hello.body="{invalid";
+    REQUIRE(f.api.handle(malformed_hello,provisioning::SoftApSurface::Normal,hostname,9,19).status==404);
     auto refreshed_status = status;
     refreshed_status.headers["x-wsprrypico-session"] = std::string(32, '8');
     const auto refreshed =
         f.api.handle(network_test::control_request(refreshed_status), provisioning::SoftApSurface::Normal, hostname, 10, 17);
     REQUIRE(refreshed.status == 200);
-    REQUIRE(refreshed.body_text().find("\"wtp_session\":\"" + std::string(session) + "\"") !=
+    REQUIRE(refreshed.body_text().find("\"control_session\":\"" + std::string(session) + "\"") !=
             std::string::npos);
     auto conflicting_status = request("GET", "/api/control/v1/status");
     conflicting_status.headers.erase("origin");
@@ -321,7 +309,7 @@ void policy() {
                 .status == 409);
     hello.headers["x-wsprrypico-session"] = std::string(32, '9');
     REQUIRE(f.api.handle(network_test::control_request(hello), provisioning::SoftApSurface::Normal, hostname, 10, 13).status ==
-            400);
+            404);
 
     auto logout = request("POST", "/local/v1/logout", "{}");
     logout.headers["cookie"] = cookie;

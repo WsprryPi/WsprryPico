@@ -1,21 +1,19 @@
 # WsprryPico Field-GATT/1 protocol and super-user guide
 
-Status: frozen Field-GATT/1 source contract. This document defines the custom Bluetooth Low Energy interface implemented in `devel`. The checked-in [conformance vectors](Field-GATT-v1-vectors.json) bind its UUIDs, limits, profile-apply sequence, and provisional-bond expiry policy across firmware and the native Raspberry Pi client. An incompatible wire change requires a new Field-GATT protocol version. Source/host conformance does not establish physical interoperability or end-user acceptance.
+Status: current Field-GATT/1 commissioning source contract; the independently framed WTP carrier is retired. This document defines the custom Bluetooth Low Energy interface implemented in `devel`. The checked-in [conformance vectors](Field-GATT-v1-vectors.json) bind its UUIDs, limits, profile-apply sequence, and provisional-bond expiry policy across firmware and the native Raspberry Pi client. An incompatible wire change requires a new Field-GATT protocol version. Source/host conformance does not establish physical interoperability or end-user acceptance.
 
-This document is written for technically experienced operators, client authors, and maintainers. It explains how to identify the correct Pico, establish the two layers of authorization, exchange field commands, provision a complete profile, and carry WTP/1 over GATT. Use the supported Raspberry Pi/Linux client to exchange GATT values.
+This document is written for technically experienced operators, client authors, and maintainers. It explains how to identify the correct Pico, establish the two layers of authorization, exchange field commands, provision a complete profile, and manage the provisioning profile. Use the supported Raspberry Pi/Linux client to exchange GATT values.
 
 The words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, and **MAY** describe this custom protocol's current conformance requirements.
 
 ## 1. Safety and scope
 
-The field GATT service provides local provisioning and management. It does not create a second scheduler, transmitter owner, or RF authority. Its WTP carrier feeds the same `JobService` used by USB CDC and authenticated TCP. Complete jobs are loaded before they are armed, and all execution timing remains local to the RP2350.
+The field GATT service provides local provisioning and management. It does not create a second scheduler, transmitter owner, or RF authority. The independent WTP carrier is retired. Execution remains device-owned and local to the RP2350.
 
 Merely connecting, pairing, authorizing, reading status, or synchronizing time does not authorize RF output. The normal firmware is RF-capable; `WsprryPico-Inhibited` is an explicit diagnostic selection. RF and general reliability qualification remain separate.
 
-Two application streams share one encrypted BLE connection:
-
-1. **Field command/status** carries authorization, controller time, Identify, provisioning, and field status as bounded JSON messages inside the custom framing in section 6.
-2. **WTP** carries the unchanged byte stream defined by [WTP/1](WTP.md). GATT segmentation is transport fragmentation only and adds no WTP operation or ownership rule.
+The bounded field command/status stream carries authorization, controller time,
+Identify, provisioning, and field status using the framing in section 6.
 
 Provisioning is outside WTP/1. The field-access security and recovery policy is defined separately by the [engineering field-access contract](../development/field-access.md).
 
@@ -23,11 +21,11 @@ Provisioning is outside WTP/1. The field-access security and recovery policy is 
 
 ### Raspberry Pi or Linux with BlueZ
 
-The native client is `scripts/wsprrypico_ble.py`. Its operator guide is [Raspberry Pi/Linux BLE local control](../development/raspberry-pi-ble-client.md). Its identity, authorization, status, Identify, time, dedicated-WTP, and profile-application paths implement the frozen source contract. Profile application re-prompts for the current local password, performs bound `profile_step_up`, waits for required USB-local confirmation, and reuses the bound request ID for `apply`. It selects an exact Bluetooth address, verifies the full device ID, and does not set the BlueZ `Trusted` property. General phone/physical interoperability is not established by source conformance.
+The native client is `scripts/wsprrypico_ble.py`. Its operator guide is [Raspberry Pi/Linux BLE local control](../development/raspberry-pi-ble-client.md). Its identity, authorization, status, Identify, time and profile-application paths implement the frozen source contract. Profile application re-prompts for the current local password, performs bound `profile_step_up`, waits for required USB-local confirmation, and reuses the bound request ID for `apply`. It selects an exact Bluetooth address, verifies the full device ID, and does not set the BlueZ `Trusted` property. General phone/physical interoperability is not established by source conformance.
 
 ### Generic GATT tools
 
-A generic browser, phone utility, or BLE shell is useful for inspection only if it supports encrypted bonded access, 128-bit UUIDs, indications, a large enough ATT MTU, and binary writes. Writing plain JSON directly to a characteristic does not work: field messages require the section 6 frame header. Likewise, WTP messages use the WTP/1 16-byte header and CRC-32C; they do not use the field frame header.
+A generic browser, phone utility, or BLE shell is useful for inspection only if it supports encrypted bonded access, 128-bit UUIDs, indications, a large enough ATT MTU, and binary writes. Writing plain JSON directly to a characteristic does not work: field messages require the section 6 frame header.
 
 ## 3. Discovery and exact-device identity
 
@@ -37,7 +35,7 @@ The advertisement contains the custom service UUID. The scan response complete l
 WsprryPico-<station-MAC-suffix>
 ```
 
-For a station MAC ending in `0a:60:df`, the name is `WsprryPico-0a60df`. The suffix is a convenience, not a cryptographic identity. The BLE controller address is also not the WTP device ID.
+For a station MAC ending in `0a:60:df`, the name is `WsprryPico-0a60df`. The suffix is a convenience, not a cryptographic identity. The BLE controller address is also not the full device ID.
 
 The standard GAP Device Name characteristic is the generic string `WsprryPico`. Operating-system settings or a cached bond may therefore display that generic name even when the live scan-response name includes a suffix. A client MUST NOT accept either name as exact-device proof.
 
@@ -75,7 +73,7 @@ For the earlier example it is `wspr-0a60df`. This default is intentionally publi
 
 An already-authorized retained bond is admitted when the encrypted link is restored. It still sends `authorize` to establish a new field session, but the current target treats that request's required `password` member as non-authoritative and does not validate its contents. An empty string is permitted; the current native client still prompts for and sends a bounded value. Entering text in this request is not a fresh password proof and MUST NOT be represented as one. A new or provisional bond still requires the current nonempty password, and empty-password authorization MUST fail for it. Sensitive profile application uses the separate fresh `profile_step_up` exchange in section 9.
 
-Only one BLE connection is admitted at a time. Security loss immediately revokes application authority, clears queued output, and closes the logical WTP endpoint before the asynchronous disconnect completes.
+Only one BLE connection is admitted at a time. Security loss immediately revokes application authority, clears queued output, and revokes the commissioning session before the asynchronous disconnect completes. BLE exposes no execution endpoint.
 
 ## 5. Service and characteristics
 
@@ -85,12 +83,10 @@ All UUIDs use the base `xxxxxxxx-5bf1-4f21-a486-3e8f70c12201`.
 | --- | --- | --- | --- |
 | Field service | `7d6b0001-5bf1-4f21-a486-3e8f70c12201` | Primary service | Discovery filter and service container |
 | Identity | `7d6b0002-5bf1-4f21-a486-3e8f70c12201` | Read, encrypted, 16-byte key | Full device ID and profile generation |
-| Field command | `7d6b0003-5bf1-4f21-a486-3e8f70c12201` | Write and Write Without Response, encrypted, 16-byte key | Framed field requests; optionally raw WTP after carrier selection |
-| Field status | `7d6b0004-5bf1-4f21-a486-3e8f70c12201` | Indicate, encrypted, 16-byte key | Framed field replies; optionally raw WTP after carrier selection |
-| WTP command | `7d6b0005-5bf1-4f21-a486-3e8f70c12201` | Write, encrypted, 16-byte key | Dedicated raw WTP/1 client-to-device bytes |
-| WTP status | `7d6b0006-5bf1-4f21-a486-3e8f70c12201` | Indicate, encrypted, 16-byte key | Dedicated raw WTP/1 device-to-client bytes |
+| Field command | `7d6b0003-5bf1-4f21-a486-3e8f70c12201` | Write and Write Without Response, encrypted, 16-byte key | Framed field requests |
+| Field status | `7d6b0004-5bf1-4f21-a486-3e8f70c12201` | Indicate, encrypted, 16-byte key | Framed field replies |
 
-The client MUST enable indications by writing little-endian `0x0002` (`02 00`) to the applicable Client Characteristic Configuration Descriptor before sending commands. Notifications (`0x0001`) are not accepted. Disabling the active WTP CCCD closes the logical WTP endpoint. Disabling field-status indications also resets an incomplete field-message reassembly.
+The client MUST enable indications by writing little-endian `0x0002` (`02 00`) to the applicable Client Characteristic Configuration Descriptor before sending commands. Notifications (`0x0001`) are not accepted. Disabling field-status indications also resets an incomplete field-message reassembly.
 
 Prepared or queued writes are not supported. Every characteristic write has offset zero and is an ordinary ATT write request or, where the characteristic allows it, write command.
 
@@ -261,22 +257,6 @@ Success adds `"accepted":true`. The target charges a fixed 250 ms allowance, the
 
 An authoritative valid SNTP observation is not displaced by controller time; the controller submission is rejected as busy without comparing it for disagreement. A nonoverlapping same-principal controller refresh, or a later nonoverlapping SNTP observation against an active controller source, latches `disagreement` and invalidates usable UTC. A different controller principal is rejected as busy while the active controller source remains valid. Recovery from disagreement requires two overlapping observations from the same source and, for controller time, the same principal.
 
-### `select_wtp_status_carrier`
-
-This operation selects WTP on the field characteristic pair. The request has only the common fields and uses the field session. Success is:
-
-```json
-{
-  "version": 1,
-  "request_id": "66666666666666666666666666666666",
-  "ok": true,
-  "carrier": "field_status",
-  "command_carrier": "field_command"
-}
-```
-
-After that reply is completely received, both sides reinterpret the field command/status characteristic values as raw WTP/1 bytes. The custom four-byte field header is no longer present. The mode is connection-scoped. To return to field JSON, deliberately disconnect, reconnect, verify identity, and authorize a new field session. The native BlueZ client does not select this mode; it uses the dedicated WTP characteristic pair.
-
 ## 9. Atomic profile provisioning
 
 A profile replacement is a bounded transaction. It is not a sequence of partially active settings. The target stages the complete document, validates it, commits one new generation, returns the nonsensitive apply result, and only then releases network activation after the final response indication is confirmed.
@@ -394,26 +374,14 @@ The target rechecks authorization, exact staged content, generation, and idle/ou
 
 `cancel` uses a fresh request ID and the profile session. It has no fields beyond the common fields. It scrubs only that staged transaction. A supported client attempts bounded cancellation after a post-`open` failure, but cancellation is best effort if the link has already disappeared.
 
-## 10. WTP/1 over GATT
+## 10. Retired execution carrier
 
-WTP uses the complete byte stream defined in [WTP/1](WTP.md), including the 16-byte `WTPF` header, UTF-8 JSON payload, and CRC-32C. GATT does not add another message envelope or checksum.
-
-### Dedicated carrier
-
-After field authorization:
-
-1. Enable indications on WTP status (`7d6b0006...`).
-2. Split the WTP byte stream into nonempty values no larger than 64 bytes and no larger than the negotiated ATT value capacity.
-3. Write those bytes in order to WTP command (`7d6b0005...`) with response.
-4. Concatenate WTP status indications in order and feed them to the WTP/1 frame parser.
-
-The first WTP request on a new logical endpoint is `HELLO`, exactly as required by WTP/1. Its device ID and boot ID must be checked. Field authorization grants access to the transport; it does not bypass WTP session, claim, lease, replay, clock, output, or lifecycle rules.
-
-### Field-carrier mode
-
-After successful `select_wtp_status_carrier`, use the same procedure but substitute field command (`7d6b0003...`) and field status (`7d6b0004...`). Values on those characteristics are then raw WTP bytes, not section 6 frames. Deliberate reconnect and reauthorization restores field JSON mode.
-
-In either carrier, the device emits at most one outstanding indication and does not consume the corresponding WTP output bytes until the indication completion succeeds. A failed completion or inability to continue sending closes the BLE connection rather than silently dropping protocol bytes.
+The independent WTP command/status characteristics `7d6b0005` and `7d6b0006`
+are absent. Those UUIDs remain reserved and are never repurposed. The field
+command/status characteristics remain framed commissioning and time interfaces;
+`select_wtp_status_carrier` is unsupported. Raw WTP values cannot select an
+execution path or mutate native job state. The current Field-GATT/1 provisioning,
+authorization, profile, and time message formats remain unchanged.
 
 ## 11. Errors
 
@@ -453,10 +421,10 @@ The target can reject a characteristic operation before producing a JSON reply:
 | Write not permitted | Wrong characteristic or no current connection owner |
 | Request not supported | Prepared/queued transaction mode was attempted |
 | Invalid offset | A long-write or nonzero attribute offset was attempted |
-| Invalid attribute value length | Empty/oversize WTP value, malformed CCCD, or oversized field frame |
+| Invalid attribute value length | Empty/oversize value, malformed CCCD, or oversized field frame |
 | Value not allowed | Unsupported CCCD value or invalid field frame/order |
-| Insufficient authentication | Link/admission is absent, or a WTP write lacks application authorization |
-| Insufficient resources | Required indications are disabled, a response is already queued, a malformed command produced no bounded reply, or WTP backpressure prevents input |
+| Insufficient authentication | Link/admission is absent, or application authorization is missing |
+| Insufficient resources | Required indications are disabled, a response is already queued, a malformed command produced no bounded reply |
 
 An unparseable request or one without a usable `request_id` cannot be correlated to a JSON error reply and currently reaches the last ATT outcome above. A well-formed request with a usable ID receives `invalid_request` when its closed schema, version, operation, or fields are invalid.
 
@@ -479,10 +447,6 @@ Confirm that field-status indications are enabled with CCCD `0x0002`, the ATT MT
 ### Controller time reports `uncertainty`
 
 The complete challenge response must arrive before the controller samples UTC, and submission must follow promptly. Use the supported client, keep the same connection, and do not perform interactive work between the two messages. `uncertainty` is a deliberate accuracy rejection, not permission to enlarge the 500 ms bound.
-
-### Field commands stop working after WTP status
-
-The client selected raw-WTP mode on the field characteristics. That mode lasts until disconnect. Reconnect, re-read identity, and authorize a new field session before sending framed field commands.
 
 ### Profile apply is rejected
 

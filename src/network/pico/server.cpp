@@ -88,14 +88,12 @@ void install_tls_time_source(wtp::JobService& service) {
 }
 
 PicoServer::PicoServer(wtp::JobService& service, BrowserApi& api, std::string device,
-                       std::string firmware, provisioning::CredentialMaterial credentials,
+                       provisioning::CredentialMaterial credentials,
                        Admission admission)
     : service_(service), api_(api), device_id_(device), credentials_(credentials),
-      admission_(admission), connections_{Connection(*this, std::move(device), firmware),
-                                          Connection(*this, device_id_, std::move(firmware))} {}
-PicoServer::Connection::Connection(PicoServer& owner, std::string device, std::string firmware)
-    : owner_(owner), service_(owner.service_), api_(owner.api_),
-      endpoint_(service_, std::move(device), std::move(firmware)) {}
+      admission_(admission), connections_{Connection(*this), Connection(*this)} {}
+PicoServer::Connection::Connection(PicoServer& owner)
+    : owner_(owner), service_(owner.service_), api_(owner.api_) {}
 PicoServer::~PicoServer() {
     stop();
 }
@@ -176,7 +174,7 @@ bool PicoServer::start() {
     mbedtls_ssl_conf_authmode(&config_, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_rng(&config_, mbedtls_ctr_drbg_random, &rng_);
     mbedtls_ssl_conf_ca_chain(&config_, &ca_, nullptr);
-    static const char* protocols[] = {"wtp/1", "http/1.1", nullptr};
+    static const char* protocols[] = {"http/1.1", nullptr};
     if (check(mbedtls_ssl_conf_alpn_protocols(&config_, protocols)) ||
         check(mbedtls_ssl_conf_own_cert(&config_, &cert_, &key_)))
         return fail(last_error_);
@@ -218,42 +216,14 @@ void PicoServer::publish_transport_status() {
         },
         this);
 }
-bool PicoServer::start_plain(unsigned port) {
-    if (!port || port > 65535 || plain_listener_ || !admission_open_ || !classifier_)
-        return false;
-    auto* pcb = tcp_new_ip_type(IPADDR_TYPE_V4);
-    if (!pcb)
-        return false;
-    if (tcp_bind(pcb, IP_ANY_TYPE, port) != ERR_OK) {
-        tcp_abort(pcb);
-        return false;
-    }
-    plain_listener_ = tcp_listen_with_backlog(pcb, 1);
-    if (!plain_listener_) {
-        tcp_abort(pcb);
-        return false;
-    }
-    plain_port_ = port;
-    tcp_arg(plain_listener_, this);
-    tcp_accept(plain_listener_, accept_plain);
-    publish_transport_status();
-    return true;
-}
 err_t PicoServer::accept(void* context, tcp_pcb* pcb, err_t err) {
-    return static_cast<PicoServer*>(context)->accept_connection(pcb, err, false);
+    return static_cast<PicoServer*>(context)->accept_connection(pcb, err);
 }
-err_t PicoServer::accept_plain(void* context, tcp_pcb* pcb, err_t err) {
-    return static_cast<PicoServer*>(context)->accept_connection(pcb, err, true);
-}
-err_t PicoServer::accept_connection(tcp_pcb* pcb, err_t err, bool plain) {
+err_t PicoServer::accept_connection(tcp_pcb* pcb, err_t err) {
     const auto clock = service_.clock_snapshot();
     const bool softap = classifier_ && classifier_(pcb, classifier_context_);
-    const bool wtp_occupied =
-        std::any_of(connections_.begin(), connections_.end(),
-                    [](const auto& connection) { return connection.client_ && connection.wtp_; });
-    if (err != ERR_OK || !admission_open_ || pending_ || busy() || (plain && wtp_occupied) ||
-        (softap && (plain || admission_ == Admission::LocalWtp)) ||
-        (!softap && !plain && admission_ == Admission::SoftApOnly) ||
+    if (err != ERR_OK || !admission_open_ || pending_ || busy() ||
+        (!softap && admission_ == Admission::SoftApOnly) ||
         (!softap && (clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0))) {
         ++metrics_.rejected;
         tcp_abort(pcb);
@@ -270,7 +240,6 @@ err_t PicoServer::accept_connection(tcp_pcb* pcb, err_t err, bool plain) {
             break;
         }
     pending_softap_ = softap;
-    pending_plain_ = plain;
     pending_since_ms_ = time_us_64() / 1000;
     tcp_arg(pcb, this);
     tcp_recv(pcb, pending_receive);
@@ -285,10 +254,9 @@ void PicoServer::set_admission(bool open) {
     for (auto& connection : connections_)
         connection.close(false, 7);
 }
-void PicoServer::Connection::activate(tcp_pcb* pcb, bool softap, bool plain) {
+void PicoServer::Connection::activate(tcp_pcb* pcb, bool softap) {
     client_ = pcb;
     softap_ = softap;
-    plain_tcp_ = plain;
     generation_ = ++owner_.generation_;
     ++owner_.metrics_.admitted;
     accepted_ms_ = progress_ms_ = time_us_64() / 1000;
@@ -296,12 +264,6 @@ void PicoServer::Connection::activate(tcp_pcb* pcb, bool softap, bool plain) {
     tcp_recv(pcb, receive);
     tcp_err(pcb, error);
     tcp_sent(pcb, sent);
-    if (plain_tcp_) {
-        principal_ = "local-network";
-        wtp_ = handshake_ = true;
-        endpoint_.connect(principal_);
-        return;
-    }
     // TLS emits several short records in one flight. Do not hold a later
     // record behind an earlier record's TCP ACK (or its retransmission).
     tcp_nagle_disable(client_);
@@ -309,7 +271,7 @@ void PicoServer::Connection::activate(tcp_pcb* pcb, bool softap, bool plain) {
     setup_ = true;
     if (mbedtls_ssl_setup(&ssl_, &owner_.config_))
         close(false);
-    else if (softap_ || owner_.admission_ == Admission::LocalWtp)
+    else if (softap_)
         mbedtls_ssl_set_hs_authmode(&ssl_, MBEDTLS_SSL_VERIFY_NONE);
 }
 err_t PicoServer::pending_receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t err) {
@@ -331,7 +293,6 @@ void PicoServer::pending_error(void* context, err_t) {
         self.pending_slot_->close(false);
     self.pending_slot_ = nullptr;
     self.pending_softap_ = false;
-    self.pending_plain_ = false;
 }
 err_t PicoServer::Connection::receive(void* context, tcp_pcb*, pbuf* packet, err_t err) {
     auto& self = *static_cast<Connection*>(context);
@@ -393,11 +354,7 @@ int PicoServer::Connection::receive_tls(void* context, unsigned char* bytes, std
         tcp_recved(self.client_, static_cast<u16_t>(n));
     return static_cast<int>(n);
 }
-void PicoServer::Connection::close(bool apply, unsigned reason, int tls_result) {
-    if (generation_ && wtp_) {
-        owner_.metrics_.last_wtp_close_reason = reason;
-        owner_.metrics_.last_wtp_tls_result = tls_result;
-    }
+void PicoServer::Connection::close(bool apply, unsigned, int) {
     if (client_) {
         tcp_arg(client_, nullptr);
         tcp_recv(client_, nullptr);
@@ -416,7 +373,6 @@ void PicoServer::Connection::close(bool apply, unsigned reason, int tls_result) 
     setup_ = false;
     if (generation_)
         ++owner_.metrics_.closed;
-    endpoint_.disconnect();
     pending_tcp_bytes_ = 0;
     response_tcp_remaining_.reset();
     if (generation_) {
@@ -433,8 +389,8 @@ void PicoServer::Connection::close(bool apply, unsigned reason, int tls_result) 
     scrub(principal_);
     http_.reset_secure();
     http_ = HttpParser{};
-    handshake_ = wtp_ = peer_closed_ = responded_ = close_notify_ = handshake_failed_ = false;
-    softap_ = plain_tcp_ = false;
+    handshake_ = peer_closed_ = responded_ = close_notify_ = handshake_failed_ = false;
+    softap_ = false;
 }
 void PicoServer::close_pending() {
     if (!pending_)
@@ -448,10 +404,9 @@ void PicoServer::close_pending() {
         pending_slot_->close(false);
     pending_slot_ = nullptr;
     pending_softap_ = false;
-    pending_plain_ = false;
 }
 void PicoServer::stop() {
-    if (tls_owner == this || plain_listener_)
+    if (tls_owner == this)
         api_.transport_status(nullptr, nullptr);
     close_pending();
     for (auto& c : connections_)
@@ -463,14 +418,6 @@ void PicoServer::stop() {
         const auto closed = tcp_close(listener_);
         LWIP_ASSERT("TLS listener close must succeed", closed == ERR_OK);
         listener_ = nullptr;
-    }
-    if (plain_listener_) {
-        tcp_arg(plain_listener_, nullptr);
-        tcp_accept(plain_listener_, nullptr);
-        const auto closed = tcp_close(plain_listener_);
-        LWIP_ASSERT("Plain listener close must succeed", closed == ERR_OK);
-        plain_listener_ = nullptr;
-        plain_port_ = 0;
     }
     if (setup_) {
         mbedtls_ssl_config_free(&config_);
@@ -510,28 +457,15 @@ void PicoServer::poll(bool station_link_up, bool softap_link_up, std::string sta
     bool handshaking = false;
     for (const auto& c : connections_)
         handshaking |= c.client_ && !c.handshake_;
-    // Plain LAN admission creates no TLS context. An unrelated TLS handshake
-    // must not hold its complete WTP frame behind the handshake deadline.
-    if (pending_ && (pending_plain_ || !handshaking) && generation_ != UINT64_MAX) {
-        const bool wtp_occupied =
-            std::any_of(connections_.begin(), connections_.end(), [](const auto& connection) {
-                return connection.client_ && connection.wtp_;
-            });
-        if (pending_plain_ && wtp_occupied) {
-            ++metrics_.rejected;
-            close_pending();
-        }
-    }
-    if (pending_ && (pending_plain_ || !handshaking) && generation_ != UINT64_MAX) {
+    if (pending_ && !handshaking && generation_ != UINT64_MAX) {
         for (auto& c : connections_)
             if (!c.client_ && !c.generation_ && (!pending_slot_ || pending_slot_ == &c)) {
                 auto* next = pending_;
                 pending_ = nullptr;
                 const bool next_softap = pending_softap_;
-                const bool next_plain = pending_plain_;
-                pending_softap_ = pending_plain_ = false;
+                pending_softap_ = false;
                 pending_slot_ = nullptr;
-                c.activate(next, next_softap, next_plain);
+                c.activate(next, next_softap);
                 break;
             }
     }
@@ -566,7 +500,7 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
         return;
     const auto now = time_us_64() / 1000;
     if ((!handshake_ && (owner_.busy() || now - accepted_ms_ >= 10000)) ||
-        (handshake_ && !wtp_ && now - accepted_ms_ >= 15000) || now - progress_ms_ >= 30000) {
+        (handshake_ && now - accepted_ms_ >= 15000) || now - progress_ms_ >= 30000) {
         ++owner_.metrics_.timeouts;
         close(response_acknowledged(), 3);
         return;
@@ -605,10 +539,8 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
         const auto* protocol = mbedtls_ssl_get_alpn_protocol(&ssl_);
         if ((!softap_ && owner_.admission_ == Admission::ClientCertificate &&
              (!peer || mbedtls_ssl_get_verify_result(&ssl_))) ||
-            (protocol && std::strcmp(protocol, "wtp/1") && std::strcmp(protocol, "http/1.1")) ||
-            (!protocol && !softap_) ||
-            (owner_.admission_ == Admission::LocalWtp &&
-             (!protocol || std::strcmp(protocol, "wtp/1")))) {
+            (protocol && std::strcmp(protocol, "http/1.1")) ||
+            (!protocol && !softap_)) {
             close();
             return;
         }
@@ -620,81 +552,34 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
                 principal_ += "0123456789abcdef"[b & 15];
             }
         }
-        if (owner_.admission_ == Admission::LocalWtp)
-            principal_ = "local-network";
-        wtp_ = protocol && std::strcmp(protocol, "wtp/1") == 0;
-        if (softap_ && wtp_) {
-            close();
-            return;
-        }
-        if (wtp_) {
-            for (const auto& other : owner_.connections_)
-                if (&other != this && other.client_ && other.handshake_ && other.wtp_) {
-                    close();
-                    return;
-                }
-            endpoint_.connect(principal_);
-        }
         owner_.metrics_.max_handshake_us =
             std::max(owner_.metrics_.max_handshake_us, time_us_64() - accepted_ms_ * 1000);
         handshake_ = true;
         progress_ms_ = now;
         return;
     }
-    if (wtp_) {
-        endpoint_.poll(now);
-        if (endpoint_.closed()) {
-            close(false, 4);
-            return;
-        }
-    }
-    // A queued multi-packet USB Console response gets a short bounded grace
-    // period from all HTTP TLS work, including an already established page
-    // response. Established WTP remains live for status and output authority.
-    if (!wtp_ && !allow_http_steps)
+    // Preserve the existing bounded USB Console grace before HTTP TLS work.
+    if (!allow_http_steps)
         return;
-    auto output = endpoint_.output();
-    if (!wtp_) {
-        if (response_offset_ < response_headers_.size()) {
-            const auto text = std::string_view(response_headers_).substr(response_offset_);
-            output = {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
-        } else
-            output = response_.body_at(response_offset_ - response_headers_.size());
-    }
+    std::span<const std::uint8_t> output;
+    if (response_offset_ < response_headers_.size()) {
+        const auto text = std::string_view(response_headers_).substr(response_offset_);
+        output = {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
+    } else
+        output = response_.body_at(response_offset_ - response_headers_.size());
     if (!output.empty()) {
-        int result = 0;
-        if (plain_tcp_) {
-            const auto count = std::min<std::size_t>({output.size(), 1024, tcp_sndbuf(client_)});
-            if (count) {
-                const auto sent = tcp_write(client_, output.data(), static_cast<u16_t>(count),
-                                            TCP_WRITE_FLAG_COPY);
-                if (sent == ERR_OK) {
-                    pending_tcp_bytes_ += count;
-                    (void)tcp_output(client_);
-                    result = static_cast<int>(count);
-                } else if (sent != ERR_MEM) {
-                    close(false, 5, sent);
-                    return;
-                }
-            }
-        } else
-            result =
-                mbedtls_ssl_write(&ssl_, output.data(), std::min<std::size_t>(output.size(), 1024));
+        const auto result = mbedtls_ssl_write(&ssl_, output.data(), std::min<std::size_t>(output.size(), 1024));
         service_.poll();
         if (result > 0) {
             progress_ms_ = now;
-            if (wtp_)
-                endpoint_.consume_output(static_cast<std::size_t>(result), now);
-            else {
-                response_offset_ += static_cast<std::size_t>(result);
-                if (response_offset_ == response_size())
-                    response_tcp_remaining_ = pending_tcp_bytes_;
-            }
-        } else if (!plain_tcp_ && !retry(result))
+            response_offset_ += static_cast<std::size_t>(result);
+            if (response_offset_ == response_size())
+                response_tcp_remaining_ = pending_tcp_bytes_;
+        } else if (!retry(result))
             close(false, 5, result);
         return;
     }
-    if (!wtp_ && responded_) {
+    if (responded_) {
         if (response_.keep_alive) {
             if (!response_acknowledged())
                 return;
@@ -724,11 +609,8 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
             close(true); // Only an acknowledged response can finish its mutation.
         return;
     }
-    if (wtp_ && !endpoint_.can_receive())
-        return;
     if (plain_size_ == plain_offset_) {
-        const auto result = plain_tcp_ ? receive_tls(this, plain_.data(), plain_.size())
-                                       : mbedtls_ssl_read(&ssl_, plain_.data(), plain_.size());
+        const auto result = mbedtls_ssl_read(&ssl_, plain_.data(), plain_.size());
         service_.poll();
         if (result <= 0) {
             if (!retry(result))
@@ -740,9 +622,7 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
         progress_ms_ = now;
     }
     const auto bytes = std::span(plain_).subspan(plain_offset_, plain_size_ - plain_offset_);
-    if (wtp_)
-        plain_offset_ += endpoint_.receive(bytes, now);
-    else {
+    {
         plain_offset_ += http_.receive(bytes);
         if (http_.failed() || http_.ready()) {
             response_ = (http_.failed()

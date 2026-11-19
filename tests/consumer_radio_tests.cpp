@@ -299,24 +299,8 @@ int main() {
         t.authority = "192.168.1.53";
         t.interface = network::ConsumerInterface::Station;
         t.login(__LINE__);
-        const std::string session(32, '1');
-        unsigned id = 2000;
-        const auto command = [&](std::string op, std::string body) {
-            auto result = t.call("POST", "/api/control/v1/jobs",
-                                 "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
-                                     std::string(28, '0') + std::to_string(++id) +
-                                     "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
-            assert(result.status == 200);
-            assert(result.body.find("\"status\":200") != std::string::npos);
-            t.api.finish_request(t.transaction - 1, true);
-            return result.body.size();
-        };
-        command(
-            "HELLO",
-            R"({"versions":["WTP/1"],"client_name":"message regression","client_version":"1"})");
-        command("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":60000}");
         // Model resident request/event/reply pages as real allocations. The
-        // large adjustment JSON leaves room for framing, but not another full
+        // retained capabilities document leaves room for framing, but not another full
         // ciphertext allocation alongside the unchanged 32 KiB reserve.
         const auto allocate = wtp::allocate_input;
         const auto deallocate = wtp::deallocate_input;
@@ -336,15 +320,17 @@ int main() {
             std::free(memory);
         };
         wtp::available_memory = []() -> std::size_t { return 70000 - message_page_bytes; };
-        const auto bytes = command(
-            "LOAD_MESSAGE",
-            R"({"job_id":"33333333333333333333333333333333","mode":"fskcw","message":"CQ CQ DE AA0NT EM18 QRSS TEST 73","frequency_nhz":"10140005000000000","space_frequency_nhz":"10140000000000000","timing":{"dot_ns":"3000000000","dash_ns":"9000000000","intra_gap_ns":"3000000000","character_gap_ns":"9000000000","word_gap_ns":"21000000000"},"repeat_count":1,"repeat_gap_ns":"3000000000","allow_frequency_adjustment":true})");
+        const auto response=t.call("GET","/api/control/v1/capabilities");
         wtp::available_memory = nullptr;
-        assert(bytes > wtp::OutputBuffer::page_bytes);
-        assert(t.fixture.service.status().state == wtp::State::Loaded);
-        assert(!t.fixture.service.status().output_active);
-        command("RELEASE", "{}");
-        assert(!t.fixture.service.status().owner_id);
+        assert(response.status==200);
+        assert(response.body.size()>wtp::OutputBuffer::page_bytes);
+        assert(response.body.find("\"execution\"")!=std::string::npos);
+        t.api.finish_request(t.transaction-1,true);
+        const auto refused=t.call("POST","/api/control/v1/jobs","{}");
+        assert(refused.status==200&&refused.body.find("\"status\":404")!=std::string::npos);
+        t.api.finish_request(t.transaction-1,true);
+        assert(t.fixture.service.status().state==wtp::State::Empty);
+        assert(!t.fixture.service.status().owner_id&&!t.fixture.service.status().output_active);
         t.api.close();
         assert(message_pages.empty());
         wtp::allocate_input = allocate;
@@ -449,7 +435,7 @@ int main() {
                    .body.find("setup_pending") != std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         setup_busy = false;
-        assert(t.call("POST", "/api/control/v1/jobs", hello).body.find("\"status\":200") !=
+        assert(t.call("POST", "/api/control/v1/jobs", hello).body.find("\"status\":404") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
     }
@@ -494,29 +480,20 @@ int main() {
         t.interface = network::ConsumerInterface::Station;
         t.login(__LINE__);
         const std::string session(32, '1'), job(32, '2');
-        unsigned id = 1000;
-        const auto command = [&](std::string op, std::string body) {
-            auto result = t.call("POST", "/api/control/v1/jobs",
-                                 "{\"session_id\":\"" + session + "\",\"request_id\":\"" +
-                                     std::string(28, '0') + std::to_string(++id) +
-                                     "\",\"operation\":\"" + op + "\",\"body\":" + body + "}");
-            assert(result.body.find("\"status\":200") != std::string::npos);
-            t.api.finish_request(t.transaction - 1, true);
+        const auto command=[&](std::string op,wtp::RequestBody body={}){
+            const auto result=internal_command(t.fixture.service,std::move(op),std::move(body),"native-test",session);
+            assert(result.ok);
         };
-        command("HELLO", R"({"versions":["WTP/1"],"client_name":"test","client_version":"1"})");
-        command("CLAIM", "{\"owner_id\":\"" + session + "\",\"lease_ms\":30000}");
-        command("LOAD", "{\"job_id\":\"" + job +
-                            "\",\"profile\":\"rf-events/1\",\"mode\":\"tone\","
-                            "\"total_duration_ns\":\"1000000000\",\"events\":[{\"offset_ns\":\"0\","
-                            "\"duration_ns\":\"1000000000\","
-                            "\"rf_on\":true,\"frequency_nhz\":\"3570100000000000\"}],\"allow_"
-                            "frequency_adjustment\":false}");
+        command("HELLO",wtp::HelloBody{{"WTP/1"}});
+        command("CLAIM",wtp::ClaimBody{session,30000});
+        wtp::Job plan;plan.job_id=job;plan.mode="tone";plan.total_duration_ns=1'000'000'000;
+        plan.events.push_back({0,plan.total_duration_ns,true,3'570'100'000'000'000});
+        command("LOAD",std::move(plan));
         assert(t.call("GET", "/api/control/v1/status").body.find("\"state\":\"loaded\"") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
         const auto start = t.fixture.clock.snapshot().utc_now_ns + 2'000'000'000ULL;
-        command("ARM", "{\"job_id\":\"" + job + "\",\"start_utc_ns\":\"" + std::to_string(start) +
-                           "\",\"max_start_uncertainty_ns\":\"1000\"}");
+        command("ARM",wtp::ArmBody{job,start,1000});
         assert(t.call("GET", "/api/control/v1/status").body.find("\"state\":\"armed\"") !=
                std::string::npos);
         t.api.finish_request(t.transaction - 1, true);
