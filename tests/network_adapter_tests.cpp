@@ -352,10 +352,9 @@ int main(int argc, char** argv) {
     assert(network.status().find("\"advertised_hostname\":\"\"") != std::string::npos);
     network.listener_status(true, true);
     active(network);
-    network.wtp_listener_status(PicoNetwork::WtpBinding::Plain, 31417);
-    assert(network.status().find("\"mdns_state\":\"withdrawing\"") != std::string::npos);
+    // Engineering management keeps its hostname without a retired WTP service.
     advance(network, 4'000'000);
-    assert(station_service_ptr && station_plain_txt && station_service_port == 31417);
+    assert(station_service_ptr == 0 && !station_plain_txt && station_service_port == 0);
     ip4_addr_t ap_address{}, ap_mask{}, ap_gateway{};
     IP4_ADDR(&ap_address, 192, 168, 4, 1);
     IP4_ADDR(&ap_mask, 255, 255, 255, 0);
@@ -446,17 +445,16 @@ int main(int argc, char** argv) {
     assert(ap_service_ptr == 0);
     assert(!network.softap_name(false, {}));
     netif_remove(&cyw43_state.netif[CYW43_ITF_AP]);
-    const auto ptr_before_switch = station_service_ptr;
-    network.wtp_listener_status(PicoNetwork::WtpBinding::Tls, 42424);
+    const auto http_before_restart = station_http_ptr;
+    network.consumer_listener_status(true);
     advance(network, 4'000'000);
-    assert(station_service_goodbye && station_service_ptr > ptr_before_switch && station_tls_txt &&
-           station_service_port == 42424);
-    const auto goodbyes_before_stop = station_service_goodbye;
-    const auto ptr_before_stop = station_service_ptr;
-    network.wtp_listener_status(PicoNetwork::WtpBinding::None, 0);
+    assert(station_http_ptr > http_before_restart);
+    const auto goodbyes_before_stop = station_http_goodbye;
+    network.consumer_listener_status(false);
     advance(network, 4'000'000);
-    assert(station_service_goodbye == goodbyes_before_stop + 1);
-    assert(station_service_ptr == ptr_before_stop + 1);
+    assert(station_http_goodbye > goodbyes_before_stop);
+    assert(station_service_ptr == 0 && station_service_goodbye == 0 &&
+           !station_plain_txt && !station_tls_txt && station_service_port == 0);
     watchdog_hw->scratch[1] = 5;
     assert(network.association() == "{\"valid\":true,\"bssid\":\"42:98:b5:fe:36:a1\"}");
     assert(watchdog_hw->scratch[1] == 5);
