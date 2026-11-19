@@ -36,6 +36,11 @@
       "count": 1,
       "entrypoint": "tests/console_info_format_tests.py"
     },
+    "console_io_tests": {
+      "kind": "unittest",
+      "count": 5,
+      "entrypoint": "tests/console_io_tests.py"
+    },
     "console_trace_tests": {
       "kind": "unittest",
       "count": 7,
@@ -158,8 +163,13 @@
     },
     "raspberry_pi_ble_client_tests": {
       "kind": "unittest",
-      "count": 31,
+      "count": 30,
       "entrypoint": "tests/raspberry_pi_ble_client_tests.py"
+    },
+    "retired_tools_tests": {
+      "kind": "unittest",
+      "count": 1,
+      "entrypoint": "tests/retired_tools_tests.py"
     },
     "rf_abort_analysis_tests": {
       "kind": "unittest",
@@ -290,11 +300,11 @@
   "contexts": {
     "npm": {
       "kind": "node-test",
-      "count": 27
+      "count": 28
     },
     "packaging": {
       "kind": "unittest",
-      "count": 80
+      "count": 82
     },
     "browser-lifecycle": {
       "kind": "node-test",
