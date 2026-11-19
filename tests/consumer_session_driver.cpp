@@ -687,19 +687,21 @@ struct Driver {
         if (op == "schedule_tick") {
             // Synthetic time drives the production scheduler and dry-run engine.
             // No device access or physical RF output is provided by this fixture.
+            auto& selected = v.get("surface") && field(v, "surface") == "engineering"
+                                 ? engineering : f;
             std::uint64_t delta;
             check(wtp::json::decimal(*v.get("delta_ns"), delta) && delta <= 600'000'000'000ULL);
-            f.clock.now += delta;
+            selected.clock.now += delta;
             if (const auto uncertainty = v.get("uncertainty_ns"))
-                check(wtp::json::decimal(*uncertainty, f.clock.uncertainty));
+                check(wtp::json::decimal(*uncertainty, selected.clock.uncertainty));
             if (const auto bytes = v.get("free_bytes")) {
                 static std::uint64_t free_bytes;
                 check(wtp::json::decimal(*bytes, free_bytes) && free_bytes <= SIZE_MAX);
                 wtp::available_memory = +[]() -> std::size_t { return free_bytes; };
             }
-            f.scheduler.poll();
+            selected.scheduler.poll();
             wtp::available_memory = nullptr;
-            auto result = f.scheduler.status();
+            auto result = selected.scheduler.status();
             if (!result.empty() && result.back() == '\n')
                 result.pop_back();
             return result;
