@@ -174,6 +174,16 @@ class TestingInputTests(unittest.TestCase):
                 publish.main()
             retrieve.assert_not_called()
 
+    def test_feature_validation_refuses_publication_before_source_or_build(self):
+        env = dict(CI_PROFILE='consumer', CI_STREAM='validation', GITHUB_RUN_ID='123',
+                   GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='workflow_dispatch',
+                   GITHUB_REF='refs/heads/codex/issue-473-phase62-paired-candidate',
+                   CI_PUBLISH='true', CI_MAKE_LATEST='false')
+        with patch.dict(os.environ, env, clear=True), patch.object(ci_run, 'capture') as capture:
+            with self.assertRaisesRegex(ValueError, 'Feature validation cannot publish'):
+                ci_run.inputs()
+            capture.assert_not_called()
+
     def test_obsolete_testing_producer_refuses_before_build(self):
         env = dict(CI_PROFILE='consumer', CI_STREAM='devel', GITHUB_RUN_ID='123',
                    GITHUB_RUN_ATTEMPT='1', GITHUB_EVENT_NAME='workflow_dispatch',
@@ -846,6 +856,22 @@ class BundleTests(unittest.TestCase):
     def test_pull_request_bundle_is_preview_only(self):
         self.download_fixture('pull-request')
         self.assertFalse(self.verify()['deployment_candidate'])
+
+    def test_manual_feature_validation_is_preview_only(self):
+        ref = 'refs/heads/codex/issue-473-phase62-paired-candidate'
+        self.assertEqual(bundle.build_stream('workflow_dispatch', ref), 'validation')
+        self.assertEqual(bundle.firmware_channel('0.1.0-ci.1.1', {
+            'event': 'workflow_dispatch', 'ref': ref, 'run_id': 1, 'attempt': 1}),
+            ('validation', 'ci-testing', False))
+        self.assertEqual(bundle.artifact_name('audit', 'validation', 1, 1),
+                         'WsprryPico-audit-validation-1-1-consumer')
+        for event in ('push', 'pull_request', 'pull_request_target'):
+            with self.subTest(event=event), self.assertRaises(ValueError):
+                bundle.build_stream(event, ref)
+        for version in ('0.1.0-testing.1', '1.0.0', '1.0.0-beta.1'):
+            with self.subTest(version=version), self.assertRaises(ValueError):
+                bundle.firmware_channel(version, {
+                    'event': 'workflow_dispatch', 'ref': ref, 'run_id': 1, 'attempt': 1})
 
     def test_untrusted_event_or_ref_cannot_select_a_branch_stream(self):
         for event, ref in [('push','refs/heads/feature'), ('push','refs/tags/v1'),

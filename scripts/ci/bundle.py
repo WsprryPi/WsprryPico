@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from check_application_image import validate as validate_engine
 from check_standalone_image import validate_uf2
 from firmware_payload import verify_payload
-from usb_installer import MAX_VERSION, SEMVER, firmware_channel, release_asset_url, version_kind, firmware_schema
+from usb_installer import MAX_VERSION, SEMVER, firmware_channel, release_asset_url, version_kind, firmware_schema, validation_ref
 
 PROFILES = {
     'consumer': {'target': 'WsprryPico', 'engine': 'pio-dma', 'role': 'uninhibited'},
@@ -85,6 +85,8 @@ def testing_metadata(source):
 def build_stream(event, ref):
     if event in ('push', 'workflow_dispatch') and ref in ('refs/heads/devel', 'refs/heads/main'):
         return ref.removeprefix('refs/heads/')
+    if validation_ref(event, ref):
+        return 'validation'
     if event == 'pull_request' and isinstance(ref, str) and re.fullmatch(r'refs/pull/[1-9][0-9]*/merge', ref):
         return 'pull-request'
     if event in ('push', 'workflow_dispatch') and isinstance(ref, str) and ref.startswith('refs/tags/v'):
@@ -95,7 +97,7 @@ def build_stream(event, ref):
 
 
 def artifact_name(kind, stream, run, attempt):
-    require(kind in ('firmware', 'audit') and stream in ('devel', 'main', 'pull-request', 'release'),
+    require(kind in ('firmware', 'audit') and stream in ('devel', 'main', 'pull-request', 'release', 'validation'),
             'Unsupported artifact stream')
     return f'WsprryPico-{kind}-{stream}-{run}-{attempt}-consumer'
 
