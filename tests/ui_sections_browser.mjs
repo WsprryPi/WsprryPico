@@ -138,7 +138,7 @@ try {
     }
     await capture('help-status');
     await checkContextualHelp({evaluate,send,key,section,helpWindows});
-    pass('native contextual help: collapsed/locked, pointer/keyboard, drafts/files/History, no application requests');
+    pass('native contextual help: collapsed/locked, pointer/keyboard, drafts/History, no application requests');
     await capture('contextual-help');
     if(carrier==='engineering') {
       assert.equal(await evaluate('accessCarrier'),'certificate');
@@ -186,7 +186,7 @@ try {
     assert.equal(await evaluate('document.querySelectorAll("h1").length'),1);
     assert.equal(await evaluate('new Set([...document.querySelectorAll("[id]")].map(e=>e.id)).size===document.querySelectorAll("[id]").length'),true);
     pass('fresh entry, one heading, unique IDs, closed modal and disclosures, public status');
-    await evaluate(`document.getElementById('message-text').value='CQ CQ DE AA0NT EM18 QRSS TEST 73';const transfer=new DataTransfer();transfer.items.add(new File(['{}'],'draft.json',{type:'application/json'}));document.getElementById('job-file').files=transfer.files;globalThis.originalFile=document.getElementById('job-file').files[0]`);
+    await evaluate(`document.getElementById('message-text').value='CQ CQ DE AA0NT EM18 QRSS TEST 73';document.getElementById('message-frequency').value='14096900.123456789'`);
     const ids=await evaluate('[...document.querySelectorAll("[data-operator-section]")].map(e=>e.id)');
     for(const id of ids) {
         await section(id);
@@ -197,8 +197,9 @@ try {
         assert.equal(await evaluate('document.activeElement.id'),'device-name');
     }
     assert.equal(await evaluate('document.getElementById("message-text").value'),'CQ CQ DE AA0NT EM18 QRSS TEST 73');
-    assert.equal(await evaluate('document.getElementById("job-file").files[0]===originalFile'),true);
-    pass('section bookmarks and Top links changes only presentation, preserves message and selected file');
+    assert.equal(await evaluate('document.getElementById("message-frequency").value'),'14096900.123456789');
+    assert.equal(await evaluate('document.getElementById("job-file")'),null);
+    pass('section bookmarks and Top links change only presentation and preserve message and frequency drafts');
     await section('message-section');await section('wifi-settings');
     await evaluate('history.back()');await until(()=>evaluate('!document.getElementById("station-area").hidden'),'Back selects station');
     await evaluate('history.forward()');await until(()=>evaluate('!document.getElementById("wifi-host-area").hidden'),'Forward selects Wi-Fi');
