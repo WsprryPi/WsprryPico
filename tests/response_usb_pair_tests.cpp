@@ -52,7 +52,7 @@ int main() {
             ++finishes;
             api.finish(transaction, delivered);
         });
-    const std::string usb_session(32, 'c'), job_session(32, '1');
+    const std::string usb_session(32, 'c');
     const auto target = application::target(std::string(32, 'a'), f.service.status().boot_id);
     endpoint.connect(usb_session);
     const auto send = [&](std::string text) {
@@ -82,43 +82,30 @@ int main() {
     };
     send("{\"schema\":\"usb-management/1\",\"id\":1,\"operation\":\"hello\"}");
     (void)drain();
-    unsigned id = 1, job_id = 2000;
+    unsigned id = 1;
     const auto common = [&](std::string_view op) {
         return "{\"schema\":\"usb-management/1\",\"id\":" + std::to_string(id) +
                ",\"operation\":" + wtp::json::quote(op) +
                ",\"session\":" + wtp::json::quote(usb_session) + ",\"target\":" + target;
     };
-    const auto command = [&](std::string_view operation, std::string_view body) {
+    const auto request = [&](std::string_view method,std::string_view path,int expected) {
         ++id;
-        const auto request =
-            "{\"contract\":\"Wsprry-Control/1\",\"session_id\":" + wtp::json::quote(job_session) +
-            ",\"request_id\":" + wtp::json::quote(std::string(28, '0') + std::to_string(++job_id)) +
-            ",\"operation\":" + wtp::json::quote(operation) + ",\"body\":" + std::string(body) +
-            "}";
-        send(common("request") +
-             ",\"method\":\"POST\",\"path\":\"/api/control/v1/jobs\",\"body\":" +
-             wtp::json::quote(request) + ",\"if_match\":\"\"}");
-        const auto response = drain();
-        const auto root = wtp::json::parse(response);
-        assert(root && root->get("status")->integer() == 200);
-        const auto logical = root->get("body")->string();
-        assert(wtp::json::parse(logical)->get("ok")->boolean());
-        const auto before = finishes;
-        send(common("ack") + "}");
-        (void)drain();
-        assert(finishes == before + 1);
-        return logical.size();
+        send(common("request") + ",\"method\":"+wtp::json::quote(method)+
+            ",\"path\":"+wtp::json::quote(path)+",\"body\":\"\",\"if_match\":\"\"}");
+        const auto response=drain();const auto root=wtp::json::parse(response);
+        assert(root&&root->get("status")->integer()==expected);
+        const auto logical=root->get("body")->string();
+        assert(wtp::json::parse(logical));
+        const auto before=finishes;send(common("ack")+"}");(void)drain();
+        assert(finishes==before+1);return logical;
     };
-    command(
-        "HELLO",
-        R"({"versions":["WTP/1"],"client_name":"USB response regression","client_version":"1"})");
-    command("CLAIM", "{\"owner_id\":" + wtp::json::quote(job_session) + ",\"lease_ms\":60000}");
-    const auto bytes = command(
-        "LOAD_MESSAGE",
-        R"({"job_id":"33333333333333333333333333333333","mode":"fskcw","message":"CQ CQ DE AA0NT EM18 QRSS TEST 73","frequency_nhz":"10140005000000000","space_frequency_nhz":"10140000000000000","timing":{"dot_ns":"3000000000","dash_ns":"9000000000","intra_gap_ns":"3000000000","character_gap_ns":"9000000000","word_gap_ns":"21000000000"},"repeat_count":1,"repeat_gap_ns":"3000000000","allow_frequency_adjustment":true})");
-    assert(generated && bytes > 4096);
-    assert(f.service.status().state == wtp::State::Loaded && !f.service.status().output_active);
-    command("ABORT", R"({"job_id":"33333333333333333333333333333333"})");
-    command("RELEASE", "{}");
-    assert(!f.service.status().owner_id && !f.service.status().output_active);
+    const auto capabilities=request("GET","/api/control/v1/capabilities",200);
+    assert(capabilities.size()>4096);
+    assert(capabilities.find("\"execution\"")!=std::string::npos);
+    assert(capabilities.find("\"wtp\"")==std::string::npos);
+    request("POST","/api/control/v1/jobs",404);
+    request("GET","/api/control/v1/jobs",404);
+    assert(f.service.status().state==wtp::State::Empty);
+    assert(!f.service.status().owner_id&&!f.service.status().output_active);
+    (void)generated; // Streaming behavior is covered by response_stream_tests.
 }

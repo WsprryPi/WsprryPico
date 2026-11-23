@@ -4,13 +4,13 @@
 
 WsprryPico operates standalone and as a WsprryPi hardware backend. Its defined hardware target is Pico 2 W / RP2350. Other Pico boards and RP2040 are not supported. Platform-independent job, protocol, encoder, and policy code is separate from SDK, transport, flash, network, and RF adapters.
 
-Every producer uses one `JobService`: USB WTP, network WTP, browser handlers, and standalone schedules share validation, ownership, replay, output state, and local execution. Complete jobs are prepared and armed locally. RP2350 owns symbol timing; per-symbol USB/network delivery is unnecessary. RP1 register programming, kernel interfaces, and DKMS are outside this application.
+Native WSPR and keyed-message schedules use one `JobService` for bounded validation, ownership, output state, cancellation, and local execution. RP2350 owns symbol timing. External transmission submission and controller-side remote recurrence are unavailable; management never grants RF ownership.
 
 ## Transports and management
 
-Four CDC functions separate Console diagnostics, canonical USB WTP, [USB management/time](protocol/USB-Management.md), and [Logging](development/usb-logging.md). The [USB adapter](development/usb-cdc.md) bounds servicing and connection state; logs never enter protocol streams. The strict [WTP endpoint](development/wtp-endpoint.md) validates JSON, dispatches requests, and orders responses/events.
+Four CDC allocations preserve Console interface 0, a Reserved inert allocation at interfaces 2/3, [USB management/time](protocol/USB-Management.md) at interface 4, and [Logging](development/usb-logging.md) at interface 6. Application firmware discards at most 64 reserved-input bytes per foreground pass and emits no response. The optional RFBench image alone uses that allocation for its non-WTP Commands interface.
 
-Network WTP/TCP carries the same WTP/1 stream. Engineering TLS uses ALPN `wtp/1` and device-specific certificate principals. Consumer Plain LAN WTP uses station port 31417 and a shared network principal after station IPv4 and accepted network time. Build-time off/TLS choices are explicit; no automatic downgrade exists. Engineering mutual TLS defaults off; consumer Plain LAN defaults on.
+Network management retains certificate-authenticated HTTPS with `http/1.1` ALPN and encrypted Consumer-Radio. No WTP TCP listener, plaintext binding, `wtp/1` ALPN admission, or external HTTP job wrapper is available.
 
 The browser uses lightweight HTTP handlers and static assets backed by the shared [JSON API](browser-api.md). The current `Wsprry-Control/1` contract uses `/api/control/v1` and stable resource types. USB and network share the management shape with explicit carrier and bounded policy data; historical settings views are unsupported. [Management carriers](development/management-carriers.md), [configuration updates](development/configuration-updates.md), [saved progress](development/saved-progress.md), and [USB local configuration](development/usb-local-configuration.md) define exact authority, revision, application, and delivery semantics. Management authority alone grants no transmitter ownership.
 
@@ -18,7 +18,7 @@ Consumer port-80 control is available through the current station IP/hostname an
 
 Two cooperative HTTP tasks run on core 0, with absolute ten-second connection deadlines, bounded output steps, and serialized application mutations. Three fixed consumer login slots permit one pending ordinary login. A separate five-second recovery workspace can retire one deliberately selected session under fresh password authentication. It never becomes an application session. Authentication closure cancels that login's undelivered effects and unsubmitted setup preparation; accepted jobs and durable writes survive. Both UIs preserve drafts and require saved-state readback/review before a new save. See [web service](development/web-service.md), [sessions](development/consumer-sessions.md), and [recovery](development/session-recovery.md).
 
-BLE uses independently versioned [Field-GATT/1](protocol/Field-GATT.md), shared by firmware and the native Linux BlueZ client. ATT segmentation adds no job protocol; GATT WTP enters the same service. Request-bound proofs, staged profile digests, bond/access epochs, and USB-local confirmation protect their specified mutations. The device-served SoftAP portal is the offline consumer setup path.
+BLE retains independently versioned [Field-GATT/1](protocol/Field-GATT.md) commissioning, shared with the native Linux BlueZ client. Service/identity/command/status UUIDs 0001–0004 retain their permissions, framing, bonding, request-bound proofs, staged profile digests, access epochs, and USB-local confirmation. WTP characteristics 0005/0006 and carrier selection are absent. The SoftAP portal remains the offline consumer setup path.
 
 ## Setup and local access
 
@@ -30,7 +30,7 @@ The active-low GP14 factory button requests reset on release under 0.4 seconds, 
 
 The portable [RF stream](development/rf-stream.md) plans and generates packed GPIO samples independently of the SDK. The [PIO/DMA adapter](development/pio-dma-driver.md) owns physical peripherals and monotonic launch interrupts. The normal firmware selects the 138 MHz application; `WsprryPico-Inhibited` selects its simulator. `WsprryPico-StandaloneRF` remains a compatibility RF target. A separate [bench image](development/rf-bench.md) provides finite relative-time tones, synthetic/encoded frames, and CPU measurements; it provides neither WTP nor UTC synchronization.
 
-Core 0 owns application state, USB/network service, and storage. Core 1 owns the RF engine, sink/peripherals, and local launch interrupts. A synchronous one-command ownership-transfer mailbox coordinates the two cores. The RF core ages an independent UTC discipline copy. Idle-only flash writes use SDK core lockout. Two engineering TLS contexts permit a persistent WTP owner and an independent HTTPS browser under shared resource limits.
+Core 0 owns application state, USB/network service, and storage. Core 1 owns the RF engine, sink/peripherals, and local launch interrupts. A synchronous one-command ownership-transfer mailbox coordinates the two cores. The RF core ages an independent UTC discipline copy. Idle-only flash writes use SDK core lockout. Two bounded engineering HTTPS contexts share the retained authentication and resource limits.
 
 Standalone [WSPR planning](development/wspr-planning.md) freezes complete Type 1/2/3 plans before admission; Type 2/3 pairs use separate adjacent-slot jobs with an independent clock check for each launch. The scheduler reserves durable watermarks before transmission and does not catch up or replay after failure. The compact QRSS/FSKCW/DFCW compiler bounds messages to 32 characters and expands all repeats before ARM, under independent 3,600-second/512-event ceilings. Host-produced encoded jobs converge at the same preparation point.
 

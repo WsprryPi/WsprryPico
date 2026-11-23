@@ -69,7 +69,6 @@ class FakeBackend:
         self.closed = False
         self.callbacks = {}
         self.command_receiver = ble.FrameReceiver(ble.MAX_COMMAND_BYTES)
-        self.wtp_receiver = ble.WtpReceiver()
         self.operations = []
         self.profile = bytearray()
         self.generation = 7
@@ -207,37 +206,6 @@ class FakeBackend:
         else:
             raise AssertionError(f"unexpected operation {operation}")
 
-    def _handle_wtp(self, request):
-        if request["op"] == "HELLO":
-            body = {
-                "selected_version": "WTP/1",
-                "device_id": DEVICE,
-                "boot_id": BOOT,
-                "product": "WsprryPico",
-                "firmware_version": "test",
-            }
-        elif request["op"] == "STATUS":
-            body = {
-                "boot_id": BOOT,
-                "state": "empty",
-                "output_active": False,
-                "owner_id": None,
-                "job_id": None,
-                "terminal_records": [],
-            }
-        else:
-            raise AssertionError("unexpected WTP operation")
-        response = ble.wtp_frame({
-            "type": "response",
-            "protocol": "WTP/1",
-            "session_id": request["session_id"],
-            "request_id": request["request_id"],
-            "op": request["op"],
-            "ok": True,
-            "body": body,
-        })
-        for offset in range(0, len(response), 19):
-            self.callbacks[ble.UUIDS["wtpStatus"]](bytes(response[offset:offset + 19]))
 
     def write(self, uuid, value, response=True):
         if uuid == ble.UUIDS["command"]:
@@ -245,9 +213,6 @@ class FakeBackend:
             complete = self.command_receiver.receive(value)
             if complete is not None:
                 self._handle_field(json.loads(complete))
-        elif uuid == ble.UUIDS["wtpCommand"]:
-            for request in self.wtp_receiver.receive(value):
-                self._handle_wtp(request)
         else:
             raise AssertionError("unexpected characteristic")
 
@@ -273,23 +238,16 @@ class FramingTests(unittest.TestCase):
         with self.assertRaisesRegex(ble.ClientError, "frame_order"):
             receiver.receive(bytes((1, 0, 1, 1, 65)))
 
-    def test_wtp_fragment_crc_and_bounds(self):
-        message = {"type": "request", "protocol": "WTP/1", "body": {"value": "x" * 100}}
-        frame = ble.wtp_frame(message)
-        receiver = ble.WtpReceiver()
-        decoded = []
-        for offset in range(0, len(frame), 7):
-            decoded.extend(receiver.receive(frame[offset:offset + 7]))
-        self.assertEqual(decoded, [message])
-        corrupt = ble.wtp_frame(message)
-        corrupt[-1] ^= 1
-        with self.assertRaisesRegex(ble.ClientError, "wtp_crc"):
-            ble.WtpReceiver().receive(corrupt)
-        with self.assertRaisesRegex(ble.ClientError, "wtp_frame_invalid"):
-            ble.WtpReceiver().receive(b"X" * 16)
 
 
 class ClientTests(unittest.TestCase):
+    def test_retired_execution_carrier_is_unavailable(self):
+        self.assertEqual(set(ble.UUIDS), {"service", "identity", "command", "status"})
+        for name in ("WtpReceiver", "wtp_frame"):
+            self.assertFalse(hasattr(ble, name))
+        for name in ("enable_local_control", "wtp_exchange", "wtp_status"):
+            self.assertFalse(hasattr(ble.Client, name))
+
     def connected(self):
         backend = FakeBackend()
         client = ble.Client(backend, timeout=0.1)
@@ -369,14 +327,6 @@ class ClientTests(unittest.TestCase):
             ble.Client(FakeBackend()).authorize("secret")
         self.assertNotIn("secret", str(caught.exception))
 
-    def test_wtp_hello_and_status_use_unchanged_stream(self):
-        _, client = self.connected()
-        client.authorize("app-secret")
-        hello = client.enable_local_control()
-        self.assertEqual(hello["device_id"], DEVICE)
-        self.assertEqual(client.wtp_status(hello["boot_id"])["state"], "empty")
-        with self.assertRaisesRegex(ble.ClientError, "wtp_status_response"):
-            client.wtp_status("0" * 32)
 
     def test_atomic_profile_and_cancel_on_failure(self):
         backend, client = self.connected()
@@ -528,56 +478,46 @@ class ExchangeDeadlineTests(unittest.TestCase):
         client = ble.Client(backend, timeout=1)
         client.connect(ADDRESS, DEVICE)
         client.authorized = True
-        client.wtp_session = "b" * 32
-        backend.start_notify(ble.UUIDS["wtpStatus"], client._on_wtp_status)
         return backend, client
 
     def test_fragment_writes_cannot_continue_past_original_exchange_end(self):
-        for kind in ("field", "wtp"):
+        for kind in ("field",):
             with self.subTest(kind=kind):
                 now = [0.0]
                 backend, client = self.connected(now, 0.25, 0)
                 with patch.object(ble.time, "monotonic", side_effect=lambda: now[0]):
-                    with self.assertRaisesRegex(ble.ClientError, "^" + ("timeout" if kind == "field" else "wtp_timeout") + "$"):
+                    with self.assertRaisesRegex(ble.ClientError, "^timeout$"):
                         if kind == "field":
                             client.exchange(dict(version=1, operation="identify", request_id="a" * 32, padding="x" * 300))
-                        else:
-                            client.wtp_exchange("STATUS", dict(padding="x" * 300))
                 self.assertEqual(len(backend.sent), 4)
                 self.assertEqual(now[0], 1)
                 self.assertTrue(all(response is True for _, _, response in backend.sent))
                 self.assertEqual(backend.operations, [])
-                self.assertFalse(client._field_pending or client._wtp_pending)
+                self.assertFalse(client._field_pending)
                 self.assertEqual(client._field_responses, {})
-                self.assertEqual(client._wtp_responses, {})
 
     def test_reply_wait_uses_remaining_write_budget_with_adjacent_success(self):
         request = dict(version=1, operation="identify", request_id="a" * 32)
         field_frames = [bytes(value) for value in ble.gatt_frames(json.dumps(request, separators=(",", ":")).encode())]
-        wtp_request = dict(type="request", protocol="WTP/1", session_id="b" * 32,
-                           request_id="c" * 32, op="STATUS", body={})
-        wtp_frame = ble.wtp_frame(wtp_request)
-        wtp_frames = [bytes(wtp_frame[offset:offset + ble.WTP_SEGMENT_BYTES])
-                      for offset in range(0, len(wtp_frame), ble.WTP_SEGMENT_BYTES)]
-        for kind, frames in (("field", field_frames), ("wtp", wtp_frames)):
+        for kind, frames in (("field", field_frames),):
             for reply_s, succeeds in ((0.5, True), (0.65, False)):
                 with self.subTest(kind=kind, reply_s=reply_s):
                     now = [0.0]
                     backend, client = self.connected(now, 0.4 / len(frames), reply_s)
                     with (patch.object(ble.time, "monotonic", side_effect=lambda: now[0]),
                           patch.object(ble.secrets, "token_hex", return_value="c" * 32)):
-                        action = (lambda: client.exchange(request)) if kind == "field" else (lambda: client.wtp_exchange("STATUS", {}))
+                        action = lambda: client.exchange(request)
                         if succeeds:
                             result = action()
                             self.assertTrue(result.get("identified", result.get("state") == "empty"))
                             self.assertLess(now[0], 1)
                         else:
-                            with self.assertRaisesRegex(ble.ClientError, "^" + ("timeout" if kind == "field" else "wtp_timeout") + "$"):
+                            with self.assertRaisesRegex(ble.ClientError, "^timeout$"):
                                 action()
                             self.assertEqual(now[0], 1)
-                    expected_uuid = ble.UUIDS["command" if kind == "field" else "wtpCommand"]
+                    expected_uuid = ble.UUIDS["command"]
                     self.assertEqual(backend.sent, [(expected_uuid, value, True) for value in frames])
-                    self.assertFalse(client._field_pending or client._wtp_pending)
+                    self.assertFalse(client._field_pending)
 
 
 class ProfileFileTests(unittest.TestCase):

@@ -35,6 +35,23 @@ std::string station(const standalone::Config& c) {
 std::string gpio_drive_capabilities() {
     return std::string(network::control_descriptor("gpio_drive"));
 }
+std::string execution_capabilities(const wtp::ServiceConfig& c) {
+    const auto number = [](std::uint64_t value) { return wtp::json::quote(std::to_string(value)); };
+    std::string modes;
+    for (const auto& mode : c.supported_modes) {
+        if (!modes.empty()) modes += ',';
+        modes += wtp::json::quote(mode);
+    }
+    return "{\"modes\":[" + modes + "],\"engine\":" + wtp::json::quote(c.capability_engine) +
+        ",\"frequency_ranges\":[{\"minimum_nhz\":" + number(c.minimum_frequency_nhz) +
+        ",\"maximum_nhz\":" + number(c.maximum_frequency_nhz) + "}],\"max_events\":" +
+        std::to_string(c.max_events) + ",\"max_job_duration_ns\":" + number(c.max_job_duration_ns) +
+        ",\"minimum_arm_lead_ns\":" + number(c.minimum_arm_lead_ns) +
+        ",\"maximum_arm_ahead_ns\":" + number(c.maximum_arm_ahead_ns) +
+        ",\"maximum_arm_uncertainty_ns\":" + number(c.maximum_arm_uncertainty_ns) +
+        ",\"maximum_holdover_age_ns\":" + number(c.maximum_holdover_age_ns) +
+        ",\"output_disable_timeout_ns\":" + number(c.output_disable_timeout_ns) + "}";
+}
 std::string amplifier_capabilities(bool physical) {
     auto descriptor = std::string(network::control_descriptor("amplifier_enable"));
     descriptor.pop_back();

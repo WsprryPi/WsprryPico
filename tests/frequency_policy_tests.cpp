@@ -391,19 +391,13 @@ void admission_and_revocation() {
     REQUIRE(f.send("RELEASE").ok);
     f.flags(false, false);
     f.claim();
-    auto browser =
-        f.call("POST", "/api/control/v1/jobs",
-               "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" + f.id() +
-                   "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}');
-    REQUIRE(browser.status == 409 && browser.body.find("FREQUENCY_REJECTED") != browser.body.npos);
-    REQUIRE(f.service.status().state == wtp::State::Empty);
+    auto native=network_test::internal_message(f.service,compact);
+    REQUIRE(!native.ok&&native.error==wtp::ErrorCode::FrequencyRejected);
+    REQUIRE(f.service.status().state==wtp::State::Empty);
     REQUIRE(f.send("RELEASE").ok);
-    f.flags(true, false);
-    f.claim();
-    browser = f.call("POST", "/api/control/v1/jobs",
-                     "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" + f.id() +
-                         "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}');
-    REQUIRE(browser.status == 200 && f.service.status().state == wtp::State::Loaded);
+    f.flags(true,false);f.claim();
+    REQUIRE(network_test::internal_message(f.service,compact).ok&&f.service.status().state==wtp::State::Loaded);
+
 }
 void progress_storage_fault_admission() {
     // A failed real draft append must revoke ordinary qualified-band execution,
@@ -456,17 +450,13 @@ void message_frequency_policy() {
               std::tuple{74999999 * hz + 1, 14096900 * hz, false}}) {
             Fixture f;
             const auto compact = body(mode, first, second);
-            const auto send = [&] {
-                return f.call("POST", "/api/control/v1/jobs",
-                              "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" +
-                                  f.id() + "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact +
-                                  '}');
-            };
-            REQUIRE(send().status ==
-                    (std::string_view(mode) == "fskcw" && first <= second ? 400U : 409U));
+            const auto send=[&]{return network_test::internal_message(f.service,compact);};
+            const auto unowned=send();
+            REQUIRE(!unowned.ok);
+            if(std::string_view(mode)=="fskcw"&&first<=second)REQUIRE(unowned.error==wtp::ErrorCode::InvalidMessage);
             REQUIRE(f.raw.preparations == 0);
             f.claim();
-            REQUIRE((send().status == 200) == allowed);
+            REQUIRE(send().ok == allowed);
             REQUIRE(f.raw.preparations == (allowed ? 1U : 0U));
             REQUIRE(f.service.status().state == (allowed ? wtp::State::Loaded : wtp::State::Empty));
         }
@@ -476,10 +466,8 @@ void message_frequency_policy() {
     f.flags(true, true);
     f.claim();
     const auto compact = body("dfcw", 100000 * hz, 200000 * hz);
-    REQUIRE(f.call("POST", "/api/control/v1/jobs",
-                   "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" + f.id() +
-                       "\",\"operation\":\"LOAD_MESSAGE\",\"body\":" + compact + '}')
-                .status == 200);
+    REQUIRE(network_test::internal_message(f.service,compact).ok);
+
 }
 void autonomous_admission() {
     Fixture f;

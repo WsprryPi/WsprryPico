@@ -20,7 +20,7 @@ Every emitted tone must pass the selected engine limits and saved frequency perm
 
 The offline `scripts/decode_wspr_type23_pair.py --dial-hz <whole-Hz dial>` input is checked against the captured `schedule_dial_frequency_nhz`. It derives WSPR center as dial + 1500 Hz for capture translation and audio conversion; receiver tuning center remains independent. Synthetic analysis tests do not establish RF decoding or timing qualification.
 
-This is experimental scope, not supported-band or output-power qualification. See [clock limits](clock-support.md) and [band support](band-support.md) for frequency admission and conducted applicability. The separate `WsprryPico-RFBench` and USB-time `WsprryPico-RFWTP` remain available.
+This is experimental scope, not supported-band or output-power qualification. See [clock limits](clock-support.md) and [band support](band-support.md) for frequency admission and conducted applicability. The separate `WsprryPico-RFBench` Commands image remains available. RFWTP is retired; the application retains independent USB management/time.
 
 The application images also enforce the saved experimental frequency policy below before engine preparation. Numeric capabilities describe representability; they do not bypass the application policy or establish supported-band status. The separate diagnostic bench images retain their explicit experimental, numeric-only scope and do not consume the application configuration.
 

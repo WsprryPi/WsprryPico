@@ -15,8 +15,8 @@ import struct
 import termios
 import time
 
-from wtp_monitor import configure_raw
-from validate_wtp_contract import unique_object, reject_constant
+from console_io import configure_raw
+from strict_json import unique_object, reject_constant
 
 
 def finite_float(text):

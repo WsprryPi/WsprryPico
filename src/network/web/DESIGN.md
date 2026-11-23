@@ -14,6 +14,8 @@ colors:
   field-border: "#687e90"
   button-border: "#687e90"
   focus-amber: "#b37617"
+  access-locked-border: "#b13d32"
+  access-unlocked-border: "#287441"
   busy-backdrop: "rgb(15 28 40 / 48%)"
   busy-dark-surface: "#243746"
   busy-dark-border: "#96adbd"
@@ -104,14 +106,14 @@ and theme rules are not dependencies of this embedded surface.
 The interface presents station state and editable forms in a centered light
 page beneath a navy header. Technical values, plain labels, inline help, and
 explicit recovery messages carry the hierarchy. Timing belongs to the Pico;
-the browser prepares complete jobs and reports observations.
+the browser edits device-owned native schedules and reports observations.
 
 **Key Characteristics:**
 
 - Flat sections separated by borders and spacing.
 - Native controls with visible keyboard focus and explicit labels.
 - Inline validation that preserves the entered draft.
-- Exact finite-job duration and numerical event capacity.
+- Exact native message duration and numerical event capacity.
 - Confirmed status remains separate from estimated progress.
 
 ## Colors
@@ -161,7 +163,7 @@ their recognizable control geometry.
 
 ### Buttons and navigation
 
-Primary buttons submit settings or load and arm a complete job. Secondary
+Primary buttons submit settings or explicitly save and start a native schedule. Secondary
 buttons use white surfaces with dark text and a one-pixel border. Enabled hover uses `brightness(.93)`; disabled buttons retain `.6` opacity. Locked settings wrappers and their nested fieldsets retain full opacity so disclosure labels and read-only content remain legible; native disabled controls continue to enforce access.
 Keyboard focus has a three-pixel amber outline with a three-pixel offset. Programmatic section targets retain a one-rem scroll margin so the outline stays visible.
 The navy header contains the home link and two view links, Station Control and Wi-Fi/Host. Active navigation uses a 3px underline and aria-current. Selecting a view scrolls to window top while retaining the document, session and drafts. Native section summaries replace the body menu. Top closes managed and nested disclosures and focuses the hostname. Station starts with merged Transmitter status; Saved settings and recovery sits immediately above the final About this Pico / Diagnostics section. Wi-Fi/Host contains network, Pico password, hostname and Logging. WSPR Configuration and Radio pins have separate save/apply ownership; one cannot apply the other's drafts.
@@ -186,17 +188,17 @@ retain exact IDs. No new brand, palette, typography or commissioning UI is added
 
 Labels sit above full-width fields. Help is separate from the accessible field name and is associated with its control through `aria-describedby`. Grouped validation associates the error with every affected control and clears stale invalid state when a group member changes. Help stays beside its field and identifies
 units, bounds, and consequences. Native `details`/`summary` disclose timing
-settings and job-file loading; summaries have a `44px` minimum height. Focus
+settings and native schedule editing; summaries have a `44px` minimum height. Focus
 styling applies to inputs, textareas, selects, summaries, buttons, and links.
 Disabled fieldsets reflect connectivity, ownership, and capability availability.
 
 **The Preserved Draft Rule.** Reject invalid input with an explanation; retain
 the entered message for correction rather than truncating it or silently
-splitting it into jobs.
+splitting it into separate occurrences.
 
 The message form has adjacent availability guidance derived from the existing connectivity, ownership, restart and capability gates. It introduces no second authority for job admission.
 
-Saved CW schedule controls share one status region. Ordinary Refresh reads the schedule without replacing the draft; explicit Read saved schedule appears only for failed reads or action recovery and alone clears an unconfirmed action. Restore saved schedule confirms replacement of the complete editor and selects recurring delivery without transmitting. Existing schedules remain accessible while preparing Send once. Pause schedule appears only for an enabled schedule; pending pauses retain their durable-save guidance, and interrupted schedules expose Acknowledge interrupted schedule through the same pause endpoint. An already paused schedule explains the explicit save-and-start path to resume.
+Saved CW schedule controls share one status region. Ordinary Refresh reads the schedule without replacing the draft; explicit Read saved schedule appears only for failed reads or action recovery and alone clears an unconfirmed action. Restore saved schedule confirms replacement of the complete editor and selects recurring delivery without transmitting. Finite Send once and job-file controls are retired. Pause schedule appears only for an enabled schedule; pending pauses retain their durable-save guidance, and interrupted schedules expose Acknowledge interrupted schedule through the same pause endpoint. An already paused schedule explains the explicit save-and-start path to resume.
 
 ### LPF / band selector
 
@@ -316,7 +318,7 @@ The consumer login label is Pico password. Its default is the saved Wi-Fi passwo
 
 Time and calibration groups the cross-mode NTP timeout, Automatic beacon schedule policy, and carrier correction. Timeout uses one complete label with its adjacent section help link. Save beacon schedule applies the selected policy to the saved GPS settings and preserves drafts in Radio pins. Both values load automatically; explicit read actions appear only when readback is unavailable or a write needs recovery. Timeout uses whole minutes, defaults to 60, accepts zero for indefinite NTP holdover after initial synchronization, and keeps saved and active values separate. Reads remain available during a transmission; saves require inactive, unowned output and a current target/revision. The help explains restart activation, initial synchronization, and uncertainty handling for finite and unlimited timeout selections. Unconfirmed writes require readback before another save, and changing Pico identity preserves the entry behind explicit review.
 
-Transmission length appears immediately below the message and uses the same exact timing calculation as job submission. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown with saved settings visible in full-opacity locked sections; mutations and job controls remain locked. Ordinary entry leaves the password modal closed. Only deliberate lock activation opens it and focuses the password. Subsequent status updates preserve focus and drafts.
+Transmission length appears immediately below the message and uses the same exact native message timing calculation. It updates before a frequency is entered and includes repeats, gaps and the final tail. Signed-out status uses a bounded public projection with five-second polling; unavailable readings become unknown with saved settings visible in full-opacity locked sections; mutations and schedule controls remain locked. Ordinary entry leaves the password modal closed. Only deliberate lock activation opens it and focuses the password. Subsequent status updates preserve focus and drafts.
 
 ### Contextual status console
 
@@ -362,3 +364,7 @@ A single fixed, noninteractive tooltip uses the existing notice surface, body te
 The RF engine/GPIO/Button row and GPS field groups share content-sized caption, control, and optional help tracks through CSS subgrid. Caption wrappers retain native labels and allow long text and the existing 44 px help targets to determine row height. Controls share the next track; inline messages occupy the following track. No fixed caption heights or individual field offsets are used. Si5351 hides the direct GPIO label and uses two columns above the existing 650 px stacking breakpoint. Native associations, values, and disabled state remain unchanged. Links inside field labels remain independent actions when controls are locked.
 
 Successful password login leaves the lock button unfocused. Locked and unlocked states use matching 4 px red and green borders with reduced internal padding to retain the 44 px button and centered icon. Cancel and Escape return focus to the lock; deliberate keyboard navigation retains the amber focus outline.
+
+### Native schedule safety
+
+Stop native schedules disables both WSPR and keyed-message recurrence through the existing bounded output cleanup. Its result and explicit Read stop status sit beside the action. A lost or refused result keeps output and ownership unknown for that action, disables another stop, reset, and settings mutations, and retains every settings draft. Ordinary Refresh cannot resolve the hold; only explicit stop readback can confirm disabled schedules and inactive, unowned output. Local USB Console recovery remains the unavailable-device path. Read saved settings before a deliberate native enable.

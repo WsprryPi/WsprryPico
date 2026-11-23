@@ -102,36 +102,19 @@ err_t wsprry_mdns_add(struct netif* interface, const char* label) {
     changed = 0;
     return mdns_resp_add_netif(interface, label);
 }
-static void wtp_txt(struct mdns_service* service, void* binding) {
-    static const char version[] = "txtvers=1";
-    const char* selected = (const char*)binding;
-    (void)mdns_resp_add_service_txtitem(service, version, sizeof(version) - 1);
-    (void)mdns_resp_add_service_txtitem(service, selected, (u8_t)strlen(selected));
+static void management_txt(struct mdns_service* service, void* context) {
+    static const char* const entries[] = {"txtvers=1", "product=WsprryPico", "management=Consumer-Radio/1"};
+    size_t i;
+    (void)context;
+    for(i=0;i<sizeof(entries)/sizeof(entries[0]);++i)
+        (void)mdns_resp_add_service_txtitem(service, entries[i], (u8_t)strlen(entries[i]));
 }
 err_t wsprry_mdns_add_http_service(struct netif* interface, const char* instance) {
     s8_t slot;
     if (!interface || !NETIF_TO_HOST(interface) || !instance || !*instance ||
         strlen(instance) > MDNS_LABEL_MAXLEN)
         return ERR_VAL;
-    slot = mdns_resp_add_service(interface, instance, "_http", DNSSD_PROTO_TCP, 80, NULL, NULL);
-    return slot < 0 ? (err_t)slot : ERR_OK;
-}
-err_t wsprry_mdns_add_wtp_service(struct netif* interface, const char* instance, u16_t port,
-                                  const char* binding) {
-    static char plain[] = "binding=plain";
-    static char tls[] = "binding=tls";
-    s8_t slot;
-    if (!interface || !NETIF_TO_HOST(interface) || !instance || !*instance ||
-        strlen(instance) > MDNS_LABEL_MAXLEN || !port || !binding)
-        return ERR_VAL;
-    if (strcmp(binding, "plain") == 0)
-        binding = plain;
-    else if (strcmp(binding, "tls") == 0)
-        binding = tls;
-    else
-        return ERR_VAL;
-    slot = mdns_resp_add_service(interface, instance, "_wtp", DNSSD_PROTO_TCP, port, wtp_txt,
-                                 (void*)binding);
+    slot = mdns_resp_add_service(interface, instance, "_http", DNSSD_PROTO_TCP, 80, management_txt, NULL);
     return slot < 0 ? (err_t)slot : ERR_OK;
 }
 static err_t goodbye(struct netif* interface) {

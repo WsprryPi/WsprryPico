@@ -119,6 +119,12 @@ def version_kind(version):
     return 'prerelease' if match[4] is not None else 'stable'
 
 
+def validation_ref(event, ref):
+    """Manual Codex feature builds are previews, never deployment candidates."""
+    return event == 'workflow_dispatch' and isinstance(ref, str) and re.fullmatch(
+        r'refs/heads/codex/[A-Za-z0-9][A-Za-z0-9._/-]{0,150}', ref) is not None
+
+
 def firmware_channel(version, workflow):
     """Bind version kind to the actual workflow ref, never its display name."""
     kind = version_kind(version)
@@ -131,6 +137,8 @@ def firmware_channel(version, workflow):
     if event == 'pull_request':
         require(kind == 'ci' and re.fullmatch(r'refs/pull/[1-9][0-9]*/merge', ref), 'Invalid preview identity')
         stream = 'pull-request'
+    elif validation_ref(event, ref):
+        stream = 'validation'
     else:
         require(ref in ('refs/heads/main', 'refs/heads/devel'), 'Unsupported CI branch')
         stream = ref.removeprefix('refs/heads/')
@@ -138,7 +146,7 @@ def firmware_channel(version, workflow):
         require(event == 'workflow_dispatch' and stream == 'devel', 'Testing version requires manual devel dispatch')
     else:
         require(version == f"0.1.0-ci.{workflow['run_id']}.{workflow['attempt']}", 'CI version/run mismatch')
-    return stream, 'ci-testing', stream != 'pull-request' and kind != 'testing'
+    return stream, 'ci-testing', stream not in ('pull-request', 'validation') and kind != 'testing'
 
 
 def release_asset_url(tag, name):

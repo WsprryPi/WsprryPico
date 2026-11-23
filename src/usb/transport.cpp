@@ -17,7 +17,9 @@ std::array<char, kLoggingCapacity> logging_queue{};
 std::size_t logging_head = 0, logging_size = 0;
 bool logging_reset = true;
 std::array<bool, USB_CDC_COUNT> connected{};
-bool wtp_reset = true;
+#ifdef WSPRRY_PICO_RF_BENCH
+bool bench_reset = true;
+#endif
 bool console_reset = true;
 bool management_reset = true;
 
@@ -35,9 +37,12 @@ void disconnect(std::uint8_t port) {
     } else if (port == USB_CDC_LOGGING) {
         logging_reset = true;
         logging_head = logging_size = 0;
-    } else if (port == USB_CDC_WTP) {
-        wtp_reset = true;
     }
+#ifdef WSPRRY_PICO_RF_BENCH
+    else if (port == USB_CDC_RESERVED) {
+        bench_reset = true;
+    }
+#endif
 }
 } // namespace
 
@@ -52,14 +57,25 @@ void service() {
             }
         } else if (!connected[port]) {
             connected[port] = true;
-            if (port == USB_CDC_WTP)
-                wtp_reset = true;
-            else if (port == USB_CDC_MANAGEMENT)
+            if (port == USB_CDC_MANAGEMENT)
                 management_reset = true;
             else if (port == USB_CDC_LOGGING)
                 logging_reset = true;
+#ifdef WSPRRY_PICO_RF_BENCH
+            else if (port == USB_CDC_RESERVED)
+                bench_reset = true;
+#endif
         }
     }
+#ifndef WSPRRY_PICO_RF_BENCH
+    // Reserved allocation has no parser, response, or execution entry point.
+    // A flooding host can consume at most one small read per foreground pass.
+    if (connected[USB_CDC_RESERVED]) {
+        std::array<std::uint8_t, kServiceBytes> discard{};
+        (void)tud_cdc_n_read(USB_CDC_RESERVED, discard.data(), discard.size());
+        tud_cdc_n_write_clear(USB_CDC_RESERVED);
+    }
+#endif
     if (connected[USB_CDC_CONSOLE] && size != 0) {
         const auto count = std::min({size, kConsoleCapacity - head, kServiceBytes});
         const auto accepted = tud_cdc_n_write(USB_CDC_CONSOLE, console_queue.data() + head, count);
@@ -110,9 +126,11 @@ bool console_output_pending() {
     return console_connected() &&
            (size != 0 || tud_cdc_n_write_available(USB_CDC_CONSOLE) < CFG_TUD_CDC_TX_BUFSIZE);
 }
-bool wtp_connected() {
-    return connected[USB_CDC_WTP];
+#ifdef WSPRRY_PICO_RF_BENCH
+bool bench_connected() {
+    return connected[USB_CDC_RESERVED];
 }
+#endif
 bool management_connected() {
     return connected[USB_CDC_MANAGEMENT];
 }
@@ -136,11 +154,13 @@ bool take_console_reset() {
     console_reset = false;
     return result;
 }
-bool take_wtp_reset() {
-    const bool result = wtp_reset;
-    wtp_reset = false;
+#ifdef WSPRRY_PICO_RF_BENCH
+bool take_bench_reset() {
+    const bool result = bench_reset;
+    bench_reset = false;
     return result;
 }
+#endif
 bool console_write(std::string_view text) {
     if (!console_connected() || text.size() > kConsoleCapacity - size) {
         return false;
@@ -161,19 +181,21 @@ std::size_t console_transport_read(std::span<std::uint8_t> bytes) {
         return 0;
     return tud_cdc_n_read(USB_CDC_CONSOLE, bytes.data(), std::min(bytes.size(), kServiceBytes));
 }
-std::size_t wtp_transport_write(std::span<const std::uint8_t> bytes) {
-    if (!wtp_connected()) {
+#ifdef WSPRRY_PICO_RF_BENCH
+std::size_t bench_transport_write(std::span<const std::uint8_t> bytes) {
+    if (!bench_connected()) {
         return 0;
     }
     const auto count = std::min(bytes.size(), kServiceBytes);
-    return tud_cdc_n_write(USB_CDC_WTP, bytes.data(), count);
+    return tud_cdc_n_write(USB_CDC_RESERVED, bytes.data(), count);
 }
-std::size_t wtp_transport_read(std::span<std::uint8_t> bytes) {
-    if (!wtp_connected()) {
+std::size_t bench_transport_read(std::span<std::uint8_t> bytes) {
+    if (!bench_connected()) {
         return 0;
     }
-    return tud_cdc_n_read(USB_CDC_WTP, bytes.data(), std::min(bytes.size(), kServiceBytes));
+    return tud_cdc_n_read(USB_CDC_RESERVED, bytes.data(), std::min(bytes.size(), kServiceBytes));
 }
+#endif
 } // namespace wsprrypico::usb
 
 // Callbacks execute within the same tud_task owner as service(). Clear on the

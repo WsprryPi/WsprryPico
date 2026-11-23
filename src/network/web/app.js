@@ -55,9 +55,9 @@ const requestId = () => typeof crypto.randomUUID === 'function' ? crypto.randomU
   [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2,'0')).join('');
 const radio = globalThis.WsprryPicoConsumerRadio?.createClient();
 let session = requestId();
-let activePlan = null, capabilitiesBoot = null, pinChoices = null, filterSaved = null;
-let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, expectedPause = false, observedAt = '';
-let stopRequested = false, stopping = false;
+let capabilitiesBoot = null, pinChoices = null, filterSaved = null;
+let revision = '', currentConfig = null, snapshot = null, capabilities = null, busy = false, online = false, dirty = false, observedAt = '';
+let nativeStopUnknown = false;
 const si5351Editor = $('si5351-settings') ? WsprrySi5351.create($('si5351-settings'), {
   compact:true,
   changed:()=>{dirty=true;showDraftComparison();lockPins();}
@@ -82,8 +82,6 @@ const submissions = WsprrySubmission.create(document, {
     const choices = [];
     if (accessLoginPending) choices.push({id:'cancel',label:'Cancel login',run:closeAccess});
     if (controlsUnlocked() && (radio || localIdentity)) choices.push({id:'lock',label:'Lock controls',run:lockAccess});
-    if (controlsUnlocked())
-      choices.push({id:'abort',label:'Abort this browser’s job',run:requestAbort});
     return choices;
   }
 });
@@ -133,8 +131,8 @@ function renderConsole() {
   if (!operationsSnapshot) return;
   privateStatusVisible=true;
   const view=WsprryOperations.model(operationsSnapshot,capabilities,session);
-  consoleState(view.state,view.explanation,view.warning);
-  if($('console-state')) $('console-state').hidden=operationsSnapshot.job.state==='empty' && !view.warning && view.state!=='Recovery required';
+  consoleState(nativeStopUnknown ? 'Native stop unconfirmed' : view.state,nativeStopUnknown ? 'Read stop status to confirm output and ownership. Your settings drafts are preserved.' : view.explanation,nativeStopUnknown ? 'Read stop status to confirm output and ownership. Your settings drafts are preserved.' : view.warning);
+  if($('console-state')) $('console-state').hidden=operationsSnapshot.job.state==='empty' && !view.warning && !nativeStopUnknown && view.state!=='Recovery required';
   for(const field of ['mode','frequency','message','progress','next','correction','actions']) consolePut('console-'+field,view[field]);
   consolePut('console-frequency-label',view.frequencyLabel);
   $('console-next-item').hidden=!view.next;
@@ -154,13 +152,7 @@ function utcNowMs() {
 function utcFieldMs(input) {
   return globalThis.WsprryUtcDateTime ? WsprryUtcDateTime.parse(input.value)?.ms ?? NaN : Date.parse(input.value.replace(' ','T')+'Z');
 }
-function jobStartMs(id) {
-  const value = utcFieldMs($(id));
-  if (!Number.isFinite(value)) throw new Error('Choose a UTC start date and time');
-  if (value <= utcNowMs()) throw new Error('Choose a future UTC start time. Current UTC is ' + new Date(utcNowMs()).toISOString().slice(0,19).replace('T',' '));
-  return value;
-}
-const utcEditors = globalThis.WsprryUtcDateTime ? ['schedule-expiry','message-start','start','message-until']
+const utcEditors = globalThis.WsprryUtcDateTime ? ['schedule-expiry','message-start','message-until']
   .map(id=>$(id)).filter(input=>input?.closest?.('[data-utc-picker]'))
   .map(input=>WsprryUtcDateTime.create(input,utcNowMs)) : [];
 let picoPasswordState = null, frequencyRefreshing = false, activeEditor=null;
@@ -181,7 +173,7 @@ let publicStatusEpoch = 0;
 let accessEpoch=0, accessLoginPending=false, accessClosing=false, accessDiscovered=false, localLocked=false;
 let accessInterrupted=false;
 let accessWasAuthenticated=false, accessCarrier=radio ? 'consumer' : 'unknown';
-if(radio) radio.requestAllowed=()=>!accessClosing && (!stopRequested || stopping);
+if(radio) radio.requestAllowed=()=>!accessClosing;
 function renderAccess() {
   const certificate=accessCarrier==='certificate' && accessDiscovered;
   const authenticated=!accessClosing && !accessLoginPending && (radio ? localAuthenticated && radio.authenticated : localIdentity ? localAuthenticated && !localLocked : certificate && online);
@@ -267,7 +259,6 @@ async function finishLock() {
       $('local-login').hidden=false; $('local-logout').hidden=true;
       $('local-status').textContent=confirmed ? 'This browser is signed out. Accepted jobs and saved settings remain.' : 'Locally locked; remote logout unconfirmed.';
       if(confirmed) notice('This browser is signed out. Logout does not stop accepted jobs or schedules.'+(accessInterrupted ? ' An earlier request may already have been accepted. Read its result before repeating it.' : ''),accessInterrupted);
-      if(stopRequested) { stopRequested=false; notice('Controls locked. Abort was not confirmed; use USB Console ABORT if required. Accepted jobs and automatic schedules may remain.',true); }
       controls(false);
     }
   },{message:'Locking this browser.'});
@@ -290,7 +281,7 @@ let settingsRecoveryNeeded = false, settingsReviewRequested = false;
 
 if ($('standalone-frequency-form')) $('standalone-frequency-form').onsubmit = event => event.preventDefault();
 const frequencyEditor = globalThis.WsprryStandaloneFrequency && $('standalone-frequency') ? WsprryStandaloneFrequency.create({
-  ranges:()=>capabilities?.wtp?.frequency_ranges,
+  ranges:()=>capabilities?.execution?.frequency_ranges,
   input:$('standalone-frequency'),read:$('standalone-frequency-read'),save:$('standalone-frequency-save'),discard:$('standalone-frequency-discard'),adopt:$('standalone-frequency-adopt'),status:$('standalone-frequency-status'),
   run:frequencyAction,
   context:()=>({device_id:localIdentity?.device_id,boot_id:snapshot?.job.boot_id}),
@@ -749,9 +740,9 @@ function updateSetupReceipt() {
 }
 const notice = (text, error = false) => { $('notice').hidden = !text; $('notice').textContent = text; $('notice').classList.toggle('error', error); };
 async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyObservation = false) {
-  if(stopRequested && !stopping) throw Object.assign(new Error('Abort requested. The earlier operation will not submit another step; its dispatched result still needs checking.'),{local:true});
   if(['unknown','unavailable'].includes(accessCarrier)) throw new Error('Identify this connection with Refresh before using controls');
   if(accessClosing || localLocked && localIdentity && !radio) throw new Error('Controls are locked in this browser. An earlier request may already have been accepted; read back before repeating it.');
+  if (method !== 'GET' && nativeStopUnknown) throw new Error('Read stop status before another change. The earlier stop is unconfirmed.');
   if (method !== 'GET' && !controlsUnlocked()) { const e=new Error('Unlock controls before changing the Pico.'); e.local=true; throw e; }
   if (path === 'jobs' && method === 'POST') await updateFieldTime();
   if (method !== 'GET') body = {...(body || {}),contract:WsprryControl.contract};
@@ -895,7 +886,7 @@ async function discoverLocal() {
     $('local-status').textContent = 'Local access requires authentication.';
     try {
       const state = await local('status');
-      if (state.wtp_session) session = state.wtp_session;
+      if (state.control_session) session = state.control_session;
     } catch (_) { notice('Enter the local-access password to authorize this SoftAP browser.'); return true; }
     localAuthenticated = true; $('local-login').hidden = true;
     $('local-status').textContent = 'Local session authenticated.';
@@ -921,7 +912,7 @@ function authenticationLockApplies(node) {
   // Do not explain hardware/ownership, unsupported, or uncertain-save locks as authentication.
   if(!snapshot || snapshot.job.owner_id!==null || snapshot.job.output_active!==false ||
      !['empty','complete','aborted','missed'].includes(snapshot.job.state))return false;
-  if(node.closest('#message-settings') && (!capabilities?.message_jobs || snapshot.standalone.reboot_required))return false;
+  if(node.closest('#message-settings') && (!capabilities?.message_limits || snapshot.standalone.reboot_required))return false;
   if(node.closest('#job-settings') && snapshot.standalone.reboot_required)return false;
   if(node.closest('#pin-settings,#amplifier-pin-settings') && !pinChoices)return false;
   if(node.closest('#amplifier-pin-settings') && !supportsAmplifier())return false;
@@ -955,22 +946,22 @@ function controls(connected) {
   online = connected;
   const unlocked=controlsUnlocked();
   if(!unlocked) gpsEditor?.observation(null);
-  if ($('field-access-settings')) $('field-access-settings').disabled = !unlocked || uiBusy() || !fieldTimeSupported();
-  for (const id of ['station-settings-lock','wifi-settings-lock']) if($(id)) $(id).disabled=!unlocked || uiBusy();
+  if ($('field-access-settings')) $('field-access-settings').disabled = nativeStopUnknown || !unlocked || uiBusy() || !fieldTimeSupported();
+  for (const id of ['station-settings-lock','wifi-settings-lock']) if($(id)) $(id).disabled=nativeStopUnknown || !unlocked || uiBusy();
   loggingControls();
   messageSchedulingControls();
   if ($('public-status-note')) $('public-status-note').hidden = true;
-  calibrationEditor?.setAvailability(!!connected && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
-  frequencyEditor?.setAvailability(!!connected && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  calibrationEditor?.setAvailability(!!connected && !nativeStopUnknown && WsprryRfCalibration.supported(capabilities?.rf_calibration) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  frequencyEditor?.setAvailability(!!connected && !nativeStopUnknown && WsprryStandaloneFrequency.supported(capabilities?.standalone_frequency) && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
   driveEditor?.setPolicy(capabilities?.gpio_drive);
-  driveEditor?.setAvailability(!!connected && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
-  filterEditor?.setAvailability(!!connected && !!snapshot && WsprryFilters.supported(capabilities?.filter_selector), !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  driveEditor?.setAvailability(!!connected && !nativeStopUnknown && !!snapshot && (loadingSettings || snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state)));
+  filterEditor?.setAvailability(!!connected && !nativeStopUnknown && !!snapshot && WsprryFilters.supported(capabilities?.filter_selector), !!connected && !nativeStopUnknown && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   timingEditor?.setPolicy(capabilities?.amplifier_timing);
-  timingEditor?.setAvailability(!!connected && !!snapshot, !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
-  grayLineEditor?.setAvailability(!!connected && !!snapshot && WsprryControl.supported('gray_line',capabilities?.gray_line), !!connected && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
-  ntpTimeoutEditor?.setAvailability(!!connected && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  timingEditor?.setAvailability(!!connected && !nativeStopUnknown && !!snapshot, !!connected && !nativeStopUnknown && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  grayLineEditor?.setAvailability(!!connected && !nativeStopUnknown && !!snapshot && WsprryControl.supported('gray_line',capabilities?.gray_line), !!connected && !nativeStopUnknown && controlsUnlocked() && !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
+  ntpTimeoutEditor?.setAvailability(!!connected && !nativeStopUnknown && !!snapshot, !!snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && ['empty','complete','aborted','missed'].includes(snapshot.job.state));
   $('refresh').disabled = uiBusy();
-  const idle = online && unlocked && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
+  const idle = online && unlocked && !nativeStopUnknown && snapshot && snapshot.job.owner_id === null && snapshot.job.output_active === false && !['armed','running','failed'].includes(snapshot.job.state);
   $('settings').disabled = uiBusy() || !idle;
   for (const area of ['station','network']) {
     $('engineering-' + area + '-form').hidden = Boolean(radio);
@@ -998,6 +989,12 @@ function controls(connected) {
   $('hostname-review').disabled = uiBusy() || !idle;
   renderHostnameLink();
   $('restart').disabled = uiBusy() || !idle || snapshot?.job.state==='loaded' || !capabilities?.features?.restart || restartSent || Boolean(operationsSnapshot&&!operationsSnapshot.reset_allowed) || !consoleObservedMs || Date.now()-consoleObservedMs>15000;
+  if ($('native-stop')) {
+    const supported = WsprryControl.supported('schedule_stop',capabilities?.schedule_stop);
+    $('native-stop').disabled = !connected || !unlocked || uiBusy() || nativeStopUnknown || !supported || !operationsTarget || !consoleObservedMs || Date.now()-consoleObservedMs>15000;
+    $('native-stop-read').hidden = !nativeStopUnknown;
+    $('native-stop-read').disabled = !connected || !unlocked || uiBusy() || !supported || !operationsTarget;
+  }
   if (hostnameState?.pending_restart) {
     $('consumer-network-settings').disabled = true;
     $('consumer-station-settings').disabled = true;
@@ -1007,16 +1004,12 @@ function controls(connected) {
   gpsEditor?.enable(controlsUnlocked() && !uiBusy() && idle && writeState==='ready' && WsprryControl.supported('gps',capabilities?.gps));
   if($('save-pins')) $('save-pins').disabled = uiBusy() || !idle || writeState !== 'ready' || !currentConfig;
   $('save-beacon-policy').disabled = $('save-pins').disabled || !WsprryControl.supported('gps',capabilities?.gps);
-  $('job-settings').disabled = uiBusy() || !idle || snapshot.standalone.reboot_required;
-  $('message-settings').disabled = $('job-settings').disabled || !capabilities?.message_jobs;
+  $('message-settings').disabled = uiBusy() || !idle || snapshot.standalone.reboot_required || !messageSchedulingSupported();
   $('message-availability').textContent = !unlocked ? '' : !online ? (radio && !localAuthenticated ? 'Use the lock beside the hostname to unlock controls and prepare a message.' : 'Connection unavailable. Refresh status before preparing a message; RF output is unknown.') :
     uiBusy() ? 'Waiting for the current request to finish.' : !idle ? 'The transmitter is occupied or its job/output state does not permit a new job. Check Transmitter status above.' :
     snapshot.standalone.reboot_required ? 'Saved changes require a restart. Use Reset Pico in Transmitter status before preparing another job.' :
-    !capabilities?.message_jobs ? 'This firmware does not advertise message jobs. A supported job file can still be used below.' :
-    'Prepare a complete message below. Load and arm sends one explicit job; the Pico validates its timing and frequency.';
-  // A polling read can drain before ABORT; it must not hide the stop intent.
-  $('abort').disabled = !unlocked || !online || snapshot?.job.owner_id !== session || !['loaded','armed','running'].includes(snapshot.job.state);
-  $('release').disabled = uiBusy() || !unlocked || !online || snapshot?.job.owner_id !== session || snapshot.job.output_active !== false || ['armed','running','failed'].includes(snapshot.job.state);
+    !messageSchedulingSupported() ? 'Native message scheduling is unavailable on this device.' :
+    'Prepare and explicitly save a message schedule. The Pico owns its recurring transmissions and validates timing and frequency.';
   if (savedProgress) {
     $('initial-config').disabled = uiBusy() || !idle || writeState !== 'ready' || !savedProgress.data.complete;
     $('apply-progress').disabled = uiBusy() || !idle || writeState !== 'ready' || !currentConfig || !['enabled','schedules','expires_utc_s'].some(key=>Object.hasOwn(savedProgress.data.fields,key));
@@ -1107,7 +1100,7 @@ async function refresh(loadConfig = false, quiet = false) {
          identity.target.device_id!==device||identity.target.boot_id!==observation.job?.boot_id||
          !/^[0-9a-f]{32}$/.test(identity.target.boot_id)||canonicalHostname(identity.active)!==identity.active)
         throw new Error('The new boot could not be bound to the same authenticated Pico');
-      operationsTarget={...identity.target};activePlan=null;requireReadback();
+      operationsTarget={...identity.target};requireReadback();
     }
     if(enhanced) {
       const expected=localIdentity?.boot_id?localIdentity:operationsTarget;
@@ -1121,7 +1114,7 @@ async function refresh(loadConfig = false, quiet = false) {
       consolePut('console-frequency-label','Frequency');
       consolePut('console-next',''); $('console-next-item').hidden=true;
     }
-    privateStatusVisible=true; snapshot=observation; consoleObservedMs=Date.now(); expectedPause = false; observedClockMs = Date.now();
+    privateStatusVisible=true; snapshot=observation; consoleObservedMs=Date.now(); observedClockMs = Date.now();
     if(!enhanced) {
       const j=snapshot.job;
       consoleState(j.state==='failed'||j.output_active&&!['armed','running'].includes(j.state)?'Recovery required':'Job '+j.state, (j.output_active && !['armed','running'].includes(j.state)?'RF is reported active outside an accepted running job. ':j.state==='running'?'The accepted job is still running; RF may be off during keyed gaps. ':'')+'This connection supplies basic status. Contextual message, schedule and frequency details are unavailable. RF-off alone does not establish job completion.');
@@ -1134,9 +1127,9 @@ async function refresh(loadConfig = false, quiet = false) {
     $('state').textContent = snapshot.job.state;
     $('job-result').textContent = snapshot.job.job_id ? `Job ${snapshot.job.job_id}: ${snapshot.job.state} · observed ${observedAt}` : 'No loaded job · observed ' + observedAt;
     if (s.last_job === snapshot.job.job_id && Number.isInteger(s.wspr_frame) && s.wspr_frame > 0 && s.wspr_frame <= s.wspr_frames && [1,2].includes(s.wspr_frames)) $('job-result').textContent += ` · standalone WSPR frame ${s.wspr_frame} of ${s.wspr_frames}${s.wspr_pair_pending ? ' · pair in progress' : ''}`;
-    $('output').textContent = snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
+    $('output').textContent = nativeStopUnknown ? 'Unknown · stop unconfirmed' : snapshot.job.output_active === true ? 'Active' : snapshot.job.output_active === false ? 'Inactive' : 'Unknown';
     $('clock').textContent = `${s.clock_state === 'holdover' ? 'Holdover' : s.clock_state === 'synchronized' ? 'Synchronized' : 'Unsynchronized'} · ±${(Number(s.uncertainty_ns)/1e6).toFixed(2)} ms`;
-    $('owner').textContent = snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id ? 'Other controller' : 'Available';
+    $('owner').textContent = nativeStopUnknown ? 'Unknown · stop unconfirmed' : snapshot.job.owner_id === session ? 'This browser' : snapshot.job.owner_id === 'e'.repeat(32) ? 'Pico schedule' : snapshot.job.owner_id ? 'Other controller' : 'Available';
     $('network').textContent = `${n.link_status === 3 ? 'Connected' : 'Disconnected'} · ${n.ipv4 || 'No address'}`;
     await readHostname(identityRequest);
     await updateFieldTime(loadConfig);
@@ -1145,7 +1138,7 @@ async function refresh(loadConfig = false, quiet = false) {
     if (radio) {
       updateSetupReceipt();
     }
-    $('recovery').textContent = !capabilities.active_job_connections ? 'Network pauses during armed/running jobs; stop through the owning controller or USB Console ABORT. ' : '';
+    $('recovery').textContent = !capabilities.active_execution_connections ? 'Network access may pause during native execution. Use USB Console STOP if remote stop is unavailable. ' : '';
     $('recovery').textContent += !s.storage_healthy ? 'Storage fault. Recover through USB Console.' : s.reboot_required ? 'Settings saved. Use Reset Pico to apply them.' : s.suspended ? 'Standalone operation is suspended.' : '';
     if (s.frequency_required) $('recovery').textContent += ' Future WSPR needs a saved dial before schedules can be enabled.';
     if (loadConfig) {
@@ -1174,21 +1167,21 @@ async function refresh(loadConfig = false, quiet = false) {
     if(loadConfig) await loadAllSettings();
     if(epoch!==observationEpoch) return;
     renderConsole();
-    updateProgress(); messagePreview();
+    messagePreview();
     if(!quiet) notice(''); controls(true);
-  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (expectedPause) notice('RF job accepted. New network connections pause while armed or running. Use USB Console ABORT to stop it, or refresh after completion.'); else if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
+  } catch (e) { if(epoch!==observationEpoch) return; clearConsole('Status could not be confirmed. RF output and current job state are unknown.'); if(radio&&!radio.authenticated) clearPrivateStatus(); markTitleStale(); snapshot = null; $('job-progress').textContent = 'Progress unavailable · status unknown'; $('state').textContent = 'Unknown · read failed'; $('output').textContent = 'Unknown'; for (const id of ['clock','owner','network']) $(id).textContent = 'Unknown'; $('discovery-help').textContent = ''; if (radio && !radio.authenticated) { localAuthenticated=false; $('local-login').hidden=false; $('local-logout').hidden=true; $('local-status').textContent='Controls locked. Public readback is unavailable.'; notice('Read-only status or settings could not be read: '+e.message+'. Check the connection and refresh. Your drafts are preserved.',true); } else notice('Connection unavailable: ' + e.message + '. The connection limit may be reached. Check Wi-Fi and the client certificate, then refresh.', true); controls(false); }
 }
 async function action(fn, options = {}) {
-  if (accessClosing || stopRequested && !options.emergency) return;
+  if (accessClosing) return;
   let recoveryControl=null;
   return submissions.run(async token => {
     busy = true;
     try {
       controls(online);
-      if(!accessClosing && (!stopRequested || options.emergency)) await fn();
+      if(!accessClosing && true) await fn();
     } catch (e) {
       if(e.control) recoveryControl=e.control;
-      if (!accessClosing && !stopRequested && (e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
+      if (!accessClosing && (e.serverResponse || e.unconfirmed) && (!radio || radio.authenticated)) await refresh();
       if (['revision_conflict','precondition_failed'].includes(e.code)) requireReadback();
       if (radio && !radio.authenticated) { localAuthenticated = false; $('local-login').hidden = false; $('local-logout').hidden = true; requireReadback(Boolean(saveAttempt)); }
       notice(e.message + (e.code ? ' (' + e.code + ')' : '') + (e.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : ''),true);
@@ -1198,7 +1191,7 @@ async function action(fn, options = {}) {
     finally {
       // Consumer requests are sequential. Keep other actions locked until this
       // readiness read completes, including after login or station application.
-      try { if(!accessClosing && !stopRequested && options.refreshFrequency!==false && (!options.background || submissions.token===token)) {
+      try { if(!accessClosing && options.refreshFrequency!==false && (!options.background || submissions.token===token)) {
         frequencyRefreshing = true; controls(online);
         try { await frequencyEditor?.refresh(); }
         finally { frequencyRefreshing = false; }
@@ -1207,9 +1200,8 @@ async function action(fn, options = {}) {
     }
   },{...options,drain:()=>{++observationEpoch;},message:options.message || 'Processing your Pico request.'}).finally(async () => {
     controls(online);
-    if(recoveryControl && !accessClosing && !stopRequested) {recoveryControl.reportValidity?.();recoveryControl.focus?.();}
+    if(recoveryControl && !accessClosing) {recoveryControl.reportValidity?.();recoveryControl.focus?.();}
     if(accessClosing) await finishLock();
-    else if(stopRequested && !stopping) await finishAbort();
   });
 }
 async function editorAction(name,fn) {
@@ -1485,55 +1477,47 @@ $('apply-station-progress').onclick = () => action(async () => {
     await saveConsumer('station',savedProgress.data.station);
   }
 });
-async function job(operation, body = {}) {
-  const result = await api('jobs','POST',{session_id:session,request_id:requestId(),operation,body});
-  return result.data;
+function checkedNativeStop(result, target) {
+  const value=result.data, names=['message_enabled','output_active','owned','schema','stopped','target','wspr_enabled'];
+  if (!value || Object.keys(value).sort().join(',')!==names.join(',') || value.schema!=='schedule-stop' ||
+      !value.target || Object.keys(value.target).sort().join(',')!=='boot_id,device_id,scope' ||
+      value.target.scope!=='member' || value.target.device_id!==target.device_id || value.target.boot_id!==target.boot_id ||
+      !['message_enabled','output_active','owned','stopped','wspr_enabled'].every(key=>typeof value[key]==='boolean') ||
+      value.stopped && (value.message_enabled || value.wspr_enabled || value.output_active || value.owned) ||
+      typeof result.revision!=='string' || !/^"[^"\x00-\x20\x7f]{1,126}"$/.test(result.revision))
+    throw Object.assign(new Error('Native schedule stop status could not be bound to this Pico. Read current status before another action.'),{unconfirmed:true});
+  return result;
 }
-$('job').onsubmit = event => { event.preventDefault(); return action(async () => {
-  const file = $('job-file').files[0];
-  if (!file || file.size > 30000) throw new Error('Choose a job JSON file of at most 30,000 bytes');
-  const plan = JSON.parse(await file.text());
-  checkPlanLimits(plan);
-  const startMs = jobStartMs('start');
-  await job('HELLO',{versions:['WTP/1'],client_name:'WsprryPico browser',client_version:'1'});
-  await job('CLAIM',{owner_id:session,lease_ms:30000});
-  await job('LOAD',plan);
-  await job('ARM',{job_id:plan.job_id,start_utc_ns:(BigInt(startMs)*1000000n).toString(),max_start_uncertainty_ns:capabilities.wtp.maximum_arm_uncertainty_ns});
-  activePlan = {bootId:snapshot?.job.boot_id,jobId:plan.job_id,startMs,durationNs:BigInt(plan.total_duration_ns)};
-  $('job-result').textContent = 'Job armed. Timing is now local to the Pico.';
-  await observeAfterArm();
-}); };
-async function observeAfterArm() {
-  if (!capabilities.active_job_connections) {
-    expectedPause = true; controls(false); $('state').textContent = 'Armed · last confirmed'; $('output').textContent = 'Not observed during network pause';
-    notice('Job armed. New network connections pause during RF execution. Use USB Console ABORT to stop the job, or refresh after completion.');
-  } else await refresh();
-}
-function requestAbort() {
-  if(stopRequested || accessClosing || !controlsUnlocked()) return;
-  stopRequested=true; ++accessEpoch; ++observationEpoch;
-  submissions.describe('Abort requested. Waiting for the current bounded request, then checking this browser’s job. Use USB Console ABORT if the connection is unavailable.');
-  notice('Abort requested. Waiting for the current bounded request, then checking this browser’s job. No further load or arm step will be sent.');
-  if(!busy) return finishAbort();
-}
-async function finishAbort() {
-  stopping=true;
-  try {
-    await action(async () => {
-      if(!controlsUnlocked()) throw new Error('Abort is unconfirmed because this browser’s login ended. Use USB Console ABORT if needed. Log in and read current ownership before another action.');
+if ($('native-stop')) $('native-stop').onclick=()=>{
+  if ($('native-stop').disabled) return;
+  const target={...operationsTarget};
+  return action(async()=>{
+    try {
+      const before=checkedNativeStop(await api('schedules/stop'),target);
+      const stopped=checkedNativeStop(await api('schedules/stop','POST',{schema:'schedule-stop',target:before.data.target,stop:true},before.revision),target);
+      if (!stopped.data.stopped) throw Object.assign(new Error('Native schedule stop is unconfirmed.'),{unconfirmed:true});
+      nativeStopUnknown=false;requireReadback();
+      $('native-stop-status').textContent='Native schedules are disabled and their output is confirmed inactive and unowned. Read saved settings before explicitly enabling a schedule again. Your entries are preserved.';
       await refresh();
-      if(!snapshot) throw new Error('Abort is unconfirmed because status is unavailable. Use USB Console ABORT if needed.');
-      const recovery=settingsRecoveryNeeded ? ' An earlier save remains unconfirmed. Review saved settings before another save.' : '';
-      if(snapshot.job.owner_id===session && ['loaded','armed','running'].includes(snapshot.job.state)) {
-        await job('ABORT',{job_id:snapshot.job.job_id}); await refresh();
-        if(!snapshot || snapshot.job.output_active || ['loaded','armed','running'].includes(snapshot.job.state)) throw new Error('Abort could not be confirmed. Use USB Console ABORT if needed.');
-        notice('This browser’s job was aborted. Automatic schedules are separate.'+recovery);
-      } else notice('No active job owned by this browser was observed. Automatic schedules are separate.'+recovery);
-    },{emergency:true,message:'Checking and aborting this browser’s job.',refreshFrequency:false});
-  } finally { stopRequested=false; stopping=false; controls(online); }
-}
-$('abort').onclick = requestAbort;
-$('release').onclick = () => action(async () => { await job('RELEASE'); await refresh(); });
+    } catch(error) {
+      nativeStopUnknown=true;
+      $('native-stop-status').textContent='Stop was refused or its outcome is unconfirmed. Read stop status before another action. A lost connection does not confirm inactive output; use local USB Console recovery if the Pico cannot be reached.';
+      throw error;
+    }
+  },{message:'Stopping native schedules.',refreshFrequency:false});
+};
+if ($('native-stop-read')) $('native-stop-read').onclick=()=>{
+  if ($('native-stop-read').disabled) return;
+  const target={...operationsTarget};
+  return action(async()=>{
+    const observed=checkedNativeStop(await api('schedules/stop'),target);
+    nativeStopUnknown=false;requireReadback();
+    $('native-stop-status').textContent=observed.data.stopped
+      ? 'Current native schedules are disabled and output is confirmed inactive and unowned. Your entries are preserved. Read saved settings before explicitly enabling again.'
+      : 'Current native schedules or output are not confirmed stopped. Review transmitter status and explicitly stop again, or use local USB Console recovery.';
+    await refresh();
+  },{message:'Reading native schedule stop status.',refreshFrequency:false});
+};
 $('restart').onclick = () => action(async () => {
   if (restartSent) return;
   if($('restart').disabled && !busy) return;
@@ -1582,20 +1566,13 @@ function durationText(ns) {
   const fraction = (absolute % 1000000000n).toString().padStart(9,'0').replace(/0+$/,'');
   return (negative ? '-' : '') + (minutes ? minutes + ' min ' : '') + seconds + (fraction ? '.' + fraction : '') + ' s';
 }
-function checkPlanLimits(plan) {
-  const duration = BigInt(plan.total_duration_ns);
-  const maximum = BigInt(capabilities.wtp.max_job_duration_ns);
-  if (duration <= 0n || duration > maximum) throw new Error('Job duration is ' + durationText(duration) + '; this device allows ' + durationText(maximum) + '. Reduce the duration or repetition');
-  if (!Array.isArray(plan.events) || !plan.events.length || plan.events.length > capabilities.wtp.max_events) throw new Error('This device allows at most ' + capabilities.wtp.max_events + ' events per job. Reduce the message complexity or repetition');
-  return duration;
-}
 function messageSchedulingSupported() {
   const d=capabilities?.message_schedule;
   return !!globalThis.WsprryMessageSchedule && WsprryControl.supported('message_schedule',d);
 }
 function messageSchedulingControls() {
   if (!$('message-scheduling')) return;
-  const supported=messageSchedulingSupported(), recurring=$('message-delivery').value==='recurring';
+  const supported=messageSchedulingSupported(), recurring=true;
   const value=messageScheduleReadback?.data, needsRead=messageScheduleUncertain || !value;
   const recovery=value?.state==='recovery_required';
   $('message-scheduling').hidden=!supported;
@@ -1603,9 +1580,9 @@ function messageSchedulingControls() {
   $('message-interval').disabled=!recurring;$('message-until').disabled=!recurring;
   for (const button of $('message-recurrence').querySelectorAll?.('button')||[]) button.disabled=!recurring;
   $('message-schedule-controls').hidden=!supported || !(recurring || value?.saved || recovery || needsRead);
-  $('message-submit').textContent=recurring?'Save and start schedule':'Load and arm message';
+  $('message-submit').textContent='Save and start schedule';
   $('message-submit').disabled=recurring && (messageScheduleUncertain || !messageScheduleReadback?.data.writable);
-  const authorized=online && !(localIdentity && !localAuthenticated) && !uiBusy();
+  const authorized=online && !nativeStopUnknown && !(localIdentity && !localAuthenticated) && !uiBusy();
   $('message-schedule-read').hidden=!needsRead;
   $('message-schedule-read').disabled=!authorized;
   $('message-schedule-adopt').hidden=!value?.saved || needsRead;
@@ -1618,7 +1595,7 @@ function messageSchedulingControls() {
 function describeMessageSchedule() {
   const value=messageScheduleReadback?.data;
   if (!value) return;
-  const labels={not_configured:'No saved message schedule.',paused:'Message schedule paused. To resume, select Repeat on a schedule, review the entries, then choose Save and start schedule.',pausing:'Pause requested. The current transmission will finish before the pause is confirmed as saved. Keep the Pico powered until confirmation.',recovery_required:'Schedule needs review. Check transmitter status; once idle, choose Acknowledge interrupted schedule before saving a new enabled schedule.',waiting:'Message schedule enabled.',waiting_for_time:'Waiting for valid transmitter time.',waiting_for_transmitter:'Waiting for the transmitter to become available.',expired:'The schedule end has been reached.',restart_required:'A device restart is required before scheduling.',suspended:'Automatic transmissions are suspended.',armed:'Next scheduled transmission is armed.',running:'Scheduled message is running.',unavailable:'Saved schedule is unavailable.'};
+  const labels={not_configured:'No saved message schedule.',paused:'Message schedule paused. To resume, review the entries, then choose Save and start schedule.',pausing:'Pause requested. The current transmission will finish before the pause is confirmed as saved. Keep the Pico powered until confirmation.',recovery_required:'Schedule needs review. Check transmitter status; once idle, choose Acknowledge interrupted schedule before saving a new enabled schedule.',waiting:'Message schedule enabled.',waiting_for_time:'Waiting for valid transmitter time.',waiting_for_transmitter:'Waiting for the transmitter to become available.',expired:'The schedule end has been reached.',restart_required:'A device restart is required before scheduling.',suspended:'Automatic transmissions are suspended.',armed:'Next scheduled transmission is armed.',running:'Scheduled message is running.',unavailable:'Saved schedule is unavailable.'};
   const next=value.next_start_utc_ns ? ' Next start: '+new Date(Number(BigInt(value.next_start_utc_ns)/1000000n)).toISOString().slice(0,19).replace('T',' ')+' UTC.' : '';
   $('message-schedule-status').textContent=(messageScheduleUncertain?'Previous action is unconfirmed. Read saved schedule explicitly before another save. ':'')+(labels[value.state]||WsprryMessageSchedule.blocked[value.state]||'Transmitter state: '+value.state+'.')+next+(value.last_error?' '+value.last_error.code+'.':'');
 }
@@ -1686,7 +1663,7 @@ function adoptMessageSchedule(prompt=true) {
     if(n%d) {notice('Saved timing cannot be represented by this editor. Your draft is preserved.',true);return;}
     multipliers[field]=decimal(n/d);
   }
-  $('message-delivery').value='recurring';$('message-text').value=m.message;$('message-mode').value=m.mode;
+  $('message-text').value=m.message;$('message-mode').value=m.mode;
   const base=BigInt(m.mode==='fskcw'?m.space_frequency_nhz:m.frequency_nhz),top=BigInt(m.mode==='fskcw'?m.frequency_nhz:m.space_frequency_nhz);
   $('message-frequency').value=decimal(base);$('message-shift').value=m.mode==='qrss'?'5':decimal(top-base);
   $('message-dot').value=decimal(m.timing.dot_ns);$('message-repeats').value=m.repeat_count;$('message-gap').value=decimal(m.repeat_gap_ns);
@@ -1716,7 +1693,7 @@ function messageFrequencies(mode) {
   const upper = base + shift;
   if (upper > 18446744073709551615n) fail('message-shift','Frequency plus shift is too large. Reduce the frequency or shift.');
   const states = mode === 'qrss' ? [['Carrier',base]] : mode === 'fskcw' ? [['Space',base],['Mark',upper]] : [['Dot',base],['Dash',upper]];
-  const ranges = capabilities?.wtp?.frequency_ranges;
+  const ranges = capabilities?.execution?.frequency_ranges;
   for (const [name,frequency] of states) {
     if (Array.isArray(ranges) && !ranges.some(r => frequency >= BigInt(r.minimum_nhz) && frequency <= BigInt(r.maximum_nhz)))
       fail(frequency === base ? 'message-frequency' : 'message-shift',name + ' frequency is outside the available engine ranges. Choose a frequency and shift within those ranges.');
@@ -1756,9 +1733,9 @@ function messagePlan(timingOnly = false) {
   if (!events) throw new Error('Include at least one Morse character');
   duration = duration*BigInt(repeat) + repeatGap*BigInt(repeat-1) + 1000n;
   events = events*repeat + repeat;
-  const maximum = capabilities?.wtp?.max_job_duration_ns ? BigInt(capabilities.wtp.max_job_duration_ns) : 3600000000000n;
+  const maximum = capabilities?.execution?.max_job_duration_ns ? BigInt(capabilities.execution.max_job_duration_ns) : 3600000000000n;
   if (duration > maximum || duration > 3600000000000n) throw new Error('Calculated duration: ' + durationText(duration) + '. Maximum: ' + durationText(maximum < 3600000000000n ? maximum : 3600000000000n) + '. Shorten the timing or reduce repeats');
-  if (events > (capabilities?.wtp?.max_events || 512)) throw new Error(events + ' events exceed the device limit of ' + (capabilities?.wtp?.max_events || 512) + '. Reduce repetition or use a simpler message');
+  if (events > (capabilities?.execution?.max_events || 512)) throw new Error(events + ' events exceed the device limit of ' + (capabilities?.execution?.max_events || 512) + '. Reduce repetition or use a simpler message');
   if (timingOnly) return {duration,events};
   return {duration,events,frequencies:frequencies.preview,body:{mode,message:text,frequency_nhz:frequencies.frequency.toString(),space_frequency_nhz:frequencies.second.toString(),timing:Object.fromEntries(Object.entries(timing).map(([k,v])=>[k,v.toString()])),repeat_count:repeat,repeat_gap_ns:repeatGap.toString(),allow_frequency_adjustment:true}};
 }
@@ -1781,12 +1758,12 @@ function defaultMessageDraft() {
 // Nonempty saved messages are readback, and clearing a field is still an edit.
 function messageDraftState() {
   return JSON.stringify(['text','mode','frequency','shift','dot','repeats','gap','dash',
-    'intra','character','word','start','delivery','interval','until'].map(key=>$('message-'+key).value));
+    'intra','character','word','start','interval','until'].map(key=>$('message-'+key).value));
 }
 let messageBaseline=messageDraftState();
 function hasUnsavedDraft() {
   return dirty || consumerSetupDirty || hostnameDraft || engineeringStationDirty ||
-    engineeringNetworkDirty || messageDraftState()!==messageBaseline || Boolean($('job-file').files?.length);
+    engineeringNetworkDirty || messageDraftState()!==messageBaseline;
 }
 function messagePreview() {
   messageFrequencyFields();
@@ -1801,17 +1778,8 @@ function messagePreview() {
     $('message-preview').textContent = $('message-text').value ? 'Enter a carrier frequency and review the message before saving or transmitting.' : 'Enter a message and frequency to calculate its duration.';
     $('message-preview').classList.toggle('error',false); return;
   }
-  try { const p = messagePlan(); $('message-preview').textContent = p.frequencies + ' · ' + durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.wtp?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
+  try { const p = messagePlan(); $('message-preview').textContent = p.frequencies + ' · ' + durationText(p.duration) + ' · ' + p.events + ' / ' + (capabilities?.execution?.max_events || 512) + ' events · ' + $('message-text').value.length + ' / 32 characters'; $('message-preview').classList.toggle('error',false); }
   catch (e) { $('message-preview').textContent = e.message; $('message-preview').classList.toggle('error',true); if (e.input) $(e.input).setAttribute('aria-invalid','true'); }
-}
-function updateProgress() {
-  if (!activePlan || !snapshot || snapshot.job.boot_id !== activePlan.bootId || snapshot.job.job_id !== activePlan.jobId) { $('job-progress').textContent = ''; return; }
-  if (snapshot.job.state !== 'running') { $('job-progress').textContent = 'Last confirmed: ' + snapshot.job.state; return; }
-  const now = snapshot.standalone.utc_now_ns;
-  if (!now) { $('job-progress').textContent = 'Running · refresh for the latest confirmed state'; return; }
-  const elapsed = BigInt(now) - BigInt(activePlan.startMs)*1000000n;
-  const bounded = elapsed < 0n ? 0n : elapsed > activePlan.durationNs ? activePlan.durationNs : elapsed;
-  $('job-progress').textContent = 'Running · estimated ' + durationText(bounded) + ' of ' + durationText(activePlan.durationNs) + ' · ' + (Number(bounded*1000n/activePlan.durationNs)/10).toFixed(1) + '% · status checked ' + observedAt;
 }
 $('message-form').oninput = event => { if(event?.target === $('message-text')) messageTextEdited=true; if(event?.target === $('message-start')) messageStartEdited=true; messageEdited=true; $('message-result').textContent=''; messagePreview(); };
 $('message-mode').onchange = () => { $('message-result').textContent=''; messagePreview(); };
@@ -1820,18 +1788,7 @@ messagePreview();
 $('message-form').onsubmit = event => { event.preventDefault(); messageEdited=true; messagePreview(); return action(async () => {
   $('message-result').textContent = ''; $('message-result').classList.toggle('error',false);
   try {
-  if ($('message-delivery')?.value==='recurring') return await saveMessageSchedule();
-  if (!capabilities?.message_jobs) throw new Error('This firmware does not support message submission');
-  const plan = messagePlan(), startMs = jobStartMs('message-start');
-  plan.body.job_id = requestId();
-  await job('HELLO',{versions:['WTP/1'],client_name:'WsprryPico browser',client_version:'1'});
-  await job('CLAIM',{owner_id:session,lease_ms:30000});
-  await job('LOAD_MESSAGE',plan.body);
-  await job('ARM',{job_id:plan.body.job_id,start_utc_ns:(BigInt(startMs)*1000000n).toString(),max_start_uncertainty_ns:capabilities.wtp.maximum_arm_uncertainty_ns});
-  activePlan = {bootId:snapshot?.job.boot_id,jobId:plan.body.job_id,startMs,durationNs:plan.duration};
-  $('job-result').textContent = 'Message armed · ' + durationText(plan.duration) + '. Timing is now local to the Pico.';
-  $('message-result').textContent = $('job-result').textContent;
-  await observeAfterArm();
+  await saveMessageSchedule();
   } catch (error) {
     $('message-result').textContent = error.message.replace(/[.!?]$/,'') + (error.unconfirmed ? '. Outcome unconfirmed; no action was repeated.' : '.') + ' Your entries are preserved.';
     $('message-result').classList.toggle('error',true); throw error;
@@ -2159,7 +2116,7 @@ $('hostname-default').onclick = () => {
 };
 $('hostname-input').addEventListener('input',()=>{hostnameDraft=true;$('hostname-input').setAttribute('aria-invalid','false');$('hostname-error').textContent='';cancelReconnect();renderHostnameLink();});
 $('restart-cancel').onclick = () => { cancelReconnect(); $('restart-status').textContent='Reconnect checks canceled. No additional restart was sent. Use the continuation link or refresh after signing in.'; };
-for (const id of ['config','consumer-network-form','consumer-station-form','message-form','job'])
+for (const id of ['config','consumer-network-form','consumer-station-form','message-form'])
   $(id).addEventListener('input',cancelReconnect);
 $('hostname-continue').onclick = event => {
   if (hasUnsavedDraft() &&

@@ -394,7 +394,7 @@ try {
     await cdp.send('Page.removeScriptToEvaluateOnNewDocument',{identifier:noCrypto.identifier});
     await f.command({op:'page_profile',mode:'unavailable'});
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
-    await until(()=>cdp.evaluate(`document.body.innerText.includes('USB Console recovery')`),'unavailable guidance');
+    await until(()=>cdp.evaluate(`document.body?.innerText.includes('USB Console recovery') ?? false`),'unavailable guidance');
     assert.equal(await cdp.evaluate(`document.forms.length`),0);
     assert.equal(await cdp.evaluate('document.documentElement.lang'),'en');
     await capture('unavailable-recovery');
@@ -405,7 +405,7 @@ try {
     const resetsBeforeFault=(await f.command({op:'stats'})).recovery_requests;
     await f.command({op:'page_profile',mode:'storage-fault'});
     await cdp.send('Page.navigate',{url:'http://192.168.4.1/'});
-    await until(()=>cdp.evaluate(`document.body.innerText.includes('saved storage failed validation')`),'storage fault guidance');
+    await until(()=>cdp.evaluate(`document.body?.innerText.includes('saved storage failed validation') ?? false`),'storage fault guidance');
     assert.equal(await cdp.evaluate('document.forms.length'),0);
     assert.equal(await cdp.evaluate(`document.body.innerText.includes('clears all saved user settings')`),true);
     await capture('storage-fault-recovery');

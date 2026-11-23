@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {x25519} from '@noble/curves/ed25519.js';
@@ -7,6 +8,7 @@ import {authenticate,begin,b64,header,hex,join,open,seal,text,transcript,retirem
 import {RadioClient} from './radio-client.js';
 import {prepareNetwork,submitSetup,checkSetup} from './radio-setup.js';
 
+const managementOperations=JSON.parse(readFileSync(new URL('../../../engineering/protocol/control-1.schema.json',import.meta.url))).management_routes;
 const id={version:1,device_id:'11'.repeat(16),boot_id:'22'.repeat(16),generation:'139',authentication:'saved_wifi_passphrase'};
 const privateKey=Uint8Array.from({length:32},(_,i)=>i+1);
 const grant={version:1,...id,session_id:'33'.repeat(16),public_key:b64(x25519.getPublicKey(privateKey)),challenge:'44'.repeat(16),login_ms:30000};
@@ -263,9 +265,23 @@ test('encrypted mutations carry the new logical namespace and mandatory control 
   assert.deepEqual(captured,{method:'POST',path:'/api/control/v1/restart',if_match:null,body:{contract:'Wsprry-Control/1'}});
 });
 
+test('current management operation registry is closed and order independent',()=>{
+ const check=globalThis.WsprryControl.validManagementOperations;
+ assert(check(managementOperations));const reordered=structuredClone(managementOperations);
+ for(const values of Object.values(reordered))values.reverse();assert(check(reordered));
+ for(const fault of ['retired','missing','duplicate','unknown']){
+  const value=structuredClone(managementOperations);
+  if(fault==='retired')value.POST.push('jobs');
+  if(fault==='missing')value.GET.pop();
+  if(fault==='duplicate')value.GET[1]=value.GET[0];
+  if(fault==='unknown')value.GET[0]='unknown-resource';
+  assert.equal(check(value),false,fault);
+ }
+ for(const value of [null,[],{},'management'])assert.equal(check(value),false);
+});
 test('only authenticated target-bound management policy controls local session expiry',async()=>{
  let now=1000,advertised;
- const policy=()=>({contract:'Wsprry-Control/1',schema:'management',target:{scope:'member',device_id:id.device_id,boot_id:id.boot_id},profile:'consumer',profile_generation:id.generation,preclock:true,selected:'consumer_station',carriers:['engineering_mtls','engineering_field','consumer_station','consumer_ap','usb_physical'].map(carrier=>({carrier,built_in:true,available:carrier==='consumer_station'})),unsupported:[],operations:{GET:['management'],PUT:[],POST:[]},limits:{http_body:32768,consumer_plaintext:32724,config:4096,update:2048,login_ms:30000,idle_ms:1000,absolute_ms:5000,consumer_sessions:3,consumer_pending_logins:1}});
+ const policy=()=>({contract:'Wsprry-Control/1',schema:'management',target:{scope:'member',device_id:id.device_id,boot_id:id.boot_id},profile:'consumer',profile_generation:id.generation,preclock:true,selected:'consumer_station',carriers:['engineering_mtls','engineering_field','consumer_station','consumer_ap','usb_physical'].map(carrier=>({carrier,built_in:true,available:carrier==='consumer_station'})),unsupported:['plain_wtp_json','tls_wtp_json','ble_json'],operations:structuredClone(managementOperations),limits:{http_body:32768,consumer_plaintext:32724,config:4096,update:2048,login_ms:30000,idle_ms:1000,absolute_ms:5000,consumer_sessions:3,consumer_pending_logins:1}});
  const client=new RadioClient(async path=>path.endsWith('/identity') ? Response.json({version:1,...id,authentication:'saved_wifi_passphrase'}) : new Response(response(client.state,client.sequence-1n,{status:200,etag:null,body:advertised}),{headers:{'Content-Type':'application/octet-stream'}}),()=>now);
  const authorize=()=>{client.state=vectorState();client.identityContext=id;client.sequence=1n;client.started=client.seen=now;};
  advertised=policy();authorize();await client.readPolicy();assert.equal(client.idleMs,1000);now+=999;assert(client.authenticated);now++;assert.equal(client.authenticated,false);

@@ -1,3 +1,9 @@
+> WTP/1 is an internal format reference for typed execution and offline contract
+> fixtures. No shipped image accepts external WTP jobs on TCP, TLS, USB, BLE,
+> or HTTP. Native schedules use the [native execution safety contract](Native-Execution.md),
+> and retained management uses the current Control/1 contract. Format versioning
+> remains independent from control, transport/authentication, and storage.
+
 # WTP/1 — WsprryPi Transmitter Protocol
 
 Status: normative protocol contract. No implementation or compliance claim is made by this document.
@@ -154,7 +160,7 @@ A successful `ARM` returns the sampled clock mapping and initial computed `start
 
 The server MUST expose its target and observed launch timestamps and scheduling delay in diagnostic telemetry; a software observation is not an electrical edge measurement. This revision uses implementation diagnostics rather than adding fields to WTP/1 envelopes. Pico Console INFO supplies `launch_target_ns`, `launch_observed_ns`, `launch_delay_ns`, and `launch_epoch`; delay is the post-enable observation minus the quantized target. No launch is represented by zero epoch, not a measured zero delay. The unrounded requested mapping remains in the ARM reply. The complete event sequence and its duration MUST be preserved, anchored to the actual launch. The permitted launch window plus full job duration MUST be safe from arithmetic overflow and pending leap exclusions. Once `running`, UTC corrections or loss of synchronization do not alter this monotonic event schedule.
 
-Console INFO is not a WTP STATUS response. Its nested scheduler status does not include WTP's job/owner identity fields. The implementation diagnostic [field and correlation reference](../development/usb-cdc.md#console-info-and-wtp-status-are-different-interfaces) defines how to join Console launch counters with authoritative WTP job status; this distinction does not change the WTP/1 response schema.
+Console INFO is scheduler diagnostic data, not authoritative execution status. The current [field and correlation reference](../development/usb-cdc.md#console-and-authoritative-status) explains binding launch counters to authenticated native observations. Missing Console fields do not prove inactive or unowned output. This offline format reference retains its independent STATUS response schema.
 
 ## 11. Retries, replay, and retained results
 

@@ -108,17 +108,18 @@ class AcceptanceTests(unittest.TestCase):
                     self.assertLessEqual(stream.timeout, 20)
                     self.assertTrue(stream.closed)
 
-    def test_plan_has_no_io_or_required_credentials(self):
+    def test_retired_campaign_refuses_without_network(self):
         with patch.object(acceptance.socket, "socket", side_effect=AssertionError("network opened")), \
-                patch.object(sys, "argv", ["acceptance"]), patch("builtins.print") as output:
-            acceptance.main()
-        self.assertFalse(json.loads(output.call_args.args[0])["execution"])
+                patch.object(sys, "argv", ["acceptance"]):
+            with self.assertRaises(SystemExit) as result:
+                acceptance.main()
+        self.assertEqual(result.exception.code, 2)
 
     def test_run_requires_explicit_binding(self):
         result = subprocess.run([sys.executable, str(ROOT / "scripts/inhibited_network_acceptance.py"),
                                  "--run"], capture_output=True, text=True, timeout=5)
         self.assertEqual(result.returncode, 2)
-        self.assertIn("requires explicit", result.stderr)
+        self.assertIn("WTP tooling is retired", result.stderr)
 
     def test_job_is_a_complete_bounded_contract_request(self):
         peer = acceptance.Peer(types.SimpleNamespace(), Log())

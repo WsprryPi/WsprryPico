@@ -28,7 +28,7 @@ async function fresh(saved=null) {
     await f.elements['local-login'].onsubmit(submit);
     assert.equal(warns(f),false,'login and automatic settings readback are clean');
     await f.elements.refresh.onclick();assert.equal(warns(f),false,'status refresh is clean');
-    for(const field of ['text','frequency','dot','mode','start','delivery','interval','until']) {
+    for(const field of ['text','frequency','dot','mode','start','interval','until']) {
       const input=f.elements['message-'+field],original=input.value;
       input.value=field==='text'?'':original+'1';f.elements['message-form'].oninput();
       // With no saved schedule the original text is already empty.
@@ -55,9 +55,8 @@ async function fresh(saved=null) {
     f=>f.elements['engineering-station-form'].listeners.input(),
     f=>f.elements['engineering-network-form'].listeners.input(),
     f=>f.elements['hostname-input'].listeners.input(),
-    f=>{f.elements['job-file'].files=[{name:'job.json'}];}
   ]) {
-    const f=await fresh();edit(f);assert.equal(warns(f),true,'other drafts retain navigation protection');
+    const f=await fresh();edit(f);assert.equal(warns(f),true,'other drafts retain navigation protection: '+edit.toString());
   }
   const late=await fresh(seed.savedMessageSchedule);await late.elements['local-login'].onsubmit(submit);
   late.elements['message-text'].value='SUBMITTED';late.elements['message-form'].oninput();

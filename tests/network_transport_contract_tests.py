@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard first-class, fail-closed TCP/WTP production invariants."""
+"""Guard retained HTTPS delivery/security and retired WTP entry points."""
 
 from pathlib import Path
 import re
@@ -39,7 +39,7 @@ assert "MBEDTLS_SSL_VERSION_TLS1_3" in server
 assert "mbedtls_ssl_conf_min_tls_version" in server
 assert "mbedtls_ssl_conf_max_tls_version" in server
 assert "MBEDTLS_SSL_VERIFY_REQUIRED" in server
-assert 'static const char* protocols[] = {"wtp/1", "http/1.1", nullptr};' in server
+assert 'static const char* protocols[] = {"http/1.1", nullptr};' in server
 assert "mbedtls_ssl_get_peer_cert" in server
 assert "mbedtls_ssl_get_verify_result" in server
 assert "mbedtls_ssl_get_alpn_protocol" in server
@@ -50,10 +50,10 @@ assert '#undef MBEDTLS_SSL_EARLY_DATA' in mbedtls
 # Certificate identity becomes the transport principal; WTP is not decoded or
 # authorized by a parallel network-specific job implementation.
 assert 'principal_ = "tls-cert:";' in server
-assert 'principal_ = "local-network";' in server
-assert "endpoint_.connect(principal_);" in server
-assert "plain_offset_ += endpoint_.receive(bytes, now);" in server
-assert "wtp::Endpoint endpoint_;" in server_header
+assert 'principal_ = "local-network";' not in server
+assert "endpoint_.connect(principal_);" not in server
+assert "plain_offset_ += endpoint_.receive(bytes, now);" not in server
+assert "wtp::Endpoint endpoint_;" not in server_header
 
 # Activation closes the TLS listener before reboot, and recovery can close the
 # bootstrap listener. lwIP panics if tcp_abort is used on either LISTEN PCB.
@@ -65,8 +65,8 @@ for source in (server, http_server):
 # USB, BLE and TCP endpoints share the one production JobService. Complete-job
 # execution therefore retains one ownership, scheduler and local timing source.
 assert main.count("static wsprrypico::wtp::JobService service(") == 1
-assert "static wsprrypico::wtp::Endpoint endpoint(service," in main
-assert "static wsprrypico::wtp::Endpoint ble_endpoint(service," in main
+assert "wtp::Endpoint" not in main
+assert "WTP/1" not in server
 assert re.search(r"static wsprrypico::network::PicoServer server\s*\(\s*service,", main)
 assert "static wsprrypico::standalone::Scheduler scheduler(store, service);" in main
 
@@ -81,7 +81,7 @@ assert "network_setup_authority()" in bootstrap
 assert "bootstrap.configure_recovery(" in main
 assert "reset_coordinator.blocks_admission() || recovery_reset_at" in main
 assert "reset_pending" in main[main.index("auto command ="):main.index("if (text == \"INFO\")")]
-assert "server.start_plain(plain_lan_port)" in main
+assert "start_plain" not in main and "start_plain" not in server
 listener_slots = re.search(r"#define MEMP_NUM_TCP_PCB_LISTEN\s+(\d+)", lwipopts)
 assert listener_slots and int(listener_slots.group(1)) >= 3
 
@@ -89,7 +89,7 @@ assert listener_slots and int(listener_slots.group(1)) >= 3
 for required in ("identical frame stream", "TLS 1.3", "ALPN", "wtp/1", "Plain LAN", "MUST NOT automatically fall back"):
     assert required in protocol
 
-print("Production TCP/WTP remains first-class, shared and fail closed")
+print("Retained HTTPS delivery/security and removed WTP admission checked")
 
 # Unknown durable setup outcomes cannot expire/cancel into rollback or accept
 # an ACK/new save before reboot/readback resolves the journal authority.

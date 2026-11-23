@@ -9,11 +9,9 @@
 #include "network/assets.hpp"
 #include "network/control.hpp"
 #include "network/identity.hpp"
-#include "network/message_job.hpp"
 #include "rf/calibration.hpp"
 #include "rf/waveform.hpp"
-#include "wtp/codec.hpp"
-#include "wtp/frame_parser.hpp"
+#include "wtp/observation.hpp"
 #include "wtp/memory_budget.hpp"
 
 namespace wsprrypico::network {
@@ -57,13 +55,6 @@ HttpResponse ok_parts(std::initializer_list<std::string_view> parts) {
     result.control_wrapped = true;
     return result;
 }
-void append(std::string& output, InputView input) {
-    for (std::size_t offset = 0; offset < input.size();) {
-        const auto part = input.at(offset);
-        output.append(reinterpret_cast<const char*>(part.data()), part.size());
-        offset += part.size();
-    }
-}
 } // namespace
 HttpResponse BrowserApi::public_status() {
     if (!memory_admitted(4096))
@@ -83,6 +74,49 @@ HttpResponse BrowserApi::public_status() {
                    : json::quote(std::to_string(clock.utc_now_ns))) +
               ",\"uncertainty_ns\":" + json::quote(std::to_string(clock.uncertainty_ns)) +
               ",\"engine\":" + json::quote(service_.config().capability_engine) + "}");
+}
+HttpResponse BrowserApi::schedule_stop_resource(const HttpRequest& r) {
+    const auto readback = [&] {
+        const auto activity = service_.activity();
+        const bool wspr = store_.config() && store_.config()->enabled;
+        const bool message = store_.message_schedule() && store_.message_schedule()->enabled;
+        auto response = ok("{\"schema\":\"schedule-stop\",\"target\":" +
+            application::target(device_, service_.status().boot_id) +
+            ",\"wspr_enabled\":" + (wspr ? "true" : "false") +
+            ",\"message_enabled\":" + (message ? "true" : "false") +
+            ",\"owned\":" + (activity.owned ? "true" : "false") +
+            ",\"output_active\":" + (activity.output_active ? "true" : "false") +
+            ",\"stopped\":" +
+            (store_.healthy() && scheduler_.idle() && !wspr && !message ? "true}" : "false}"));
+        response.etag = revision();
+        return response;
+    };
+    if (r.method == "GET")
+        return readback();
+    if (r.method != "POST")
+        return http_error(404, "not_found");
+    if (r.body_view().size() > 512)
+        return http_error(413, "resource_body_too_large");
+    if (r.header("if-match").empty())
+        return http_error(428, "revision_required");
+    if (r.header("if-match") != revision())
+        return http_error(412, "revision_conflict");
+    const auto root = json::parse(r.body_view());
+    if (!root)
+        return http_error(400, "invalid_json");
+    const auto envelope = application::validate_envelope(*root, "schedule-stop", "stop",
+        device_, service_.status().boot_id);
+    if (envelope != application::Envelope::Valid || root->get("stop")->raw != "true")
+        return http_error(envelope == application::Envelope::TargetMismatch ? 409 : 400,
+                          envelope == application::Envelope::TargetMismatch ? "target_mismatch" : "invalid_schedule_stop");
+    if (pending_transaction_)
+        return http_error(409, "network_change_pending");
+    const auto stopped = scheduler_.stop_schedules();
+    const auto result = json::parse(stopped);
+    if (!result || !result->get("ok") || result->get("ok")->raw != "true")
+        return http_error(503, "schedule_stop_unconfirmed");
+    ++network_revision_;
+    return readback();
 }
 HttpResponse BrowserApi::message_schedule_resource(const HttpRequest& r) {
     const bool pause = r.path == "/api/control/v1/message-schedule/pause";
@@ -710,129 +744,6 @@ HttpResponse BrowserApi::application_config() const {
         result.etag = revision();
     return result;
 }
-HttpResponse BrowserApi::job(const HttpRequest& r, std::string_view principal) {
-    auto body = json::parse(r.body_view());
-    if (!body || !json::fields(*body, {"session_id", "request_id", "operation", "body"}))
-        return http_error(400, "invalid_job_request");
-    auto operation = body->get("operation")->string();
-    const auto abort_prefix = std::string_view("/api/control/v1/jobs/");
-    if (r.path != "/api/control/v1/jobs") {
-        auto id = std::string_view(r.path).substr(abort_prefix.size());
-        if (!id.ends_with("/abort"))
-            return http_error(404, "not_found");
-        id.remove_suffix(6);
-        auto job_id = body->get("body")->get("job_id");
-        if (operation != "ABORT" || !job_id || job_id->string() != id)
-            return http_error(400, "job_id_mismatch");
-    }
-    if (operation != "HELLO" && operation != "CLAIM" && operation != "RENEW" &&
-        operation != "RELEASE" && operation != "LOAD" && operation != "LOAD_MESSAGE" &&
-        operation != "ARM" && operation != "ABORT")
-        return http_error(400, "unsupported_operation");
-    const bool message_job = operation == "LOAD_MESSAGE";
-    // Browser schema is versioned by the URL. WTP envelope/codec stays internal.
-    std::string payload;
-    payload.reserve(body->get("session_id")->raw.size() + body->get("request_id")->raw.size() +
-                    body->get("operation")->raw.size() + body->get("body")->raw.size() + 128);
-    // Append paged views into the reserved destination.  A chained string
-    // expression builds a geometrically grown full-size temporary alongside
-    // the HTTP body and destination; fragmented target heaps can reject that
-    // unnecessary contiguous allocation even when the admission total passes.
-    payload += "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":";
-    append(payload, body->get("session_id")->raw);
-    payload += ",\"request_id\":";
-    append(payload, body->get("request_id")->raw);
-    payload += ",\"op\":";
-    if (message_job)
-        payload += "\"PING\"";
-    else
-        append(payload, body->get("operation")->raw);
-    payload += ",\"body\":";
-    if (message_job)
-        payload += "{}";
-    else
-        append(payload, body->get("body")->raw);
-    payload += '}';
-    if (payload.size() > kMaximumPayloadBytes)
-        return http_error(413, "job_too_large");
-    auto root = json::parse(payload);
-    if (!root)
-        return http_error(400, "invalid_job_request");
-    auto request = decode_request(
-        *root, principal,
-        std::span(reinterpret_cast<const std::uint8_t*>(payload.data()), payload.size()));
-    service_.poll();
-    if (!request)
-        return http_error(400, "invalid_job_request");
-    if (message_job) {
-        const auto message = decode_message_job(*body->get("body"));
-        if (!message)
-            return http_error(400, "invalid_message_job");
-        const auto response_for = [&](const encoding::MorseResult& result) {
-            auto response = http_error(result.error == "resource_exhausted" ? 503 : 400,
-                                       std::string(result.error));
-            response.body.pop_back();
-            response.body +=
-                ",\"calculated_duration_ns\":" +
-                json::quote(std::to_string(result.calculated_duration_ns)) +
-                ",\"max_job_duration_ns\":" +
-                json::quote(std::to_string(std::min(service_.config().max_job_duration_ns,
-                                                    encoding::max_message_duration_ns))) +
-                ",\"calculated_events\":" + std::to_string(result.calculated_events) +
-                ",\"max_events\":" +
-                std::to_string(std::min<std::size_t>(service_.config().max_events, 512)) + "}";
-            return response;
-        };
-        const auto measured = encoding::measure_message(*message, service_.config().max_events,
-                                                        service_.config().max_job_duration_ns);
-        if (!measured.error.empty())
-            return response_for(measured);
-        const auto event_pages =
-            (measured.calculated_events + EventList::page_events - 1) / EventList::page_events;
-        const auto event_bytes = event_pages * EventList::page_events * sizeof(RfEvent);
-        if (!memory_admitted(event_bytes + 16384))
-            return http_error(503, "resource_exhausted");
-        auto compiled = encoding::compile_message(*message, service_.config().max_events,
-                                                  service_.config().max_job_duration_ns);
-        if (!compiled.job)
-            return response_for(compiled);
-        request->operation = "LOAD";
-        request->body = std::move(*compiled.job);
-        // Replay identity binds the complete original compact browser request,
-        // including operation, message, timing and repeat inputs.
-        Sha256 digest;
-        const auto original = r.body_view();
-        for (std::size_t offset = 0; offset < original.size();) {
-            const auto part = original.at(offset);
-            digest.update(part);
-            offset += part.size();
-        }
-        request->payload_digest = digest.finish();
-    }
-    // All decoded fields own their storage; the internal envelope need not
-    // coexist with RF preparation and a maximum adjustment response.
-    root.reset();
-    std::string{}.swap(payload);
-    auto response = service_.handle(std::move(*request));
-    request->body = std::monostate{};
-    if (response.ok && request->operation == "LOAD")
-        return browser_load_response(*request, response);
-
-    auto encoded = encode_response(*request, response, service_.config(), device_, firmware_);
-    const auto result = json::parse(encoded);
-    const auto value = result->get(response.ok ? "body" : "error")->raw;
-    const auto offset = value.offset();
-    const auto length = value.size();
-    const auto prefix = "{\"ok\":" + std::string(response.ok ? "true" : "false") +
-                        ",\"request_id\":" + json::quote(request->request_id) +
-                        (response.ok ? ",\"result\":" : ",\"error\":");
-    // The browser prefix is shorter than the WTP envelope. Reuse its storage
-    // rather than retaining several full adjustment-response string copies.
-    encoded.resize(offset + length);
-    encoded.replace(0, offset, prefix);
-    encoded += '}';
-    return {response.ok ? 200U : 409U, std::move(encoded), "application/json", {}};
-}
 HttpResponse BrowserApi::logging_resource(const HttpRequest& r) {
     if (!logger_)
         return http_error(404, "unsupported_logging");
@@ -886,6 +797,10 @@ HttpResponse BrowserApi::handle(const HttpRequest& request, std::string_view pri
         return handle_current(request, principal, authority, transaction, carrier);
     if (!request.path.starts_with(control_prefix) && !request.path.starts_with("/api/usb/v1/"))
         return control_response(http_error(404, "unsupported_control_contract"));
+    if (request.path.starts_with(control_prefix) &&
+        !control_route(request.path.substr(control_prefix.size()), request.method) &&
+        !(request.method == "PUT" && request.path == "/api/control/v1/config"))
+        return control_response(http_error(404, "not_found"));
     if (request.method == "PUT" && request.path == "/api/control/v1/config")
         return control_response(http_error(405, "use_configuration_update"));
     if (request.method != "GET" && request.path.starts_with(control_prefix) &&
@@ -936,7 +851,6 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     // reserve unchanged while avoiding a false 503 under an established TLS
     // observer and a resident RF plan.
     const bool status_read = r.method == "GET" && (r.path == "/api/control/v1/status" ||
-                                                   r.path == "/api/control/v1/jobs" ||
                                                    r.path == "/api/control/v1/operations");
     const auto request_scratch = status_read ? 8192 : working_bytes * 2 + 16384;
     if (!wtp::memory_admitted(request_scratch))
@@ -982,6 +896,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     if (r.path == "/api/control/v1/message-schedule" ||
         r.path == "/api/control/v1/message-schedule/pause")
         return message_schedule_resource(r);
+    if (r.path == "/api/control/v1/schedules/stop")
+        return schedule_stop_resource(r);
     if (local_usb && local_settings_ && r.path == "/api/usb/v1/wifi") {
         if (!local_settings_->healthy())
             return http_error(503, "storage_fault");
@@ -1038,13 +954,6 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         if (r.path == "/api/control/v1/capabilities") {
             if (!memory_admitted(application::max_capabilities_bytes))
                 return http_error(503, "resource_exhausted");
-            Request request;
-            request.operation = "CAPS";
-            Response response;
-            response.ok = true;
-            const auto caps =
-                encode_response(request, response, service_.config(), device_, firmware_);
-            auto value = json::parse(caps);
             const auto descriptor = [](std::string_view name) {
                 return std::string(control_descriptor(name));
             };
@@ -1053,13 +962,13 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             message.pop_back();
             message += ",\"preparation_lead_ns\":" +
                        json::quote(std::to_string(scheduler_.message_lead_ns())) + "}";
-            const auto wtp_caps = std::string(value->get("body")->raw);
+            const auto execution = application::execution_capabilities(service_.config());
             const auto amplifier = application::amplifier_capabilities(
                 service_.config().capability_engine == "pio-dma-gp2" ||
                 service_.config().capability_engine == "si5351-engineering" ||
                 service_.config().capability_engine == "si5351");
             const auto features =
-                ",\"features\":{\"config\":true,\"schedules\":true,\"jobs\":true,\"network\":true,"
+                ",\"features\":{\"config\":true,\"schedules\":true,\"network\":true,"
                 "\"application\":true,\"station\":true,\"hardware\":true,\"consumer_setup_"
                 "identity\":" +
                 std::string(consumer_runtime_ && (consumer_runtime_->consumer_profile() ||
@@ -1072,11 +981,11 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                                 ? "true"
                                 : "false") +
                 ",\"softap\":true,\"ble\":true,\"restart\":" + (restart_ ? "true" : "false") + "}";
-            const auto connections = ",\"active_job_connections\":" +
+            const auto connections = ",\"active_execution_connections\":" +
                                      std::string(active_job_connections_ ? "true" : "false");
             auto result = ok_parts(
-                {"{\"wtp\":",
-                 wtp_caps,
+                {"{\"execution\":",
+                 execution,
                  ",\"logging\":",
                  control_descriptor("logging"),
                  consumer_runtime_ ? ",\"field_access\":" : "",
@@ -1105,10 +1014,12 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                      : "",
                  ",\"amplifier_enable\":",
                  amplifier,
-                 ",\"message_jobs\":{\"operation\":\"LOAD_MESSAGE\",\"max_characters\":32,\"tail_"
+                 ",\"message_limits\":{\"max_characters\":32,\"tail_"
                  "ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\",\"dfcw\"]}",
                  ",\"message_schedule\":",
                  message,
+                 ",\"schedule_stop\":",
+                 control_descriptor("schedule_stop"),
                  features,
                  ",\"application_resources\":",
                  resources,
@@ -1119,7 +1030,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                  connections,
                  progress_ ? ",\"saved_progress\":" : "",
                  progress_ ? control_descriptor("saved_progress") : "",
-                 ",\"max_network_connections\":2,\"max_wtp_connections\":1,\"max_pending_"
+                 ",\"max_network_connections\":2,\"max_pending_"
                  "connections\":1,\"max_handshakes\":1,\"max_body_bytes\":32768}"});
             if (result.body_size() > application::max_capabilities_bytes)
                 return http_error(503, "capabilities_too_large");
@@ -1143,7 +1054,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             result.etag = revision();
             return result;
         }
-        if (r.path == "/api/control/v1/status" || r.path == "/api/control/v1/jobs")
+        if (r.path == "/api/control/v1/status")
             return ok("{\"job\":" + status_json(service_.status()) + ",\"standalone\":" +
                       scheduler_.status() + ",\"network\":" + network_.operations_status() +
                       ",\"transport\":" + (transport_ ? transport_(transport_context_) : "null") +
@@ -1306,9 +1217,6 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return http_error(400, "invalid_pin_plan");
         return ok(hardware::describe(*plan));
     }
-    if (r.method == "POST" &&
-        (r.path == "/api/control/v1/jobs" || r.path.starts_with("/api/control/v1/jobs/")))
-        return job(r, principal);
     const bool restart = r.method == "POST" && r.path == "/api/control/v1/restart";
     const bool amplifier_config =
         r.path == "/api/control/v1/config" || r.path == "/api/control/v1/config/update";
@@ -1761,6 +1669,9 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         return http_error(503, "storage_fault");
     }
     ++network_revision_; // Consume even an effective no-op without rewriting flash.
+    if (config_update && root->get("config")->get("enabled") &&
+        root->get("config")->get("enabled")->raw == "true")
+        scheduler_.resume_wspr_schedule();
     if (calibration_resource)
         return rf_calibration();
     if (gray_resource)

@@ -17,14 +17,23 @@ Use this procedure when a standalone Pico has joined your Wi-Fi but its browser 
 
 One USB cable provides four separate serial ports. Identify the **Console** before connecting; a port's number or position in a list does not establish its role.
 
-| Connection | USB interface number | Purpose |
-| --- | --- | --- |
-| Console | 0 | Human-readable commands such as `INFO`, `STATUS`, and `ABORT` |
-| WTP | 2 | Transmission jobs sent by controller software using the WsprryPi Transmitter Protocol |
-| Management | 4 | Saved settings and time supplied by controller software |
-| Logging | 6 | Diagnostic records collected independently of Console |
+```{list-table} USB roles
+:header-rows: 1
+:widths: 35 65
 
-If WsprryPi already controls the Pico, use [its Fleet settings controls](connect.md#usb-access-without-wi-fi). Finish or abort any existing job through its owning controller, then confirm inactive output before attempting setup. Losing the browser connection does not stop a job.
+* - USB role / interface
+  - Purpose
+* - Console / 0
+  - Human-readable commands such as `INFO`, `STATUS`, and `ABORT`
+* - Reserved / 2
+  - Inert allocation in application firmware; RFBench uses it for bench commands
+* - Management / 4
+  - Saved settings and time supplied by controller software
+* - Logging / 6
+  - Diagnostic records collected independently of Console
+```
+
+Use [Fleet settings controls](connect.md#usb-access-without-wi-fi) to manage the Pico without selecting a transmitter backend. Read native status and stop explicitly before maintenance; a lost connection does not establish inactive output.
 
 ## Open the Console in a browser
 
@@ -45,7 +54,7 @@ If WsprryPi already controls the Pico, use [its Fleet settings controls](connect
    ```
 
 3. Set **Baud** to **115200**. Check **send with /n** and uncheck **send with /r**; those are the site's labels for newline and carriage return. Use the command box beside **Send** instead of typing in the lower terminal area.
-4. Identify the Console port before clicking **Connect**. On **macOS or Linux**, use the discovery steps in the next section and copy the port under **"0"**. On **Windows**, open **Device Manager → Ports (COM & LPT)**. The Pico's ports can appear as **USB Serial Device (COMn)**. Open each candidate's **Properties → Details → Hardware Ids**, and find the entry containing **MI_00**: that is the Console. **MI_02** is WTP, **MI_04** is management, and **MI_06** is Logging. Record the Console's **COM** number. If several Picos are connected, also verify which USB device the port belongs to. Do not choose an arbitrary COM port if you cannot identify it.
+4. Identify the Console port before clicking **Connect**. On **macOS or Linux**, use the discovery steps in the next section and copy the port under **"0"**. On **Windows**, open **Device Manager → Ports (COM & LPT)**. The Pico's ports can appear as **USB Serial Device (COMn)**. Open each candidate's **Properties → Details → Hardware Ids**, and find the entry containing **MI_00**: that is the Console. **MI_02** is reserved, **MI_04** is management, and **MI_06** is Logging. Record the Console's **COM** number. If several Picos are connected, also verify which USB device the port belongs to. Do not choose an arbitrary COM port if you cannot identify it.
 
    ```{figure} _static/images/usb-windows-console.png
    :alt: Windows Device Manager properties for USB Serial Device COM6, with Hardware Ids showing MI_00 for the Console interface.
@@ -62,12 +71,8 @@ If WsprryPi already controls the Pico, use [its Fleet settings controls](connect
    The Console port selected after checking USB interface identity on this Mac. Windows shows COM port names.
    ```
 
-   ```{figure} _static/images/usb-windows-port.png
-   :alt: Windows Chrome serial-port chooser with WsprryPico Console COM6 selected, distinct from Management COM10 and WTP COM9.
-   :width: 450px
+   In Windows Chrome, choose the Console role after checking MI_00 in Device Manager. Other entries may show Management, Logging, or Reserved; COM numbers depend on the host. The former WTP label is not a current application role.
 
-   The Console COM6 entry selected in Windows Chrome after checking MI_00 in Device Manager.
-   ```
 
 6. Type uppercase `INFO` in the command box and click **Send**. Console commands are case-sensitive. Wait for the JSON reply. Scroll **inside the terminal output** back to the start to find `"ok":true` and `device_id`. Use the [diagnostic field guide](#read-the-address-and-web-service-status) below. Before sending another command, wait for the current reply to finish.
 
@@ -95,7 +100,7 @@ Enter subsequent Console commands in the same box and click **Send**. When finis
    ```
 
    If you no longer have that file, follow [Get the installer and identify the Pico](install.md#get-the-installer-and-identify-the-pico), then return here. Discovery reads USB identity information without programming the Pico. The public bootstrap needs Internet access to download its tools; the Pico itself does not need Wi-Fi for USB diagnostics.
-3. Find your Pico's USB serial in the discovery results. Its mode should be **application**. Under **ports**, **"0" is the Console**, **"2" is WTP**, **"4" is management**, and **"6" is Logging**. For example, this synthetic Linux result identifies `/dev/ttyACM0` as the Console:
+3. Find your Pico's USB serial in the discovery results. Its mode should be **application**. Under **ports**, **"0" is the Console**, **"2" is Reserved**, **"4" is management**, and **"6" is Logging**. For example, this synthetic Linux result identifies `/dev/ttyACM0` as the Console:
 
    ```json
    {"serial":"0123456789ABCDEF","mode":"application","parent":"1-2","ports":{"0":"/dev/ttyACM0","2":"/dev/ttyACM1","4":"/dev/ttyACM2","6":"/dev/ttyACM3"}}
@@ -176,11 +181,11 @@ The Pico can export diagnostic events to WsprryPi through its dedicated Logging 
 
 Logging works without Pico Wi-Fi or synchronized UTC; without origin UTC, the Pi displays the receipt time. Saved enable and severity selections survive ordinary restarts and compatible settings-preserving upgrades. The Pi opens a new Logging stream after reconnecting; the stream itself is not a saved setting.
 
-Routine WTP and Management port openings and closings appear only at **Debug** severity, with the port named in each message. Select **All levels, including debug** on the Pico and include Debug in the Pi's view filter to see them. USB export offers an enable control and severity selection; it has no individual event-code switches. These messages describe host control-port activity; they do not by themselves indicate a loose cable or a Pico restart.
+Routine Management port openings and closings appear only at **Debug** severity, with the port named in each message. Select **All levels, including debug** on the Pico and include Debug in the Pi's view filter to see them. USB export offers an enable control and severity selection; it has no individual event-code switches. These messages describe host control-port activity; they do not by themselves indicate a loose cable or a Pico restart.
 
 The Pi's source selector also offers **All sources** and **Local Pi**. Pause only pauses the view; export saves the records retained by that view. The Pi's view filter does not change which severity levels the Pico exports, and enabling collection on the Pi does not enable export on the Pico.
 
-Console remains available in another terminal or browser tool while collection runs. WTP transmission control and USB management also retain their separate ports. Firmware maintenance releases Logging and reconnects collection afterward; a whole-device restart or update disconnects all ports. A change in device identity requires explicit review.
+Console remains available in another terminal or browser tool while collection runs. USB management retains its separate port; the Reserved allocation provides no transmission control. Firmware maintenance releases Logging and reconnects collection afterward; a whole-device restart or update disconnects all ports. A change in device identity requires explicit review.
 
 For a manually started stream on Logging, send `SYSLOG STOP` to stop that stream. Console does not carry the stream. Logging settings belong to the Pico; the Pi's collection setting belongs to the Pi. Neither grants transmitter ownership or enables schedules. The collector uses the dedicated Logging port; it does not fall back to Console.
 

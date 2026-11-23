@@ -9,9 +9,7 @@
     service: "7d6b0001-5bf1-4f21-a486-3e8f70c12201",
     identity: "7d6b0002-5bf1-4f21-a486-3e8f70c12201",
     command: "7d6b0003-5bf1-4f21-a486-3e8f70c12201",
-    status: "7d6b0004-5bf1-4f21-a486-3e8f70c12201",
-    wtpCommand: "7d6b0005-5bf1-4f21-a486-3e8f70c12201",
-    wtpStatus: "7d6b0006-5bf1-4f21-a486-3e8f70c12201"
+    status: "7d6b0004-5bf1-4f21-a486-3e8f70c12201"
   });
   const MAX_PROFILE_BYTES = 7168;
   const FRAGMENT_BYTES = 64;
@@ -22,9 +20,6 @@
   const GATT_FRAME_COUNT = 16;
   const MAX_COMMAND_BYTES = 512;
   const MAX_STATUS_BYTES = 256;
-  const WTP_HEADER_BYTES = 16;
-  const WTP_MAX_PAYLOAD_BYTES = 65536;
-  const WTP_SEGMENT_BYTES = 64;
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
@@ -153,67 +148,6 @@
   function text(value) {
     return decoder.decode(new Uint8Array(value.buffer, value.byteOffset || 0, value.byteLength));
   }
-  function crc32c(bytes) {
-    let crc = 0xffffffff;
-    for (const byte of bytes) {
-      crc = (crc ^ byte) >>> 0;
-      for (let bit = 0; bit < 8; ++bit)
-        crc = ((crc >>> 1) ^ ((crc & 1) ? 0x82f63b78 : 0)) >>> 0;
-    }
-    return (crc ^ 0xffffffff) >>> 0;
-  }
-  function wtpFrame(message) {
-    const payload = encoder.encode(JSON.stringify(message));
-    if (!payload.length || payload.length > WTP_MAX_PAYLOAD_BYTES) {
-      payload.fill(0); fail("wtp_payload_oversize");
-    }
-    const frame = new Uint8Array(WTP_HEADER_BYTES + payload.length);
-    frame.set([0x57, 0x54, 0x50, 0x46, 1, 1, 0, 0]);
-    const view = new DataView(frame.buffer);
-    view.setUint32(8, payload.length);
-    view.setUint32(12, crc32c(payload));
-    frame.set(payload, WTP_HEADER_BYTES);
-    payload.fill(0);
-    return frame;
-  }
-  class WtpReceiver {
-    constructor() { this.reset(); }
-    reset() { if (this.buffer) this.buffer.fill(0); this.buffer = new Uint8Array(0); }
-    receive(value) {
-      const bytes = new Uint8Array(value.buffer, value.byteOffset || 0, value.byteLength);
-      if (!bytes.length || this.buffer.length + bytes.length > 131072) {
-        this.reset(); fail("wtp_frame_oversize");
-      }
-      const joined = new Uint8Array(this.buffer.length + bytes.length);
-      joined.set(this.buffer); joined.set(bytes, this.buffer.length); this.buffer.fill(0);
-      this.buffer = joined;
-      const messages = [];
-      while (this.buffer.length >= WTP_HEADER_BYTES) {
-        const view = new DataView(this.buffer.buffer, this.buffer.byteOffset, this.buffer.byteLength);
-        const valid = this.buffer[0] === 0x57 && this.buffer[1] === 0x54 &&
-          this.buffer[2] === 0x50 && this.buffer[3] === 0x46 && this.buffer[4] === 1 &&
-          this.buffer[5] === 1 && this.buffer[6] === 0 && this.buffer[7] === 0;
-        const length = view.getUint32(8);
-        if (!valid || !length || length > WTP_MAX_PAYLOAD_BYTES) {
-          this.reset(); fail("wtp_frame_invalid");
-        }
-        const frameBytes = WTP_HEADER_BYTES + length;
-        if (this.buffer.length < frameBytes) break;
-        const payload = this.buffer.slice(WTP_HEADER_BYTES, frameBytes);
-        const expected = view.getUint32(12);
-        const remaining = this.buffer.slice(frameBytes);
-        this.buffer.fill(0); this.buffer = remaining;
-        if (crc32c(payload) !== expected) { payload.fill(0); this.reset(); fail("wtp_crc"); }
-        let message;
-        try { message = JSON.parse(decoder.decode(payload)); }
-        catch (_) { payload.fill(0); this.reset(); fail("wtp_json"); }
-        payload.fill(0);
-        messages.push(message);
-      }
-      return messages;
-    }
-  }
-
   function frames(bytes) {
     if (!(bytes instanceof Uint8Array) || !bytes.length ||
         bytes.length > GATT_FRAME_PAYLOAD_BYTES * GATT_FRAME_COUNT) fail("frame_oversize");
@@ -279,26 +213,17 @@
       this.command = null;
       this.status = null;
       this.identity = null;
-      this.wtpCommand = null;
-      this.wtpStatus = null;
       this.pending = new Map();
-      this.wtpPending = new Map();
       this.expectedDeviceId = "";
       this.generation = 0;
       this.authorized = false;
       this.fieldSession = "";
-      this.wtpSession = "";
       this.fieldListening = false;
-      this.wtpListening = false;
-      this.wtpHello = null;
-      this.lastWtpEvent = null;
       this.statusReceiver = new FrameReceiver(MAX_STATUS_BYTES);
-      this.wtpReceiver = new WtpReceiver();
       // Counts and fixed error codes only; never retain a command, reply or secret.
       this.trace = {writes: 0, written: 0, events: 0, frames: 0,
-        messages: 0, matched: 0, wtpWrites: 0, wtpWritten: 0, last: "none"};
+        messages: 0, matched: 0, last: "none"};
       this.onStatus = this.onStatus.bind(this);
-      this.onWtpStatus = this.onWtpStatus.bind(this);
       this.onDisconnected = this.onDisconnected.bind(this);
     }
     async openChannel(device, expectedDeviceId, channel) {
@@ -310,8 +235,6 @@
         const identity = await service.getCharacteristic(UUIDS.identity);
         const command = await service.getCharacteristic(UUIDS.command);
         let status = await service.getCharacteristic(UUIDS.status);
-        const wtpCommand = await service.getCharacteristic(UUIDS.wtpCommand);
-        const wtpStatus = await service.getCharacteristic(UUIDS.wtpStatus);
         let observed;
         try {
           observed = JSON.parse(text(await identity.readValue()));
@@ -332,7 +255,7 @@
           activeStatus = status = notifying;
         if (!device.gatt.connected) fail("bluetooth_disconnected");
         activeStatus.addEventListener("characteristicvaluechanged", listener);
-        return {identity, command, status, wtpCommand, wtpStatus, observed};
+        return {identity, command, status, observed};
       } catch (error) {
         if (activeStatus && listener)
           activeStatus.removeEventListener("characteristicvaluechanged", listener);
@@ -345,13 +268,10 @@
       this.identity = binding.identity;
       this.command = binding.command;
       this.status = binding.status;
-      this.wtpCommand = binding.wtpCommand;
-      this.wtpStatus = binding.wtpStatus;
       this.expectedDeviceId = binding.observed.device_id;
       this.generation = binding.observed.generation;
       this.authorized = authorized;
       this.fieldListening = channel === "field";
-      this.wtpListening = false;
       if (typeof device.addEventListener === "function")
         device.addEventListener("gattserverdisconnected", this.onDisconnected);
     }
@@ -370,36 +290,21 @@
       } catch (error) {
         if (device.gatt && device.gatt.connected) device.gatt.disconnect();
         this.device = this.command = this.status = this.identity = null;
-        this.wtpCommand = this.wtpStatus = null;
         this.expectedDeviceId = "";
         this.generation = 0;
         this.authorized = false;
-        this.fieldSession = this.wtpSession = "";
+        this.fieldSession = "";
         this.fieldListening = false;
-        this.wtpListening = false;
-        this.wtpHello = null;
-        this.lastWtpEvent = null;
         this.statusReceiver.reset();
-        this.wtpReceiver.reset();
         throw error;
       }
     }
     diagnosticSummary() {
       const t = this.trace;
       return `writes ${t.written}/${t.writes}; events ${t.events}; frames ${t.frames}; ` +
-        `messages ${t.messages}; matched ${t.matched}; ` +
-        `wtp writes ${t.wtpWritten}/${t.wtpWrites}; last ${t.last}`;
+        `messages ${t.messages}; matched ${t.matched}; last ${t.last}`;
     }
     onStatus(event) {
-      // Keep one listener attached to the already-subscribed status
-      // characteristic for the life of the connection. The observed Bluefy
-      // failure occurred in a transition that replaced this listener after an
-      // indication. The connection-scoped carrier selection makes the framing
-      // mode unambiguous without depending on that replacement.
-      if (this.wtpListening) {
-        this.onWtpStatus(event);
-        return;
-      }
       ++this.trace.events;
       const value = event && event.target && event.target.value;
       if (!value) { this.trace.last = "status_value_missing"; return; }
@@ -438,40 +343,6 @@
         pending.reject(error);
       }
     }
-    onWtpStatus(event) {
-      const value = event && event.target && event.target.value;
-      if (!value) return;
-      let responses;
-      try { responses = this.wtpReceiver.receive(value); }
-      catch (error) {
-        for (const entry of this.wtpPending.values()) {
-          clearTimeout(entry.timer); entry.reject(error);
-        }
-        this.wtpPending.clear();
-        this.disconnect();
-        return;
-      }
-      for (const response of responses) {
-        if (response.type === "event") {
-          this.lastWtpEvent = response;
-          continue;
-        }
-        if (response.type !== "response" || response.protocol !== "WTP/1" ||
-            response.session_id !== this.wtpSession || !validDeviceId(response.request_id) ||
-            typeof response.op !== "string" || typeof response.ok !== "boolean") continue;
-        const pending = this.wtpPending.get(response.request_id);
-        if (!pending || pending.op !== response.op) continue;
-        clearTimeout(pending.timer);
-        this.wtpPending.delete(response.request_id);
-        if (response.ok && response.body && typeof response.body === "object")
-          pending.resolve(response.body);
-        else {
-          const code = response.error && typeof response.error.code === "string"
-            ? response.error.code : "device_rejected";
-          const error = new Error(code); error.code = code; pending.reject(error);
-        }
-      }
-    }
     onDisconnected(event) {
       for (const entry of this.pending.values()) {
         clearTimeout(entry.timer);
@@ -481,36 +352,23 @@
         entry.reject(error);
       }
       this.pending.clear();
-      for (const entry of this.wtpPending.values()) {
-        clearTimeout(entry.timer);
-        const error = new Error("bluetooth_disconnected");
-        error.code = "bluetooth_disconnected";
-        entry.reject(error);
-      }
-      this.wtpPending.clear();
       if (this.status)
         this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
       const device = event && event.target ? event.target : this.device;
       if (device && typeof device.removeEventListener === "function")
         device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       this.device = this.command = this.status = this.identity = null;
-      this.wtpCommand = this.wtpStatus = null;
       this.expectedDeviceId = "";
       this.generation = 0;
       this.authorized = false;
-      this.fieldSession = this.wtpSession = "";
+      this.fieldSession = "";
       this.fieldListening = false;
-      this.wtpListening = false;
-      this.wtpHello = null;
-      this.lastWtpEvent = null;
       this.statusReceiver.reset();
-      this.wtpReceiver.reset();
     }
     async reconnectChannel(channel) {
       if (!this.device || !this.device.gatt || !validDeviceId(this.expectedDeviceId))
         fail("not_connected");
       if (this.pending.size) fail("field_busy");
-      if (this.wtpPending.size) fail("wtp_busy");
       const device = this.device;
       const expectedDeviceId = this.expectedDeviceId;
       const wasAuthorized = this.authorized;
@@ -521,22 +379,17 @@
         device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       if (device.gatt.connected) device.gatt.disconnect();
       this.device = this.command = this.status = this.identity = null;
-      this.wtpCommand = this.wtpStatus = null;
       this.expectedDeviceId = "";
       this.generation = 0;
       this.authorized = false;
-      this.fieldSession = this.wtpSession = "";
+      this.fieldSession = "";
       this.fieldListening = false;
-      this.wtpListening = false;
-      this.wtpHello = null;
-      this.lastWtpEvent = null;
       this.statusReceiver.reset();
-      this.wtpReceiver.reset();
       try {
         if (this.reconnectDelayMs)
           await new Promise((resolve) => setTimeout(resolve, this.reconnectDelayMs));
         const binding = await this.openChannel(device, expectedDeviceId, channel);
-        this.adoptChannel(device, binding, channel, channel === "wtp" && wasAuthorized);
+        this.adoptChannel(device, binding, channel, false);
         return wasAuthorized;
       } catch (error) {
         if (device.gatt && device.gatt.connected) device.gatt.disconnect();
@@ -546,30 +399,10 @@
     async selectFieldChannel() {
       if (!this.device) fail("not_connected");
       if (this.fieldListening) return;
-      if (this.wtpPending.size) fail("wtp_busy");
       const wasAuthorized = await this.reconnectChannel("field");
       if (!wasAuthorized) return;
       try {
         await this.authorizeCurrent("");
-      } catch (error) {
-        this.disconnect();
-        throw error;
-      }
-    }
-    async selectWtpChannel() {
-      if (!this.device) fail("not_connected");
-      if (this.wtpListening) return;
-      if (this.pending.size) fail("field_busy");
-      if (!this.fieldListening || !this.status || !this.authorized) fail("field_unavailable");
-      try {
-        const response = await this.exchange({version: 1,
-          operation: "select_wtp_status_carrier", request_id: randomId(this.crypto),
-          session_id: this.fieldSession, device_id: this.expectedDeviceId});
-        if (response.carrier !== "field_status" ||
-            response.command_carrier !== "field_command") fail("wtp_status_carrier");
-        this.statusReceiver.reset();
-        this.fieldListening = false;
-        this.wtpListening = true;
       } catch (error) {
         this.disconnect();
         throw error;
@@ -687,68 +520,6 @@
       if (response.accepted !== true) fail("controller_time_response");
       return {accepted: true};
     }
-    async wtpExchange(op, body) {
-      if (!this.authorized || !this.wtpListening || !this.wtpCommand || !this.wtpSession)
-        fail("wtp_unavailable");
-      if (this.wtpPending.size) fail("wtp_busy");
-      if (typeof op !== "string" || !/^[A-Z][A-Z0-9_]{0,63}$/.test(op) ||
-          !body || typeof body !== "object" || Array.isArray(body)) fail("wtp_request");
-      const requestId = randomId(this.crypto);
-      const frame = wtpFrame({type: "request", protocol: "WTP/1",
-        session_id: this.wtpSession, request_id: requestId, op, body});
-      let settle;
-      const result = new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-          this.wtpPending.delete(requestId);
-          const error = new Error("wtp_timeout"); error.code = "wtp_timeout"; reject(error);
-        }, this.timeoutMs);
-        settle = {resolve, reject, timer, op}; this.wtpPending.set(requestId, settle);
-      });
-      try {
-        // The observed Bluefy failure occurred between the carrier reply and
-        // the first WTP byte, while the old transition replaced a listener and
-        // moved to a second write characteristic. The authenticated selection
-        // makes the existing field pair a raw WTP/1 byte transport until the
-        // deliberate reconnect back to field mode.
-        const transport = this.command;
-        const write = transport.writeValueWithResponse || transport.writeValue;
-        this.trace.wtpWrites += Math.ceil(frame.length / WTP_SEGMENT_BYTES);
-        for (let offset = 0; offset < frame.length; offset += WTP_SEGMENT_BYTES) {
-          // Bluefy bridges the BufferSource into Core Bluetooth. Give it a
-          // compact, independently owned byte buffer rather than a view whose
-          // backing ArrayBuffer still contains the complete WTP frame.
-          const segment = frame.slice(
-            offset, Math.min(frame.length, offset + WTP_SEGMENT_BYTES));
-          try {
-            await write.call(transport, segment);
-            ++this.trace.wtpWritten;
-          } finally { segment.fill(0); }
-        }
-      } catch (error) {
-        clearTimeout(settle.timer); this.wtpPending.delete(requestId);
-        if (error && typeof error === "object") error.detail = this.diagnosticSummary();
-        throw error;
-      } finally { frame.fill(0); }
-      return result;
-    }
-    async enableLocalControl() {
-      if (!this.authorized || !this.wtpCommand) fail("authentication_required");
-      if (this.wtpHello) return this.wtpHello;
-      try {
-        await this.selectWtpChannel();
-        this.wtpSession = randomId(this.crypto);
-        const hello = await this.wtpExchange("HELLO", {versions: ["WTP/1"],
-          client_name: "WsprryPico Bluefy", client_version: "1"});
-        if (hello.selected_version !== "WTP/1" || hello.device_id !== this.expectedDeviceId ||
-            !validDeviceId(hello.boot_id) || !printable(hello.product, 1, 64) ||
-            !printable(hello.firmware_version, 1, 64)) fail("wtp_wrong_device");
-        this.wtpHello = hello;
-        return hello;
-      } catch (error) {
-        this.disconnect();
-        throw error;
-      }
-    }
     async provision(input) {
       let profile = null;
       let accessPassword = input && typeof input.access_password === "string"
@@ -842,35 +613,22 @@
         entry.reject(error);
       }
       this.pending.clear();
-      for (const entry of this.wtpPending.values()) {
-        clearTimeout(entry.timer);
-        const error = new Error("disconnected"); error.code = "disconnected";
-        entry.reject(error);
-      }
-      this.wtpPending.clear();
       if (this.status)
         this.status.removeEventListener("characteristicvaluechanged", this.onStatus);
       if (this.device && typeof this.device.removeEventListener === "function")
         this.device.removeEventListener("gattserverdisconnected", this.onDisconnected);
       if (this.device && this.device.gatt.connected) this.device.gatt.disconnect();
       this.device = this.command = this.status = this.identity = null;
-      this.wtpCommand = this.wtpStatus = null;
       this.expectedDeviceId = "";
       this.generation = 0;
       this.authorized = false;
-      this.fieldSession = this.wtpSession = "";
+      this.fieldSession = "";
       this.fieldListening = false;
-      this.wtpListening = false;
-      this.wtpHello = null;
-      this.lastWtpEvent = null;
       this.statusReceiver.reset();
-      this.wtpReceiver.reset();
     }
   }
 
   return {UUIDS, MAX_PROFILE_BYTES, FRAGMENT_BYTES, GATT_FRAME_BYTES,
     GATT_FRAME_HEADER_BYTES, GATT_FRAME_PAYLOAD_BYTES, GATT_FRAME_COUNT, MAX_COMMAND_BYTES,
-    MAX_STATUS_BYTES, WTP_HEADER_BYTES, WTP_MAX_PAYLOAD_BYTES, WTP_SEGMENT_BYTES,
-    validDeviceId, canonicalProfile, profileInputFromFile, frames, FrameReceiver, crc32c,
-    wtpFrame, WtpReceiver, Client};
+    MAX_STATUS_BYTES, validDeviceId, canonicalProfile, profileInputFromFile, frames, FrameReceiver, Client};
 });

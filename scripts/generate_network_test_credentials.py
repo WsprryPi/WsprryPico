@@ -6,18 +6,23 @@ from network_certificates import write_manifest, validate_bundle
 import os
 import subprocess
 import sys
+import re
 
 os.umask(0o077)
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('directory')
 parser.add_argument('--dns-only', action='store_true', help='Omit the optional loopback IPv4 SAN')
+parser.add_argument('--device-id', default='a' * 32,
+                    help='Exact lowercase 128-bit software-fixture identity')
 args = parser.parse_args()
+if not re.fullmatch(r'[0-9a-f]{32}', args.device_id):
+    parser.error('--device-id requires 32 lowercase hexadecimal characters')
 out = pathlib.Path(args.directory).resolve()
 if out.exists() and any(out.iterdir()):
     raise SystemExit('Refusing to overwrite a nonempty test credential directory; use a new directory')
 out.mkdir(mode=0o700, parents=True, exist_ok=True)
 out.chmod(0o700)
-identifier = 'a' * 32
+identifier = args.device_id
 selected_hostname = 'wsprrypico-' + identifier + '.local'
 
 def openssl(*args):

@@ -1,9 +1,10 @@
 // Synthetic production-shaped network diagnostics for the USB endpoint fixture.
 #pragma once
 #include <string>
+#include <optional>
 
-inline std::string network_diagnostics_fixture(bool enabled) {
-    return std::string("{\"enabled\":") + (enabled ? "true" : "false") +
+inline std::string network_diagnostics_fixture(bool enabled, std::optional<bool> requested = {}) {
+    auto result = std::string("{\"enabled\":") + (enabled ? "true" : "false") +
            R"DIAG(,
   "ntp_observations": {
     "source": "microchrony",
@@ -144,4 +145,13 @@ inline std::string network_diagnostics_fixture(bool enabled) {
   "last_rtt_ns": 0,
   "last_sample_uncertainty_ns": null
 })DIAG";
+    if (requested) {
+        const std::string key = "\"requested_enabled\": null";
+        result.replace(result.find(key), key.size(), std::string("\"requested_enabled\": ") + (*requested ? "true" : "false"));
+        if (enabled && !*requested) {
+            const std::string withdrawal = "\"withdrawal_pending\": false";
+            result.replace(result.find(withdrawal), withdrawal.size(), "\"withdrawal_pending\": true");
+        }
+    }
+    return result;
 }

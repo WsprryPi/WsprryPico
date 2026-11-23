@@ -1,3 +1,4 @@
+#include "browser_load_response.hpp"
 #include "mbedtls/chachapoly.h"
 #include "mbedtls/platform.h"
 #include "network/bootstrap_codec.hpp"

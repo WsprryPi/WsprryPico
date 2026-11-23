@@ -171,6 +171,7 @@ def exchange(fd, data, deadline, emit, framed, expected=None, receive_buffer=Non
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.error("External WTP tooling is retired; use retained native management or Console diagnostics.")
     parser.add_argument('--serial', required=True)
     parser.add_argument('--device-id', required=True)
     parser.add_argument('--session-id', help='Reuse one explicitly recorded logical administration session')

@@ -3,8 +3,6 @@
 #include "btstack.h"
 #include "provisioning/ble_session.hpp"
 #include "provisioning/gatt_framing.hpp"
-#include "provisioning/gatt_write_admission.hpp"
-#include "wtp/endpoint.hpp"
 
 #include <array>
 #include <cstddef>
@@ -30,12 +28,7 @@ class PicoGattTransport {
         std::uint32_t responses_delivered = 0;
         std::uint32_t cccd_writes = 0;
         std::uint32_t cccd_rejections = 0;
-        std::uint32_t wtp_write_segments = 0;
-        std::uint32_t wtp_write_bytes = 0;
-        std::uint32_t wtp_indication_segments = 0;
-        std::uint32_t wtp_indication_bytes = 0;
         std::uint16_t cccd_value = 0;
-        std::uint16_t wtp_cccd_value = 0;
         std::uint8_t last_request_status = 0;
         std::uint8_t last_indication_status = 0;
         std::uint8_t last_completion_status = 0;
@@ -49,12 +42,11 @@ class PicoGattTransport {
         bool connected = false;
         bool admitted = false;
         bool send_requested = false;
-        bool wtp_over_field_status = false;
     };
     using Now = std::uint64_t (*)(void*);
-    PicoGattTransport(BleCommandSession& session, wtp::Endpoint* endpoint, std::string identity,
+    PicoGattTransport(BleCommandSession& session, std::string identity,
                       std::string advertising_name, Now now, void* context)
-        : session_(session), endpoint_(endpoint), identity_(std::move(identity)),
+        : session_(session), identity_(std::move(identity)),
           advertising_name_(std::move(advertising_name)), now_(now), context_(context),
           inbound_(max_command_bytes) {}
     ~PicoGattTransport();
@@ -81,10 +73,6 @@ class PicoGattTransport {
     bool admit();
     bool queue(std::string_view notification);
     bool output_pending() const;
-    bool wtp_indications_enabled() const;
-    std::uint16_t wtp_status_handle() const;
-    bool ensure_wtp_endpoint();
-    void resume_wtp_write();
     bool request_send();
     void send_next();
     void security_lost();
@@ -95,7 +83,6 @@ class PicoGattTransport {
 
     static PicoGattTransport* owner_;
     BleCommandSession& session_;
-    wtp::Endpoint* endpoint_;
     std::string identity_;
     std::string advertising_name_;
     Now now_;
@@ -119,11 +106,8 @@ class PicoGattTransport {
     bool send_requested_ = false;
     bool in_write_callback_ = false;
     std::uint16_t status_cccd_ = 0;
-    std::uint16_t wtp_cccd_ = 0;
-    enum class Indication { None, Provisioning, Wtp };
+    enum class Indication { None, Provisioning };
     Indication indication_ = Indication::None;
-    std::size_t wtp_indication_bytes_ = 0;
-    GattWriteAdmission wtp_write_admission_;
     Diagnostics diagnostics_{};
 };
 } // namespace wsprrypico::provisioning

@@ -39,10 +39,10 @@ async function login(password='test-password') {
 }
 const checks=[];
 function pass(name){checks.push(name);console.log('PASS '+name);}
-async function capture(state,dialog=false) {
+async function capture(state,dialog=false,anchor='') {
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
-        if(!dialog)await evaluate('scrollTo(0,0)');
+        if(!dialog)await evaluate(anchor?`document.getElementById(${JSON.stringify(anchor)}).scrollIntoView({block:'center'})`:'scrollTo(0,0)');
         assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'no horizontal overflow');
         if(process.env.UI_REVIEW_NO_CAPTURE==='1')continue;
         const shot=await send('Page.captureScreenshot',{format:'png'});
@@ -140,16 +140,22 @@ try {
     pass('UDP and USB logging retain resource eligibility inside the outer action and confirm real journal-backed saves');
 
     await section('message-section');
-    await evaluate(`globalThis.jobTrace=[];radio.request=async(path,method,...args)=>{if(path==='jobs')jobTrace.push(args[0].operation);const result=await originalRequest(path,method,...args);if(path==='jobs' && args[0].operation==='LOAD_MESSAGE')await new Promise(resolve=>globalThis.finishLoad=resolve);return result;};const put=(id,value)=>{const e=document.getElementById(id);e.value=value;e.dispatchEvent(new Event('input',{bubbles:true}));};put('message-delivery','once');put('message-text','E');put('message-mode','qrss');put('message-frequency','14097100');put('message-dot','1');put('message-repeats','1');put('message-gap','0');put('message-start',new Date(utcNowMs()+60000).toISOString().slice(0,19).replace('T',' '));document.getElementById('message-form').requestSubmit();`);
-    await until(()=>evaluate('typeof finishLoad==="function"'),'real message loaded before ARM');
-    await click('submission-abort');await evaluate('finishLoad()');await idle();
-    await until(()=>evaluate('!stopRequested && !busy'),'deferred abort completed');
-    assert.equal(await evaluate('jobTrace.includes("ARM")'),false);
-    assert.equal(await evaluate('jobTrace.filter(op=>op==="ABORT").length'),1);
+    await evaluate(`document.getElementById('message-text').value='UNSAVED';void action(()=>refresh());`);await idle();
+    await until(()=>evaluate('!document.getElementById("native-stop").disabled'),'fresh native stop control');
+    await evaluate(`globalThis.stopTrace=[];radio.request=async(path,method,...args)=>{stopTrace.push({path,method});const result=await originalRequest(path,method,...args);if(path==='schedules/stop' && method==='POST')await new Promise(resolve=>globalThis.finishStop=resolve);return result;};document.getElementById('native-stop').click();`);
+    await until(()=>evaluate('typeof finishStop==="function"'),'actual native stop committed before receipt');
+    assert.equal(await evaluate('document.getElementById("native-stop").disabled'),true);
+    await evaluate('document.getElementById("native-stop").onclick()');
+    assert.equal(await evaluate('stopTrace.filter(x=>x.path==="schedules/stop" && x.method==="POST").length'),1);
+    await evaluate('finishStop()');await idle();
+    assert.match(await evaluate('document.getElementById("native-stop-status").textContent'),/confirmed inactive and unowned/);
+    assert.equal(await evaluate('stopTrace.some(x=>x.path==="jobs")'),false);
     assert.equal(await evaluate('snapshot.job.output_active'),false);
-    assert.equal(await evaluate('snapshot.job.state'),'aborted');
-    await evaluate('radio.request=originalRequest;void action(async()=>{await job("RELEASE");await refresh();})');await idle();
-    pass('foreground abort drains an actual loaded job, invalidates the pending ARM continuation and confirms inactive output');
+    assert.equal(await evaluate('snapshot.job.owner_id'),null);
+    assert.equal(await evaluate('document.getElementById("message-text").value'),'UNSAVED');
+    await capture('native-stop-confirmed',false,'native-stop');
+    await evaluate('radio.request=originalRequest');
+    pass('native stop commits once, blocks duplicate submission while pending, confirms inactive unowned output and preserves the draft');
 
     await evaluate(`globalThis.originalPublicRead=radio.publicRead.bind(radio);radio.publicRead=async(path,...args)=>{const result=await originalPublicRead(path,...args);if(path==='operations')await new Promise(resolve=>globalThis.finishPoll=resolve);return result;};void action(()=>refresh(false,true),{background:true});`);
     await until(()=>evaluate('typeof finishPoll==="function"'),'pending production poll');

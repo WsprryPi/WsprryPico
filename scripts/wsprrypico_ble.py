@@ -18,7 +18,6 @@ from pathlib import Path
 import re
 import secrets
 import stat
-import struct
 import sys
 import time
 from typing import Any, Callable
@@ -29,8 +28,6 @@ UUIDS = {
     "identity": "7d6b0002-5bf1-4f21-a486-3e8f70c12201",
     "command": "7d6b0003-5bf1-4f21-a486-3e8f70c12201",
     "status": "7d6b0004-5bf1-4f21-a486-3e8f70c12201",
-    "wtpCommand": "7d6b0005-5bf1-4f21-a486-3e8f70c12201",
-    "wtpStatus": "7d6b0006-5bf1-4f21-a486-3e8f70c12201",
 }
 MAX_PROFILE_BYTES = 7168
 FRAGMENT_BYTES = 64
@@ -40,10 +37,6 @@ GATT_FRAME_PAYLOAD_BYTES = GATT_FRAME_BYTES - GATT_FRAME_HEADER_BYTES
 GATT_FRAME_COUNT = 16
 MAX_COMMAND_BYTES = 512
 MAX_STATUS_BYTES = 256
-WTP_HEADER_BYTES = 16
-WTP_MAX_PAYLOAD_BYTES = 65536
-WTP_SEGMENT_BYTES = 64
-WTP_REASSEMBLY_BYTES = 131072
 PROFILE_CONFIRMATION_TIMEOUT_SECONDS = 25.0
 PROFILE_CONFIRMATION_POLL_SECONDS = 0.5
 
@@ -52,7 +45,6 @@ _ADDRESS = re.compile(r"^(?:[0-9A-F]{2}:){5}[0-9A-F]{2}$")
 _OP = re.compile(r"^[A-Z][A-Z0-9_]{0,63}$")
 _REMOTE_ERROR = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 _DECIMAL = re.compile(r"^(?:0|[1-9][0-9]*)$")
-_WTP_STATES = {"empty", "loaded", "armed", "running", "complete", "aborted", "missed", "failed"}
 
 
 class ClientError(Exception):
@@ -305,68 +297,10 @@ class FrameReceiver:
         return result
 
 
-def crc32c(payload: bytes | bytearray) -> int:
-    crc = 0xFFFFFFFF
-    for byte in payload:
-        crc ^= byte
-        for _ in range(8):
-            crc = (crc >> 1) ^ (0x82F63B78 if crc & 1 else 0)
-    return (crc ^ 0xFFFFFFFF) & 0xFFFFFFFF
 
 
-def wtp_frame(message: dict[str, Any]) -> bytearray:
-    payload = bytearray(json.dumps(message, separators=(",", ":")).encode("utf-8"))
-    if not payload or len(payload) > WTP_MAX_PAYLOAD_BYTES:
-        payload[:] = b"\x00" * len(payload)
-        fail("wtp_payload_oversize")
-    result = bytearray(struct.pack(">8sII", b"WTPF\x01\x01\x00\x00", len(payload), crc32c(payload)))
-    result.extend(payload)
-    payload[:] = b"\x00" * len(payload)
-    return result
 
 
-class WtpReceiver:
-    def __init__(self):
-        self.buffer = bytearray()
-
-    def reset(self) -> None:
-        self.buffer[:] = b"\x00" * len(self.buffer)
-        self.buffer.clear()
-
-    def receive(self, value: bytes | bytearray) -> list[dict[str, Any]]:
-        if not value or len(self.buffer) + len(value) > WTP_REASSEMBLY_BYTES:
-            self.reset()
-            fail("wtp_frame_oversize")
-        self.buffer.extend(value)
-        result: list[dict[str, Any]] = []
-        while len(self.buffer) >= WTP_HEADER_BYTES:
-            magic, length, expected = struct.unpack(">8sII", self.buffer[:WTP_HEADER_BYTES])
-            if magic != b"WTPF\x01\x01\x00\x00" or length == 0 or length > WTP_MAX_PAYLOAD_BYTES:
-                self.reset()
-                fail("wtp_frame_invalid")
-            total = WTP_HEADER_BYTES + length
-            if len(self.buffer) < total:
-                break
-            payload = bytearray(self.buffer[WTP_HEADER_BYTES:total])
-            retained = bytearray(self.buffer[total:])
-            self.buffer[:] = b"\x00" * len(self.buffer)
-            self.buffer = retained
-            if crc32c(payload) != expected:
-                payload[:] = b"\x00" * len(payload)
-                self.reset()
-                fail("wtp_crc")
-            try:
-                message = json.loads(payload.decode("utf-8"))
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                payload[:] = b"\x00" * len(payload)
-                self.reset()
-                fail("wtp_json")
-            payload[:] = b"\x00" * len(payload)
-            if not isinstance(message, dict):
-                self.reset()
-                fail("wtp_json")
-            result.append(message)
-        return result
 
 
 class Client:
@@ -393,14 +327,9 @@ class Client:
         self.generation = 0
         self.authorized = False
         self.field_session = ""
-        self.wtp_session = ""
         self.status_receiver = FrameReceiver(MAX_STATUS_BYTES)
-        self.wtp_receiver = WtpReceiver()
         self._field_responses: dict[str, dict[str, Any]] = {}
-        self._wtp_responses: dict[str, dict[str, Any]] = {}
         self._field_pending = ""
-        self._wtp_pending = ""
-        self._wtp_pending_op = ""
         self._fatal: ClientError | None = None
 
     def connect(
@@ -452,32 +381,6 @@ class Client:
         except ClientError as error:
             self._fatal = error
 
-    def _on_wtp_status(self, value: bytes) -> None:
-        try:
-            for response in self.wtp_receiver.receive(value):
-                if response.get("type") == "event":
-                    continue
-                request_id = response.get("request_id")
-                if (
-                    response.get("type") != "response"
-                    or response.get("protocol") != "WTP/1"
-                    or not valid_device_id(request_id)
-                    or not isinstance(response.get("op"), str)
-                    or not isinstance(response.get("ok"), bool)
-                ):
-                    fail("wtp_response_invalid")
-                if request_id != self._wtp_pending:
-                    continue
-                if (
-                    response.get("session_id") != self.wtp_session
-                    or response.get("op") != self._wtp_pending_op
-                ):
-                    fail("wtp_response_mismatch")
-                if request_id in self._wtp_responses:
-                    fail("wtp_response_duplicate")
-                self._wtp_responses[request_id] = response
-        except ClientError as error:
-            self._fatal = error
 
     def _wait(
         self,
@@ -623,123 +526,8 @@ class Client:
         if response.get("accepted") is not True:
             fail("controller_time_response")
 
-    def wtp_exchange(self, operation: str, body: dict[str, Any]) -> dict[str, Any]:
-        if not self.authorized or not self.wtp_session:
-            fail("wtp_unavailable")
-        if _OP.fullmatch(operation) is None or not isinstance(body, dict):
-            fail("wtp_request")
-        if self._wtp_pending:
-            fail("wtp_busy")
-        deadline = time.monotonic() + self.timeout
-        request_id = secrets.token_hex(16)
-        frame = wtp_frame({
-            "type": "request",
-            "protocol": "WTP/1",
-            "session_id": self.wtp_session,
-            "request_id": request_id,
-            "op": operation,
-            "body": body,
-        })
-        self._wtp_pending = request_id
-        self._wtp_pending_op = operation
-        try:
-            for offset in range(0, len(frame), WTP_SEGMENT_BYTES):
-                self._write_before(
-                    UUIDS["wtpCommand"], frame[offset : offset + WTP_SEGMENT_BYTES],
-                    deadline, "wtp_timeout",
-                )
-            response = self._wait(self._wtp_responses, request_id, "wtp_timeout", deadline=deadline)
-            if response.get("op") != operation:
-                fail("wtp_response_mismatch")
-            if response["ok"] and isinstance(response.get("body"), dict):
-                if time.monotonic() >= deadline:
-                    fail("wtp_timeout")
-                return response["body"]
-            error = response.get("error")
-            code = error.get("code") if isinstance(error, dict) else None
-            fail(remote_error(code))
-        finally:
-            self._wtp_responses.pop(request_id, None)
-            self._wtp_pending = ""
-            self._wtp_pending_op = ""
-            frame[:] = b"\x00" * len(frame)
 
-    def enable_local_control(self) -> dict[str, Any]:
-        if not self.authorized:
-            fail("authentication_required")
-        try:
-            self.backend.start_notify(UUIDS["wtpStatus"], self._on_wtp_status)
-            self.wtp_session = secrets.token_hex(16)
-            hello = self.wtp_exchange(
-                "HELLO", {"versions": ["WTP/1"], "client_name": "WsprryPico BlueZ", "client_version": "1"}
-            )
-            if (
-                hello.get("selected_version") != "WTP/1"
-                or hello.get("device_id") != self.expected_device_id
-                or not valid_device_id(hello.get("boot_id"))
-                or not _printable(hello.get("product"), 1, 64)
-                or not _printable(hello.get("firmware_version"), 1, 64)
-            ):
-                fail("wtp_wrong_device")
-            return hello
-        except Exception:
-            self.close()
-            raise
 
-    def wtp_status(self, expected_boot_id: str) -> dict[str, Any]:
-        status = self.wtp_exchange("STATUS", {})
-        if set(status) != {
-            "boot_id",
-            "state",
-            "output_active",
-            "owner_id",
-            "job_id",
-            "terminal_records",
-        }:
-            fail("wtp_status_response")
-        if (
-            status.get("boot_id") != expected_boot_id
-            or status.get("state") not in _WTP_STATES
-            or not isinstance(status.get("output_active"), bool)
-            or (status.get("owner_id") is not None and not valid_device_id(status.get("owner_id")))
-            or (status.get("job_id") is not None and not valid_device_id(status.get("job_id")))
-            or not isinstance(status.get("terminal_records"), list)
-        ):
-            fail("wtp_status_response")
-        for record in status["terminal_records"]:
-            if not isinstance(record, dict) or not {
-                "job_id",
-                "state",
-                "ended_monotonic_ns",
-                "output_active",
-            }.issubset(record) or set(record) - {
-                "job_id",
-                "state",
-                "ended_monotonic_ns",
-                "output_active",
-                "error",
-            }:
-                fail("wtp_status_response")
-            error = record.get("error")
-            if (
-                not valid_device_id(record.get("job_id"))
-                or record.get("state") not in _WTP_STATES
-                or not isinstance(record.get("ended_monotonic_ns"), str)
-                or _DECIMAL.fullmatch(record["ended_monotonic_ns"]) is None
-                or not isinstance(record.get("output_active"), bool)
-                or (
-                    error is not None
-                    and (
-                        not isinstance(error, dict)
-                        or set(error) != {"code", "message", "retryable"}
-                        or remote_error(error.get("code")) != error.get("code")
-                        or error.get("message") != error.get("code")
-                        or not isinstance(error.get("retryable"), bool)
-                    )
-                )
-            ):
-                fail("wtp_status_response")
-        return status
 
     @staticmethod
     def _step_up_ready(response: dict[str, Any]) -> tuple[bool, bool]:
@@ -842,18 +630,13 @@ class Client:
 
     def close(self) -> None:
         self.status_receiver.reset()
-        self.wtp_receiver.reset()
         self._field_responses.clear()
-        self._wtp_responses.clear()
         self._field_pending = ""
-        self._wtp_pending = ""
-        self._wtp_pending_op = ""
         self._fatal = None
         self.expected_device_id = ""
         self.generation = 0
         self.authorized = False
         self.field_session = ""
-        self.wtp_session = ""
         try:
             self.backend.close()
         except Exception:
@@ -1224,7 +1007,6 @@ def _parser() -> argparse.ArgumentParser:
     commands.add_parser("status", help="read authenticated field status")
     commands.add_parser("identify", help="run the bounded visual Identify pattern")
     commands.add_parser("sync-time", help="submit controller UTC after a bound challenge")
-    commands.add_parser("wtp-status", help="negotiate unchanged WTP/1 and request STATUS")
     provision = commands.add_parser("provision", help="atomically apply a protected profile")
     provision.add_argument("--profile", required=True, help="absolute owner-only canonical profile JSON")
     return parser
@@ -1258,19 +1040,6 @@ def run(arguments: list[str] | None = None, backend_factory: Callable[[str], Any
             elif args.command == "sync-time":
                 client.synchronize_time()
                 output = {"accepted": True}
-            elif args.command == "wtp-status":
-                hello = client.enable_local_control()
-                status = client.wtp_status(hello["boot_id"])
-                output = {
-                    "hello": {
-                        "selected_version": hello["selected_version"],
-                        "device_id": hello["device_id"],
-                        "boot_id": hello["boot_id"],
-                        "product": hello["product"],
-                        "firmware_version": hello["firmware_version"],
-                    },
-                    "status": status,
-                }
             elif args.command == "provision":
                 profile = load_profile_file(args.profile)
                 step_up_password = ""

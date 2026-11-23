@@ -1,6 +1,7 @@
 #pragma once
 #include "standalone/config.hpp"
 #include "wtp/json.hpp"
+#include "wtp/job_service.hpp"
 
 namespace wsprrypico::application {
 inline constexpr std::size_t max_update_bytes = 1024;
@@ -19,5 +20,6 @@ std::string amplifier_timing_capabilities();
 std::string amplifier_observation(const rf::AmplifierObservation& observation);
 std::string station(const standalone::Config& config);
 std::string capabilities();
+std::string execution_capabilities(const wtp::ServiceConfig& config);
 std::string wspr_plan(const standalone::Config& config);
 } // namespace wsprrypico::application

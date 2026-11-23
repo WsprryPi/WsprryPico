@@ -1,3 +1,4 @@
+#include "browser_load_response.hpp"
 #include "network/control.hpp"
 #include "wtp/codec.hpp"
 

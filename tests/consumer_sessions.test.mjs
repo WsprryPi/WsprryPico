@@ -269,16 +269,14 @@ await run('deferred receipt remains isolated after interface closure, slot reuse
   await f.command({op:'invalidate'});await assert.rejects(b.request('status'));
 });
 
-await run('distinct sessions retain one transmitter owner after logout',async f=>{
+await run('independent browser sessions cannot take native ownership; logout preserves local execution',async f=>{
   const a=f.client(),b=f.client();await f.login(a);await f.time(2000);await f.login(b);
-  let request=1;const session='1'.repeat(32),job='2'.repeat(32);
-  const command=(client,operation,body)=>client.request('jobs','POST',{session_id:session,request_id:String(request++).padStart(32,'0'),operation,body});
-  assert.equal((await command(a,'HELLO',{versions:['WTP/1'],client_name:'test',client_version:'1'})).status,200);
-  assert.equal((await command(a,'CLAIM',{owner_id:session,lease_ms:30000})).status,200);
+  await f.command({op:'native_load'});
+  for(const client of [a,b])assert.equal((await client.request('jobs','POST',{invalid:true})).status,404);
   const revision=(await b.request('config')).headers.get('etag');
   assert.equal((await b.request('network','PUT',{enabled:false},revision)).status,409);
-  assert.equal((await command(a,'LOAD',{job_id:job,profile:'rf-events/1',mode:'tone',total_duration_ns:'1000000000',events:[{offset_ns:'0',duration_ns:'1000000000',rf_on:true,frequency_nhz:'3570100000000000'}],allow_frequency_adjustment:false})).status,200);
-  await a.logout();const status=await (await b.request('status')).json();assert.equal(status.job.state,'loaded');assert.equal(status.job.owner_id,session);
+  await a.logout();const status=await (await b.request('status')).json();
+  assert.equal(status.job.state,'loaded');assert.equal(status.job.owner_id,'1'.repeat(32));
 });
 await run('suspended no-dial hardware preserves recurrence across lost reply, stale saves, expiry and reboot',async f=>{
   await f.command({op:'hardware_save_review'});

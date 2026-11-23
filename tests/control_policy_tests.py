@@ -60,7 +60,37 @@ for mutation in ['unknown-method', 'duplicate', 'outside-producer', 'wrong-metho
     if mutation == 'wrong-type': role['GET'] = [None]
     if mutation == 'unknown-role': bad['client_routes']['pi_management_v2'] = role
     rejected(policy, bad)
+for mutation in ['missing','extra','foreign-read','wrong-read','header']:
+    bad = copy.deepcopy(schema)
+    adapter = bad['controller_adapter']
+    if mutation == 'missing': del adapter['reconciliation_reads']['wifi']
+    if mutation == 'extra': adapter['reconciliation_reads']['jobs'] = 'configuration'
+    if mutation == 'foreign-read': adapter['reconciliation_reads']['wifi'] = 'https://untrusted.invalid'
+    if mutation == 'wrong-read': adapter['reconciliation_reads']['restart'] = 'wifi'
+    if mutation == 'header': adapter['headers']['recovery'] = 'Location'
+    rejected(policy, bad)
+for mutation in ['missing-method', 'extra-method', 'duplicate-route', 'foreign-route', 'wrong-method', 'missing-document']:
+    bad = copy.deepcopy(schema)
+    adapter = bad['controller_adapter']
+    if mutation == 'missing-method': del adapter['host_routes']['PUT']
+    if mutation == 'extra-method': adapter['host_routes']['DELETE'] = ['host/configuration-recovery']
+    if mutation == 'duplicate-route': adapter['host_routes']['GET'].append('host/readiness')
+    if mutation == 'foreign-route': adapter['host_routes']['GET'][0] = 'https://untrusted.invalid/readiness'
+    if mutation == 'wrong-method': adapter['host_routes']['POST'].append('host/readiness')
+    if mutation == 'missing-document': adapter['documents'].remove('configuration-recovery-save')
+    rejected(policy, bad)
 validate(policy, schema) # Existing WTP, log wire, host storage and owner-read boundaries remain valid.
+from check_control_policy import pi_resource_descriptors
+for field in ['configuration','management']:
+    changed_policy=copy.deepcopy(schema)
+    changed_policy['pi_management_policies'][field]['revision']='f'*40
+    assert pi_resource_descriptors(changed_policy)!=pi_resource_descriptors(schema)
+changed_shape=copy.deepcopy(schema)
+changed_shape['$defs']['pi-config']['properties']['CW']['properties']['Message']['maxLength']=1024
+assert pi_resource_descriptors(changed_shape)!=pi_resource_descriptors(schema)
+for invalid in [None,[],{}, {'revision':'f'*40,'paths':[{}]}]:
+    bad=copy.deepcopy(schema);bad['pi_management_policies']['configuration']=invalid
+    rejected(policy,bad)
 rejected(policy, schema, True)
 released = {**policy, 'phase': 'released', 'first_release': '1.0.0', 'schema_sha256': schema_digest(schema)}
 validate(released, schema, True)
@@ -68,7 +98,8 @@ rejected(released, changed)
 rejected({**released, 'first_release': '1.0.0-beta.1'}, schema)
 rejected({**policy, 'schema_sha256': schema_digest(schema)}, schema)
 # Independent WTP content is outside resource naming rules and retains its own version.
-assert schema['$defs']['wtp']['$defs']['capsResponse']['properties']['profiles']['items']['const'] == 'rf-events/1'
+assert 'wtp' not in schema['$defs']
+assert json.loads((ROOT / 'engineering/protocol/wtp-1.schema.json').read_text())['$defs']['capsResponse']['properties']['profiles']['items']['const'] == 'rf-events/1'
 with tempfile.TemporaryDirectory() as directory:
     p, s = Path(directory) / 'policy.json', Path(directory) / 'schema.json'
     p.write_text(json.dumps(policy)); s.write_text(json.dumps(schema))

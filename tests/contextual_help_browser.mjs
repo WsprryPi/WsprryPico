@@ -18,7 +18,7 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
   assert.equal(await evaluate(`document.querySelectorAll('details>summary:not(:has(a.documentation-help))').length`),0,'every disclosure, including generated UDP controls, has contextual help');
   assert.equal(await evaluate(`document.querySelectorAll('section:not(:has(a.documentation-help))').length`),0,'every operator section has contextual help');
   assert.equal(await evaluate(`!!document.querySelector('#local-access a.documentation-help') && !!document.querySelector('#login-recovery summary a.documentation-help')`),true,'modal and occupied-login help');
-  for(const topic of ['LPF and band selector','UDP logging','USB logging','CW timing','Prepared job files','Recurring message schedule','Manual RF correction','NTP timeout and clock state'])
+  for(const topic of ['LPF and band selector','UDP logging','USB logging','CW timing','Stop and ownership','Recurring message schedule','Manual RF correction','NTP timeout and clock state'])
     assert.equal(await evaluate(`!!document.querySelector('[data-help="${topic}"]')`),true,topic);
   assert.equal(await evaluate(`[...document.querySelectorAll('a.documentation-help')].every(a=>a.getAttribute('aria-label') && a.title && a.querySelector('svg[aria-hidden="true"][focusable="false"]') && !a.textContent.trim())`),true,'every contextual link is a named decorative inline icon');
   assert.equal(await evaluate(`[...document.querySelectorAll('a.documentation-help:not(#header-help)')].every(a=>new URL(a.href).hash.length>1)`),true,'control help always selects a section');
@@ -39,7 +39,7 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
   }
   await send('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});
   await section('radio-settings');
-  await evaluate(`document.getElementById('radio-settings').open=false;document.getElementById('message-frequency').value='invalid raw draft';const helpTransfer=new DataTransfer();helpTransfer.items.add(new File(['draft'],'help-draft.json'));document.getElementById('job-file').files=helpTransfer.files;globalThis.helpFile=document.getElementById('job-file').files[0];globalThis.helpSnapshot=JSON.stringify({hash:location.hash,state:history.state,area:document.getElementById('station-area').hidden,open:[...document.querySelectorAll('details')].map(e=>e.open)});globalThis.helpRequests=[];globalThis.helpFetch=fetch;globalThis.fetch=(...args)=>{helpRequests.push(String(args[0]));return helpFetch(...args)};`);
+  await evaluate(`document.getElementById('radio-settings').open=false;document.getElementById('message-frequency').value='invalid raw draft';globalThis.helpInterval=document.getElementById('message-interval').value;document.getElementById('message-interval').value='17';globalThis.helpSnapshot=JSON.stringify({hash:location.hash,state:history.state,area:document.getElementById('station-area').hidden,open:[...document.querySelectorAll('details')].map(e=>e.open)});globalThis.helpRequests=[];globalThis.helpFetch=fetch;globalThis.fetch=(...args)=>{helpRequests.push(String(args[0]));return helpFetch(...args)};`);
   for(const selector of ['#radio-settings>summary a.documentation-help','#header-help']) {
     for(const activation of ['pointer','keyboard']) {
       const before=helpWindows.length;
@@ -60,7 +60,7 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
       assert.equal(await evaluate(`[...document.querySelectorAll('a.documentation-help')].every(a=>new URL(a.href).pathname.startsWith('/en/${version}/'))`),true,'one maintained manual version across the shipped page');
       const targets=await send('Target.getTargets');
       for(const target of targets.targetInfos) if(target.openerId)await closeHelpTarget(send,target.targetId);
-      assert.equal(await evaluate(`JSON.stringify({hash:location.hash,state:history.state,area:document.getElementById('station-area').hidden,open:[...document.querySelectorAll('details')].map(e=>e.open)})===helpSnapshot && document.getElementById('message-frequency').value==='invalid raw draft' && document.getElementById('job-file').files[0]===helpFile`),true,'native help preserves drafts, selected file, History and collapsed state');
+      assert.equal(await evaluate(`JSON.stringify({hash:location.hash,state:history.state,area:document.getElementById('station-area').hidden,open:[...document.querySelectorAll('details')].map(e=>e.open)})===helpSnapshot && document.getElementById('message-frequency').value==='invalid raw draft' && document.getElementById('message-interval').value==='17' && !document.getElementById('job-file')`),true,'native help preserves frequency and recurrence drafts, History and collapsed state');
     }
   }
   assert.equal(await evaluate('helpRequests.length'),0,'help makes no application request');
@@ -68,6 +68,6 @@ export async function checkContextualHelp({evaluate,send,key,section,helpWindows
   // Native summary keyboard activation still toggles, independently of the link.
   await evaluate(`document.querySelector('#radio-settings>summary').focus()`);await key('Enter');
   assert.equal(await evaluate('document.getElementById("radio-settings").open'),true);
-  await evaluate(`document.getElementById('radio-settings').open=false;document.getElementById('message-frequency').value='';document.getElementById('job-file').value=''`);
+  await evaluate(`document.getElementById('radio-settings').open=false;document.getElementById('message-frequency').value='';document.getElementById('message-interval').value=helpInterval`);
   await evaluate(`document.querySelector('#radio-settings [data-top]').click()`);
 }

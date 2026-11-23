@@ -687,19 +687,21 @@ struct Driver {
         if (op == "schedule_tick") {
             // Synthetic time drives the production scheduler and dry-run engine.
             // No device access or physical RF output is provided by this fixture.
+            auto& selected = v.get("surface") && field(v, "surface") == "engineering"
+                                 ? engineering : f;
             std::uint64_t delta;
             check(wtp::json::decimal(*v.get("delta_ns"), delta) && delta <= 600'000'000'000ULL);
-            f.clock.now += delta;
+            selected.clock.now += delta;
             if (const auto uncertainty = v.get("uncertainty_ns"))
-                check(wtp::json::decimal(*uncertainty, f.clock.uncertainty));
+                check(wtp::json::decimal(*uncertainty, selected.clock.uncertainty));
             if (const auto bytes = v.get("free_bytes")) {
                 static std::uint64_t free_bytes;
                 check(wtp::json::decimal(*bytes, free_bytes) && free_bytes <= SIZE_MAX);
                 wtp::available_memory = +[]() -> std::size_t { return free_bytes; };
             }
-            f.scheduler.poll();
+            selected.scheduler.poll();
             wtp::available_memory = nullptr;
-            auto result = f.scheduler.status();
+            auto result = selected.scheduler.status();
             if (!result.empty() && result.back() == '\n')
                 result.pop_back();
             return result;
@@ -946,6 +948,18 @@ struct Driver {
             return "{}";
         }
 #endif
+        if (op == "native_load") {
+            const std::string session(32, '1');
+            check(network_test::internal_command(f.service, "HELLO", wtp::HelloBody{{"WTP/1"}}, "native-fixture", session).ok);
+            check(network_test::internal_command(f.service, "CLAIM", wtp::ClaimBody{session, 60000}, "native-fixture", session).ok);
+            wtp::Job job;
+            job.job_id = std::string(32, '2');
+            job.mode = "tone";
+            job.total_duration_ns = 1'000'000'000;
+            job.events.push_back({0, job.total_duration_ns, true, 3'570'100'000'000'000});
+            check(network_test::internal_command(f.service, "LOAD", std::move(job), "native-fixture", session).ok);
+            return "{}";
+        }
         if (op == "wire") {
             std::uint64_t index;
             check(wtp::json::decimal(*v.get("socket"), index) && index < 2);

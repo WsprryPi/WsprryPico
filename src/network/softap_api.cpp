@@ -126,7 +126,7 @@ HttpResponse SoftApApi::local_status(std::string_view principal, std::string_vie
             "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
                 ",\"firmware\":" + wtp::json::quote(firmware_) +
                 ",\"surface\":" + wtp::json::quote(surface_name(surface)) +
-                ",\"principal\":" + wtp::json::quote(principal) + ",\"wtp_session\":" +
+                ",\"principal\":" + wtp::json::quote(principal) + ",\"control_session\":" +
                 (wtp_session.empty() ? "null" : wtp::json::quote(wtp_session)) +
                 ",\"default_password\":" +
                 std::string(access_.default_password_active() ? "true" : "false") +
@@ -138,11 +138,14 @@ HttpResponse SoftApApi::local_status(std::string_view principal, std::string_vie
             {}};
 }
 
-SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& session,
+SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string&,
                                      bool& valid) {
     valid = true;
+    if (request.path == "/api/control/v1/schedules/stop" &&
+        (request.method == "GET" || request.method == "POST"))
+        return request.method == "GET" ? SoftApOperation::Status : SoftApOperation::NativeStop;
     if (request.method == "GET") {
-        if (request.path == "/api/control/v1/status" || request.path == "/api/control/v1/jobs")
+        if (request.path == "/api/control/v1/status")
             return SoftApOperation::Status;
         if (request.path == "/api/control/v1/capabilities")
             return SoftApOperation::Hello;
@@ -150,37 +153,6 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string& se
             !request.path.substr(control_prefix.size()).starts_with("consumer/") &&
             control_route(request.path.substr(control_prefix.size()), request.method))
             return SoftApOperation::Configure;
-        valid = false;
-        return SoftApOperation::Status;
-    }
-    if (request.method == "POST" &&
-        (request.path == "/api/control/v1/jobs" || request.path.starts_with("/api/control/v1/jobs/"))) {
-        // Classify the domain payload while retaining original authenticated
-        // bytes for request-bound step-up verification below.
-        const auto payload = control_payload(request.body_view());
-        const auto root = payload ? wtp::json::parse(*payload) : std::nullopt;
-        if (!root || !exact_fields(*root, {"session_id", "request_id", "operation", "body"})) {
-            valid = false;
-            return SoftApOperation::Status;
-        }
-        const auto id = root->get("session_id");
-        const auto name = root->get("operation");
-        if (!id || !wtp::json::identifier(*id) || !name || name->type() != '"') {
-            valid = false;
-            return SoftApOperation::Status;
-        }
-        session = id->string();
-        const auto op = name->string();
-        if (op == "HELLO")
-            return SoftApOperation::Hello;
-        if (op == "ABORT")
-            return SoftApOperation::Abort;
-        if (op == "LOAD" || op == "LOAD_MESSAGE")
-            return SoftApOperation::Load;
-        if (op == "ARM")
-            return SoftApOperation::Arm;
-        if (op == "CLAIM" || op == "RENEW" || op == "RELEASE")
-            return SoftApOperation::Load;
         valid = false;
         return SoftApOperation::Status;
     }
@@ -273,6 +245,9 @@ HttpResponse SoftApApi::submit_time(const HttpRequest& request, std::string_view
 HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface,
                                std::string_view authority, std::uint64_t now_ms,
                                std::uint64_t transaction) {
+    if (request.path.starts_with(control_prefix) &&
+        !control_route(request.path.substr(control_prefix.size()), request.method))
+        return http_error(404, "not_found");
     if (request.method == "GET" && request.path == "/local/v1/identity")
         return identity(surface);
     if (request.method == "GET") {
@@ -331,7 +306,9 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
         selected = SoftApOperation::Time;
     else if (request.path.starts_with("/api/control/v1/")) {
         selected = operation(request, body_session, valid);
-        if (!valid || (!body_session.empty() && body_session != session))
+        if (!valid)
+            return http_error(404, "not_found");
+        if (!body_session.empty() && body_session != session)
             return http_error(400, "invalid_request");
     } else
         return http_error(404, "not_found");
@@ -350,7 +327,7 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
         return submit_time(request, authorized.authorization.principal, session);
     auto response = browser_.handle(request, authorized.authorization.principal, authority,
                                     transaction, ManagementCarrier::EngineeringField);
-    if (selected == SoftApOperation::Hello && request.method == "POST" && response.status >= 200 &&
+    if (selected == SoftApOperation::Hello && request.method == "GET" && response.status >= 200 &&
         response.status < 300) {
         const auto bound = admission_.authorize(request, surface, selected, session, activity(),
                                                 now_ms, service_.owner_session_id(), true);

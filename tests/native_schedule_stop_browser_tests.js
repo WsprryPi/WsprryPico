@@ -1,0 +1,34 @@
+'use strict';
+const assert=require('node:assert/strict'),vm=require('node:vm');
+const {fixture}=require('./network_browser_tests.js');
+const prepare=async options=>{
+  const f=await fixture(true,true,false,false,'',false,{nativeStopSupport:true,...options});
+  f.state.job.state='running';f.state.job.owner_id='f'.repeat(32);f.config.enabled=true;
+  f.elements['message-text'].value='UNSAVED';
+  await f.elements.refresh.onclick();
+  vm.runInContext("operationsTarget={scope:'member',device_id:'1'.repeat(32),boot_id:'a'.repeat(32)};controls(true)",f.context);
+  assert.equal(f.elements['native-stop'].disabled,false);
+  return f;
+};
+(async()=>{
+  const stopped=await prepare();await stopped.elements['native-stop'].onclick();
+  assert.equal(stopped.nativeStopWrites,1);assert.equal(stopped.config.enabled,false);
+  assert.match(stopped.elements['native-stop-status'].textContent,/confirmed inactive and unowned/);
+  assert.equal(stopped.elements['message-text'].value,'UNSAVED');
+  const lost=await prepare({nativeStopLost:true});await lost.elements['native-stop'].onclick();
+  assert.equal(lost.nativeStopWrites,1);assert.equal(lost.elements['native-stop'].disabled,true);
+  assert.equal(lost.elements['native-stop-read'].hidden,false);
+  await lost.elements.refresh.onclick();
+  assert.match(lost.elements.output.textContent,/Unknown.*stop unconfirmed/);
+  assert.match(lost.elements.owner.textContent,/Unknown.*stop unconfirmed/);
+  await lost.elements['native-stop'].onclick();
+  assert.equal(lost.nativeStopWrites,1,'Ordinary refresh does not replay an uncertain stop');
+  await lost.elements['native-stop-read'].onclick();
+  assert.match(lost.elements['native-stop-status'].textContent,/Current native schedules are disabled/);
+  assert.equal(lost.elements['native-stop-read'].hidden,true);
+  assert.equal(lost.elements['message-text'].value,'UNSAVED');
+  const wrong=await prepare({nativeStopWrongTarget:true});await wrong.elements['native-stop'].onclick();
+  assert.equal(wrong.nativeStopWrites,undefined,'Changed target refuses before stop dispatch');
+  assert.equal(wrong.elements['native-stop'].disabled,true);
+  console.log('PASS native stop browser: bound stop, preserved drafts, lost reply/read-only recovery, and target refusal');
+})().catch(error=>{console.error(error);process.exitCode=1;});

@@ -38,7 +38,7 @@ Session durations and payload budgets are typed policy data within documented im
 
 Pin roles are exclusive. Drive and amplifier/filter changes retain boot activation and restart/output-inhibition latching, including A-to-B-to-A saves. An amplifier-enable pin is disabled by default. Lead and tail default to 200 ms and accept 0–1000 whole milliseconds. They surround one complete finite job; stop/fault cleanup disables the amplifier without waiting for normal tail. Readback does not measure amplifier readiness, RF power, or filter response.
 
-All job producers use the existing JobService. WTP framing, ownership, scheduling, UTC admission, and local RP2350 RF timing are independent of this control reset. No control save transmits or proves readiness.
+All job producers use the existing JobService. Internal ownership, scheduling, UTC admission, and local RP2350 RF timing remain independent of management. External WTP framing and generic jobs routes are retired. No control save transmits or proves readiness.
 
 ## Version policy and evidence
 

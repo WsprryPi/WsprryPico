@@ -9,7 +9,6 @@ const authorize = document.querySelector("#authorize");
 const identify = document.querySelector("#identify");
 const syncTime = document.querySelector("#sync-time");
 const fieldStatus = document.querySelector("#field-status");
-const wtpStatus = document.querySelector("#wtp-status");
 const showAccessPassword = document.querySelector("#show-access-password");
 const profileFile = document.querySelector("#profile-file");
 const provisionFile = document.querySelector("#provision-file");
@@ -258,18 +257,6 @@ fieldStatus.addEventListener("click", () => localOperation("Reading field status
   return `Time ${observed.time_source}; age ${observed.time_age_ns} ns; ` +
     `LED ${observed.indicator}; fault ${observed.indicator_fault ? "yes" : "no"}.`;
 }));
-wtpStatus.addEventListener("click", () => localOperation("Reading WTP status", async () => {
-  const hello = await client.enableLocalControl();
-  const observed = await client.wtpExchange("STATUS", {});
-  if (typeof observed.state !== "string" || typeof observed.output_active !== "boolean") {
-    const error = new Error("wtp_status_invalid");
-    error.code = "wtp_status_invalid";
-    throw error;
-  }
-  return `WTP ${hello.firmware_version}; state ${observed.state}; ` +
-    `output ${observed.output_active ? "active" : "inactive"}.`;
-}));
-
 function validDeviceSelection() {
   return /^[0-9a-f]{32}$/.test(form.elements.device_id.value);
 }

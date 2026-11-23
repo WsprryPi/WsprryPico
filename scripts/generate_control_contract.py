@@ -2,7 +2,7 @@
 """Generate bounded control constants/catalog from the authoritative schema."""
 import argparse
 import json
-from check_control_policy import check_files, schema_digest
+from check_control_policy import check_files, schema_digest, pi_resource_descriptors
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -43,34 +43,29 @@ def outputs():
     javascript += 'const descriptors=' + json.dumps(descriptors, separators=(',', ':')) + ';\n'
     javascript += 'const runtime=' + json.dumps(spec['descriptor_runtime_fields'], separators=(',', ':')) + ';\n'
     javascript += 'const policies=' + json.dumps(spec['descriptor_policies'], separators=(',', ':')) + ';\n'
-    wtp = json.loads((ROOT/'engineering/protocol/wtp-1.schema.json').read_text())
-    wtp_definitions = {}
-    def include_wtp(name):
-        if name in wtp_definitions:
-            return
-        definition = wtp['$defs'][name]
-        wtp_definitions[name] = definition
-        def references(value):
-            if isinstance(value, dict):
-                if '$ref' in value:
-                    include_wtp(value['$ref'].split('/')[-1])
-                for item in value.values():
-                    references(item)
-            elif isinstance(value, list):
-                for item in value:
-                    references(item)
-        references(definition)
-    include_wtp('capsResponse')
-    javascript += 'const wtpSchemas=' + json.dumps(wtp_definitions, separators=(',', ':')) + ';\n'
+    javascript += 'const executionSchemas=' + json.dumps({'native-execution': spec['$defs']['native-execution']}, separators=(',', ':')) + ';\n'
+    javascript += 'const managementOperations=' + json.dumps(spec['management_routes'], separators=(',', ':')) + ';\n'
     javascript += 'const publicResources=' + json.dumps(spec['public_resources'], separators=(',', ':')) + ';\n'
     javascript += 'const publicPrefix=' + json.dumps(spec['public_prefix']) + ';\n'
     javascript += 'const capabilityKeys=' + json.dumps(list(spec['$defs']['capabilities']['properties'])) + ';\n'
     javascript += 'const capabilityRequired=' + json.dumps(spec['$defs']['capabilities']['required']) + ';\n'
     javascript += 'const featureRequired=' + json.dumps(spec['$defs']['capabilities']['properties']['features']['required']) + ';\n'
+    controller = spec['controller_adapter']
+    javascript += 'const controllerSchemas=' + json.dumps({name:spec['$defs'][name] for name in controller['definitions']}, separators=(',', ':')) + ';\n'
+    javascript += 'const controllerDocuments=' + json.dumps(controller['documents']) + ';\n'
+    javascript += 'const controllerAdapter=' + json.dumps(controller, separators=(',', ':')) + ';\n'
+    javascript += 'const controlSchemaDigest=' + json.dumps(schema_digest(spec)) + ';\n'
+    javascript += 'const piDescriptors=' + json.dumps(pi_resource_descriptors(spec), separators=(',', ':')) + ';\n'
     javascript += r'''
 const object=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
 const canonical=v=>JSON.stringify(v,(_key,item)=>object(item)?Object.fromEntries(Object.keys(item).sort().map(k=>[k,item[k]])):item);
 const equal=(a,b)=>{try{return canonical(a)===canonical(b);}catch(_error){return false;}};
+function validManagementOperations(value){
+ return object(value)&&Object.keys(value).sort().join(',')==='GET,POST,PUT'&&
+  Object.entries(managementOperations).every(([method,expected])=>Array.isArray(value[method])&&
+   value[method].length===expected.length&&new Set(value[method]).size===expected.length&&
+   value[method].every(resource=>typeof resource==='string'&&expected.includes(resource)));
+}
 function policy(rule,x,value,base){
  if(rule.type==='integer'&&!Number.isInteger(x))return false;
  if(rule.type==='boolean'&&typeof x!=='boolean')return false;
@@ -102,56 +97,108 @@ function jsonType(value,type){
  if(type==='object')return object(value);
  if(type==='array')return Array.isArray(value);
  if(type==='integer')return Number.isInteger(value)&&value>=-2147483648&&value<=2147483647;
+ if(type==='number')return typeof value==='number'&&Number.isFinite(value);
  if(type==='string')return typeof value==='string';
  if(type==='boolean')return typeof value==='boolean';
  if(type==='null')return value===null;
  return false;
 }
-function wtpSchema(value,rule,depth=0){
- if(depth>16)return false;
- if(rule.$ref)return wtpSchema(value,wtpSchemas[rule.$ref.split('/').pop()],depth+1);
- if(rule.allOf&&!rule.allOf.every(r=>wtpSchema(value,r,depth+1)))return false;
- if(rule.type&&!jsonType(value,rule.type))return false;
+function wtpSchema(value,rule,depth=0,schemas=executionSchemas){
+ if(depth>16||!rule||typeof rule!=='object')return false;
+ if(rule.$ref)return wtpSchema(value,schemas[rule.$ref.split('/').pop()],depth+1,schemas);
+ if(rule.allOf&&!rule.allOf.every(r=>wtpSchema(value,r,depth+1,schemas)))return false;
+ if(rule.oneOf&&rule.oneOf.filter(r=>wtpSchema(value,r,depth+1,schemas)).length!==1)return false;
+ if(rule.anyOf&&!rule.anyOf.some(r=>wtpSchema(value,r,depth+1,schemas)))return false;
+ if(rule.type&&!(rule.type==='integer'&&schemas===controllerSchemas?Number.isSafeInteger(value):jsonType(value,rule.type)))return false;
  if(Object.hasOwn(rule,'const')&&!equal(value,rule.const)||rule.enum&&!rule.enum.some(x=>equal(x,value)))return false;
  if(object(value)){
   if(rule.required&&rule.required.some(k=>!Object.hasOwn(value,k)))return false;
   const props=rule.properties||{};
   for(const [key,item]of Object.entries(value)){
-   if(Object.hasOwn(props,key)){if(!wtpSchema(item,props[key],depth+1))return false;}
+   if(Object.hasOwn(props,key)){if(!wtpSchema(item,props[key],depth+1,schemas))return false;}
    else if(rule.additionalProperties===false)return false;
   }
  }
  if(Array.isArray(value)){
   if(value.length<(rule.minItems??0)||value.length>(rule.maxItems??512))return false;
-  if(rule.uniqueItems&&new Set(value.map(v=>JSON.stringify(v))).size!==value.length)return false;
-  if(rule.items&&!value.every(v=>wtpSchema(v,rule.items,depth+1)))return false;
+  if(rule.uniqueItems&&new Set(value.map(v=>canonical(v))).size!==value.length)return false;
+  if(rule.items&&!value.every(v=>wtpSchema(v,rule.items,depth+1,schemas)))return false;
  }
  if(typeof value==='number'&&(rule.minimum!==undefined&&value<rule.minimum||rule.maximum!==undefined&&value>rule.maximum))return false;
  if(typeof value==='string'){
   const chars=[...value];if(chars.length<(rule.minLength??0)||chars.length>(rule.maxLength??65536))return false;
-  let bytes=0;for(const char of chars){const n=char.codePointAt(0);if(n>=0xd800&&n<=0xdfff)return false;bytes+=n<128?1:n<2048?2:n<65536?3:4;}
+  let bytes=0;for(const char of chars){const n=char.codePointAt(0);if(n>=0xd800&&n<=0xdfff||rule['x-noControls']&&(n<32||n>=127&&n<=159))return false;bytes+=n<128?1:n<2048?2:n<65536?3:4;}
   if(rule['x-maxUtf8Bytes']!==undefined&&bytes>rule['x-maxUtf8Bytes'])return false;
-  if(rule.pattern&&!new RegExp('^(?:'+rule.pattern+')$').test(value))return false;
+  if(rule.pattern){const matched=new RegExp('^(?:'+rule.pattern+')$').exec(value);if(!matched||matched[0].length!==value.length)return false;}
   if(rule['x-maximum']!==undefined&&(!/^[0-9]+$/.test(value)||BigInt(value)>BigInt(rule['x-maximum'])))return false;
  }
  return true;
 }
-function validWtpCapabilities(value){
- try{return wtpSchema(value,wtpSchemas.capsResponse)&&value.frequency_ranges.every(r=>BigInt(r.minimum_nhz)<=BigInt(r.maximum_nhz))&&BigInt(value.minimum_arm_lead_ns)<=BigInt(value.maximum_arm_ahead_ns);}
+function validExecutionCapabilities(value){
+ try{return wtpSchema(value,executionSchemas['native-execution'])&&value.frequency_ranges.every(r=>BigInt(r.minimum_nhz)<=BigInt(r.maximum_nhz))&&BigInt(value.minimum_arm_lead_ns)<=BigInt(value.maximum_arm_ahead_ns);}
  catch(_){return false;}
 }
 function validCapabilities(value){
  if(!object(value)||value.contract!=='Wsprry-Control/1'||Object.keys(value).some(k=>!capabilityKeys.includes(k))||capabilityRequired.some(k=>!Object.hasOwn(value,k)))return false;
- if(!object(value.features)||Object.keys(value.features).length>64||featureRequired.some(k=>!Object.hasOwn(value.features,k))||Object.entries(value.features).some(([k,v])=>!/^[a-z][a-z0-9_]{0,79}$/.test(k)||typeof v!=='boolean'))return false;
- if(!validWtpCapabilities(value.wtp)||typeof value.active_job_connections!=='boolean')return false;
- for(const key of ['max_network_connections','max_wtp_connections','max_pending_connections','max_handshakes'])if(!Number.isInteger(value[key])||value[key]<1||value[key]>32)return false;
+ if(Object.hasOwn(value.features||{},'jobs')||!object(value.features)||Object.keys(value.features).length>64||featureRequired.some(k=>!Object.hasOwn(value.features,k))||Object.entries(value.features).some(([k,v])=>!/^[a-z][a-z0-9_]{0,79}$/.test(k)||typeof v!=='boolean'))return false;
+ if(!validExecutionCapabilities(value.execution)||typeof value.active_execution_connections!=='boolean')return false;
+ for(const key of ['max_network_connections','max_pending_connections','max_handshakes'])if(!Number.isInteger(value[key])||value[key]<1||value[key]>32)return false;
  if(!Number.isInteger(value.max_body_bytes)||value.max_body_bytes<1||value.max_body_bytes>32768)return false;
  for(const name of Object.keys(descriptors))if(Object.hasOwn(value,name)&&!supported(name,value[name]))return false;
- const jobs=value.message_jobs;
- if(jobs!==undefined&&(!object(jobs)||Object.keys(jobs).sort().join(',')!=='max_characters,max_repeat_count,modes,operation,tail_ns'||jobs.operation!=='LOAD_MESSAGE'||jobs.tail_ns!=='1000'||!Number.isInteger(jobs.max_characters)||jobs.max_characters<1||jobs.max_characters>32||!Number.isInteger(jobs.max_repeat_count)||jobs.max_repeat_count<1||jobs.max_repeat_count>512||!Array.isArray(jobs.modes)||jobs.modes.length<1||jobs.modes.length>16||new Set(jobs.modes).size!==jobs.modes.length||jobs.modes.some(v=>typeof v!=='string'||!/^[a-z][a-z0-9_-]{0,31}$/.test(v))))return false;
+ const jobs=value.message_limits;
+ if(jobs!==undefined&&(!object(jobs)||Object.keys(jobs).sort().join(',')!=='max_characters,max_repeat_count,modes,tail_ns'||jobs.tail_ns!=='1000'||!Number.isInteger(jobs.max_characters)||jobs.max_characters<1||jobs.max_characters>32||!Number.isInteger(jobs.max_repeat_count)||jobs.max_repeat_count<1||jobs.max_repeat_count>512||!Array.isArray(jobs.modes)||jobs.modes.length<1||jobs.modes.length>16||new Set(jobs.modes).size!==jobs.modes.length||jobs.modes.some(v=>typeof v!=='string'||!/^[a-z][a-z0-9_-]{0,31}$/.test(v))))return false;
  return true;
 }
-const api=Object.freeze({contract:'Wsprry-Control/1',prefix:'/api/control/v1/',descriptors:Object.freeze(descriptors),publicResources:Object.freeze(publicResources),publicPrefix,supported,validCapabilities,validWtpCapabilities});
+function validControllerDocument(value,name){
+ try{return controllerDocuments.includes(name)&&wtpSchema(value,controllerSchemas[name],0,controllerSchemas)&&
+  (name!=='targets'||new Set(value.targets.map(target=>target.device_id)).size===value.targets.length)&&
+  (name!=='pair-discovery'||(value.available||value.discoveries.length===0)&&
+   new Set(value.discoveries.map(entry=>entry.discovery_id)).size===value.discoveries.length&&
+   new Set(value.discoveries.map(entry=>entry.device_id)).size===value.discoveries.length&&
+   value.discoveries.every(entry=>entry.host==='wsprry-management-'+entry.device_id+'.local.'&&entry.control_schema_digest===controlSchemaDigest))&&
+  (name!=='controller-retirements'||new Set(value.assignments.map(row=>row.target_id)).size===value.assignments.length&&new Set(value.assignments.map(row=>row.assignment_id)).size===value.assignments.length&&value.assignments.every(row=>(row.state!=='legacy'||row.receipt===null)&&(!['retiring','retired'].includes(row.state)||row.receipt!==null&&row.receipt.state===row.state)&&(row.receipt===null||row.receipt.controller_id===value.controller_id&&row.receipt.target_id===row.target_id&&row.receipt.assignment_id===row.assignment_id&&BigInt(row.receipt.generation)<=BigInt(value.generation))))&&
+  (!['target-migration','target-migration-read','target-migration-rollback'].includes(name)||['controllers','retirements','jobs'].every(key=>!value[key]||new Set(value[key].map(row=>row.controller_id+'/'+(row.assignment_id??row.job_id))).size===value[key].length))&&
+  (name!=='target-context'||['device_id','profile_generation','connection_generation'].every(key=>value.target[key]===value.binding[key])&&
+   new Set(value.capabilities.map(capability=>capability.resource)).size===value.capabilities.length&&
+   value.capabilities.every(capability=>capability.activation!=='unsupported'||!capability.write)&&
+   (value.gateway===null?(value.authorization===null||value.target.product==='WsprryPi'):
+    value.target.product==='WsprryPico'&&value.authorization!==null&&equal(value.gateway.child,value.binding)&&
+    value.gateway.parent.device_id!==value.gateway.child.device_id&&value.gateway.pair_id===value.authorization.pair_id&&
+    value.gateway.authorization_generation===value.authorization.authorization_generation))&&
+  (name!=='pairing-state'||(value.state!=='paired'||value.manager!==null&&value.authorization_generation!=='0')&&
+    (!['unpaired','access_recovery'].includes(value.state)||value.manager===null)&&
+    (!['access_recovery','unavailable'].includes(value.state)||value.window===null)&&
+    (value.manager===null||value.manager.device_id!==value.device_id))&&
+  (name!=='target-status'||value.execution_owner===value.binding.device_id)&&
+  (name!=='host-readiness'||(value.state!=='ready'||value.device_id!==null)&&
+    (!value.recovery_editable||value.role==='transmitter'&&value.state==='configuration_recovery'&&value.device_id!==null)&&
+    (value.role!=='controller-only'||!['configuration_recovery','output_recovery'].includes(value.state)))&&
+  (name!=='configuration-recovery'||(!value.writable||value.binding!==null&&!['storage_unavailable','migration_required'].includes(value.validation))&&
+    new Set(value.defaulted_fields).size===value.defaulted_fields.length);}
+ catch(_){return false;}
+}
+function controllerRecoveryRead(resource){return typeof resource==='string'&&Object.prototype.hasOwnProperty.call(controllerAdapter.reconciliation_reads,resource)?controllerAdapter.reconciliation_reads[resource]:'';}
+function controllerPiConfigurationField(section,key){
+ const properties=controllerSchemas['pi-config'].properties;
+ if(!Object.prototype.hasOwnProperty.call(properties,section)||!Object.prototype.hasOwnProperty.call(properties[section].properties,key))return null;
+ const resolve=(rule,depth)=>{
+  if(depth>16)throw new Error('configuration_shape_depth');
+  if(Array.isArray(rule))return rule.map(value=>resolve(value,depth+1));
+  if(!object(rule))return rule;
+  if(rule.$ref){const prefix='#/$defs/';if(!rule.$ref.startsWith(prefix)||!Object.prototype.hasOwnProperty.call(controllerSchemas,rule.$ref.slice(prefix.length)))throw new Error('configuration_shape_reference');return resolve(controllerSchemas[rule.$ref.slice(prefix.length)],depth+1);}
+  return Object.fromEntries(Object.entries(rule).map(([name,value])=>[name,resolve(value,depth+1)]));
+ };
+ return resolve(properties[section].properties[key],0);
+}
+function supportedPiResource(value){
+ try{const expected=piDescriptors[value.resource];return !!expected&&wtpSchema(value,controllerSchemas['target-capability'],0,controllerSchemas)&&
+  value.schema_id===expected.schema_id&&value.schema_digest===expected.schema_digest&&
+  (value.activation!=='unsupported'||!value.write);}
+ catch(_){return false;}
+}
+Object.values(piDescriptors).forEach(Object.freeze);
+Object.freeze(controllerAdapter.reconciliation_reads);
+const api=Object.freeze({contract:'Wsprry-Control/1',prefix:'/api/control/v1/',descriptors:Object.freeze(descriptors),publicResources:Object.freeze(publicResources),publicPrefix,supported,validManagementOperations,validCapabilities,validExecutionCapabilities,controllerAdapter:Object.freeze(controllerAdapter),validControllerDocument,controllerRecoveryRead,controllerPiConfigurationField,controllerPiDescriptors:Object.freeze(piDescriptors),supportedPiResource});
 root.WsprryControl=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(globalThis);
 '''

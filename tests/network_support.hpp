@@ -1,6 +1,9 @@
 #pragma once
 #include "network/api.hpp"
 #include "standalone/dry_run_engine.hpp"
+#include "encoding/message_wire.hpp"
+#include "wtp/sha256.hpp"
+#include <atomic>
 
 #include <algorithm>
 #include <array>
@@ -15,6 +18,30 @@
     } while (false)
 namespace network_test {
 using namespace wsprrypico;
+// Typed native-core fixture only. Each call allocates a fresh identity; replay
+// tests continue to own their exact byte digests. No HTTP or external carrier.
+inline wtp::Response internal_command(wtp::JobService &service,std::string operation,
+    wtp::RequestBody body={},std::string principal="test",std::string session=std::string(32,'1'),
+    std::string_view payload={}) {
+    static std::atomic<std::uint64_t> sequence{0};
+    const auto next=++sequence;REQUIRE(next);
+    std::string id(32,'0');
+    for(unsigned i=0;i<16;++i)id[31-i]="0123456789abcdef"[(next>>(i*4))&15];
+    wtp::Request request;request.principal=std::move(principal);request.session_id=std::move(session);
+    request.request_id=id;request.operation=std::move(operation);request.body=std::move(body);
+    const std::string digest=std::string(payload)+request.operation+id;
+    request.payload_digest=wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(digest.data()),digest.size()));
+    return service.handle_internal(std::move(request));
+}
+inline wtp::Response internal_message(wtp::JobService &service,const std::string &body,
+    std::string principal="cert",std::string session=std::string(32,'a')) {
+    const auto value=wtp::json::parse(body);
+    const auto message=value?encoding::decode_message(*value):std::nullopt;
+    if(!message){wtp::Response result;result.error=wtp::ErrorCode::InvalidMessage;return result;}
+    auto compiled=encoding::compile_message(*message,service.config().max_events,service.config().max_job_duration_ns);
+    if(!compiled.job){wtp::Response result;result.error=wtp::ErrorCode::InvalidMessage;return result;}
+    return internal_command(service,"LOAD",std::move(*compiled.job),std::move(principal),std::move(session),body);
+}
 // Current control request producer for API behavioral tests. The independent
 // control_contract_tests use raw requests to verify missing/old contract refusal.
 inline network::HttpRequest control_request(network::HttpRequest request) {

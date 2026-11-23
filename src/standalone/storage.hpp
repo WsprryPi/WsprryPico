@@ -52,6 +52,9 @@ class Store {
     explicit Store(Flash& flash) : config_(flash, 0, 2048), cursor_(flash, 8192, 256) {}
     bool load(bool reset_recovery = false);
     bool save(const Config& config);
+    // One journal record disables both native schedules without changing their
+    // settings, cursor, logging, or hardware configuration.
+    bool disable_schedules();
     bool save_filters(const hardware::FilterSettings& settings);
     const hardware::FilterSettings& filters() const {
         return filters_;

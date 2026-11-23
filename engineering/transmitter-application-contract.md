@@ -35,3 +35,19 @@ USB CDC is the reference WTP carrier; network WTP/TCP carries the same stream. A
 Both production Pi/Pico network and USB source-pair suites are required for coordinated control changes. The [development guide](development/README.md#production-pipico-source-pair-checks) defines the checked-in recipes, explicit candidate selection, dependency pins, and reporting requirements.
 
 Host tests, cross-linking, physical device observations, and conducted RF measurements establish different things. Physical claims require the exact board, source/image, engine, clock, mode, pins, amplifier/filter state, receiver/reference, and RF path. Software checks and numerical capabilities do not qualify target timing, electrical behavior, filtering, or RF output.
+
+## Pi device-owned recurrence
+
+The shared Control/1 Pi scheduling capability reports `next_occurrence`.
+The Pi owns validation, explicit native enablement, complete-occurrence solar
+admission, progress, and runtime observations. `stored_only` is not a current
+activation value. This descriptor adds no Pico RF or scheduling feature.
+
+Pi enable binds the complete saved candidate digest and revision after positive
+retirement/reconciliation. Disable admits no new recurrence and allows accepted
+complete work to drain; Stop remains a separate observed-output operation.
+Neither action changes the independent WTP transmission contract or adds a Pico
+master scheduling switch. Missing healthy target-local UTC/location holds new
+Pi solar occurrences. Saved/active revisions, observation age, selected tones,
+and bounded next-start forecasts remain distinct from output execution evidence.
+A known forecast includes a start; an unknown forecast has a null start.

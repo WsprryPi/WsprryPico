@@ -80,8 +80,9 @@ def main():
     assert 'aria-label="Show local password"' in index
     assert 'class="password-toggle"' in index
     assert '<svg aria-hidden="true"' in index
-    for control in ("identify", "sync-time", "field-status", "wtp-status"):
+    for control in ("identify", "sync-time", "field-status"):
         assert f'id="{control}"' in index
+    assert 'id="wtp-status"' not in index
     for name in ("style.css", "bluefy.js", "app.js"):
         assert links.integrity[name] == sha384((RELEASE / name).read_bytes())
 
@@ -96,7 +97,7 @@ def main():
                      "updateViaCache", "client.connect()", "Confirm before authorizing"):
         assert required in app
     for operation in ("client.identify()", "client.synchronizeTime()",
-                      "client.fieldStatus()", 'client.wtpExchange("STATUS", {})'):
+                      "client.fieldStatus()"):
         assert operation in app
     assert '"serviceWorker" in navigator' in app
     assert "Promise.race" in app and "offline_cache_timeout" in app

@@ -165,6 +165,7 @@ class WtpPeer:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.error("External WTP tooling is retired; use retained native management or Console diagnostics.")
     parser.add_argument("--time-port", type=Path, required=True)
     parser.add_argument("--wtp-port", type=Path)
     parser.add_argument("--frequency-hz", type=int)

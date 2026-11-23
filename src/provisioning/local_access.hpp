@@ -68,6 +68,7 @@ enum class SoftApOperation {
     Hello,
     Status,
     Abort,
+    NativeStop,
     Time,
     Load,
     Arm,

@@ -18,7 +18,8 @@ const noCapture=process.env.PICO_BROWSER_NO_CAPTURE==='1' || process.env.HOSTNAM
 const output=path.resolve(process.argv[3] || 'build/hostname-browser-integration');
 await mkdir(output,{recursive:true});
 const profile=await h.profile('p1510-chrome-');
-let f=await h.fixture(process.argv[2]);await f.time(1000);await f.command({op:'reboot'});await f.time(1000);
+let f=await h.fixture(process.argv[2]);await f.time(1000);await f.command({op:'reboot'});await f.time(1000);await f.command({op:'message_review'});
+f.process.stderr.on('data',chunk=>{const assertion=String(chunk).match(/HTTP concurrency assertion failed at line [0-9]+/);if(assertion)console.error(assertion[0]);});
 let dropNext=false, blockPresentation=true, failRadioRequests=false, chrome, cdp, cdpB;
 let captures=0;
 const fB=await h.fixture(process.argv[2],['2'.repeat(32)]);await fB.time(1000);
@@ -122,7 +123,7 @@ try {
     await click('station-link');await capture('authenticated-station-diagnostics');
     // Shipped console observes genuine accepted jobs through encrypted HTTP.
     assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Schedules disabled');
-    const other=f.client();await f.time(f.now+1000);await f.login(other);let operationSequence=0;
+    const other=f.client();await f.time(f.now+1000);await f.login(other);
     const scheduleRead=await other.request('message-schedule'),schedule=await scheduleRead.json();
     const scheduleNow=await (await other.request('operations')).json();
     const recurring={enabled:true,first_start_utc_ns:(BigInt(scheduleNow.standalone.utc_now_ns)+600000000000n).toString(),period_s:1200,expires_utc_s:0,
@@ -140,31 +141,28 @@ try {
     await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'paused recurrence');
     assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),true);
     assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'');
-    const logicalOwner='8'.repeat(32);
-    async function radioJob(operation,body={}) {
-        const response=await other.request('jobs','POST',{session_id:logicalOwner,request_id:(++operationSequence).toString(16).padStart(32,'0'),operation,body});
-        assert.equal(response.status,200,operation);return response.json();
-    }
-    await radioJob('HELLO',{versions:['WTP/1'],client_name:'console fixture',client_version:'1'});
+    // Native recurrence owns preparation, launch, and stopping after WTP retirement.
     await field('message-text','PRESERVE LOCAL DRAFT');
-    for(const mode of ['qrss','fskcw','dfcw','tone','cw','wspr']) {
-        await radioJob('CLAIM',{owner_id:logicalOwner,lease_ms:60000});
-        const jobId=(100+operationSequence).toString(16).padStart(32,'0');
-        if(['tone','cw','wspr'].includes(mode)) await radioJob('LOAD',{job_id:jobId,profile:'rf-events/1',mode,total_duration_ns:'10000000000',allow_frequency_adjustment:false,events:[{offset_ns:'0',duration_ns:'10000000000',rf_on:true,frequency_nhz:'135500000000000'}]});
-        else await radioJob('LOAD_MESSAGE',{job_id:jobId,mode,message:'TE',frequency_nhz:mode==='dfcw'?'135505000000000':'135500000000000',space_frequency_nhz:mode==='qrss'?'0':mode==='dfcw'?'135500000000000':'135495000000000',timing:{dot_ns:'3000000000',dash_ns:'9000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'},repeat_count:1,repeat_gap_ns:'0',allow_frequency_adjustment:true});
+    for(const mode of ['qrss','fskcw','dfcw']) {
+        const read=await other.request('message-schedule'),resource=await read.json();
         const before=await (await other.request('operations')).json();
-        const start=(BigInt(before.standalone.utc_now_ns)+2000000000n).toString();
-        await radioJob('ARM',{job_id:jobId,start_utc_ns:start,max_start_uncertainty_ns:'1000'});
+        const next={...recurring,first_start_utc_ns:(BigInt(before.standalone.utc_now_ns)+2000000000n).toString(),
+            message:{...recurring.message,mode,message:'TE',frequency_nhz:'135500000000000',
+                space_frequency_nhz:mode==='qrss'?'0':mode==='dfcw'?'135505000000000':'135495000000000',
+                timing:{dot_ns:'3000000000',dash_ns:'9000000000',intra_gap_ns:'1000000000',character_gap_ns:'3000000000',word_gap_ns:'7000000000'}}};
+        const saved=await other.request('message-schedule','PUT',{schema:resource.schema,target:resource.target,schedule:next},read.headers.get('etag'));
+        assert.equal(saved.status,200);
+        await f.command({op:'schedule_tick',delta_ns:'0'});
         await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'armed operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job armed');
         assert.equal(await cdp.evaluate(`document.getElementById('restart').disabled`),true);
         await f.command({op:'schedule_tick',delta_ns:'2000000000'});
         await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'running operations');
         assert.equal(await cdp.evaluate(`document.getElementById('console-state').textContent`),'Job running');
-        assert.equal(await cdp.evaluate(`document.getElementById('console-frequency').textContent`),mode==='fskcw'?'135.495/135.500 kHz':mode==='dfcw'?'135.505/135.500 kHz':mode==='wspr'?'Unavailable':'135.5 kHz');
+        assert.equal(await cdp.evaluate(`document.getElementById('console-frequency').textContent`),mode==='fskcw'?'135.495/135.500 kHz':mode==='dfcw'?'135.500/135.505 kHz':mode==='wspr'?'Unavailable':'135.5 kHz');
         assert.equal(await cdp.evaluate(`document.getElementById('console-frequency-label').textContent`),({qrss:'Carrier',fskcw:'Space/Mark',dfcw:'Dot/Dash',wspr:'Dial frequency'}[mode]||'Frequency'));
         assert.equal(await cdp.evaluate(`document.getElementById('console-message').textContent`),mode==='wspr'?'Encoded WSPR frame':mode==='cw'?'Text unavailable':mode==='tone'?'—':'TE');
-        assert.equal(await cdp.evaluate(`document.getElementById('owner').textContent`),'Other controller');
+        assert.equal(await cdp.evaluate(`document.getElementById('owner').textContent`),'Pico schedule');
         assert.match(await cdp.evaluate(`document.getElementById('console-progress').textContent`),/^Running · ~\d+%$/);
         assert.equal(await cdp.evaluate(`document.getElementById('hostname')`),null);
         for(const width of [1280,390]) {
@@ -175,7 +173,9 @@ try {
         }
         if(mode==='dfcw') await capture('operations-running-dfcw','operations-console');
         assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'PRESERVE LOCAL DRAFT');
-        await radioJob('ABORT',{job_id:jobId});await radioJob('RELEASE');
+        const stopRead=await other.request('schedules/stop'),stop=await stopRead.json();
+        const stopped=await other.request('schedules/stop','POST',{schema:stop.schema,target:stop.target,stop:true},stopRead.headers.get('etag'));
+        assert.equal(stopped.status,200);assert.equal((await stopped.json()).stopped,true);
     }
     await other.logout();await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'operations released');
     await capture('operations-idle','operations-console');

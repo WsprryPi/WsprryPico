@@ -114,23 +114,10 @@ if(NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE STREQUAL "0")
     endif()
 endif()
 
-set(WSPRRY_PICO_CONSUMER_LAN_MODE "plain" CACHE STRING
-    "Consumer LAN WTP mode: off, plain, or tls")
-set_property(CACHE WSPRRY_PICO_CONSUMER_LAN_MODE PROPERTY STRINGS off plain tls)
-if(NOT WSPRRY_PICO_CONSUMER_LAN_MODE MATCHES "^(off|plain|tls)$")
-    message(FATAL_ERROR "WSPRRY_PICO_CONSUMER_LAN_MODE must be off, plain, or tls")
+if(DEFINED WSPRRY_PICO_CONSUMER_LAN_MODE)
+    message(FATAL_ERROR "WTP is retired; remove WSPRRY_PICO_CONSUMER_LAN_MODE from the build configuration")
 endif()
-if(WSPRRY_PICO_CONSUMER_LAN_MODE STREQUAL "off")
-    set(WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE 0)
-elseif(WSPRRY_PICO_CONSUMER_LAN_MODE STREQUAL "plain")
-    set(WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE 1)
-else()
-    set(WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE 2)
-endif()
-foreach(image IN LISTS wsprry_application_images)
-    target_compile_definitions(${image} PRIVATE
-        WSPRRY_PICO_CONSUMER_LAN_MODE=${WSPRRY_PICO_CONSUMER_LAN_MODE_VALUE})
-endforeach()
+
 option(WSPRRY_PICO_SESSION_DEADLINE_FIXTURE
     "RF-inhibited engineering session fixture: 15s inactivity/60s absolute" OFF)
 if(WSPRRY_PICO_SESSION_DEADLINE_FIXTURE)
@@ -208,30 +195,6 @@ pico_set_program_name(WsprryPico-RFBench "WsprryPico-RFBench")
 pico_set_program_version(WsprryPico-RFBench "${WSPRRY_PICO_FIRMWARE_VERSION}")
 pico_set_program_description(WsprryPico-RFBench "GP2 bench ${WSPRRY_PICO_GIT_REVISION}")
 pico_add_extra_outputs(WsprryPico-RFBench)
-
-# Explicit legacy USB-time integration diagnostic, separate from the application.
-add_executable(WsprryPico-RFWTP EXCLUDE_FROM_ALL
-    rf_wtp_main.cpp pico_adapters.cpp usb_descriptors.c ../src/usb/transport.cpp)
-target_include_directories(WsprryPico-RFWTP PRIVATE
-    ${CMAKE_CURRENT_LIST_DIR} ${CMAKE_CURRENT_BINARY_DIR}/generated)
-target_compile_definitions(WsprryPico-RFWTP PRIVATE
-    WSPRRY_PICO_RF_WTP=1 PICO_NO_BI_PROGRAM_BUILD_DATE=1 PICO_STACK_SIZE=0x4000)
-target_link_libraries(WsprryPico-RFWTP PRIVATE
-    wsprrypico_pico_rf pico_rand pico_time pico_unique_id tinyusb_device)
-set_source_files_properties(rf_wtp_main.cpp PROPERTIES
-    COMPILE_OPTIONS "-Wall;-Wextra;-Werror;-fstack-usage")
-set_target_properties(WsprryPico-RFWTP PROPERTIES
-    C_STANDARD 11 C_STANDARD_REQUIRED ON C_EXTENSIONS ON)
-target_link_options(WsprryPico-RFWTP PRIVATE
-    "LINKER:--defsym=RAM_LENGTH=0x7c000"
-    "LINKER:--defsym=SCRATCH_Y_ORIGIN=0x2007c000"
-    "LINKER:--defsym=SCRATCH_Y_LENGTH=0x4000")
-pico_enable_stdio_uart(WsprryPico-RFWTP 0)
-pico_enable_stdio_usb(WsprryPico-RFWTP 0)
-pico_set_program_name(WsprryPico-RFWTP "WsprryPico-RFWTP")
-pico_set_program_version(WsprryPico-RFWTP "${WSPRRY_PICO_FIRMWARE_VERSION}")
-pico_set_program_description(WsprryPico-RFWTP "WTP GP2 integration ${WSPRRY_PICO_GIT_REVISION}")
-pico_add_extra_outputs(WsprryPico-RFWTP)
 
 # LED qualification adapters are absent from ordinary images.
 option(WSPRRY_PICO_LED_ACCEPTANCE "LED closeout fixtures; untimed optical lamp only in inhibited image" OFF)
@@ -427,7 +390,7 @@ function(wsprry_configure_flash_layout image)
             ${CMAKE_SOURCE_DIR}/cmake/standalone_link FILES memory_flash.incl)
     endif()
 endfunction()
-foreach(image ${wsprry_application_images} WsprryPico-RFBench WsprryPico-RFWTP
+foreach(image ${wsprry_application_images} WsprryPico-RFBench
               rf_driver_linkcheck)
     wsprry_configure_flash_layout(${image})
 endforeach()
@@ -666,7 +629,7 @@ if(WSPRRY_PICO_INDICATOR_FAULT_FIXTURE OR
         COMMAND ${CMAKE_COMMAND} -E echo
             "Inhibited-only fixture: explicitly build WsprryPico-Inhibited; RF targets are unavailable"
         COMMAND ${CMAKE_COMMAND} -E false VERBATIM)
-    foreach(image ${wsprry_rf_images} WsprryPico-RFBench WsprryPico-RFWTP)
+    foreach(image ${wsprry_rf_images} WsprryPico-RFBench)
         add_dependencies(${image} wsprry_inhibited_fixture_rf_refusal)
     endforeach()
 endif()

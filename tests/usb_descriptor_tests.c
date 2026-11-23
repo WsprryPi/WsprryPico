@@ -20,7 +20,11 @@ int main(void) {
     assert(device->idVendor == 0xcafe && device->idProduct == 0x4012);
     assert(device->bDeviceClass == TUSB_CLASS_MISC && device->bDeviceProtocol == MISC_PROTOCOL_IAD);
     check_string(device->iManufacturer, "WsprryPi");
+#ifdef WSPRRY_PICO_RF_BENCH
+    check_string(device->iProduct, "WsprryPico-RFBench");
+#else
     check_string(device->iProduct, "WsprryPico");
+#endif
     check_string(device->iSerialNumber, "0123456789ABCDEF");
     assert(tud_descriptor_string_cb(255, 0x0409) == NULL);
     const uint8_t* config = tud_descriptor_configuration_cb(0);
@@ -42,10 +46,17 @@ int main(void) {
         } else if (d[1] == TUSB_DESC_INTERFACE) {
             assert(d[2] == interfaces++);
             if (d[5] == TUSB_CLASS_CDC) {
+#ifdef WSPRRY_PICO_RF_BENCH
+                check_string(d[8], d[2] == USB_ITF_CONSOLE ? "RFBench Console"
+                                   : d[2] == USB_ITF_RESERVED ? "RFBench Commands"
+                                   : d[2] == USB_ITF_MANAGEMENT ? "WsprryPico Management"
+                                                              : "WsprryPico Logging");
+#else
                 check_string(d[8], d[2] == USB_ITF_CONSOLE      ? "WsprryPico Console"
-                                   : d[2] == USB_ITF_WTP        ? "WsprryPico WTP"
+                                   : d[2] == USB_ITF_RESERVED        ? "WsprryPico Reserved"
                                    : d[2] == USB_ITF_MANAGEMENT ? "WsprryPico Management"
                                                                 : "WsprryPico Logging");
+#endif
             }
         } else if (d[1] == TUSB_DESC_ENDPOINT) {
             assert(!seen_endpoints[d[2]]++);

@@ -62,7 +62,7 @@ if len(sys.argv) > 6:
         bad = copy.deepcopy(network); bad['unknown'] = True; invalid('network-diagnostics', bad)
         bad = copy.deepcopy(network); bad['ntp_rate']['qualified'] = 1; invalid('network-diagnostics', bad)
         bad = copy.deepcopy(network); bad['softap_netif']['unknown'] = True; invalid('network-diagnostics', bad)
-for path, bad in [(('gpio_drive', 'values'), [None]), (('amplifier_enable', 'default_pin'), {}), (('wtp', 'profiles'), [None]), (('wtp', 'frequency_ranges'), [{}]), (('message_jobs', 'modes'), [None])]:
+for path, bad in [(('gpio_drive', 'values'), [None]), (('amplifier_enable', 'default_pin'), {}), (('execution', 'modes'), [None]), (('execution', 'frequency_ranges'), [{}]), (('message_limits', 'modes'), [None])]:
     value = copy.deepcopy(caps)
     assert path[0] in value, 'Sample must exercise optional message capability'
     value[path[0]][path[1]] = bad
@@ -124,15 +124,27 @@ for value in documents(sys.argv[3], '--samples'):
         bad['fields']['pins'].pop('amplifier_active_high')
         invalid('progress', bad)
 
-# Imported WTP definitions are verbatim canonical definitions except reference relocation.
+# Retained native observations keep their exact canonical execution types.
+# Shared control no longer imports wire request/response envelopes or advertises them.
 wtp = json.loads((ROOT / 'engineering/protocol/wtp-1.schema.json').read_text())['$defs']
+core = SCHEMA['$defs']['execution-core']['$defs']
 def rebase(value):
     if isinstance(value, dict):
-        return {key: ('#/$defs/wtp/$defs/' + item.split('/')[-1] if key == '$ref' else rebase(item)) for key, item in value.items()}
+        return {key: ('#/$defs/execution-core/$defs/' + item.split('/')[-1] if key == '$ref' else rebase(item)) for key, item in value.items()}
     if isinstance(value, list):
         return [rebase(item) for item in value]
     return value
-assert SCHEMA['$defs']['wtp']['$defs'] == rebase(wtp)
+assert 'wtp' not in SCHEMA['$defs']
+assert set(core) == {'status', 'id', 'state', 'terminalRecord', 'u64', 'error', 'errorCode', 'clockState'}
+for name, definition in core.items():
+    expected = rebase(wtp[name])
+    if name == "error":
+        expected["properties"].pop("detail")  # Wire-only open detail is not a native observation.
+    assert definition == expected, name
+for name in ['wtp', 'message_jobs', 'max_wtp_connections', 'active_job_connections']:
+    invalid('capabilities', {**caps, name: {}})
+invalid('capabilities', {**caps, 'features': {**caps['features'], 'jobs': True}})
+assert not any(name == 'jobs' or name.startswith('jobs/') for names in SCHEMA['management_routes'].values() for name in names)
 # Conditional refinements intersect the closed base resource definition. They
 # cannot add fields; verify that closure rather than requiring each refinement
 # to redeclare every field with additionalProperties:false.
@@ -164,5 +176,5 @@ def inspect(value, path=()):
     elif isinstance(value, list):
         for index, item in enumerate(value): inspect(item, path + (index,))
 for name, definition in SCHEMA['$defs'].items():
-    if name != 'wtp': inspect(definition, (name,))
-print('PASS Draft 2020-12 actual producer documents, closed leaves, carrier sets, negative mutations, unchanged WTP definitions')
+    inspect(definition, (name,))
+print('PASS Draft 2020-12 actual producer documents, closed leaves, carrier sets, negative mutations, retired wire advertisements and preserved native observation types')

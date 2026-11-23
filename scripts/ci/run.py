@@ -130,6 +130,8 @@ def inputs():
                    (publish == 'false' or os.environ.get('GITHUB_EVENT_NAME') == 'workflow_dispatch') and
                    (latest == 'false' or publish == 'true' and bundle.version_kind(version) == 'stable'),
                    'Publication/latest selection requires explicit manual authorization and a final version for latest')
+    bundle.require(stream != 'validation' or publish == latest == 'false',
+                   'Feature validation cannot publish or select latest')
     source = capture('git', 'rev-parse', 'HEAD')
     if source != os.environ.get('CI_EVENT_SHA'):
         raise ValueError('Actual checkout differs from workflow event SHA')

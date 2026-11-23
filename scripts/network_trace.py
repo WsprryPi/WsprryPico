@@ -1,6 +1,6 @@
 """Offline network trace framing, identity and idle-window validation."""
 import struct
-from usb_inventory import require
+from console_io import require
 
 def fingerprint(data):
     value = 2166136261

@@ -42,7 +42,7 @@ bash scripts/build_pico.sh WsprryPico-StandaloneRF build/local-compat-rf
 
 With no arguments the helper selects `WsprryPico` and `build/pico2-w-local`. Target-only inhibited and compatibility selections default to `build/pico2-w-local-inhibited` and `build/pico2-w-local-standalone-rf`. It accepts at most a supported target and build directory, uses Ninja/Release, disables host tests, selects `pico2_w`, and builds that target with four jobs. Its local picotool source defaults to `build/pico2-w/_deps/picotool-src` if the environment override is absent; missing SDK/source inputs refuse before build. Outputs are under `<build-directory>/firmware/<target>.*`. Preserve retained evidence directories rather than reconfiguring them for another variant.
 
-`WsprryPico-RFBench` and legacy USB-time `WsprryPico-RFWTP` are separate explicit diagnostic targets, not application variants. Bench/fixture definitions and historical image names must be interpreted with their recorded source/role; they do not select the normal application or establish physical qualification.
+`WsprryPico-RFBench` remains an explicit diagnostic target with non-WTP Commands on CDC instance 1. The RFWTP target is retired. Diagnostic images do not select the normal application or establish physical qualification.
 
 The normal build produces `build/pico2-w/firmware/WsprryPico.elf`, `.bin`, `.hex`, `.dis`, `.elf.map`, and `.uf2`. Generated artifacts are ignored. The UF2 metadata contains the product, development version, source revision, SDK, board, and target. The SDK build-date field is disabled so wall-clock time does not enter that metadata.
 
@@ -84,19 +84,13 @@ Open the console port with the system `screen` command:
 screen /dev/cu.usbmodemXXXX 115200
 ```
 
-Exit with Control-A, backslash, then `y`. Inspect the WTP port with:
-
-```sh
-python3 scripts/wtp_monitor.py /dev/cu.usbmodemYYYY
-```
-
-The monitor validates framing, length, CRC-32C, UTF-8, and strict JSON before printing a message. Only one process can own a serial device at a time.
+Exit with Control-A, backslash, then `y`. Interfaces 2/3 are Reserved and inert in application images. See [USB roles](usb-cdc.md) for independent Management and Logging.
 
 ## Application boundary
 
 The firmware instantiates and polls the same portable `JobService` used by host tests. The normal target connects the existing RF worker and engine. In the explicit inhibited target, `DryRunEngine` models local job lifecycles but always reports output inactive and accesses no hardware. The inhibited firmware entry point requires the `WSPRRY_PICO_RF_OUTPUT_DISABLED=1` compile definition.
 
-The WTP CDC path implements strict JSON request decoding, response/event encoding, typed dispatch, and logical session handling through the [WTP endpoint](wtp-endpoint.md). Both variants enforce the existing timing and ownership admission; only the explicit inhibited variant simulates execution without physical RF. Endpoint host tests do not establish target USB conformance.
+The standalone scheduler enters the portable JobService through typed internal requests. External WTP admission and generic HTTP job wrappers are retired. Both normal and inhibited application variants preserve timing, ownership, cancellation, and confirmed inactive cleanup; only the explicitly inhibited engine simulates execution without physical RF.
 
 Building the image is hardware-free. Physical validation requires the board, firmware digest, connection, and observed output. A build does not establish USB behavior, target timing, electrical safety, RF behavior, or WTP conformance.
 

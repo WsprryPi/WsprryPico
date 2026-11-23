@@ -63,22 +63,27 @@ const evidence=[];
       await field('local-password','test-password');await submitLogin();
     }
     await until(()=>cdp.evaluate('typeof online!=="undefined" && online && !busy'),'ready page');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-delivery').value`),'recurring','new CW editor defaults to recurring delivery');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-delivery')`),null);
+    assert.equal(await cdp.evaluate(`document.getElementById('job-file')`),null);
     assert.equal(await cdp.evaluate(`document.getElementById('message-interval').value`),'10');
     assert.deepEqual(await cdp.evaluate(`['message-text','message-mode','message-frequency','message-shift','message-dot','message-repeats','message-gap'].map(id=>document.getElementById(id).value)`),['73 DE AA0NT','qrss','','5','3','1','3']);
     assert.equal(await cdp.evaluate(`Date.parse(document.getElementById('message-start').value+'Z')%600000`),0);
     await capture(surface+'-initial-defaults');
-    await field('message-delivery','once');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-controls').hidden`),true,'Send once without a saved schedule');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Carrier frequency (Hz)');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),true);
-    await cdp.evaluate(`globalThis.cwRequests=[];const originalJob=job;job=async(operation,body={})=>{cwRequests.push({operation,body:structuredClone(body)});return originalJob(operation,body);};`);
+    await cdp.evaluate(`globalThis.cwRequests=[];globalThis.originalApi=api;api=async(...args)=>{if(args[0]==='message-schedule'&&args[1]==='PUT')cwRequests.push(structuredClone(args[2]));return originalApi(...args);};`);
     const beforeState=await control({op:'frequency_state'});
+    async function setStart(){await cdp.evaluate(`document.getElementById('message-start').value=new Date(Number(BigInt(snapshot.standalone.utc_now_ns)/1000000n)+60000).toISOString().slice(0,19).replace('T',' ')`);}
+    async function stop(){
+      await cdp.evaluate(`(async()=>{const before=await api('schedules/stop');const result=await api('schedules/stop','POST',{schema:'schedule-stop',target:before.data.target,stop:true},before.revision);if(!result.data.stopped)throw Error('Stop unconfirmed');await readMessageSchedule(true);await refresh();})()`);
+    }
+    async function compileNext(){
+      await control({op:'schedule_tick',surface,delta_ns:'58000000000'});
+      return control({op:'accepted_job',surface});
+    }
     for(const mode of ['qrss','fskcw','dfcw']) {
       for(const [id,value] of Object.entries({mode,text:'A E',frequency:'14096900',shift:'5',dot:'3',dash:'3',intra:'1',character:'3',word:'7',repeats:'2',gap:'7'}))await field('message-'+id,value);
-      await cdp.evaluate(`document.getElementById('message-mode').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('message-start').value=new Date(Number(BigInt(snapshot.standalone.utc_now_ns)/1000000n)+60000).toISOString().slice(0,19)`);
+      await cdp.evaluate(`document.getElementById('message-mode').dispatchEvent(new Event('change',{bubbles:true}))`);await setStart();
       const label=mode==='qrss'?'Carrier':mode==='fskcw'?'Space':'Dot';
-      const ax=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(n=>n.role?.value==='textbox' && n.name?.value===label+' frequency (Hz)');assert(ax,'accessible mode label');assert.match(ax.description?.value||'',/Direct RF/);
+      const ax=(await cdp.send('Accessibility.getFullAXTree')).nodes.find(n=>n.role?.value==='textbox'&&n.name?.value===label+' frequency (Hz)');assert(ax,'accessible mode label');assert.match(ax.description?.value||'',/Direct RF/);
       const preview=await cdp.evaluate(`document.getElementById('message-preview').textContent`);
       assert(preview.includes(label+' 14096900 Hz'));if(mode!=='qrss')assert(preview.includes((mode==='fskcw'?'Mark':'Dash')+' 14096905 Hz'));
       await capture(surface+'-'+mode);
@@ -87,111 +92,71 @@ const evidence=[];
       await tab();assert.equal(await cdp.evaluate('document.activeElement.id'),'message-frequency');
       await tab();assert.equal(await cdp.evaluate('document.activeElement.id'),mode==='qrss'?'message-dot':'message-shift');
       const count=await cdp.evaluate('cwRequests.length');
-      await cdp.evaluate(`document.querySelector('#message-form button[type=submit]').focus()`);
-      assert.equal(await cdp.evaluate(`document.activeElement.textContent`),'Load and arm message');
+      await cdp.evaluate(`document.getElementById('message-submit').focus()`);
+      assert.equal(await cdp.evaluate(`document.activeElement.textContent`),'Save and start schedule');
       await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Enter',code:'Enter',windowsVirtualKeyCode:13,text:'\r'});
       await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Enter',code:'Enter',windowsVirtualKeyCode:13});
-      await until(()=>cdp.evaluate(`!busy && document.getElementById('message-result').textContent.startsWith('Message armed')`),'accepted '+surface+' '+mode);
-      const requests=(await cdp.evaluate('cwRequests')).slice(count);assert.deepEqual(requests.map(r=>r.operation),['HELLO','CLAIM','LOAD_MESSAGE','ARM']);
-      const body=requests[2].body;
+      await until(()=>cdp.evaluate(`!busy&&cwRequests.length===${count+1}&&messageScheduleReadback?.data.saved?.enabled`),'saved '+surface+' '+mode);
+      const requests=(await cdp.evaluate('cwRequests')).slice(count);assert.equal(requests.length,1);
+      const body=requests[0].schedule.message;
       assert.equal(body.frequency_nhz,mode==='fskcw'?'14096905000000000':'14096900000000000');
       assert.equal(body.space_frequency_nhz,mode==='qrss'?'0':mode==='fskcw'?'14096900000000000':'14096905000000000');
-      const compiled=await control({op:'accepted_job',surface});assert.equal(compiled.job_id,body.job_id);assert.equal(compiled.mode,mode);assert.equal(compiled.allow_frequency_adjustment,true);
+      const compiled=await compileNext();assert.equal(compiled.mode,mode);assert.equal(compiled.allow_frequency_adjustment,true);
       assert.equal(compiled.total_duration_ns,mode==='dfcw'?'73000001000':'85000001000');
       assert.deepEqual(compiled.events,expectedEvents(mode,14096900000000000n,14096905000000000n));
-      evidence.push({surface,preview,requests,compiled});
-      await cdp.evaluate(`(async()=>{await job('ABORT',{job_id:snapshot.job.job_id});await job('RELEASE');await refresh();})()`);
+      evidence.push({surface,preview,requests,compiled});await stop();
     }
-    // Direct API callers retain explicit frequencies, including both DFCW orientations.
+    // The authenticated native settings route retains explicit frequency validation.
     for(const [mode,first,second,accepted] of [
-      ['dfcw','14096900000000000','14096905000000000',true],['dfcw','14096905000000000','14096900000000000',true],
+      ['dfcw','14096900000000000','14096905000000000',true],['dfcw','14096905000000000','14096900000000000',false],
       ['dfcw','14096900000000000','14096900000000000',false],['dfcw','14096900000000000','0',false],
       ['fskcw','14096900000000000','14096905000000000',false],['fskcw','14096900000000000','14096900000000000',false],
       ['qrss','14096900000000000','18446744073709551615',true]]) {
-      const result=await cdp.evaluate(`(async()=>{await job('HELLO',{versions:['WTP/1'],client_name:'explicit API',client_version:'1'});await job('CLAIM',{owner_id:session,lease_ms:30000});const body={...cwRequests.find(r=>r.operation==='LOAD_MESSAGE').body,job_id:requestId(),message:'AE',repeat_count:1,mode:${JSON.stringify(mode)},frequency_nhz:${JSON.stringify(first)},space_frequency_nhz:${JSON.stringify(second)}};try{await job('LOAD_MESSAGE',body);return {accepted:true,body};}catch(error){return {accepted:false,error:error.message};}})()`);
+      const result=await cdp.evaluate(`(async()=>{const read=await api('message-schedule');const message={...cwRequests[0].schedule.message,message:'AE',repeat_count:1,mode:${JSON.stringify(mode)},frequency_nhz:${JSON.stringify(first)},space_frequency_nhz:${JSON.stringify(second)}};const schedule={...cwRequests[0].schedule,first_start_utc_ns:(BigInt(snapshot.standalone.utc_now_ns)+60000000000n).toString(),message};try{await api('message-schedule','PUT',{schema:'message-schedule',target:read.data.target,schedule},read.revision);return {accepted:true};}catch(error){return {accepted:false,error:error.message};}})()`);
       assert.equal(result.accepted,accepted,mode+' explicit '+first+'/'+second);
-      if(accepted){const compiled=await control({op:'accepted_job',surface});assert.deepEqual(compiled.events,expectedEvents(mode,BigInt(first),BigInt(second),true));await cdp.evaluate(`job('ABORT',{job_id:${JSON.stringify(result.body.job_id)}})`);}
-      await cdp.evaluate(`(async()=>{await job('RELEASE');await refresh();})()`);
+      if(accepted){const compiled=await compileNext();assert.deepEqual(compiled.events,expectedEvents(mode,BigInt(first),BigInt(second),true));await stop();}
     }
-    // Raw job-file and finite-tone frequencies pass through unchanged.
-    for(const mode of ['tone','dfcw']) {
-      const events=[{offset_ns:'0',duration_ns:'1000000000',rf_on:true,frequency_nhz:'14096900000000000'}];
-      if(mode==='dfcw')events.push({offset_ns:'1000000000',duration_ns:'1000000000',rf_on:true,frequency_nhz:'14096905000000000'});
-      const raw={profile:'rf-events/1',mode,job_id:(mode==='tone'?'8':'9').repeat(32),total_duration_ns:mode==='tone'?'1000000000':'2000000000',events,allow_frequency_adjustment:true};
-      await cdp.evaluate(`{const file=new File([${JSON.stringify(JSON.stringify(raw))}],'absolute-job.json',{type:'application/json'});const transfer=new DataTransfer();transfer.items.add(file);document.getElementById('job-file').files=transfer.files;document.getElementById('start').value=document.getElementById('message-start').value;document.getElementById('job').requestSubmit();}`);
-      await until(()=>cdp.evaluate(`!busy && snapshot.job.state==='armed'`),'raw '+mode);
-      const observed=await control({op:'accepted_job',surface});assert.deepEqual(observed.events,events);assert.equal(observed.total_duration_ns,raw.total_duration_ns);evidence.push({surface,raw,observed});
-      await cdp.evaluate(`(async()=>{await job('ABORT',{job_id:snapshot.job.job_id});await job('RELEASE');await refresh();})()`);
-    }
-    // Exact decimal payload reaches the compiler without Number rounding.
-    await field('message-mode','dfcw');await field('message-frequency','14096900.123456789');await field('message-shift','0.000000001');await field('message-text','AE');await field('message-repeats','1');
+    // Retired direct jobs and file upload do not provide a fallback.
+    assert.equal(await cdp.evaluate(`(async()=>{try{await api('jobs','POST',{});return false;}catch(error){return true;}})()`),true);
+    await field('message-mode','dfcw');await field('message-frequency','14096900.123456789');await field('message-shift','0.000000001');await field('message-text','AE');await field('message-repeats','1');await setStart();
     await cdp.evaluate(`document.getElementById('message-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && snapshot.job.state==='armed'`),'fractional job');
-    const fractional=await control({op:'accepted_job',surface});assert.deepEqual(fractional.events,expectedEvents('dfcw',14096900123456789n,14096900123456790n,true));evidence.push({surface,fractional});
-    await cdp.evaluate(`(async()=>{await job('ABORT',{job_id:snapshot.job.job_id});await job('RELEASE');await refresh();})()`);
+    await until(()=>cdp.evaluate(`!busy&&messageScheduleReadback?.data.saved?.enabled`),'fractional native schedule');
+    const fractional=await compileNext();assert.deepEqual(fractional.events,expectedEvents('dfcw',14096900123456789n,14096900123456790n,true));evidence.push({surface,fractional});await stop();
     const count=await cdp.evaluate('cwRequests.length');
     await field('message-shift','bad');await field('message-mode','qrss');assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),true);
     assert.doesNotMatch(await cdp.evaluate(`document.getElementById('message-preview').textContent`),/Frequency shift/);
     await field('message-mode','fskcw');assert.equal(await cdp.evaluate(`document.getElementById('message-shift').value`),'bad');
     await cdp.evaluate(`document.getElementById('message-form').requestSubmit()`);await until(()=>cdp.evaluate('!busy'),'invalid input');
     assert.equal(await cdp.evaluate('cwRequests.length'),count);await capture(surface+'-invalid');
-    await field('message-shift','5');
-    // The browser's advertised range permits this input; saved server policy refuses it.
-    await field('message-frequency','1000000');
-    await cdp.evaluate(`document.getElementById('message-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && document.getElementById('message-result').textContent.includes('preserved')`),'server refusal');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-result').closest('fieldset:disabled')`),null,'action feedback remains outside disabled controls');
-    assert.equal(await cdp.evaluate(`getComputedStyle(document.getElementById('message-result')).opacity`),'1');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-frequency').value`),'1000000');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-shift').value`),'5');await capture(surface+'-server-refusal');
-    assert.equal((await cdp.evaluate('cwRequests')).at(-1).operation,'LOAD_MESSAGE','failure never proceeds to ARM');
-    await cdp.evaluate(`(async()=>{await job('RELEASE');await refresh();})()`);
+    await field('message-shift','5');await field('message-frequency','14096900');
     const saved=await cdp.evaluate(`JSON.stringify(['message-frequency','message-shift','message-text','message-dot','message-dash'].map(id=>document.getElementById(id).value))`);
     await cdp.evaluate('refresh()');assert.equal(await cdp.evaluate(`JSON.stringify(['message-frequency','message-shift','message-text','message-dot','message-dash'].map(id=>document.getElementById(id).value))`),saved);
     await cdp.send('Network.enable');await cdp.send('Network.emulateNetworkConditions',{offline:true,latency:0,downloadThroughput:-1,uploadThroughput:-1});await cdp.evaluate('refresh()');
     assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Space frequency (Hz)');
     await cdp.send('Network.emulateNetworkConditions',{offline:false,latency:0,downloadThroughput:-1,uploadThroughput:-1});await cdp.evaluate('refresh()');
-    if(surface==='consumer' && !await cdp.evaluate('localAuthenticated')) {
-      await field('local-password','test-password');await submitLogin();
-    }
-    await until(()=>cdp.evaluate(`online && !busy && !document.getElementById('message-settings').disabled`),'reconnected message editor');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-frequency-label').textContent`),'Space frequency (Hz)');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-shift').disabled`),false);
+    if(surface==='consumer'&&!await cdp.evaluate('localAuthenticated')){await field('local-password','test-password');await submitLogin();}
+    await until(()=>cdp.evaluate(`online&&!busy&&!document.getElementById('message-settings').disabled`),'reconnected message editor');
     assert.equal(await cdp.evaluate(`JSON.stringify(['message-frequency','message-shift','message-text','message-dot','message-dash'].map(id=>document.getElementById(id).value))`),saved);
-    assert.deepEqual(await control({op:'frequency_state'}),beforeState,'message preparation never persists standalone settings');
-    // Production schedule saves and readback preserve one-time drafts and the
-    // explicit recovery barrier after a committed save loses its UI reply.
-    for(const [id,value] of Object.entries({mode:'qrss',text:'E',frequency:'14096900',delivery:'recurring',interval:'20'}))await field('message-'+id,value);
-    await cdp.evaluate(`document.getElementById('message-start').value=new Date(Number(BigInt(snapshot.standalone.utc_now_ns)/1000000n)+60000).toISOString().slice(0,19);document.getElementById('message-form').requestSubmit()`);
-    await until(()=>cdp.evaluate(`!busy && messageScheduleReadback?.data.saved?.enabled`),'saved message schedule');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),true);
-    await field('message-delivery','once');await field('message-text','ONE TIME');await click('refresh');
-    await until(()=>cdp.evaluate('!busy'),'schedule refresh');
-    assert.deepEqual(await cdp.evaluate(`['message-delivery','message-text'].map(id=>document.getElementById(id).value)`),['once','ONE TIME']);
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-controls').hidden`),false);
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),false);
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-adopt').textContent`),'Restore saved schedule');
-    await capture(surface+'-schedule-during-send-once','message-schedule-controls');
-    let restoreDialog;
-    const releaseRestore=cdp.on('Page.javascriptDialogOpening',async params=>{restoreDialog=params;await cdp.send('Page.handleJavaScriptDialog',{accept:true});});
+    // Restore is explicit; an uncertain committed save blocks writes until readback.
+    for(const [id,value] of Object.entries({mode:'qrss',text:'E',frequency:'14096900',interval:'20'}))await field('message-'+id,value);
+    await setStart();await cdp.evaluate(`document.getElementById('message-form').requestSubmit()`);
+    await until(()=>cdp.evaluate(`!busy&&messageScheduleReadback?.data.saved?.enabled`),'saved message schedule');
+    await field('message-text','KEEP DRAFT');await click('refresh');await until(()=>cdp.evaluate('!busy'),'schedule refresh');
+    assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'KEEP DRAFT');
+    let restoreDialog;const releaseRestore=cdp.on('Page.javascriptDialogOpening',async params=>{restoreDialog=params;await cdp.send('Page.handleJavaScriptDialog',{accept:true});});
     try{await click('message-schedule-adopt');}finally{releaseRestore();}
-    assert.match(restoreDialog?.message||'',/Replace the current message draft/);
-    assert.deepEqual(await cdp.evaluate(`['message-delivery','message-text'].map(id=>document.getElementById(id).value)`),['recurring','E']);
+    assert.match(restoreDialog?.message||'',/Replace the current message draft/);assert.equal(await cdp.evaluate(`document.getElementById('message-text').value`),'E');
     await cdp.evaluate(`{const original=api;api=async(...args)=>{const response=await original(...args);if(args[0]==='message-schedule'&&args[1]==='PUT'){api=original;throw Error('Saved schedule reply lost');}return response;};document.getElementById('message-form').requestSubmit();}`);
-    await until(()=>cdp.evaluate('!busy && messageScheduleUncertain'),'unconfirmed committed schedule save');
+    await until(()=>cdp.evaluate('!busy&&messageScheduleUncertain'),'unconfirmed committed schedule save');
     await click('refresh');await until(()=>cdp.evaluate('!busy'),'ordinary refresh during schedule recovery');
     assert.equal(await cdp.evaluate(`document.getElementById('message-submit').disabled`),true);
     assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),false);
     assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-adopt').hidden`),true);
     assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),true);
     await capture(surface+'-schedule-recovery','message-schedule-controls');
-    await click('message-schedule-read');await until(()=>cdp.evaluate('!busy && !messageScheduleUncertain'),'explicit schedule readback');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-read').hidden`),true);
+    await click('message-schedule-read');await until(()=>cdp.evaluate('!busy&&!messageScheduleUncertain'),'explicit schedule readback');
     assert.equal(await cdp.evaluate(`document.getElementById('message-result').textContent`),'');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').textContent`),'Pause schedule');
-    await click('message-schedule-pause');await until(()=>cdp.evaluate(`!busy && messageScheduleReadback?.data.saved?.enabled===false`),'confirmed schedule pause');
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-pause').hidden`),true);
-    assert.equal(await cdp.evaluate(`document.getElementById('message-schedule-help').hidden`),true);
+    await click('message-schedule-pause');await until(()=>cdp.evaluate(`!busy&&messageScheduleReadback?.data.saved?.enabled===false`),'confirmed schedule pause');
     assert.match(await cdp.evaluate(`document.getElementById('message-schedule-status').textContent`),/Save and start schedule/);
     await capture(surface+'-schedule-paused','message-schedule-controls');
     await cdp.send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'dark'}]});assert.equal(await cdp.evaluate('getComputedStyle(document.documentElement).colorScheme'),'light');
@@ -200,7 +165,7 @@ const evidence=[];
     assert.equal(afterSchedule.saved_dial_hz,beforeState.saved_dial_hz,'message schedule leaves the WSPR dial unchanged');
     assert.equal(afterSchedule.enabled,beforeState.enabled,'message schedule leaves WSPR enablement unchanged');
     await cdp.stop();cdp=null;await started.browser.stop();chrome=null;
-    console.log('PASS '+surface+' shipped CW requests, compiled events, explicit API, keyboard, errors, drafts and views');
+    console.log('PASS '+surface+' shipped native CW schedules, compiled events, explicit API, keyboard, errors, drafts and views');
   }
   await writeFile(path.join(output,'cw-evidence.json'),JSON.stringify(evidence,null,2)+'\n');
   await writeFile(path.join(output,'result.json'),JSON.stringify({passed:true,surfaces:['consumer','engineering'],modes:['qrss','fskcw','dfcw'],themes:['light'],views:['desktop','mobile'],text_zoom:200,physical_qualification:false},null,2)+'\n');

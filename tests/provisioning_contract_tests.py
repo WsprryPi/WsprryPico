@@ -88,8 +88,6 @@ for name, vector_name in {
     "identity": "identity",
     "command": "command",
     "status": "status",
-    "wtpCommand": "wtp_command",
-    "wtpStatus": "wtp_status",
 }.items():
     value = vectors["uuids"][vector_name]
     assert re.search(rf'{name}: "{re.escape(value)}"', web)
@@ -105,8 +103,8 @@ for operation in ("identify", "field_status", "time_challenge", "time_submit"):
     assert f'name == "{operation}"' in ble_session
     assert f'"{operation}"' in linux_client
 
-assert 'operation: "select_wtp_status_carrier"' in web
-assert 'name == "select_wtp_status_carrier"' in ble_session
+assert "select_wtp_status_carrier" not in web
+assert "select_wtp_status_carrier" not in ble_session
 assert '"select_wtp_status_carrier"' not in linux_client
 
 for field in (
@@ -125,9 +123,6 @@ for field in (
     assert re.search(rf"\b{field}\b", linux_client)
 
 for required in (
-    '"HELLO"',
-    '"STATUS"',
-    '"WTP/1"',
     '"NoInputNoOutput"',
     '"profile_permissions"',
     "getpass.getpass",
@@ -140,34 +135,23 @@ assert "bus_name=self.BLUEZ" in linux_client
 
 assert "INDICATE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
 assert "WRITE | WRITE_WITHOUT_RESPONSE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
-assert vectors["uuids"]["wtp_command"].upper() in gatt_profile
-assert vectors["uuids"]["wtp_status"].upper() in gatt_profile
+assert "7D6B0005" not in gatt_profile and "7D6B0006" not in gatt_profile
+assert "endpoint_" not in gatt
+assert "select_wtp_status_carrier" not in ble_session
 assert "CLIENT_CONFIGURATION_HANDLE" in gatt
 assert "att_read_callback_handle_little_endian_16" in gatt
 assert "outbound_index_ + 1 == outbound_.size()" in gatt
 assert "session_.response_started(now());" in gatt
 assert '"request" if response else "command"' in linux_client
-assert "owner_->status_cccd_ : owner_->wtp_cccd_) = value;" in gatt
+assert "owner_->status_cccd_ = value;" in gatt
 assert "status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION" in gatt
-assert "wtp_indications_enabled()" in gatt
-assert "session_.wtp_over_field_status() ? status_cccd_ : wtp_cccd_" in gatt
-assert "selected_field_wtp_command" in gatt
-assert "owner_->session_.wtp_over_field_status();" in gatt
-assert "!field_wtp_selected;" in gatt
-assert "handle = wtp_status_handle();" in gatt
-assert "if (wtp_carrier_changed)" in gatt
-assert "owner_->session_.disconnected();" in gatt
-assert "endpoint_->receive" in gatt and "endpoint_->consume_output" in gatt
 assert gatt.index(
     "if (owner_->status_cccd_ != GATT_CLIENT_CHARACTERISTICS_CONFIGURATION_INDICATION)"
 ) < gatt.index("owner_->inbound_.receive")
-assert "if (session_.authorized())\n            endpoint_->poll(current);" in gatt
 assert "if (session_.poll(current))" in gatt
 assert "(void)gap_disconnect(connection_);" in gatt
 assert "access_.expire_provisional_bond(now_ms)" in ble_session
 assert "(void)ble_disconnect();" in local_access
-assert "owner_->endpoint_ && !owner_->endpoint_->closed()" in gatt
-assert "if (indication_ == Indication::Wtp)\n        return false;" in gatt
 assert "owner_->security_lost();" in gatt
 security_callback = gatt[
     gatt.index("case HCI_EVENT_ENCRYPTION_CHANGE:") : gatt.index("case SM_EVENT_JUST_WORKS_REQUEST:")
@@ -180,15 +164,14 @@ security_lost = gatt[
 ]
 for required in (
     "session_.disconnected()",
-    "endpoint_->disconnect()",
     "outbound_.clear()",
     "status_cccd_ = 0",
-    "wtp_cccd_ = 0",
     "indication_ = Indication::None",
 ):
     assert required in security_lost
 
-assert "Status: frozen Field-GATT/1 source contract." in contract
+assert "current Field-GATT/1 commissioning source contract" in contract
+assert "Those UUIDs remain reserved and are never repurposed" in contract
 assert "Field-GATT-v1-vectors.json" in contract
 
 print("Field-GATT/1 firmware, Bluefy, native-Pi, documentation, and vectors are synchronized")

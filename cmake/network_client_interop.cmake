@@ -13,9 +13,6 @@ if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     add_executable(wtp_network_interop_test
         ${source}/tests/wtp_network_interop_test.cpp
         ${source}/wtp_integration/tls.cpp ${source}/wtp_integration/network_http.cpp
-        ${source}/wtp_integration/application.cpp ${source}/wtp_integration/status.cpp
-        ${source}/wtp_integration/scheduler.cpp ${source}/wtp_integration/backend.cpp
-        ${source}/wtp_integration/execution_plan.cpp
         ${source}/WSPR-Transmitter/src/execution_plan_compiler.cpp
         ${source}/WSPR-Transmitter/src/transmission_controller.cpp)
     target_include_directories(wtp_network_interop_test PRIVATE ${source})
@@ -24,6 +21,39 @@ if(WSPRRY_PICO_NETWORK_CLIENT_SOURCE AND TARGET network_tls_driver)
     # Compile the selected companion's orchestrator and server together. Its
     # READY protocol and real-clock RF adapter belong to that source pair;
     # aliasing Pico's diagnostic driver silently substituted a different fixture.
+    # The selected production pair exercises two independent device identities.
+    # Keep the second CA and key separate from the ordinary TLS fixture.
+    function(wsprry_second_pair_credentials)
+        set(credentials_second "${CMAKE_BINARY_DIR}/credentials-second-v3")
+        if(NOT EXISTS "${credentials_second}/server.key")
+            execute_process(COMMAND "${Python3_EXECUTABLE}"
+                "${CMAKE_SOURCE_DIR}/scripts/generate_network_test_credentials.py"
+                "${credentials_second}" --device-id bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                COMMAND_ERROR_IS_FATAL ANY)
+        endif()
+        execute_process(COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/scripts/network_certificates.py" validate --directory "${credentials_second}"
+            OUTPUT_VARIABLE deployment COMMAND_ERROR_IS_FATAL ANY)
+        string(JSON WSPRRY_PICO_NETWORK_HOSTNAME GET "${deployment}" hostname)
+        string(JSON WSPRRY_PICO_NETWORK_DEVICE_ID GET "${deployment}" device_id)
+        file(READ "${credentials_second}/server.crt" WSPRRY_PICO_CERTIFICATE)
+        file(READ "${credentials_second}/server.key" WSPRRY_PICO_PRIVATE_KEY)
+        file(READ "${credentials_second}/client-ca.crt" WSPRRY_PICO_CLIENT_CA)
+        set(WSPRRY_PICO_NETWORK_PORT 18444)
+        set(header "${CMAKE_BINARY_DIR}/network-test-generated/network_credentials_second.hpp")
+        configure_file("${CMAKE_SOURCE_DIR}/cmake/network_credentials.hpp.in" "${header}" @ONLY)
+        file(READ "${header}" content)
+        string(REPLACE "namespace wsprrypico::network::credentials"
+            "namespace wsprrypico::network::credentials_second" content "${content}")
+        file(WRITE "${header}" "${content}")
+        file(CHMOD "${header}" PERMISSIONS OWNER_READ OWNER_WRITE)
+        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+            "${credentials_second}/server.crt" "${credentials_second}/server.key"
+            "${credentials_second}/client-ca.crt" "${credentials_second}/deployment.json"
+            "${CMAKE_SOURCE_DIR}/scripts/generate_network_test_credentials.py"
+            "${CMAKE_SOURCE_DIR}/scripts/network_certificates.py")
+    endfunction()
+    wsprry_second_pair_credentials()
     add_executable(pico_tls_server
         ${source}/tests/network/pico_tls_server.cpp ${source}/tests/network/tcp.cpp
         src/network/pico/server.cpp src/network/pico/psa_lifetime.cpp

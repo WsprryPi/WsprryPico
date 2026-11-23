@@ -153,7 +153,7 @@ Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`, `WSPRRY_PICO_JOURNA
 
 ## Engineering references
 
-- [Portable core](portable-core.md), [WTP endpoint](wtp-endpoint.md), and [USB CDC roles](usb-cdc.md).
+- [Portable core](portable-core.md), [Native execution core](wtp-endpoint.md), and [USB CDC roles](usb-cdc.md).
 - [USB installation and preserving upgrades](usb-installer.md).
 - [Factory reset and reflash devel from a Raspberry Pi](factory-reset-and-reflash.md), including BOOTSEL and flash_nuke without preinstalled Pico tools.
 - [Factory-new Wi-Fi, Pico password, and setup-network checklist](factory-new-access-checklist.md) for manual checks from a Mac or Raspberry Pi.
