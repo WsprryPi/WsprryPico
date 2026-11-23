@@ -43,6 +43,7 @@ struct Member {
     }
 };
 void validation() {
+    REQUIRE(standalone::factory_config().gpio_drive_ma == 12);
     auto c = *standalone::parse_config(network_test::config);
     REQUIRE(c.gpio_drive_ma == 4);
     const auto old = standalone::serialize_config(c);
@@ -52,8 +53,11 @@ void validation() {
         const auto encoded = standalone::serialize_config(c);
         REQUIRE(standalone::parse_config(encoded)->gpio_drive_ma == value);
     }
-    for (const auto bad : {"0", "-1", "3", "6", "16", "true", "false", "null", "\"4\"", "4.0",
-                           "4e0", "04", "+4", "-0"}) {
+    for (const auto bad :
+         {"0",    "1",     "-1",   "3",     "5",   "6",          "7",
+          "9",    "10",    "11",   "13",    "16",  "4294967296", "18446744073709551616",
+          "true", "false", "null", "\"4\"", "4.0", "4.5",        "4e0",
+          "04",   "+4",    "-0"}) {
         Member m;
         auto text = old;
         text.pop_back();

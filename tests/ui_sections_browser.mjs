@@ -54,6 +54,20 @@ const helpWindows=[];
 const checks=[];
 function pass(name){checks.push(name);console.log('PASS '+name);}
 async function capture(state,dialog=false) {
+    if(state==='gpio-drive-draft') {
+      for(const theme of ['light','dark'])for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844}]) {
+        await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name==='mobile'});
+        await send('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:theme}]});
+        await evaluate(`document.getElementById('gpio-drive-form').scrollIntoView({block:'start'})`);
+        assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'),true,'drive editor fits viewport');
+        if(process.env.UI_REVIEW_NO_CAPTURE!=='1') {
+          const shot=await send('Page.captureScreenshot',{format:'png'});
+          await writeFile(path.join(output,state+'-'+view.name+'-'+theme+'.png'),Buffer.from(shot.data,'base64'));
+        }
+      }
+      await send('Emulation.setEmulatedMedia',{features:[]});
+      return;
+    }
     for(const view of [{name:'desktop',width:1280,height:900},{name:'mobile',width:390,height:844},{name:'landscape',width:740,height:360}]) {
         await send('Emulation.setDeviceMetricsOverride',{width:view.width,height:view.height,deviceScaleFactor:1,mobile:view.name!=='desktop'});
         if(state==='contextual-help')await evaluate('document.getElementById("radio-settings").scrollIntoView({block:"start"})');

@@ -24,6 +24,13 @@ export async function checkSi5351({evaluate,section,click,idle,capture}) {
   await evaluate(`siSet('transmit_output','1');siSet('loopback_output','0')`);
   assert.equal(await evaluate('si5351Editor.read().settings.loopback_output'),0);
   await evaluate(`siSet('transmit_output','0');siSet('loopback_output','2')`);
+  assert.deepEqual(await evaluate(`Array.from(document.querySelector('[data-si="drive_ma"]').options,o=>[o.value,o.textContent])`),[['2','2 mA'],['4','4 mA'],['6','6 mA'],['8','8 mA']]);
+  const originalDrive=await evaluate('si5351Editor.read().settings.drive_ma');
+  for(const ma of [2,4,6,8]) {
+    await evaluate(`siSet('drive_ma','${ma}')`);
+    assert.equal(await evaluate('si5351Editor.read().settings.drive_ma'),ma);
+  }
+  await evaluate(`siSet('drive_ma','${originalDrive}')`);
   assert.equal(await evaluate('siWrites.length'),0,'draft changes have no writes');
   await capture('si5351-settings');
   await capture('si5351-details');

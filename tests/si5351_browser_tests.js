@@ -7,6 +7,9 @@ const si=require('../src/network/web/si5351.js');
 const sample=JSON.parse(execFileSync(process.argv[2],['--samples'],{encoding:'utf8'}));
 assert(si.readback(sample,sample.target));
 assert(si.valid(sample.saved));
+for(const drive_ma of [2,4,6,8])assert(si.valid({...sample.saved,drive_ma}),'legal nominal mA remains storable');
+for(const drive_ma of [0,1,3,5,7,9,12,-1,2.5,true,false,null,'2',4294967296])
+  assert(!si.valid({...sample.saved,drive_ma}),'reject invalid nominal mA');
 for(const key of Object.keys(sample.saved)) {
   const missing=structuredClone(sample.saved);delete missing[key];assert(!si.valid(missing),key);
 }

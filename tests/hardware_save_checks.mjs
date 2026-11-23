@@ -23,6 +23,24 @@ export async function checkHardwareSaveIsolation({evaluate,section,click,idle,ca
     assert.equal(await evaluate('snapshot.job.owner_id'),null);
   }
   await section('radio-pins');
+  const driveOptions=await evaluate(`Array.from(document.getElementById('gpio-drive-select').options,o=>[o.value,o.textContent])`);
+  assert.deepEqual(driveOptions,[['2','2 mA'],['4','4 mA'],['8','8 mA'],['12','12 mA (default)']]);
+  assert.equal(await evaluate('capabilities.gpio_drive.default'),12);
+  assert.equal(await evaluate(`document.getElementById('gpio-drive-select').labels[0].textContent`),'GPIO drive strength');
+  await click('gpio-drive-read');await idle();
+  const savedDrive=await evaluate(`document.getElementById('gpio-drive-select').value`);
+  const savedDriveMa=await evaluate(`(async()=> (await api('config')).data.config.gpio_drive_ma)()`);
+  await evaluate(`globalThis.driveUiWrites=[];globalThis.driveUiApi=api;api=async(...args)=>{if(args[1]&&args[1]!=='GET')driveUiWrites.push(args);return driveUiApi(...args)};`);
+  for(const value of ['2','4','8','12']) {
+    await evaluate(`(()=>{const s=document.getElementById('gpio-drive-select');s.value='${value}';s.dispatchEvent(new Event('change',{bubbles:true}));})()`);
+    assert.equal(await evaluate(`document.getElementById('gpio-drive-select').value`),value);
+  }
+  await capture('gpio-drive-draft');
+  assert.equal(await evaluate('driveUiWrites.length'),0,'drive labels and edits do not save settings');
+  assert.equal(await evaluate(`(async()=> (await api('config')).data.config.gpio_drive_ma)()`),savedDriveMa);
+  await click('gpio-drive-discard');await idle();
+  assert.equal(await evaluate(`document.getElementById('gpio-drive-select').value`),savedDrive,'default label does not replace saved drive');
+  await evaluate('api=driveUiApi');
   await evaluate(`(()=>{const f=document.getElementById('config').elements;
     f.button_gp.value='15';f.button_gp.dispatchEvent(new Event('change',{bubbles:true}));
     f.indicator.value='external';f.indicator.dispatchEvent(new Event('change',{bubbles:true}));
