@@ -45,7 +45,7 @@ int main() {
     // AN619 Rev. 0.8: CLKx_IDRV[1:0] is 00/01/10/11 for 2/4/6/8 mA.
     // Exercise actual planning and bus writes for every supported TX output,
     // including R-divider, fractional MultiSynth and VHF integer paths.
-    for (const auto [ma, bits] : {std::pair{2u, 0u}, {4u, 1u}, {6u, 2u}, {8u, 3u}}) {
+    for (const auto& [ma, bits] : {std::pair{2u, 0u}, {4u, 1u}, {6u, 2u}, {8u, 3u}}) {
         for (const auto output : {Output::Clk0, Output::Clk1, Output::Clk2}) {
             for (const auto hz : {137'500ULL, 14'097'100ULL, 144'490'500ULL}) {
                 Configuration selected{25'000'000, Reference::ExternalXa, {}, output, {}, ma};
