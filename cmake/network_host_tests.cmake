@@ -77,6 +77,9 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     add_test(NAME network_control_native_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/network_control_native_tests.py $<TARGET_FILE:network_tls_driver>)
     set_tests_properties(network_control_native_tests PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE)
+    add_test(NAME test_tone_tls COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_tone_tls_tests.py
+        $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
+    set_tests_properties(test_tone_tls PROPERTIES TIMEOUT 55 RUN_SERIAL TRUE)
     add_test(NAME network_tls_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/network_tls_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
     set_tests_properties(network_tls_tests PROPERTIES TIMEOUT 90 RUN_SERIAL TRUE)

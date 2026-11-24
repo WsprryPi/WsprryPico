@@ -9,10 +9,11 @@
 #include "network/assets.hpp"
 #include "network/control.hpp"
 #include "network/identity.hpp"
+#include "network/test_tone_query.hpp"
 #include "rf/calibration.hpp"
 #include "rf/waveform.hpp"
-#include "wtp/observation.hpp"
 #include "wtp/memory_budget.hpp"
+#include "wtp/observation.hpp"
 
 namespace wsprrypico::network {
 using namespace wtp;
@@ -220,7 +221,8 @@ std::optional<standalone::Config> BrowserApi::effective_config() const {
 std::string BrowserApi::revision() const {
     const auto config = effective_config();
     const auto data =
-        device_ + ":" + service_.status().boot_id + ":" + std::to_string(network_revision_) + ":" +
+        device_ + ":" + service_.status().boot_id + ":" + std::to_string(network_revision_) +
+        ":tone:" + std::to_string(test_tone_.admission_sequence()) + ":" +
         std::to_string(store_.config_sequence()) + ":" +
         (config ? standalone::serialize_config(*config) : "null") +
         (hostname_settings_ ? hostname_settings_->revision_context() : "") +
@@ -792,13 +794,15 @@ HttpResponse BrowserApi::logging_resource(const HttpRequest& r) {
 }
 HttpResponse BrowserApi::handle(const HttpRequest& request, std::string_view principal,
                                 std::string_view authority, std::uint64_t transaction,
-                                ManagementCarrier carrier) {
+                                ManagementCarrier carrier,
+                                const application::TestToneAuthority* tone_authority) {
     if (request.method == "GET" && web_asset(request.path))
-        return handle_current(request, principal, authority, transaction, carrier);
+        return handle_current(request, principal, authority, transaction, carrier, tone_authority);
     if (!request.path.starts_with(control_prefix) && !request.path.starts_with("/api/usb/v1/"))
         return control_response(http_error(404, "unsupported_control_contract"));
     if (request.path.starts_with(control_prefix) &&
         !control_route(request.path.substr(control_prefix.size()), request.method) &&
+        !test_tone_status_path(request.method, request.path) &&
         !(request.method == "PUT" && request.path == "/api/control/v1/config"))
         return control_response(http_error(404, "not_found"));
     if (request.method == "PUT" && request.path == "/api/control/v1/config")
@@ -826,13 +830,15 @@ HttpResponse BrowserApi::handle(const HttpRequest& request, std::string_view pri
         current.buffered_body.reset();
         current.selected_body.reset();
     }
-    auto response = handle_current(current, principal, authority, transaction, carrier);
+    auto response =
+        handle_current(current, principal, authority, transaction, carrier, tone_authority);
     return control_response(std::move(response));
 }
 HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view principal,
                                         std::string_view authority, std::uint64_t transaction,
-                                        ManagementCarrier carrier) {
-    if (service_.maintenance() && r.method != "GET")
+                                        ManagementCarrier carrier,
+                                        const application::TestToneAuthority* tone_authority) {
+    if (service_.maintenance() && r.method != "GET" && !r.path.starts_with("/api/control/v1/test-tone/"))
         return http_error(409, "usb_maintenance_pending");
     // The parser already owns the complete HTTP body. Outer JSON whitespace
     // neither enters the internal envelope nor creates decoded fields; account
@@ -886,6 +892,28 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             return http_error(403, "cross_site_request");
     }
     service_.poll();
+    if (r.path != "/api/control/v1/test-tone/review")
+        test_tone_.poll();
+    if (r.path.starts_with("/api/control/v1/test-tone/")) {
+        application::TestToneAuthority authenticated;
+        if (carrier == ManagementCarrier::UsbPhysical)
+            authenticated = {application::TestToneAuthority::Scope::Usb, "usb-physical", 0, 0};
+        else if (carrier == ManagementCarrier::EngineeringField && tone_authority &&
+                 tone_authority->scope == application::TestToneAuthority::Scope::Field &&
+                 tone_authority->credential_epoch)
+            authenticated = *tone_authority;
+        else if (carrier == ManagementCarrier::EngineeringStation)
+            authenticated = {application::TestToneAuthority::Scope::Engineering,
+                             std::string(principal), 0, 0};
+        else if ((carrier == ManagementCarrier::ConsumerStation ||
+                  carrier == ManagementCarrier::ConsumerAp) &&
+                 tone_authority &&
+                 tone_authority->scope == application::TestToneAuthority::Scope::Consumer)
+            authenticated = *tone_authority;
+        if (!authenticated.valid())
+            return http_error(403, "test_tone_authority_required");
+        return test_tone_resource(r, authenticated);
+    }
     if (r.path == "/api/control/v1/udp-logging" ||
         r.path == "/api/control/v1/udp-logging/capabilities" ||
         r.path == "/api/control/v1/udp-logging/test" ||
@@ -963,6 +991,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             message += ",\"preparation_lead_ns\":" +
                        json::quote(std::to_string(scheduler_.message_lead_ns())) + "}";
             const auto execution = application::execution_capabilities(service_.config());
+            const auto tone = test_tone_capability();
             const auto amplifier = application::amplifier_capabilities(
                 service_.config().capability_engine == "pio-dma-gp2" ||
                 service_.config().capability_engine == "si5351-engineering" ||
@@ -1018,6 +1047,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                  "ns\":\"1000\",\"max_repeat_count\":512,\"modes\":[\"qrss\",\"fskcw\",\"dfcw\"]}",
                  ",\"message_schedule\":",
                  message,
+                 ",\"test_tone\":",
+                 tone,
                  ",\"schedule_stop\":",
                  control_descriptor("schedule_stop"),
                  features,
@@ -1185,7 +1216,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                              apply.body.find(',', storage_version) - storage_version + 1);
         apply.buffered_body.reset();
         apply.selected_body = {};
-        return handle_current(apply, principal, authority, transaction, carrier);
+        return handle_current(apply, principal, authority, transaction, carrier, tone_authority);
     }
     if (r.path == "/api/control/v1/wspr-plan" && r.method == "POST") {
         if (r.body_view().size() > application::max_update_bytes)

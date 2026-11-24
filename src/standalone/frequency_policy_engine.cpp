@@ -5,18 +5,62 @@
 #include "wtp/json.hpp"
 
 namespace wsprrypico::standalone {
+const char* FrequencyPolicyEngine::frequency_refusal(std::uint64_t frequency) const {
+    if (frequency < minimum_ || frequency > maximum_)
+        return "frequency_out_of_range";
+    const auto& config = store_.config();
+    const bool unqualified = config && config->allow_unqualified_frequency;
+    const bool non_amateur = config && config->allow_non_amateur_frequency;
+    if (application::frequency_allowed(frequency, unqualified, non_amateur))
+        return nullptr;
+    return application::frequency_disposition(frequency) ==
+                   application::FrequencyDisposition::NonAmateur
+               ? "non_amateur_frequency_not_permitted"
+               : "unqualified_frequency_not_permitted";
+}
+FrequencyPolicyEngine::DirectToneAssessment
+FrequencyPolicyEngine::assess_direct_tone(std::uint64_t frequency) const {
+    DirectToneAssessment result;
+    if (!store_.healthy()) {
+        result.refusal = "storage_fault";
+        return result;
+    }
+    if (boot_engine_ != hardware::PinPlan::Engine::Direct) {
+        result.refusal = "inactive_direct_engine";
+        return result;
+    }
+    const auto selected = selection();
+    if (!selected.valid) {
+        result.refusal = "gps_calibration_required";
+        return result;
+    }
+    result.correction = CorrectionSnapshot{selected.ppb, selected.automatic, selected.generation,
+                                           selected.observed_raw_ns, selected.uncertainty_ppb};
+    result.increment = rf::frequency_increment(frequency, selected.ppb);
+    if (result.increment)
+        result.programmed_nhz = rf::realized_nhz(*result.increment);
+    if (const auto refusal = frequency_refusal(frequency))
+        result.refusal = refusal;
+    else if (!result.programmed_nhz)
+        result.refusal = "frequency_not_realizable";
+    else if (const auto refusal = frequency_refusal(*result.programmed_nhz))
+        result.refusal = refusal;
+    else {
+        rf::FilterCoverage coverage(boot_filters_);
+        coverage.include(frequency, *result.programmed_nhz);
+        if (coverage.selection() == -2)
+            result.refusal = "filter_coverage_required";
+    }
+    return result;
+}
 wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
     failure_ = nullptr;
     // Storage faults revoke all new execution, including qualified bands that
     // need no saved experimental permissions.
     if (!store_.healthy())
         return {};
-    const auto& config = store_.config();
-    const bool unqualified = store_.healthy() && config && config->allow_unqualified_frequency;
-    const bool non_amateur = store_.healthy() && config && config->allow_non_amateur_frequency;
     const auto allowed = [&](std::uint64_t frequency) {
-        return frequency >= minimum_ && frequency <= maximum_ &&
-               application::frequency_allowed(frequency, unqualified, non_amateur);
+        return frequency_refusal(frequency) == nullptr;
     };
     for (const auto& event : job.events) {
         if (event.rf_on && (!event.frequency_nhz || !allowed(*event.frequency_nhz)))

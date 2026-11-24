@@ -202,6 +202,7 @@ class ConsumerRadioApi {
     provisioning::AccessStore* password_store_ = nullptr;
     std::string initial_field_password_;
     std::uint64_t password_sequence_ = 0;
+    std::uint64_t tone_credential_epoch_ = 1;
     std::array<std::uint8_t, 32> password_digest_{};
     std::optional<std::uint64_t> last_start_ms_;
     bool ap_available_ = false;

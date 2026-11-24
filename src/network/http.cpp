@@ -1,6 +1,7 @@
 #include "network/http.hpp"
 
 #include "network/assets.hpp"
+#include "network/test_tone_query.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
@@ -123,7 +124,8 @@ void HttpParser::parse_headers() {
     request_.path = line.substr(first + 1, last - first - 1);
     if ((request_.method != "GET" && request_.method != "PUT" && request_.method != "POST") ||
         request_.path.empty() || request_.path.front() != '/' ||
-        request_.path.find_first_of(" %?#\\") != request_.path.npos) {
+        (request_.path.find_first_of(" %?#\\") != request_.path.npos &&
+         !test_tone_status_path(request_.method, request_.path))) {
         failed_ = true;
         return;
     }

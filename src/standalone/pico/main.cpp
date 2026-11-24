@@ -807,6 +807,7 @@ int main() {
     wsprrypico::logging::UsbControlStateLogger usb_control_logger;
 
 #ifdef WSPRRY_PICO_STANDALONE_RF
+    browser_api.test_tone_policy(policy_engine);
     browser_api.gpio_drive_observer(wsprrypico::rf::gpio_drive_observation);
     struct SiRuntimeContext {
         wsprrypico::rf::WorkerEngine* engine;
@@ -2451,6 +2452,7 @@ int main() {
         );
         poll_indicator();
         service.poll();
+        browser_api.poll_test_tone();
         const auto clock_now = service.clock_snapshot();
         const bool consumer_tls_time_ready =
             !consumer_local_profile ||
@@ -2499,6 +2501,7 @@ int main() {
                     station_ip + (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
                     softap_authority, surface, allow_http_steps);
         service.poll();
+        browser_api.poll_test_tone();
         watchdog_hw->scratch[1] = 5;
 #ifdef WSPRRY_PICO_STANDALONE_RF
         const auto usb_us = time_us_64();

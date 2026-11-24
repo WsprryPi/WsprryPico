@@ -18,6 +18,9 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
           maximum_(maximum_frequency_nhz), boot_filters_(store.filters()),
           boot_engine_(store.config() ? store.config()->pins.engine
                                       : hardware::PinPlan::Engine::Direct) {}
+    wtp::PadObservation pad_observation() const override {
+        return engine_.pad_observation();
+    }
     std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
         return engine_.preparation_memory_bytes(job);
     }
@@ -47,6 +50,15 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         std::uint64_t generation, observed_raw_ns;
         std::uint32_t uncertainty_ppb;
     };
+    struct DirectToneAssessment {
+        std::string_view refusal;
+        std::optional<CorrectionSnapshot> correction;
+        std::optional<std::uint32_t> increment;
+        std::optional<std::uint64_t> programmed_nhz;
+    };
+    // Numerical/policy assessment only: no engine methods, calibration freeze,
+    // filter preparation, GPIO access, or journal writes.
+    DirectToneAssessment assess_direct_tone(std::uint64_t frequency_nhz) const;
     std::optional<CorrectionSnapshot> prepared_correction() const {
         if (!frozen_) return {};
         return CorrectionSnapshot{frozen_->ppb, frozen_->automatic, frozen_->generation,
@@ -118,6 +130,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         std::optional<time::gps::Calibration> input;
     };
     Selection selection() const;
+    const char* frequency_refusal(std::uint64_t frequency_nhz) const;
     std::optional<Selection> frozen_;
     std::string prepared_job_id_;
     bool pair_frozen_ = false;

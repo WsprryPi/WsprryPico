@@ -128,8 +128,9 @@ struct Test {
         r.headers["origin"] = "http://" + authority;
         return api.handle(r, now, tx, interface);
     }
-    Test(bool network_only = false, wtp::RfEngine* engine = nullptr)
-        : fixture(0, std::string(32, 'a'), engine) {
+    Test(bool network_only = false, wtp::RfEngine* engine = nullptr,
+         wtp::ServiceConfig policy = Fixture::physical_policy())
+        : fixture(0, std::string(32, 'a'), engine, policy) {
         provisioning::ConsumerProfile profile;
         profile.device_id = device;
         profile.owner_epoch = 0;
@@ -198,6 +199,91 @@ struct Test {
         return send(request("/api/consumer/v1/request", packet, true), transaction++);
     }
 };
+
+void tone_reconnect_authority() {
+    struct Engine : wtp::RfEngine {
+        standalone::DryRunEngine native;
+        wtp::PadObservation pad;
+        unsigned arms = 0;
+        wtp::PrepareResult prepare(const wtp::Job&) override {
+            return {true, {}};
+        }
+        bool schedules_locally() const override {
+            return true;
+        }
+        bool schedule(const wtp::Job& job, std::uint64_t at,
+                      const wtp::LocalStartConditions& c) override {
+            pad = {++arms, 1'000'000'000, 2, 12};
+            return native.schedule(job, at, c);
+        }
+        wtp::PadObservation pad_observation() const override {
+            return pad;
+        }
+        bool begin(const wtp::Job&, std::uint64_t) override {
+            return false;
+        }
+        wtp::EngineReport poll(std::uint64_t at) override {
+            return native.poll(at);
+        }
+        bool disable(std::uint64_t at) override {
+            return native.disable(at);
+        }
+        bool output_active() const override {
+            return false;
+        }
+    } engine;
+    auto limits = Fixture::physical_policy();
+    limits.capability_engine = "pio-dma-gp2";
+    Test t(true, &engine, limits);
+    standalone::FrequencyPolicyEngine policy(engine, t.fixture.store, rf::minimum_frequency_nhz,
+                                             rf::maximum_frequency_nhz);
+    t.fixture.api.test_tone_policy(policy);
+    t.login(__LINE__);
+    const auto target =
+        application::target(std::string(32, 'a'), t.fixture.service.status(false).boot_id);
+    const auto start =
+        "{\"schema\":\"test-tone-start\",\"target\":" + target + ",\"request_id\":\"" +
+        std::string(32, '9') +
+        "\",\"tone\":{\"carrier_hz\":5366200,\"duration_ms\":120000,\"expected_drive_ma\":12}}";
+    auto accepted =
+        t.call("POST", "/api/control/v1/test-tone/start", start, t.fixture.api.revision());
+    assert(wtp::json::parse(accepted.body)->get("status")->integer() == 202);
+    assert(wtp::json::parse(accepted.body)->get("body")->get("current")->get("saved_drive_ma")->raw == "null");
+    const auto job =
+        wtp::json::parse(accepted.body)->get("body")->get("job")->get("job_id")->string();
+    const auto match = wtp::json::parse(accepted.body)->get("etag")->string();
+    // The accepted job survives a lost delivery ACK and a retired login.
+    t.api.finish_request(t.transaction - 1, false);
+    t.api.close();
+    t.now += 1000;
+    t.login(__LINE__);
+    const auto query = "/api/control/v1/test-tone/status?device_id=" + std::string(32, 'a') +
+                       "&boot_id=" + t.fixture.service.status(false).boot_id +
+                       "&request_id=" + std::string(32, '9');
+    auto read = t.call("GET", query);
+    assert(wtp::json::parse(read.body)->get("status")->integer() == 200);
+    t.api.finish_request(t.transaction - 1, true);
+    assert(engine.arms == 1);
+    // The same shared credential scope can reconcile from station after AP login.
+    t.api.close();
+    t.now += 1000;
+    t.interface = network::ConsumerInterface::Station;
+    t.authority = "192.168.1.53";
+    t.login(__LINE__);
+    auto stop = t.call("POST", "/api/control/v1/test-tone/stop",
+                       "{\"schema\":\"test-tone-stop\",\"target\":" + target + ",\"job_id\":\"" +
+                           job + "\"}",
+                       match);
+    assert(wtp::json::parse(stop.body)->get("status")->integer() == 200);
+    assert(wtp::json::parse(stop.body)
+               ->get("body")
+               ->get("job")
+               ->get("output_inactive_confirmed")
+               ->raw == "true");
+    assert(engine.arms == 1);
+    assert(t.api.handle(request("/api/control/v1/test-tone/start", start), t.now, 9999).status >=
+           400);
+}
 network::HttpResponse read_public(Test& test) {
     auto get = request("/api/consumer/v1/status");
     get.method = "GET";
@@ -205,6 +291,7 @@ network::HttpResponse read_public(Test& test) {
 }
 } // namespace
 int main() {
+    tone_reconnect_authority();
     {
         Test t;
         auto read = [&](std::string path, std::string method = "GET", std::string body = {}) {

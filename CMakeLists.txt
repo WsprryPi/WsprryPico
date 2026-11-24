@@ -92,11 +92,14 @@ add_library(wsprrypico_core
     src/application/config_update.cpp
     src/application/resources.cpp
     src/application/frequency_policy.cpp
+    src/application/test_tone.cpp
+    src/application/test_tone_review.cpp
     src/hardware/gps_settings.cpp
     src/hardware/pins.cpp
     src/hardware/si5351_settings.cpp
     src/hardware/filter_settings.cpp
     src/rf/filter_selector.cpp
+    src/rf/frequency.cpp
     src/provisioning/profile.cpp
     src/provisioning/network_profile.cpp
     src/provisioning/consumer_profile.cpp
@@ -127,6 +130,7 @@ add_library(wsprrypico_core
     src/network/owner_wire.cpp
     src/network/owner_challenge.cpp
     src/network/owner_claim_http.cpp
+    src/network/test_tone.cpp
     src/network/api.cpp
     src/network/management.cpp
     src/network/consumer_radio.cpp
@@ -161,6 +165,7 @@ add_library(wsprrypico_core
     src/wtp/observation.cpp
     src/wtp/inhibited_rf_engine.cpp
     src/wtp/job_service.cpp
+    src/wtp/arm_admission.cpp
     src/wtp/sha256.cpp
 )
 # Offline host fixtures retain bounded decoder/ownership/memory regression
@@ -198,6 +203,7 @@ if(NOT WSPRRY_PICO_RF_SAMPLE_RATE_HZ MATCHES "^(132000000|138000000|150000000)$"
     message(FATAL_ERROR "Unsupported experimental RF sample clock")
 endif()
 target_compile_definitions(wsprrypico_rf PUBLIC WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
+target_compile_definitions(wsprrypico_core PUBLIC WSPRRY_PICO_RF_SAMPLE_RATE_HZ=${WSPRRY_PICO_RF_SAMPLE_RATE_HZ})
 target_link_libraries(wsprrypico_rf PUBLIC wsprrypico_core)
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     target_compile_options(wsprrypico_rf PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -235,6 +241,14 @@ endif()
 
 if(WSPRRY_PICO_BUILD_TESTS)
     enable_testing()
+    add_executable(test_tone_api_tests tests/test_tone_api_tests.cpp)
+    target_link_libraries(test_tone_api_tests PRIVATE wsprrypico_core)
+    target_compile_options(test_tone_api_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME test_tone_api COMMAND test_tone_api_tests)
+    add_executable(test_tone_review_tests tests/test_tone_review_tests.cpp)
+    target_link_libraries(test_tone_review_tests PRIVATE wsprrypico_core)
+    target_compile_options(test_tone_review_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
+    add_test(NAME test_tone_review COMMAND test_tone_review_tests)
     add_executable(si5351_settings_tests tests/si5351_settings_tests.cpp)
     target_link_libraries(si5351_settings_tests PRIVATE wsprrypico_core)
     target_compile_options(si5351_settings_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
@@ -558,6 +572,7 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(gpio_drive_tests PRIVATE wsprrypico_core)
     target_compile_options(gpio_drive_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME gpio_drive COMMAND gpio_drive_tests)
+    add_test(NAME test_tone_schema COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_tone_schema_tests.py $<TARGET_FILE:test_tone_api_tests>)
     add_test(NAME gpio_drive_schema COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gpio_drive_schema_tests.py $<TARGET_FILE:gpio_drive_tests>)
     if(WSPRRY_PICO_NODE_EXECUTABLE)
         add_test(NAME gpio_drive_browser COMMAND ${WSPRRY_PICO_NODE_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/gpio_drive_browser_tests.js)

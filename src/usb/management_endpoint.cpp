@@ -1,6 +1,7 @@
 #include "usb/management_endpoint.hpp"
 
 #include "application/resources.hpp"
+#include "network/test_tone_query.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
@@ -202,8 +203,9 @@ bool ManagementEndpoint::dispatch() {
     request.path = root->get("path")->string();
     request.body = root->get("body")->string();
     request.headers["if-match"] = root->get("if_match")->string();
-    if (request.path.size() > 128 || request.method.size() > 8 ||
-        request.headers["if-match"].size() > 256)
+    if ((request.path.size() > 128 &&
+         !network::test_tone_status_path(request.method, request.path)) ||
+        request.method.size() > 8 || request.headers["if-match"].size() > 256)
         return false;
     // HTTP tasks use bit 63; USB owns bit 62 with a disjoint bounded generation.
     transaction_ = (1ULL << 62) | (generation_ << 31) | static_cast<unsigned>(sequence);

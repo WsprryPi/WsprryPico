@@ -5,6 +5,7 @@
 #include "network/control.hpp"
 #include "network/identity.hpp"
 #include "network/public_read.hpp"
+#include "network/test_tone_query.hpp"
 #include "time/controller_time.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
@@ -353,8 +354,13 @@ void ConsumerRadioApi::poll(std::uint64_t now_ms) {
     if (password_store_ && password_store_->sequence() != password_sequence_) {
         const auto current = password_digest();
         // Field/BLE updates share this journal but do not change Pico login.
-        if (current != password_digest_)
+        if (current != password_digest_) {
+            if (tone_credential_epoch_ != UINT64_MAX)
+                ++tone_credential_epoch_;
+            else
+                admission_open_ = false;
             close();
+        }
         password_digest_ = current;
         password_sequence_ = password_store_->sequence();
     }
@@ -695,7 +701,9 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         if (method && path && match && body && method->type() == '"' && path->type() == '"' &&
             (method->string() == "GET" || method->string() == "POST" ||
              method->string() == "PUT") &&
-            path->string().starts_with("/api/control/v1/") && printable(path->string(), 128) &&
+            path->string().starts_with("/api/control/v1/") &&
+            (printable(path->string(), 128) ||
+             test_tone_status_path(method->string(), path->string())) &&
             (match->raw == "null" || (match->type() == '"' && printable(match->string(), 80))) &&
             (method->string() == "GET" ? body->raw == "null" : body->type() == '{')) {
             const bool time_control = path->string().starts_with("/api/control/v1/consumer/time");
@@ -791,13 +799,18 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                     setup_handler_(inner, transaction, session.binding.session, setup_context_);
             } else if (inner.method != "GET" && setup_busy_ && setup_busy_(setup_context_))
                 result = http_error(409, "setup_pending");
-            else
+            else {
+                const application::TestToneAuthority tone_authority{
+                    application::TestToneAuthority::Scope::Consumer, "consumer-credentials",
+                    runtime_.authentication_generation(), tone_credential_epoch_};
                 result =
                     api_.handle(inner, "consumer-radio:" + bootstrap_hex(session.binding.session),
                                 authority, transaction,
                                 session.interface == ConsumerInterface::Station
                                     ? ManagementCarrier::ConsumerStation
-                                    : ManagementCarrier::ConsumerAp);
+                                    : ManagementCarrier::ConsumerAp,
+                                &tone_authority);
+            }
             if (special)
                 result = control_response(std::move(result));
             session.pending_transaction = transaction;
@@ -849,6 +862,10 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         response = session.crypto->seal_parts(parts, session.binding, sequence);
     }
     if (password_saved) {
+        if (tone_credential_epoch_ != UINT64_MAX)
+            ++tone_credential_epoch_;
+        else
+            admission_open_ = false;
         password_sequence_ = password_store_->sequence();
         password_digest_ = password_digest();
         close(); // The sealed reply owns its ciphertext; retire even if delivery is lost.

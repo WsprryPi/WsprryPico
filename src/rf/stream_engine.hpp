@@ -40,6 +40,9 @@ struct SinkReport {
 class BlockSink {
   public:
     virtual ~BlockSink() = default;
+    virtual wtp::PadObservation pad_observation() const {
+        return {};
+    }
     virtual std::uint64_t amplifier_lead_ns() const {
         return 0;
     }
@@ -71,6 +74,10 @@ class StreamEngine final : public wtp::RfEngine {
   public:
     explicit StreamEngine(BlockSink& sink, FilterSelector* filters = nullptr)
         : sink_(sink), filters_(filters) {}
+    wtp::PadObservation pad_observation() const override {
+        const auto pad = sink_.pad_observation();
+        return pad.epoch == epoch_ ? pad : wtp::PadObservation{};
+    }
     StreamEngine(const StreamEngine&) = delete;
     StreamEngine& operator=(const StreamEngine&) = delete;
     std::uint64_t amplifier_lead_ns() const override {

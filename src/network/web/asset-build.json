@@ -8,7 +8,7 @@
       "inputs": {
         "locked-controls.js": "17d657eb75f51f840f320fefd8cc6c7f98ee2ca9fb36d42b741b7b05ad091320",
         "submission.js": "aa43e47fe56d85ab10164e90e2a8f9c95ffa18e5c22fb59fea407fb313d526fd",
-        "control-contract.js": "94a968c7cbd836b04863eb9b286bf9cf599d36382c30c10162e2482cc54fe806",
+        "control-contract.js": "c91a4ab540f73e347c51ee8f34b5b64750f23561e0440fb8f1cc44d160a693f8",
         "si5351.js": "c0325caa6eebb5281bfa92843011312dd9fb87d5adaed86a5bebb7c6a001e889",
         "gps.js": "1d9a53e7e89aa6e12da1c73c65229998d9f10bf2a290185e258bf7db2bc5ad29",
         "gray-line.js": "42c8a8a58959c96aeaa2f7cbf5beb23dd437e270f99c1d60f13aade7daa49c1b",
@@ -26,8 +26,8 @@
         "message-schedule.js": "eee46ee321424f4d7834b9ef785bafd1bdbf89800d83904bb4880fc9edfb85bf",
         "app.js": "6c55a8522641211c551808b4a74705f3c99439e7b3994f2c8cf890c28f9be565"
       },
-      "sha256": "3963744ebbd011dbffa2456b2c9111580e7b51b01bfdd9c0e5d5224f91abec8d",
-      "bytes": 370009
+      "sha256": "028e7ddbc7e1cf3753c52fea9526ca8badac7824c105ee4d2ed489b3e24f3d91",
+      "bytes": 370946
     },
     "config-validation.min.js": {
       "inputs": {

@@ -200,3 +200,5 @@ The documentation dependencies do not install an SDK or toolchain. Current instr
 The [UDP logging contract](udp-logging.md) defines the wire profile, independent settings, finite test resources, worker packaging, storage boundaries, and validation applicability. Physical logging evidence does not establish RF performance or lossless delivery.
 
 The [field access and time contract](field-time.md) defines protected field Wi-Fi, outage recovery, authenticated automatic browser UTC, and holdover boundaries.
+
+The authenticated [finite Test Tone contract](../protocol/Native-Execution.md#authenticated-finite-test-tone) has hardware-free `test_tone_review`, `test_tone_api`, and `test_tone_schema` CTest coverage. The API fixture exercises the native coordinator, exact Stop, finite expiry beyond the native lease, replay/receipt bounds, and actual USB management framing/ACK. Consumer adapter and PIO/DMA fixtures cover reauthentication scope and fresh pad evidence. These software checks establish no RF or meter qualification.

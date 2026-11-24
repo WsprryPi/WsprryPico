@@ -1,4 +1,5 @@
 #pragma once
+#include "application/test_tone.hpp"
 #include "logging/udp_settings.hpp"
 #include "network/http.hpp"
 #include "network/management.hpp"
@@ -31,11 +32,19 @@ class BrowserApi {
     BrowserApi(wtp::JobService& service, standalone::Store& store, standalone::Scheduler& scheduler,
                NetworkControl& network, std::string device, std::string firmware)
         : service_(service), store_(store), scheduler_(scheduler), network_(network),
-          device_(std::move(device)), firmware_(std::move(firmware)) {}
+          device_(std::move(device)), firmware_(std::move(firmware)),
+          test_tone_(service, store, scheduler) {}
     HttpResponse handle(const HttpRequest& request, std::string_view principal,
                         std::string_view authority, std::uint64_t transaction = 0,
-                        ManagementCarrier carrier = ManagementCarrier::EngineeringStation);
+                        ManagementCarrier carrier = ManagementCarrier::EngineeringStation,
+                        const application::TestToneAuthority* tone_authority = nullptr);
     std::string revision() const;
+    void test_tone_policy(const standalone::FrequencyPolicyEngine& policy) {
+        test_tone_.policy(policy);
+    }
+    void poll_test_tone() {
+        test_tone_.poll();
+    }
     void logging_service(logging::Logger& logger) {
         logger_ = &logger;
     }
@@ -135,10 +144,12 @@ class BrowserApi {
   private:
     HttpResponse handle_current(const HttpRequest&, std::string_view principal,
                                 std::string_view authority, std::uint64_t transaction,
-                                ManagementCarrier carrier);
+                                ManagementCarrier carrier, const application::TestToneAuthority*);
     logging::UdpStore* udp_store_ = nullptr;
     std::optional<std::uint64_t> udp_test_at_;
     logging::UdpSender* udp_sender_ = nullptr;
+    HttpResponse test_tone_resource(const HttpRequest&, const application::TestToneAuthority&);
+    std::string test_tone_capability() const;
     HttpResponse udp_logging_resource(const HttpRequest& request);
     logging::Logger* logger_ = nullptr;
     HttpResponse logging_resource(const HttpRequest& request);
@@ -184,5 +195,6 @@ class BrowserApi {
     provisioning::HostnameSettings* hostname_settings_ = nullptr;
     provisioning::LocalSettings* local_settings_ = nullptr;
     standalone::Progress* progress_ = nullptr;
+    application::TestTone test_tone_;
 };
 } // namespace wsprrypico::network

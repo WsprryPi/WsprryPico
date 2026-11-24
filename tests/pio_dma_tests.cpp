@@ -18,6 +18,12 @@ using namespace wsprrypico;
 namespace {
 class Hardware final : public rf::PioDmaHardware {
   public:
+    unsigned pad_reads = 0;
+    bool pad_failure = false;
+    wtp::PadObservation verify_pad() override {
+        ++pad_reads;
+        return {0, time, 2, pad_failure ? -2 : 12};
+    }
     Handler handler = nullptr;
     void* context = nullptr;
     std::uint64_t time = 1'000'000, epoch = 0, sequence = 0;
@@ -1427,9 +1433,32 @@ void amplifier_timing_lifecycle() {
     rf::PioDmaSink sink(hw, nullptr, &disabled);
     CHECK(sink.amplifier_lead_ns() == 0 && sink.amplifier_tail_ns() == 0);
 }
+void pad_epoch_evidence() {
+    Hardware hw;
+    rf::PioDmaSink sink(hw);
+    alignas(4) const std::array<std::uint32_t, 1> words{0x55555555};
+    CHECK(sink.pad_observation().epoch == 0);
+    for (std::uint64_t epoch : {1, 2}) {
+        CHECK(sink.stop(hw.time + 1'000'000));
+        CHECK(sink.submit(epoch, 0, words, 32));
+        hw.time += 1'000'000;
+        CHECK(sink.arm(epoch, hw.time + 1'000'000, 32));
+        const auto observed = sink.pad_observation();
+        CHECK(observed.epoch == epoch && observed.rf_pin == 2 && observed.drive_ma == 12);
+        CHECK(observed.observed_monotonic_ns == hw.time && hw.pad_reads == epoch);
+    }
+    CHECK(sink.stop(hw.time + 1'000'000));
+    CHECK(sink.submit(3, 0, words, 32));
+    hw.pad_failure = true;
+    CHECK(!sink.arm(3, hw.time + 1'000'000, 32));
+    CHECK(sink.pad_observation().epoch == 3 && sink.pad_observation().drive_ma == -2);
+    CHECK(!hw.enabled && hw.launches == 0);
+}
+
 } // namespace
 int main() {
     try {
+        pad_epoch_evidence();
         queue_test();
         failures_test();
         fractional_start_test();

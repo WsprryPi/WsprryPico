@@ -481,10 +481,19 @@ struct PrepareResult {
     std::vector<FrequencyAdjustment> adjustments;
 };
 
+// Internal worker observation; never decoded from WTP or client documents.
+struct PadObservation {
+    std::uint64_t epoch = 0, observed_monotonic_ns = 0;
+    int rf_pin = -1, drive_ma = -1; // -1 unavailable, -2 verification failed.
+};
+
 class RfEngine {
   public:
     static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
+    virtual PadObservation pad_observation() const {
+        return {};
+    }
     virtual std::uint64_t filter_preparation_ns() const {
         return 0;
     }
@@ -719,7 +728,11 @@ class JobService {
     // Trusted in-process producers use fresh IDs and never replay requests.
     // Omit only their reply cache; retain sessions, ownership, validation and
     // completed-job identity/history exactly as for transport requests.
-    Response handle_internal(Request&& request);
+    // Optional application verification is synchronous, in-process only, and
+    // never part of ArmBody or any decoded WTP message. No context is retained.
+    using ExecutionVerifier = bool (*)(const PadObservation&, const void*);
+    Response handle_internal(Request&& request, ExecutionVerifier verify = nullptr,
+                             const void* context = nullptr);
     // Physical Console safety control only; never exposed as a network operation.
     Response local_abort();
     // Local physical output interlock. Once set, no transport or scheduler may
@@ -780,6 +793,20 @@ class JobService {
     }
     [[nodiscard]] ClockSnapshot clock_snapshot() const {
         return clock_.snapshot();
+    }
+    std::optional<std::uint64_t> execution_launch(std::string_view job) const {
+        return job_ && job_->job_id == job && arm_ ? arm_->launch_monotonic_ns : std::nullopt;
+    }
+    PadObservation execution_pad(std::string_view job) const {
+        return job == pad_job_ ? accepted_pad_ : PadObservation{};
+    }
+    std::uint64_t start_resolution_ns() const {
+        return engine_.start_resolution_ns();
+    }
+    using TerminalObserver = void (*)(const TerminalRecord&, void*);
+    void terminal_observer(TerminalObserver observer, void* context) {
+        terminal_observer_ = observer;
+        terminal_context_ = context;
     }
     [[nodiscard]] const ServiceConfig& config() const {
         return config_;
@@ -874,6 +901,12 @@ class JobService {
     ArmObserver arm_observer_ = nullptr;
     void* arm_observer_context_ = nullptr;
     bool update_verification_ = false;
+    ExecutionVerifier arm_verifier_ = nullptr;
+    const void* arm_verifier_context_ = nullptr;
+    std::string pad_job_;
+    PadObservation accepted_pad_;
+    TerminalObserver terminal_observer_ = nullptr;
+    void* terminal_context_ = nullptr;
 };
 
 } // namespace wsprrypico::wtp

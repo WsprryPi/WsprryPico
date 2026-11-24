@@ -90,9 +90,10 @@ struct Fixture {
     provisioning::SoftApHttpAdmission admission;
     network::SoftApApi api;
 
-    Fixture()
+    Fixture(wtp::RfEngine* selected = nullptr,
+            wtp::ServiceConfig limits = network_test::Fixture::physical_policy())
         : clock(monotonic, &now, discipline_config),
-          service(clock, engine, identities, network_test::Fixture::physical_policy()),
+          service(clock, selected ? *selected : engine, identities, limits),
           scheduler(store, service),
           browser(service, store, scheduler, network, std::string(device), "test-firmware"),
           access(access_store, bonds, random, std::string(device), service.status().boot_id,
@@ -350,9 +351,92 @@ void expired_challenge_bookkeeping_is_reused() {
         f.now += 10'000'000'001ULL;
     }
 }
+void test_tone_field_reconnect() {
+    struct Engine : wtp::RfEngine {
+        standalone::DryRunEngine native;
+        wtp::PadObservation pad;
+        unsigned schedules = 0;
+        wtp::PrepareResult prepare(const wtp::Job&) override {
+            return {true, {}};
+        }
+        bool schedules_locally() const override {
+            return true;
+        }
+        bool schedule(const wtp::Job& job, std::uint64_t at,
+                      const wtp::LocalStartConditions& c) override {
+            pad = {++schedules, 1'000'000'000, 2, 12};
+            return native.schedule(job, at, c);
+        }
+        wtp::PadObservation pad_observation() const override {
+            return pad;
+        }
+        bool begin(const wtp::Job&, std::uint64_t) override {
+            return false;
+        }
+        wtp::EngineReport poll(std::uint64_t at) override {
+            return native.poll(at);
+        }
+        bool disable(std::uint64_t at) override {
+            return native.disable(at);
+        }
+        bool output_active() const override {
+            return false;
+        }
+    } engine;
+    auto limits = network_test::Fixture::physical_policy();
+    limits.capability_engine = "pio-dma-gp2";
+    Fixture f(&engine, limits);
+    standalone::FrequencyPolicyEngine policy(engine, f.store, rf::minimum_frequency_nhz,
+                                             rf::maximum_frequency_nhz);
+    f.browser.test_tone_policy(policy);
+    REQUIRE(f.clock.observe(1'800'000'000'000'000'000ULL, f.now, 1000, wtp::LeapState::Normal));
+    unsigned transaction = 1000;
+    const auto send = [&](network::HttpRequest r) {
+        return f.api.handle(r, provisioning::SoftApSurface::Normal, hostname, 2000, transaction++);
+    };
+    const auto login = [&]() {
+        auto response = send(request("POST", "/local/v1/login",
+                                     "{\"version\":1,\"device_id\":\"" + std::string(device) +
+                                         "\",\"password\":\"wspr-0a60df\"}"));
+        REQUIRE(response.status == 200);
+        return response.set_cookie.substr(0, response.set_cookie.find(';'));
+    };
+    auto cookie = login();
+    const auto target = application::target(device, f.service.status(false).boot_id);
+    auto start = request(
+        "POST", "/api/control/v1/test-tone/start",
+        "{\"schema\":\"test-tone-start\",\"target\":" + target + ",\"request_id\":\"" +
+            std::string(32, '6') +
+            "\",\"tone\":{\"carrier_hz\":5366200,\"duration_ms\":1000,\"expected_drive_ma\":12}}");
+    start.headers["if-match"] = f.browser.revision();
+    start.headers["cookie"] = cookie;
+    const auto accepted = send(start);
+    REQUIRE(accepted.status == 202);
+    const auto payload = accepted.body_text();
+    const auto root = wtp::json::parse(payload);
+    REQUIRE(root);
+    const auto job = root->get("job")->get("job_id")->string();
+    auto logout = request("POST", "/local/v1/logout", "{}");
+    logout.headers["cookie"] = cookie;
+    REQUIRE(send(logout).status == 200);
+    cookie = login();
+    auto status =
+        request("GET", "/api/control/v1/test-tone/status?device_id=" + std::string(device) +
+                           "&boot_id=" + f.service.status(false).boot_id + "&job_id=" + job);
+    status.headers["cookie"] = cookie;
+    REQUIRE(send(status).status == 200 && engine.schedules == 1);
+    auto stop = request("POST", "/api/control/v1/test-tone/stop",
+                        "{\"schema\":\"test-tone-stop\",\"target\":" + target + ",\"job_id\":\"" +
+                            job + "\"}");
+    stop.headers["cookie"] = cookie;
+    stop.headers["if-match"] = accepted.etag;
+    REQUIRE(send(stop).status == 200 && !f.service.activity().owned);
+}
+
 } // namespace
 
 int main() {
+    test_tone_field_reconnect();
     {
         Fixture f;
         for (const auto surface : {provisioning::SoftApSurface::ProvisionedPreClock,

@@ -114,6 +114,7 @@ void WorkerEngine::step() {
     // only after accepting the request and its clock, as for mutation replies.
     report_ = engine_.poll(now_());
     worker_state_ = report_.state;
+    pad_reply_ = engine_.pad_observation();
     diagnostic_ = safety_inhibited() ? "gp14_safety_inhibit" : engine_.diagnostic();
     ++worker_metrics_.commands;
     if (op_ == Op::Metrics && observer_)

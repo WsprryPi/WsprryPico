@@ -69,6 +69,7 @@ enum class SoftApOperation {
     Status,
     Abort,
     NativeStop,
+    TestTone,
     Time,
     Load,
     Arm,
@@ -176,6 +177,9 @@ class LocalAccessController {
     }
     const LocalIdentity& identity() const {
         return identity_;
+    }
+    std::uint64_t credential_epoch() const {
+        return store_.healthy() && store_.record() ? store_.record()->epoch : 0;
     }
     bool default_password_active() const {
         return store_.record() && store_.record()->default_password;
