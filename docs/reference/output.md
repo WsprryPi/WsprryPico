@@ -9,14 +9,49 @@ The direct engine generates **RF**, a radio-frequency signal, on the configured 
 
 The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1,000 Hz; 1 MHz is 1,000,000 Hz.** That range does not mean every frequency inside it is enabled or suitable for transmission. The firmware also checks permissions for the selected band and frequency.
 
-| Range | Current operating boundary |
-| --- | --- |
-| 2200 m, 630 m, 160 m, 80 m, 60 m, 40 m, 30 m, 20 m, 17 m, 15 m, 12 m, 10 m, 6 m | Enabled by the normal frequency policy, subject to the chosen frequency, RF setup, and operating privileges |
-| 8 m and 5 m experimental ranges | Disabled by default; require explicit advanced experimental-frequency permission |
-| 4 m | Unavailable with direct GPIO in the normal 138 MHz firmware |
-| 2 m | Unavailable with direct GPIO output |
+### Band coverage
+
+The sampled frequencies below are the bare-GPIO power-measurement points
+described below, not mode-decoding or emissions qualifications. They are RF
+frequencies, not WSPR USB dial settings. A dash means no point was measured
+in that sweep.
+
+| Band | Sampled RF frequency (Hz) | Current operating boundary |
+| --- | ---: | --- |
+| 2200 m | 137500 | Enabled by the normal frequency policy |
+| 630 m | 475700 | Enabled by the normal frequency policy |
+| 160 m | 1838100 | Enabled by the normal frequency policy |
+| 80 m | 3570100 | Enabled by the normal frequency policy |
+| 60 m | 5366200 | Enabled by the normal frequency policy |
+| 40 m | 7040100 | Enabled by the normal frequency policy |
+| 30 m | 10140200 | Enabled by the normal frequency policy |
+| 20 m | 14097100 | Enabled by the normal frequency policy |
+| 17 m | 18106100 | Enabled by the normal frequency policy |
+| 15 m | 21096100 | Enabled by the normal frequency policy |
+| 12 m | 24926100 | Enabled by the normal frequency policy |
+| 10 m | 28126100 | Enabled by the normal frequency policy |
+| 8 m | — | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 6 m | 50294500 | Enabled by the normal frequency policy |
+| 5 m | — | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 4 m | — | Unavailable with direct GPIO in the normal 138 MHz firmware |
+| 2 m | — | Unavailable with direct GPIO output |
 
 For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**. The four RF tones surround dial +1,500 Hz, and every tone must fit the generator range and frequency permissions. On numeric engine limits alone, the normal 138 MHz engine allows dial values from 98503 through 68998496 Hz; frequency permissions also apply. The dial is a reference, not an emitted RF frequency.
+
+### Drive strength
+
+GPIO drive selects the output pin's electrical drive strength. New installations
+use **12 mA**; settings-preserving upgrades retain the saved selection.
+
+| Drive setting | Recorded test coverage |
+| --- | --- |
+| 2 mA | Bare-GPIO power sweep at all 13 sampled frequencies |
+| 4 mA | Bare-GPIO power sweep at all 13 sampled frequencies |
+| 8 mA | Bare-GPIO power sweep at all 13 sampled frequencies |
+| 12 mA | Bare-GPIO power sweep at all 13 sampled frequencies |
+
+Drive is not a calibrated RF-power control. See [Pins and drive](../configure.md#pins-and-drive)
+for configuration and restart requirements.
 
 ### Measured bare-GPIO power
 
@@ -58,9 +93,11 @@ apply to direct GPIO output; the Si5351 results below use a separate RF path.
 
 Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](../configure.md#si5351-output-settings). RF comes from the module's CLK0 connector, rather than a Pico RF GPIO. The numeric synthesis range is **8 kHz–160 MHz**, subject to complete-plan validation; this is not qualification of every frequency or configuration in that range. Other module/reference/drive arrangements require an engineering build.
 
+### Band coverage
+
 Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests passed at each sampled RF frequency below. These are emitted RF frequencies, not WSPR USB dial settings.
 
-| Band | Tested RF frequency (Hz) | Current operating boundary |
+| Band | Sampled RF frequency (Hz) | Current operating boundary |
 | --- | ---: | --- |
 | 2200 m | 137500 | Enabled by the normal frequency policy |
 | 630 m | 475700 | Enabled by the normal frequency policy |
@@ -81,6 +118,23 @@ Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests passed at each sampled RF freq
 | 2 m | 144490500 | Disabled by default; requires explicit advanced experimental-frequency permission |
 
 Every transmission remains subject to the chosen frequency, RF setup, and operating privileges. These results apply to the recorded Pico C engineering image and QRP Labs Rev. 6 / 25 MHz TCXO setup, using CLK0 at **8 mA**. They qualify the sampled points under those test conditions, rather than complete band ranges or other module/reference/drive configurations. All three consecutive WSPR frames decoded the expected message at each point; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing.
+
+### Drive strength
+
+Si5351 drive selects the transmit clock output's electrical drive strength.
+The settings offer **2, 4, 6, or 8 mA**; the recorded mode tests above used
+**8 mA** with the qualified module and reference setup.
+
+| Drive setting | Recorded test coverage |
+| --- | --- |
+| 2 mA | Not covered by the 8 mA mode tests above |
+| 4 mA | Not covered by the 8 mA mode tests above |
+| 6 mA | Not covered by the 8 mA mode tests above |
+| 8 mA | Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests at all 17 sampled frequencies |
+
+Drive is not a calibrated RF-power control. See [Si5351 output settings](../configure.md#si5351-output-settings)
+for supported module, reference, drive, and restart requirements. The bare-GPIO
+power graphs do not measure Si5351 output power.
 
 ## RF connections and permissions
 
