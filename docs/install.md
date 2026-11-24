@@ -257,20 +257,9 @@ Once you can access the Pico as your ordinary user, return to the installer. If 
 
 Picotool-only sudo grants BOOTSEL programming access. Your ordinary account still needs access to the running firmware's USB serial ports for settings checks and verification after restart.
 
-In an ordinary-user Linux terminal, a serial permission failure on a
-`dialout`-owned device triggers automatic access setup. The same repair applies
-to WsprryPi's protected Pico USB lock directory. The installer uses sudo
-to add your account to `dialout`, preserving other memberships, reports the
-change, and continues in a process with that group enabled. Sudo may ask for
-your login password. An account already listed in `dialout` needs only the
-process refresh. The installer keeps the same downloaded code and schema;
-an existing recovery transaction is resumed instead of repeating programming.
-No logout or separate command is needed for that run. Existing unrelated shells
-retain their previous groups. Imported, redirected, JSON-only, and unattended
-runs do not change group membership or request sudo for serial access.
+In an ordinary-user Linux terminal, a serial permission failure on a `dialout`-owned device triggers automatic access setup. The same repair applies to WsprryPi's protected Pico USB lock directory. The installer uses sudo to add your account to `dialout`, preserving other memberships, reports the change, and continues in a process with that group enabled. Sudo may ask for your login password. An account already listed in `dialout` needs only the process refresh. The installer keeps the same downloaded code and schema; an existing recovery transaction is resumed instead of repeating programming. No logout or separate command is needed for that run. Existing unrelated shells retain their previous groups. Imported, redirected, JSON-only, and unattended runs do not change group membership or request sudo for serial access.
 
-If automatic setup is unavailable or fails, the error includes manual guidance.
-On Ubuntu and Debian-based systems, add your current login to the `dialout` group:
+If automatic setup is unavailable or fails, the error includes manual guidance. On Ubuntu and Debian-based systems, add your current login to the `dialout` group:
 
 ```sh
 sudo usermod -aG dialout "$(id -un)"
