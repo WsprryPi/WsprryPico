@@ -4,6 +4,7 @@
 
 - Read README.md, CONTRACT.md and engineering/architecture.md before implementation.
 - Preserve user changes and inspect the current working state before editing.
+- Keep each prose paragraph on a single source line, without hard line wrapping. Preserve structural line breaks required by tables, lists, code, and other syntax.
 - Keep changes within the requested slice. Other WsprryPi-family repositories
   are independent; reading them does not authorize changing them.
 - Do not initialize Git, stage, commit, push or publish unless requested.
