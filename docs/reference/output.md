@@ -121,14 +121,51 @@ The settings offer **2, 4, 6, or 8 mA**; the recorded mode tests above used
 
 | Drive setting | Recorded test coverage |
 | --- | --- |
-| 2 mA | Not covered by the 8 mA mode tests above |
-| 4 mA | Not covered by the 8 mA mode tests above |
-| 6 mA | Not covered by the 8 mA mode tests above |
-| 8 mA | Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests at all 17 sampled frequencies |
+| 2 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies |
+| 4 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies |
+| 6 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies |
+| 8 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies; conducted tone, WSPR, QRSS, FSKCW, and DFCW tests at all 17 mode-test frequencies |
 
 Drive is not a calibrated RF-power control. See [Si5351 output settings](../configure.md#si5351-output-settings)
 for supported module, reference, drive, and restart requirements. The bare-GPIO
 power graphs do not measure Si5351 output power.
+
+### Measured bare-Si5351 power
+
+The following graphs show a bare **QRP Labs Si5351A Synthesizer and 25 MHz
+TCXO module** sweep recorded on **24 November 2026 (UTC)** by Lee Bussy [AA0NT],
+using a **Pico 2 W** to control the module. **CLK0** was connected through a
+coax adapter directly to an **HP 8482A power sensor** and **HP 437B power meter**,
+without an output filter, amplifier, or attenuator chain. The sweep covered
+14 frequency settings from **137,500 Hz to 144,490,500 Hz** at each of the
+**2, 4, 6, and 8 mA** Si5351 drive settings, with two readings averaged per point.
+
+The power sweep used the same frequencies as the GPIO sweep from 2200 m
+through 6 m, plus **144,490,500 Hz** on 2 m. Its **60 m (5,366,200 Hz)** and
+**40 m (7,040,100 Hz)** points differ from the earlier Si5351 mode-test points
+in the band table above; 8 m, 5 m, and 4 m were not included in this power sweep.
+
+These are **meter-indicated power readings at the sensor input**, with the
+recorded sensor calibration factors applied. The unfiltered output includes
+harmonics, so the readings do not isolate power at the wanted frequency.
+No additional fixture-loss correction, uncertainty estimate, or baseline
+subtraction is included. The plots describe this measured setup; they do not
+establish guaranteed output power, filtered antenna power, or emissions compliance.
+The power sweep does not extend the mode-test qualification to other drive settings.
+
+![Meter-indicated bare Si5351 CLK0 power versus frequency setting, with separate curves for 2, 4, 6, and 8 mA drive. Power generally falls as frequency increases.](../_static/images/output/pico2w-bare-si5351-power-frequency.png)
+
+*Power versus frequency setting.* Band labels identify the requested test
+frequencies and are equally spaced; the horizontal axis is not a linear
+frequency scale. At 8 mA, the mean indication was **20.1 mW** at 475,700 Hz,
+**19.4 mW** at 14,097,100 Hz, and **16.6 mW** at 144,490,500 Hz.
+
+![Meter-indicated bare Si5351 CLK0 power versus the four drive settings, with one curve per tested band from 2200 m through 2 m. Higher drive increases indicated power at every sampled frequency.](../_static/images/output/pico2w-bare-si5351-power-drive.png)
+
+*Power versus Si5351 drive setting.* Increasing drive raised the indication at
+every sampled frequency. The 2 m indication was lower than the other sampled
+bands at every drive setting. Si5351 drive remains an electrical setting,
+not a calibrated RF-power control.
 
 ## RF connections and permissions
 
