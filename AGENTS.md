@@ -5,10 +5,8 @@
 - Read README.md, CONTRACT.md and engineering/architecture.md before implementation.
 - Preserve user changes and inspect the current working state before editing.
 - Keep each prose paragraph on a single source line, without hard line wrapping. Preserve structural line breaks required by tables, lists, code, and other syntax.
-- Keep changes within the requested slice. Other WsprryPi-family repositories
-  are independent; reading them does not authorize changing them.
-- Do not initialize Git, stage, commit, push or publish unless requested.
-  Do not reset, stash or remove existing work or Git metadata without authorization.
+- Keep changes within the requested slice. Other WsprryPi-family repositories are independent; reading them does not authorize changing them.
+- Do not initialize Git, stage, commit, push or publish unless requested. Do not reset, stash or remove existing work or Git metadata without authorization.
 - Fix actionable review findings and rerun affected checks before claiming completion.
 - Report what changed, checks performed, limitations and actual repository state.
 - Keep published project documentation on Read the Docs. Do not reintroduce GitHub Pages or any Pages deployment workflows, publishing branches, environments or repository settings.
@@ -29,79 +27,38 @@ Changes to advertised capabilities, protocol/API schemas, descriptors, carrier s
 
 ## Repository and work-harness cleanup
 
-- Inventory exact deletion, rewrite, retention, and hold decisions before cleanup.
-  Record ownership, working state, callers, recovery duties, and validation for
-  each inspected file or group. Present the inventory before mutation; uncertain
-  items stay on hold while independent work continues.
-- Scope follows the current request. External work areas and Raspberry Pi
-  harnesses require explicit scope; another repository and shared tools remain
-  independent. Preserve user work, Git metadata, functioning dependencies,
-  current services/settings, and required deployment/recovery artifacts.
-- Use exact inspected paths. Do not use blanket wildcard deletion, create an
-  archive or permanent cleanup diary, or rewrite history to erase retired files.
-- Documentation describes current behavior in direct, impersonal language.
-  Operator prose explains capabilities, use, and meaningful limits in plain
-  language. Consolidate needed technical information in existing engineering
-  guides; do not replace operator explanations with engineering links,
-  placeholders, or promises of future documentation.
-- Preserve contracts, licensing, provenance, qualification limits, behavioral
-  tests, and necessary fixtures. Removing planning material never establishes
-  implementation or qualification. Record selected future work in an issue;
-  creating or publishing issues requires separate authorization.
-- Remove completed, superseded, and abandoned execution prompts and temporary
-  handoffs after consolidating needed technical content. Repair their references;
-  do not retain them solely because a completed item links to them.
-- Review development phase/step references in retained prose and navigation,
-  including README.md and SECURITY.md. Preserve actual operating instructions
-  and technical uses; remove obsolete execution authority and task narration.
-- Trace removed paths through Markdown links/anchors, manifests, generated-site
-  inputs, scripts, tests, and build registrations. Run documentation/link checks,
-  affected deterministic tests, and git diff --check; inspect untracked text and
-  the final diff separately. Recheck working state and report actual scope,
-  results, retained exceptions, and concrete blockers without broadening claims.
+- Inventory exact deletion, rewrite, retention, and hold decisions before cleanup. Record ownership, working state, callers, recovery duties, and validation for each inspected file or group. Present the inventory before mutation; uncertain items stay on hold while independent work continues.
+- Scope follows the current request. External work areas and Raspberry Pi harnesses require explicit scope; another repository and shared tools remain independent. Preserve user work, Git metadata, functioning dependencies, current services/settings, and required deployment/recovery artifacts.
+- Use exact inspected paths. Do not use blanket wildcard deletion, create an archive or permanent cleanup diary, or rewrite history to erase retired files.
+- Documentation describes current behavior in direct, impersonal language. Operator prose explains capabilities, use, and meaningful limits in plain language. Consolidate needed technical information in existing engineering guides; do not replace operator explanations with engineering links, placeholders, or promises of future documentation.
+- Preserve contracts, licensing, provenance, qualification limits, behavioral tests, and necessary fixtures. Removing planning material never establishes implementation or qualification. Record selected future work in an issue; creating or publishing issues requires separate authorization.
+- Remove completed, superseded, and abandoned execution prompts and temporary handoffs after consolidating needed technical content. Repair their references; do not retain them solely because a completed item links to them.
+- Review development phase/step references in retained prose and navigation, including README.md and SECURITY.md. Preserve actual operating instructions and technical uses; remove obsolete execution authority and task narration.
+- Trace removed paths through Markdown links/anchors, manifests, generated-site inputs, scripts, tests, and build registrations. Run documentation/link checks, affected deterministic tests, and git diff --check; inspect untracked text and the final diff separately. Recheck working state and report actual scope, results, retained exceptions, and concrete blockers without broadening claims.
 
 ## Pico architecture
 
 - WsprryPico is a standalone application and a WsprryPi hardware backend.
-- The defined target is Pico 2 W / RP2350. Do not port RP1 DKMS or Linux
-  hardware access.
-- Keep the portable job, protocol and encoder logic separate from Pico SDK,
-  transport, storage and RF engine adapters.
-- USB CDC is the reference transport. RF timing is always local to RP2350;
-  complete jobs must not depend on per-symbol USB or network delivery.
+- The defined target is Pico 2 W / RP2350. Do not port RP1 DKMS or Linux hardware access.
+- Keep the portable job, protocol and encoder logic separate from Pico SDK, transport, storage and RF engine adapters.
+- USB CDC is the reference transport. RF timing is always local to RP2350; complete jobs must not depend on per-symbol USB or network delivery.
 - Keep WTP device-neutral and independently versioned in engineering/protocol/WTP.md.
-- Preserve the shared JSON browser API direction. Do not introduce Apache/PHP
-  into firmware or a third protocol repository.
+- Preserve the shared JSON browser API direction. Do not introduce Apache/PHP into firmware or a third protocol repository.
 - Record unresolved design choices as proposals, not implemented contracts.
 
 ## Source, dependencies and licensing
 
-- Follow .editorconfig and .clang-format. Use C/C++ and CMake for Pico firmware;
-  pin language standards, SDK and toolchain versions when adding build targets.
-- Keep owned implementation and headers under src/, tests under tests/, and
-  SDK/build helpers under cmake/ or scripts/ as needed. Do not create empty scaffolding.
-- Original project contributions use MIT. Preserve upstream licenses and
-  attribution when reusing code; inspect exact source provenance first.
+- Follow .editorconfig and .clang-format. Use C/C++ and CMake for Pico firmware; pin language standards, SDK and toolchain versions when adding build targets.
+- Keep owned implementation and headers under src/, tests under tests/, and SDK/build helpers under cmake/ or scripts/ as needed. Do not create empty scaffolding.
+- Original project contributions use MIT. Preserve upstream licenses and attribution when reusing code; inspect exact source provenance first.
 - Do not download an SDK or install tools as an incidental formatting step.
 - Keep credentials, local SDK paths, captures and generated firmware out of source control.
 
 ## Validation and hardware
 
 - Deploy ordinary development firmware through `scripts/usb_installer.py` with its generated developer bundle, preserving the installer transaction, same-board image reference and postboot verification. Retain the exact bundle for later upgrades from another host or account. Do not substitute a direct `picotool load` script that leaves the installer reference describing an older image. After low-level programming tests, restore the verified original image or complete a shared-installer deployment before handing the board back to an operator. Reconcile an existing stale reference only with the original bundle and an exact same-board flash comparison through `upgrade --installed-bundle`; never edit identities or delete references to bypass a refusal.
-- Default validation is deterministic and hardware-free. Test behavior and
-  failure paths appropriate to each change; avoid tests that merely mirror code.
-- Infer hardware-test authorization from the user's task and setup statements.
-  A statement such as "Pico A is connected to the SDR", "Pico B is connected
-  to the SDR", or both named Picos being connected authorizes RF testing on
-  those boards for the current task. This includes the routine firmware loads,
-  USB device control, debugger/GPIO operations and restoration needed to run
-  the tests. Proceed without separate hardware/RF approval or per-job prompts.
-- Follow the user's current setup statements and any stated limits or stop
-  instructions, including when older prompts or packets request separate
-  authorization. Keep tests finite, verify device/setup identity, preserve
-  settings and restore the setup. Permission to build or run unit tests alone
-  does not establish a connected RF-test setup.
-- Record exact board, firmware, engine, clock, mode and setup for hardware evidence.
-  Mock or host results do not qualify target timing or RF output.
-- Do not invent working build/test commands. Current development status and
-  available checks are in engineering/development/README.md.
+- Default validation is deterministic and hardware-free. Test behavior and failure paths appropriate to each change; avoid tests that merely mirror code.
+- Infer hardware-test authorization from the user's task and setup statements. A statement such as "Pico A is connected to the SDR", "Pico B is connected to the SDR", or both named Picos being connected authorizes RF testing on those boards for the current task. This includes the routine firmware loads, USB device control, debugger/GPIO operations and restoration needed to run the tests. Proceed without separate hardware/RF approval or per-job prompts.
+- Follow the user's current setup statements and any stated limits or stop instructions, including when older prompts or packets request separate authorization. Keep tests finite, verify device/setup identity, preserve settings and restore the setup. Permission to build or run unit tests alone does not establish a connected RF-test setup.
+- Record exact board, firmware, engine, clock, mode and setup for hardware evidence. Mock or host results do not qualify target timing or RF output.
+- Do not invent working build/test commands. Current development status and available checks are in engineering/development/README.md.

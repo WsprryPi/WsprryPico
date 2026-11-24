@@ -12,8 +12,7 @@ The field GATT service provides local provisioning and management. It does not c
 
 Merely connecting, pairing, authorizing, reading status, or synchronizing time does not authorize RF output. The normal firmware is RF-capable; `WsprryPico-Inhibited` is an explicit diagnostic selection. RF and general reliability qualification remain separate.
 
-The bounded field command/status stream carries authorization, controller time,
-Identify, provisioning, and field status using the framing in section 6.
+The bounded field command/status stream carries authorization, controller time, Identify, provisioning, and field status using the framing in section 6.
 
 Provisioning is outside WTP/1. The field-access security and recovery policy is defined separately by the [engineering field-access contract](../development/field-access.md).
 
@@ -376,12 +375,7 @@ The target rechecks authorization, exact staged content, generation, and idle/ou
 
 ## 10. Retired execution carrier
 
-The independent WTP command/status characteristics `7d6b0005` and `7d6b0006`
-are absent. Those UUIDs remain reserved and are never repurposed. The field
-command/status characteristics remain framed commissioning and time interfaces;
-`select_wtp_status_carrier` is unsupported. Raw WTP values cannot select an
-execution path or mutate native job state. The current Field-GATT/1 provisioning,
-authorization, profile, and time message formats remain unchanged.
+The independent WTP command/status characteristics `7d6b0005` and `7d6b0006` are absent. Those UUIDs remain reserved and are never repurposed. The field command/status characteristics remain framed commissioning and time interfaces; `select_wtp_status_carrier` is unsupported. Raw WTP values cannot select an execution path or mutate native job state. The current Field-GATT/1 provisioning, authorization, profile, and time message formats remain unchanged.
 
 ## 11. Errors
 

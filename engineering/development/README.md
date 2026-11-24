@@ -14,17 +14,11 @@ Normal firmware `all`, the `pico2-w` preset, and `scripts/build_pico.sh` select 
 
 Firmware versions and the installer's implementation version are independent. Installation downloads a compiled, verified UF2. Pushes run verification without publishing firmware.
 
-The [CI execution contract](software-build-ci.md#execution-completeness-and-local-qualification)
-defines mandatory contexts and framework counts, nonempty focused checks, shared
-process/browser ownership, isolated scheduling, verified build reuse, and both
-production source-pair recipes. Its source-bound completion policy governs
-canonical acceptance; a local optional-dependency subset does not satisfy it.
+The [CI execution contract](software-build-ci.md#execution-completeness-and-local-qualification) defines mandatory contexts and framework counts, nonempty focused checks, shared process/browser ownership, isolated scheduling, verified build reuse, and both production source-pair recipes. Its source-bound completion policy governs canonical acceptance; a local optional-dependency subset does not satisfy it.
 
 ## RF qualification
 
-The [Pico RF qualification guide](pico-rf-qualification.md) describes the distinct
-Harness target, engine/GPS/correction matrix, setup boundaries, and evidence.
-Software checks remain separate from an exact-artifact physical campaign.
+The [Pico RF qualification guide](pico-rf-qualification.md) describes the distinct Harness target, engine/GPS/correction matrix, setup boundaries, and evidence. Software checks remain separate from an exact-artifact physical campaign.
 
 ## Deterministic validation
 
@@ -79,14 +73,7 @@ node tests/ui_sections_browser.mjs build-host/consumer_bootstrap_driver build/ui
 
 Set `CHROME_BIN` to the installed browser executable on hosts using another path. The consumer and engineering checks run sequentially because each owns a fixed local fixture port range. They use RAM-backed synthetic configuration, isolated browser profiles, and bounded requests; they access no Pico or RF hardware. The certificate fixture supplies an authenticated principal and does not qualify browser certificate selection or TLS admission. The existing organization and session-timeout browser workflows cover setup/save reconciliation and session lifetime separately.
 
-Browser startup and process-lifecycle fixtures run with
-`node --test tests/chrome_startup.test.mjs tests/ui_process_cleanup.test.mjs`.
-Fault cases establish an observed probe, incomplete-discovery read, or captured
-stderr before advancing an injected startup-deadline clock. The normal browser
-startup uses a monotonic 60-second budget; an independent real watchdog remains
-finite when tests control the deadline clock. The cold-start regression retains
-its real 21-second stimulus. These are host-only fixtures, with no firmware,
-settings, service, or RF changes.
+Browser startup and process-lifecycle fixtures run with `node --test tests/chrome_startup.test.mjs tests/ui_process_cleanup.test.mjs`. Fault cases establish an observed probe, incomplete-discovery read, or captured stderr before advancing an injected startup-deadline clock. The normal browser startup uses a monotonic 60-second budget; an independent real watchdog remains finite when tests control the deadline clock. The cold-start regression retains its real 21-second stimulus. These are host-only fixtures, with no firmware, settings, service, or RF changes.
 
 The shipped Station/Wi-Fi controls also have a production HTTP/AEAD fixture for public settings, lock behavior, independent WSPR/pin saves, a committed lost reply, responsive layout, and keyboard navigation:
 
@@ -171,10 +158,7 @@ Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`, `WSPRRY_PICO_JOURNA
 
 Current operator instructions are in [the Sphinx manual](../../docs/index.md). Only `docs/` is a Sphinx source tree; engineering contracts, schemas, and technical guides stay here and are excluded from public search.
 
-The recommended firmware version is defined once as `recommended_firmware_version`
-in `docs/conf.py`. After publishing a release, update that value to recommend it.
-The installation manual uses `@RECOMMENDED_FIRMWARE_VERSION@` in prose, release
-links, and commands; Sphinx resolves the token before parsing the page.
+The recommended firmware version is defined once as `recommended_firmware_version` in `docs/conf.py`. After publishing a release, update that value to recommend it. The installation manual uses `@RECOMMENDED_FIRMWARE_VERSION@` in prose, release links, and commands; Sphinx resolves the token before parsing the page.
 
 Build with the project-local documentation environment:
 

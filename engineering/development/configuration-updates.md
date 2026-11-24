@@ -39,12 +39,4 @@ Station transfer is allowed by the profile selector only when an exact full prof
 
 ## Drive without station setup
 
-A drive-only merge uses the same transaction as PUT `gpio-drive`, including before
-station commissioning. It preserves authoritative settings or initializes healthy
-absent settings from the existing factory hardware defaults and network profile.
-Both-empty station identity represents absent station with WSPR disabled; partial
-or malformed identities remain invalid. This does not admit station clearing or
-relax mixed-patch validation. The current `config-update` schema's `saved` and
-`read` definitions describe the closed redacted settings readback independently
-of the valid-station write definitions. Config existence is not station readiness.
-Drive activation still requires explicit restart after an actual hardware change.
+A drive-only merge uses the same transaction as PUT `gpio-drive`, including before station commissioning. It preserves authoritative settings or initializes healthy absent settings from the existing factory hardware defaults and network profile. Both-empty station identity represents absent station with WSPR disabled; partial or malformed identities remain invalid. This does not admit station clearing or relax mixed-patch validation. The current `config-update` schema's `saved` and `read` definitions describe the closed redacted settings readback independently of the valid-station write definitions. Config existence is not station readiness. Drive activation still requires explicit restart after an actual hardware change.

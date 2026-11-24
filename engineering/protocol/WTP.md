@@ -1,8 +1,4 @@
-> WTP/1 is an internal format reference for typed execution and offline contract
-> fixtures. No shipped image accepts external WTP jobs on TCP, TLS, USB, BLE,
-> or HTTP. Native schedules use the [native execution safety contract](Native-Execution.md),
-> and retained management uses the current Control/1 contract. Format versioning
-> remains independent from control, transport/authentication, and storage.
+> WTP/1 is an internal format reference for typed execution and offline contract fixtures. No shipped image accepts external WTP jobs on TCP, TLS, USB, BLE, or HTTP. Native schedules use the [native execution safety contract](Native-Execution.md), and retained management uses the current Control/1 contract. Format versioning remains independent from control, transport/authentication, and storage.
 
 # WTP/1 — WsprryPi Transmitter Protocol
 

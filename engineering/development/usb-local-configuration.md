@@ -44,10 +44,4 @@ Source: [local settings/profile lifecycle](../../src/provisioning/local_settings
 
 ## Drive before station setup
 
-The authenticated local `gpio-drive` resource can save 2, 4, 8, or 12 mA without
-Wi-Fi credentials, callsign, locator, or a WSPR dial. Existing settings and profile
-authority are preserved; healthy absent settings use validated factory hardware
-defaults. Read saved versus boot-active drive, restart explicitly after a change,
-and rediscover before execution. Saving drive does not commission a station,
-program a pad, or enable transmission. Storage, ownership, output, and hardware
-admission remain mandatory.
+The authenticated local `gpio-drive` resource can save 2, 4, 8, or 12 mA without Wi-Fi credentials, callsign, locator, or a WSPR dial. Existing settings and profile authority are preserved; healthy absent settings use validated factory hardware defaults. Read saved versus boot-active drive, restart explicitly after a change, and rediscover before execution. Saving drive does not commission a station, program a pad, or enable transmission. Storage, ownership, output, and hardware admission remain mandatory.
