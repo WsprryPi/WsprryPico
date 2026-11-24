@@ -22,7 +22,29 @@ For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**
 
 Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](../configure.md#si5351-output-settings). RF comes from the module's CLK0 connector, rather than a Pico RF GPIO. The numeric synthesis range is **8 kHz–160 MHz**, subject to complete-plan validation; this is not qualification of every frequency or configuration in that range. Other module/reference/drive arrangements require an engineering build.
 
-Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests passed at 17 sampled points from **137.5 kHz through 144.4905 MHz**, including 8 m, 5 m, 4 m, and 2 m. WSPR acceptance requires decoding the expected message; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing. Experimental-frequency permissions remain required for 8 m, 5 m, 4 m, and 2 m; measured points do not promote their broad frequency ranges.
+Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests passed at each sampled RF frequency below. These are emitted RF frequencies, not WSPR USB dial settings.
+
+| Band | Tested RF frequency (Hz) | Current operating boundary |
+| --- | ---: | --- |
+| 2200 m | 137500 | Enabled by the normal frequency policy |
+| 630 m | 475700 | Enabled by the normal frequency policy |
+| 160 m | 1838100 | Enabled by the normal frequency policy |
+| 80 m | 3570100 | Enabled by the normal frequency policy |
+| 60 m | 5288700 | Enabled by the normal frequency policy |
+| 40 m | 7050000 | Enabled by the normal frequency policy |
+| 30 m | 10140200 | Enabled by the normal frequency policy |
+| 20 m | 14097100 | Enabled by the normal frequency policy |
+| 17 m | 18106100 | Enabled by the normal frequency policy |
+| 15 m | 21096100 | Enabled by the normal frequency policy |
+| 12 m | 24926100 | Enabled by the normal frequency policy |
+| 10 m | 28126100 | Enabled by the normal frequency policy |
+| 8 m | 40001000 | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 6 m | 50294500 | Enabled by the normal frequency policy |
+| 5 m | 60001000 | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 4 m | 70400000 | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 2 m | 144490500 | Disabled by default; requires explicit advanced experimental-frequency permission |
+
+Every transmission remains subject to the chosen frequency, RF setup, and operating privileges. These results apply to the recorded Pico C engineering image and QRP Labs Rev. 6 / 25 MHz TCXO setup, using CLK0 at **8 mA**. They qualify the sampled points under those test conditions, rather than complete band ranges or other module/reference/drive configurations. All three consecutive WSPR frames decoded the expected message at each point; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing.
 
 ## RF connections and permissions
 
