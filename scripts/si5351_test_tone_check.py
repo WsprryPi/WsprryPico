@@ -44,7 +44,8 @@ def configured_settings(drive):
 def idle(management):
     _, status = read(management, 'status')
     job = status['job']
-    usb.require(job['output_active'] is False and job['owner_id'] is None and job['state'] == 'empty',
+    usb.require(job['output_active'] is False and job['owner_id'] is None and
+                job['state'] in ('empty', 'complete', 'aborted', 'missed'),
                 'Output is busy, owned, faulted, or uncertain')
     _, config = read(management, 'config')
     usb.require(config['config'] is None or config['config']['enabled'] is False,

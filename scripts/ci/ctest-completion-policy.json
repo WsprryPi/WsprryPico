@@ -266,6 +266,11 @@
       "count": 7,
       "entrypoint": "tests/ui_fixture_process.test.mjs"
     },
+    "si5351_test_tone_check_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/si5351_test_tone_check_tests.py"
+    },
     "usb_installer_tests": {
       "kind": "unittest",
       "count": 182,
