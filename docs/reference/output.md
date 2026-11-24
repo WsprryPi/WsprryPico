@@ -83,12 +83,6 @@ not a linear current scale. Increasing drive raised the indication at every
 sampled frequency, with a smaller increase from 8 to 12 mA than from 4 to 8 mA.
 GPIO drive remains an electrical setting, not a calibrated RF-power control.
 
-The graphs are reproduced from the HP 437B Automation `report-revised-6`
-bare-GPIO report, record `b38bd9c81f104aa3bdb36ea952c14835` (52 completed
-points). Meter serial: `3125U22346`; sensor serial: `MY41094127`;
-sensor-correction profile: `8482a-MY41094127-20261015`. These measurements
-apply to direct GPIO output; the Si5351 results below use a separate RF path.
-
 ## Si5351 output
 
 Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](../configure.md#si5351-output-settings). RF comes from the module's CLK0 connector, rather than a Pico RF GPIO. The numeric synthesis range is **8 kHz–160 MHz**, subject to complete-plan validation; this is not qualification of every frequency or configuration in that range. Other module/reference/drive arrangements require an engineering build.
