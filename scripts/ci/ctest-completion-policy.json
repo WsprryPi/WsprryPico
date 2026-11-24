@@ -243,7 +243,7 @@
     },
     "stack_guard_image_tests": {
       "kind": "unittest",
-      "count": 5,
+      "count": 6,
       "entrypoint": "tests/stack_guard_image_tests.py"
     },
     "standalone_console_tests": {
