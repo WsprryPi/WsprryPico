@@ -18,7 +18,7 @@ The [CI execution contract](software-build-ci.md#execution-completeness-and-loca
 
 ## RF qualification
 
-The [Pico RF qualification guide](pico-rf-qualification.md) describes the distinct Harness target, engine/GPS/correction matrix, setup boundaries, and evidence. Software checks remain separate from an exact-artifact physical campaign.
+The [Pico RF qualification guide](pico-rf-qualification.md) describes native execution, campaign coverage, measurement limits, installation and recovery duties, and historical evidence. The older external-WTP Harness workflow does not execute jobs on current firmware. Software checks remain separate from an exact-artifact physical campaign.
 
 ## Deterministic validation
 
