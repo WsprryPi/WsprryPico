@@ -78,7 +78,8 @@ wtp::Response TestTone::command(std::string_view operation, wtp::RequestBody bod
         const auto* record = find(arm->job_id, true);
         return service_.handle_internal(
             std::move(request),
-            [](const wtp::PadObservation& pad, const void* context) {
+            [](const wtp::PadObservation& pad, const wtp::SynthesisObservation&,
+               const void* context) {
                 const auto* record = static_cast<const TestToneRecord*>(context);
                 return record && pad.epoch && pad.rf_pin == int(record->rf_pin) &&
                        pad.drive_ma == int(record->proposal.proposed_drive_ma);

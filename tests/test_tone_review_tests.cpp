@@ -306,6 +306,51 @@ void clock_and_native_arm() {
     REQUIRE(armed.ok && armed.start_monotonic_ns == reviewed.launch_monotonic_ns);
     REQUIRE(network_test::internal_command(service, "ABORT", wtp::AbortBody{job.job_id}).ok);
 }
+void si5351_numerical_groundwork() {
+    Flash flash;
+    standalone::Store store(flash);
+    REQUIRE(store.load());
+    auto config = *standalone::parse_config(network_test::config);
+    config.pins.engine = hardware::PinPlan::Engine::I2c;
+    config.pins.rf.reset();
+    config.pins.i2c_pair = 1;
+    config.si5351 = hardware::Si5351Settings{};
+    config.si5351->synthesis = {
+        25'000'000, rf::si5351::Reference::ExternalXa, {}, rf::si5351::Output::Clk0, {}, 8};
+    config.allow_unqualified_frequency = true;
+    REQUIRE(store.save(config));
+    Engine raw;
+    standalone::FrequencyPolicyEngine policy(raw, store, 8'000'000'000'000ULL,
+                                             160'000'000'000'000'000ULL);
+    constexpr std::array<std::uint64_t, 17> carriers{
+        137500,   475700,   1838100,  3570100,  5288700,  7050000,  10140200, 14097100, 18106100,
+        21096100, 24926100, 28126100, 40001000, 50294500, 60001000, 70400000, 144490500};
+    for (const int correction : {-10000, 0, 10000}) {
+        config.si5351->manual_correction_ppb = correction;
+        REQUIRE(store.save(config));
+        for (const unsigned drive : {2u, 4u, 6u, 8u}) {
+            for (const auto carrier : carriers) {
+                const auto bytes = flash.bytes;
+                const auto writes = flash.writes;
+                const auto r = policy.assess_si5351_tone(carrier * 1'000'000'000ULL, drive);
+                REQUIRE(r.refusal.empty() && r.programmed_nhz && r.correction);
+                REQUIRE(!raw.calls && flash.bytes == bytes && flash.writes == writes);
+                REQUIRE(!policy.prepared_correction());
+                REQUIRE(r.correction->ppb == correction);
+                const long double target = carrier / (1 + correction / 1e9L);
+                REQUIRE(std::fabs(*r.programmed_nhz / 1e9L - target) <=
+                        r.numerical_bound_nhz / 1e9L);
+            }
+        }
+    }
+    for (const unsigned invalid : {0u, 1u, 3u, 12u})
+        REQUIRE(!policy.assess_si5351_tone(14'097'100'000'000'000ULL, invalid).refusal.empty());
+    REQUIRE(!policy.assess_si5351_tone(0, 8).refusal.empty());
+    REQUIRE(!policy.assess_si5351_tone(UINT64_MAX, 8).refusal.empty());
+    Fixture direct;
+    REQUIRE(direct.policy.assess_si5351_tone(14'097'100'000'000'000ULL, 8).refusal ==
+            "inactive_si5351_engine");
+}
 void unattached_policy_refuses_execution() {
     network_test::Fixture f;
     const auto before = f.flash.bytes;
@@ -341,6 +386,7 @@ int main() {
     filters_calibration_and_storage();
     clock_and_native_arm();
     unattached_policy_refuses_execution();
+    si5351_numerical_groundwork();
     std::cout << "PASS pure Test Tone groundwork: 52 points, projections, policy, clock, no "
                  "writes/preparation\n";
 }

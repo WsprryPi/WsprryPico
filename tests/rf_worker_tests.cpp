@@ -52,6 +52,9 @@ struct Engine : wtp::RfEngine {
             *inhibit_on_prepare = true;
         return {true, {}};
     }
+    wtp::SynthesisObservation synthesis_observation() const override {
+        return {schedules, start, 1, 6, 25'000'000};
+    }
     bool schedules_locally() const override {
         return true;
     }
@@ -146,6 +149,12 @@ void background_rendezvous() {
     proxy.resume_background();
     CHECK(!control.held && control.resumes == 1);
     CHECK(proxy.prepare(value).accepted);
+    const auto target = manual_ns + 1'000'000'000;
+    CHECK(proxy.schedule(value, target, {&clock}));
+    const auto synthesis = proxy.synthesis_observation();
+    CHECK(synthesis.epoch == 1 && synthesis.observed_monotonic_ns == target);
+    CHECK(synthesis.transmit_output == 1 && synthesis.drive_ma == 6);
+    CHECK(synthesis.reference_hz == 25'000'000);
     engine.state = wtp::EngineState::Armed;
     engine.start = manual_ns + 1'000'000'000;
     CHECK(!proxy.suspend_background(manual_ns + 100'000'000));

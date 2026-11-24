@@ -313,6 +313,17 @@ bool Device::verify_transmit(std::uint64_t deadline) {
     pending_ = Pending::None;
     return true;
 }
+std::optional<unsigned> Device::verify_transmit_drive(std::uint64_t deadline) {
+    if (!verify_transmit(deadline) || !configuration_ || !transmit_control_ ||
+        transmit_state() != ClockOutputState::RegisterDisabled)
+        return {};
+    const auto drive = 2u * (1u + (*transmit_control_ & 3u));
+    if (drive != configuration_->drive_ma) {
+        fault();
+        return {};
+    }
+    return drive;
+}
 bool Device::transmit_enabled(bool value, std::uint64_t deadline) {
     return enabled(transmit_, value, deadline);
 }

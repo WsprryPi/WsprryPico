@@ -6,6 +6,11 @@
 #include <numeric>
 
 namespace wsprrypico::rf::si5351 {
+std::uint64_t Tone::realized_nhz() const {
+    // The pinned Arm libm llround loses low-word carry for large nHz values.
+    // Round in floating point, then use the independent unsigned conversion.
+    return static_cast<std::uint64_t>(std::round(achieved_hz * 1'000'000'000.L));
+}
 namespace {
 constexpr std::uint32_t maximum_denominator = 1'048'575;
 bool output_valid(Output value) {

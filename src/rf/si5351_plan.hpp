@@ -12,6 +12,9 @@
 namespace wsprrypico::rf::si5351 {
 // AN619 rev. 0.8 register arithmetic, implemented independently. These plans
 // describe synthesis, never measured timing, lock, electrical safety or RF.
+// Execution and pure tone assessment use one numerical admission/report policy.
+inline constexpr long double execution_frequency_error_hz = 0.001L;
+inline constexpr std::uint64_t frequency_reporting_guard_nhz = 1024;
 inline constexpr std::uint64_t minimum_output_hz = 8'000;
 inline constexpr std::uint64_t maximum_output_hz = 160'000'000;
 inline constexpr std::uint32_t vhf_denominator_minimum = 983'040;
@@ -40,6 +43,7 @@ struct Tone {
     bool operator==(const Tone&) const = default;
     std::uint64_t requested_nhz = 0;
     long double programmed_hz = 0, achieved_hz = 0, error_hz = 0;
+    std::uint64_t realized_nhz() const;
     Divider multisynth;
     std::optional<Divider> pll; // VHF: fixed integer MultiSynth, tone-specific PLLA.
     unsigned r_divider = 1;

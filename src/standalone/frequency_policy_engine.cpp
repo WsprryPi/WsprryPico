@@ -4,6 +4,8 @@
 #include "rf/calibration.hpp"
 #include "wtp/json.hpp"
 
+#include <cmath>
+
 namespace wsprrypico::standalone {
 const char* FrequencyPolicyEngine::frequency_refusal(std::uint64_t frequency) const {
     if (frequency < minimum_ || frequency > maximum_)
@@ -48,6 +50,53 @@ FrequencyPolicyEngine::assess_direct_tone(std::uint64_t frequency) const {
     else {
         rf::FilterCoverage coverage(boot_filters_);
         coverage.include(frequency, *result.programmed_nhz);
+        if (coverage.selection() == -2)
+            result.refusal = "filter_coverage_required";
+    }
+    return result;
+}
+FrequencyPolicyEngine::SynthesisToneAssessment
+FrequencyPolicyEngine::assess_si5351_tone(std::uint64_t frequency, unsigned drive) const {
+    SynthesisToneAssessment result;
+    if (!store_.healthy()) {
+        result.refusal = "storage_fault";
+        return result;
+    }
+    if (boot_engine_ != hardware::PinPlan::Engine::I2c || !boot_si5351_) {
+        result.refusal = "inactive_si5351_engine";
+        return result;
+    }
+    const auto selected = selection();
+    if (!selected.valid) {
+        result.refusal = "gps_calibration_required";
+        return result;
+    }
+    auto configuration = boot_si5351_->synthesis;
+    configuration.drive_ma = drive;
+    const std::array frequencies{frequency};
+    const auto candidate = rf::si5351::plan(configuration, frequencies, selected.ppb,
+                                             rf::si5351::execution_frequency_error_hz);
+    if (!candidate.plan) {
+        result.refusal = candidate.error;
+        return result;
+    }
+    const auto& tone = candidate.plan->tones().front();
+    result.correction = CorrectionSnapshot{selected.ppb, selected.automatic, selected.generation,
+                                           selected.observed_raw_ns, selected.uncertainty_ppb};
+    // Match the production engine's unsigned rounding, including its target
+    // floating-point reporting guard. No hardware or calibration freeze.
+    result.programmed_nhz = tone.realized_nhz();
+    constexpr auto guard = rf::si5351::frequency_reporting_guard_nhz;
+    result.numerical_bound_nhz =
+        static_cast<std::uint64_t>(std::ceil(std::fabs(tone.error_hz) * 1e9L)) + guard;
+    if (const auto refusal = frequency_refusal(frequency))
+        result.refusal = refusal;
+    else if (const auto refusal = frequency_refusal(*result.programmed_nhz))
+        result.refusal = refusal;
+    else {
+        rf::FilterCoverage coverage(boot_filters_);
+        coverage.include(frequency, *result.programmed_nhz - guard);
+        coverage.include(frequency, *result.programmed_nhz + guard);
         if (coverage.selection() == -2)
             result.refusal = "filter_coverage_required";
     }

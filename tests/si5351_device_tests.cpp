@@ -64,7 +64,9 @@ int main() {
                     if (other != reg)
                         assert(registers.registers[other] == 0x80);
                 assert(actual.locked(100));
+                assert(actual.verify_transmit_drive(100) == ma);
                 assert(actual.transmit_enabled(true, 100));
+                assert(!actual.verify_transmit_drive(100)); // RF must be disabled for ARM evidence.
                 assert(registers.registers[reg] == (control & 0x7f));
                 assert(actual.transmit_tone(planned.plan->tones()[1], 100));
                 assert(registers.registers[reg] == (control & 0x7f));

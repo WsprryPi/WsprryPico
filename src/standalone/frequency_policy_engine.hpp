@@ -17,9 +17,13 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         : engine_(engine), store_(store), minimum_(minimum_frequency_nhz),
           maximum_(maximum_frequency_nhz), boot_filters_(store.filters()),
           boot_engine_(store.config() ? store.config()->pins.engine
-                                      : hardware::PinPlan::Engine::Direct) {}
+                                      : hardware::PinPlan::Engine::Direct),
+          boot_si5351_(store.config() ? store.config()->si5351 : std::nullopt) {}
     wtp::PadObservation pad_observation() const override {
         return engine_.pad_observation();
+    }
+    wtp::SynthesisObservation synthesis_observation() const override {
+        return engine_.synthesis_observation();
     }
     std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
         return engine_.preparation_memory_bytes(job);
@@ -59,6 +63,16 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     // Numerical/policy assessment only: no engine methods, calibration freeze,
     // filter preparation, GPIO access, or journal writes.
     DirectToneAssessment assess_direct_tone(std::uint64_t frequency_nhz) const;
+    struct SynthesisToneAssessment {
+        std::string_view refusal;
+        std::optional<CorrectionSnapshot> correction;
+        std::optional<std::uint64_t> programmed_nhz;
+        std::uint64_t numerical_bound_nhz = 0;
+    };
+    // Internal, pure Si5351 groundwork. This does not advertise Test Tone
+    // support or authorize a drive outside the current execution profile.
+    SynthesisToneAssessment assess_si5351_tone(std::uint64_t frequency_nhz,
+                                               unsigned proposed_drive_ma) const;
     std::optional<CorrectionSnapshot> prepared_correction() const {
         if (!frozen_) return {};
         return CorrectionSnapshot{frozen_->ppb, frozen_->automatic, frozen_->generation,
@@ -140,6 +154,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     const std::uint64_t minimum_, maximum_;
     const hardware::FilterSettings boot_filters_;
     const hardware::PinPlan::Engine boot_engine_;
+    const std::optional<hardware::Si5351Settings> boot_si5351_;
     const char* failure_ = nullptr;
     std::optional<time::gps::Calibration> gps_calibration_;
     std::uint64_t gps_now_ = 0;

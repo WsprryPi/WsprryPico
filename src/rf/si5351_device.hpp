@@ -38,6 +38,9 @@ class Device {
     bool transmit_configured() const {
         return transmit_configured_;
     }
+    // Fresh complete control/mask readback while RF is disabled. The nominal
+    // drive is evidence of register programming, never measured current/RF.
+    std::optional<unsigned> verify_transmit_drive(std::uint64_t deadline_ns);
     bool transmit_enabled(bool, std::uint64_t deadline_ns);
     bool reference_enabled(bool, std::uint64_t deadline_ns);
     ClockOutputState transmit_state() const {

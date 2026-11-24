@@ -487,11 +487,22 @@ struct PadObservation {
     int rf_pin = -1, drive_ma = -1; // -1 unavailable, -2 verification failed.
 };
 
+// RF-owner register evidence, separate from RP2350 pad observations and all
+// wire formats. The service binds each fresh epoch to its accepted job.
+struct SynthesisObservation {
+    std::uint64_t epoch = 0, observed_monotonic_ns = 0;
+    int transmit_output = -1, drive_ma = -1;
+    std::uint32_t reference_hz = 0;
+};
+
 class RfEngine {
   public:
     static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
     virtual PadObservation pad_observation() const {
+        return {};
+    }
+    virtual SynthesisObservation synthesis_observation() const {
         return {};
     }
     virtual std::uint64_t filter_preparation_ns() const {
@@ -730,7 +741,8 @@ class JobService {
     // completed-job identity/history exactly as for transport requests.
     // Optional application verification is synchronous, in-process only, and
     // never part of ArmBody or any decoded WTP message. No context is retained.
-    using ExecutionVerifier = bool (*)(const PadObservation&, const void*);
+    using ExecutionVerifier = bool (*)(const PadObservation&, const SynthesisObservation&,
+                                       const void*);
     Response handle_internal(Request&& request, ExecutionVerifier verify = nullptr,
                              const void* context = nullptr);
     // Physical Console safety control only; never exposed as a network operation.
@@ -799,6 +811,9 @@ class JobService {
     }
     PadObservation execution_pad(std::string_view job) const {
         return job == pad_job_ ? accepted_pad_ : PadObservation{};
+    }
+    SynthesisObservation execution_synthesis(std::string_view job) const {
+        return job == pad_job_ ? accepted_synthesis_ : SynthesisObservation{};
     }
     std::uint64_t start_resolution_ns() const {
         return engine_.start_resolution_ns();
@@ -905,6 +920,7 @@ class JobService {
     const void* arm_verifier_context_ = nullptr;
     std::string pad_job_;
     PadObservation accepted_pad_;
+    SynthesisObservation accepted_synthesis_;
     TerminalObserver terminal_observer_ = nullptr;
     void* terminal_context_ = nullptr;
 };

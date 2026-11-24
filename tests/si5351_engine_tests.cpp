@@ -283,6 +283,51 @@ void finite_execution(bool keyed) {
 }
 } // namespace
 int main() {
+    // Actual register readback at ARM must reflect the configured output and
+    // nominal drive, not the cached preparation write or a previous job.
+    for (const unsigned drive : {2u, 4u, 6u, 8u}) {
+        for (const bool corrupt : {false, true}) {
+            Platform platform;
+            TimedBus bus(platform);
+            Device device(bus);
+            auto config = configuration();
+            config.drive_ma = drive;
+            Engine engine(config, device, platform, true);
+            assert(engine.disable(platform.now + 10'000'000));
+            const auto value = job();
+            assert(engine.prepare(value).accepted);
+            assert(!engine.synthesis_observation().epoch);
+            // Simulate a changed drive after successful preparation. The mask
+            // and PLL remain valid, so only fresh CLK0 control readback sees it.
+            if (corrupt)
+                bus.registers[16] ^= 1;
+            const auto at = platform.now + 10'000'000;
+            assert(engine.begin(value, at) == !corrupt);
+            const auto evidence = engine.synthesis_observation();
+            if (corrupt) {
+                assert(!evidence.epoch);
+                assert(engine.diagnostic() == "si5351_drive_verification_failed");
+            } else {
+                assert(evidence.epoch && evidence.transmit_output == 0);
+                assert(evidence.drive_ma == static_cast<int>(drive));
+                assert(evidence.reference_hz == 25'000'000);
+                assert(evidence.observed_monotonic_ns <= platform.now);
+                assert(engine.disable(platform.now + 10'000'000));
+                assert(engine.prepare(value).accepted);
+                assert(!engine.synthesis_observation().epoch);
+                assert(engine.begin(value, platform.now + 10'000'000));
+                assert(engine.synthesis_observation().epoch > evidence.epoch);
+            }
+        }
+    }
+    {
+        Fixture f;
+        assert(f.engine.prepare(job()).accepted);
+        f.bus.unavailable = true;
+        assert(!f.engine.begin(job(), f.platform.now + 10'000'000));
+        assert(!f.engine.synthesis_observation().epoch);
+        assert(f.engine.output_active()); // Unknown bus state remains unsafe.
+    }
     reported_register_frequency();
     replace_complete_transmit_plan();
     {
@@ -442,6 +487,9 @@ int main() {
                        "ARM", wtp::ArmBody{value.job_id, 1'000'000'000'000ULL + start, 1'000'000},
                        'd'))
                    .ok);
+        const auto evidence = service.execution_synthesis(value.job_id);
+        assert(evidence.epoch && evidence.transmit_output == 0 && evidence.drive_ma == 2);
+        assert(!service.execution_synthesis(std::string(32, 'f')).epoch);
         f.platform.now = start;
         service.poll();
         assert(service.activity().state == wtp::State::Running);

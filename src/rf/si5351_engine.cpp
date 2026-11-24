@@ -12,11 +12,6 @@ namespace {
 std::uint64_t add(std::uint64_t left, std::uint64_t right) {
     return left > UINT64_MAX - right ? UINT64_MAX : left + right;
 }
-std::uint64_t realized_nhz(const Tone& tone) {
-    // The pinned Arm libm llround loses low-word carry for large nHz values.
-    // Round in floating point, then use the independent unsigned conversion.
-    return static_cast<std::uint64_t>(std::round(tone.achieved_hz * 1'000'000'000.L));
-}
 } // namespace
 Engine::Engine(const Configuration& configuration, Device& device, ExecutionPlatform& platform,
                bool engineering_allowed, IndicatorGate* indicator, AmplifierEnable* amplifier,
@@ -65,8 +60,9 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
                                                                   : "si5351_not_idle";
         return {};
     }
+    synthesis_observation_ = {};
     // All frequency/event and filter checks precede any hardware preparation.
-    auto candidate = plan_job(configuration_, job, correction_ppb_, minimum_transition_ns, 0.001L);
+    auto candidate = plan_job(configuration_, job, correction_ppb_, minimum_transition_ns, execution_frequency_error_hz);
     if (!candidate.plan) {
         failure_ = candidate.error;
         return {};
@@ -74,9 +70,9 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
     std::array<wtp::FrequencyAdjustment, Plan::maximum_tones * 2> coverage{};
     unsigned coverage_count = 0;
     for (const auto& tone : candidate.plan->synthesis.tones()) {
-        const auto realized = realized_nhz(tone);
+        const auto realized = tone.realized_nhz();
         // Guard the nHz projection against platform floating-point rounding.
-        constexpr std::uint64_t guard = 1024;
+        constexpr auto guard = frequency_reporting_guard_nhz;
         coverage[coverage_count++] = {0, tone.requested_nhz, realized - guard};
         coverage[coverage_count++] = {0, tone.requested_nhz, realized + guard};
     }
@@ -91,7 +87,7 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
         if (!job.events[i].rf_on)
             continue;
         const auto realized =
-            realized_nhz(candidate.plan->synthesis.tones()[candidate.plan->tone[i]]);
+            candidate.plan->synthesis.tones()[candidate.plan->tone[i]].realized_nhz();
         if (realized != *job.events[i].frequency_nhz)
             result.adjustments.push_back({i, *job.events[i].frequency_nhz, realized});
     }
@@ -162,9 +158,19 @@ bool Engine::begin(const wtp::Job& job, std::uint64_t start) {
     const auto lead = amplifier_lead_ns() + filter_preparation_ns();
     if (start < lead || platform_.now_ns() > start - lead)
         return false;
-    if (!platform_.pause_reference(add(platform_.now_ns(), transition_budget_ns)))
+    const auto verification_deadline = add(platform_.now_ns(), transition_budget_ns);
+    synthesis_observation_ = {};
+    if (!platform_.pause_reference(verification_deadline))
         return fail("si5351_reference_pause_failed");
+    const auto drive = device_.verify_transmit_drive(verification_deadline);
+    if (!drive || platform_.now_ns() >= verification_deadline)
+        return fail("si5351_drive_verification_failed");
+    // Readback must not consume the launch's required amplifier/filter lead.
+    if (platform_.now_ns() > start - lead)
+        return fail("si5351_drive_verification_late");
     ++epoch_;
+    synthesis_observation_ = {epoch_, platform_.now_ns(), static_cast<int>(configuration_.transmit),
+                              static_cast<int>(*drive), configuration_.reference_hz};
     start_ns_ = start;
     end_ns_ = start + static_cast<std::uint64_t>(plan_->end_us[plan_->count - 1]) * 1000;
     release_ns_.reset();

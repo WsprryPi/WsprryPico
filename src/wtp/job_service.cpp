@@ -539,8 +539,10 @@ Response JobService::dispatch(Request& request) {
                          now, engine_.schedules_locally()};
         auto response = arm_response(job_->job_id, *arm_);
         const auto previous_pad = engine_.pad_observation();
+        const auto previous_synthesis = engine_.synthesis_observation();
         pad_job_ = job_->job_id;
         accepted_pad_ = {};
+        accepted_synthesis_ = {};
         const bool scheduled = !arm_->scheduled_locally ||
                                engine_.schedule(*job_, start_monotonic_ns,
                                                 {&clock_, body->start_utc_ns,
@@ -550,8 +552,11 @@ Response JobService::dispatch(Request& request) {
         accepted_pad_ = engine_.pad_observation();
         if (!accepted_pad_.epoch || accepted_pad_.epoch == previous_pad.epoch)
             accepted_pad_ = {};
-        const bool pad_valid =
-            !arm_verifier_ || arm_verifier_(accepted_pad_, arm_verifier_context_);
+        accepted_synthesis_ = engine_.synthesis_observation();
+        if (!accepted_synthesis_.epoch || accepted_synthesis_.epoch == previous_synthesis.epoch)
+            accepted_synthesis_ = {};
+        const bool pad_valid = !arm_verifier_ || arm_verifier_(accepted_pad_, accepted_synthesis_,
+                                                               arm_verifier_context_);
         if (!scheduled || !pad_valid || (arm_->scheduled_locally && engine_.output_active())) {
             arm_.reset();
             const auto stopped = engine_.disable(
