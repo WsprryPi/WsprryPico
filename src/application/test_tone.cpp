@@ -163,7 +163,10 @@ void TestTone::prune() {
 void TestTone::poll() {
     const auto observed = service_.status(false);
     if (observed.boot_id != boot_) {
-        records_ = {};
+        // Do not construct a second receipt array on the guarded Pico stack.
+        // poll() also runs inside the nested authenticated Stop/release path.
+        for (auto& record : records_)
+            record.reset();
         admission_sequence_ = native_sequence_ = 0;
         boot_ = observed.boot_id;
     }
