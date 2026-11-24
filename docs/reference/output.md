@@ -11,12 +11,11 @@ The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1
 
 ### Band coverage
 
-The sampled frequencies below are the bare-GPIO power-measurement points
-described below, not mode-decoding or emissions qualifications. They are RF
-frequencies, not WSPR USB dial settings. A dash means no point was measured
-in that sweep.
+The table lists the RF carriers used for the HP bare-GPIO power sweep.
+Each carrier was the selected WSPR dial setting plus **1,500 Hz**. A dash
+marks a band omitted from the sweep.
 
-| Band | Sampled RF frequency (Hz) | Current operating boundary |
+| Band | HP power-sweep RF carrier (Hz) | Current operating boundary |
 | --- | ---: | --- |
 | 2200 m | 137500 | Enabled by the normal frequency policy |
 | 630 m | 475700 | Enabled by the normal frequency policy |
@@ -71,9 +70,9 @@ establish guaranteed output power, filtered antenna power, or emissions complian
 
 ![Meter-indicated bare GP2 power versus frequency setting, with separate curves for 2, 4, 8, and 12 mA GPIO drive. Power generally falls as frequency increases.](../_static/images/output/pico2w-bare-gpio-power-frequency.png)
 
-*Power versus frequency setting.* Band labels identify the requested test
-frequencies and are equally spaced; the horizontal axis is not a linear
-frequency scale. At 12 mA, the mean indication was **28.0 mW** at 475,700 Hz,
+*Power versus frequency setting.* Band labels correspond to the HP power-sweep
+RF carriers in the band table and are equally spaced; the horizontal axis is
+not a linear frequency scale. At 12 mA, the mean indication was **28.0 mW** at 475,700 Hz,
 **23.5 mW** at 14,097,100 Hz, and **14.2 mW** at 50,294,500 Hz.
 
 ![Meter-indicated bare GP2 power versus the four GPIO drive settings, with one curve per tested band from 2200 m through 6 m. Higher drive increases indicated power, with a smaller increase from 8 to 12 mA.](../_static/images/output/pico2w-bare-gpio-power-drive.png)
@@ -89,29 +88,33 @@ Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](.
 
 ### Band coverage
 
-Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests passed at each sampled RF frequency below. These are emitted RF frequencies, not WSPR USB dial settings.
+The table lists the RF carriers used for the conducted tone, WSPR, QRSS,
+FSKCW, and DFCW mode tests and the HP bare-Si5351 power sweep. The mode tests
+used fixed RF carriers. The HP power sweep used the GPIO sweep's WSPR dial
+settings plus **1,500 Hz**, with an additional 2 m point. A dash marks a band
+omitted from the power sweep.
 
-| Band | Sampled RF frequency (Hz) | Current operating boundary |
-| --- | ---: | --- |
-| 2200 m | 137500 | Enabled by the normal frequency policy |
-| 630 m | 475700 | Enabled by the normal frequency policy |
-| 160 m | 1838100 | Enabled by the normal frequency policy |
-| 80 m | 3570100 | Enabled by the normal frequency policy |
-| 60 m | 5288700 | Enabled by the normal frequency policy |
-| 40 m | 7050000 | Enabled by the normal frequency policy |
-| 30 m | 10140200 | Enabled by the normal frequency policy |
-| 20 m | 14097100 | Enabled by the normal frequency policy |
-| 17 m | 18106100 | Enabled by the normal frequency policy |
-| 15 m | 21096100 | Enabled by the normal frequency policy |
-| 12 m | 24926100 | Enabled by the normal frequency policy |
-| 10 m | 28126100 | Enabled by the normal frequency policy |
-| 8 m | 40001000 | Disabled by default; requires explicit advanced experimental-frequency permission |
-| 6 m | 50294500 | Enabled by the normal frequency policy |
-| 5 m | 60001000 | Disabled by default; requires explicit advanced experimental-frequency permission |
-| 4 m | 70400000 | Disabled by default; requires explicit advanced experimental-frequency permission |
-| 2 m | 144490500 | Native Test Tone admits this exact carrier on the ordinary Si5351 profile by default. Other 2 m carriers and transmission modes require explicit advanced experimental-frequency permission. |
+| Band | Mode-test RF carrier (Hz) | HP power-sweep RF carrier (Hz) | Current operating boundary |
+| --- | ---: | ---: | --- |
+| 2200 m | 137500 | 137500 | Enabled by the normal frequency policy |
+| 630 m | 475700 | 475700 | Enabled by the normal frequency policy |
+| 160 m | 1838100 | 1838100 | Enabled by the normal frequency policy |
+| 80 m | 3570100 | 3570100 | Enabled by the normal frequency policy |
+| 60 m | 5288700 | 5366200 | Enabled by the normal frequency policy |
+| 40 m | 7050000 | 7040100 | Enabled by the normal frequency policy |
+| 30 m | 10140200 | 10140200 | Enabled by the normal frequency policy |
+| 20 m | 14097100 | 14097100 | Enabled by the normal frequency policy |
+| 17 m | 18106100 | 18106100 | Enabled by the normal frequency policy |
+| 15 m | 21096100 | 21096100 | Enabled by the normal frequency policy |
+| 12 m | 24926100 | 24926100 | Enabled by the normal frequency policy |
+| 10 m | 28126100 | 28126100 | Enabled by the normal frequency policy |
+| 8 m | 40001000 | — | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 6 m | 50294500 | 50294500 | Enabled by the normal frequency policy |
+| 5 m | 60001000 | — | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 4 m | 70400000 | — | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 2 m | 144490500 | 144490500 | Native Test Tone admits this exact carrier on the ordinary Si5351 profile by default. Other 2 m carriers and transmission modes require explicit advanced experimental-frequency permission. |
 
-Every transmission remains subject to the chosen frequency, RF setup, and operating privileges. These results apply to the recorded Pico C engineering image and QRP Labs Rev. 6 / 25 MHz TCXO setup, using CLK0 at **8 mA**. They qualify the sampled points under those test conditions, rather than complete band ranges or other module/reference/drive configurations. All three consecutive WSPR frames decoded the expected message at each point; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing.
+Every transmission remains subject to the chosen frequency, RF setup, and operating privileges. The mode-test results apply to the recorded Pico C engineering image and QRP Labs Rev. 6 / 25 MHz TCXO setup, using CLK0 at **8 mA**. They qualify the sampled points under those test conditions, rather than complete band ranges or other module/reference/drive configurations. All three consecutive WSPR frames decoded the expected message at each point; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing.
 
 ### Drive strength
 
@@ -140,10 +143,10 @@ without an output filter, amplifier, or attenuator chain. The sweep covered
 14 frequency settings from **137,500 Hz to 144,490,500 Hz** at each of the
 **2, 4, 6, and 8 mA** Si5351 drive settings, with two readings averaged per point.
 
-The power sweep used the same frequencies as the GPIO sweep from 2200 m
-through 6 m, plus **144,490,500 Hz** on 2 m. Its **60 m (5,366,200 Hz)** and
-**40 m (7,040,100 Hz)** points differ from the earlier Si5351 mode-test points
-in the band table above; 8 m, 5 m, and 4 m were not included in this power sweep.
+On **60 m**, the HP power sweep used **5.366200 MHz**, and the mode tests
+used **5.288700 MHz**. On **40 m**, the HP power sweep used **7.040100 MHz**,
+and the mode tests used **7.050000 MHz**. The band table lists the RF carriers
+for both tests.
 
 These are **meter-indicated power readings at the sensor input**, with the
 recorded sensor calibration factors applied. The unfiltered output includes
@@ -151,13 +154,12 @@ harmonics, so the readings do not isolate power at the wanted frequency.
 No additional fixture-loss correction, uncertainty estimate, or baseline
 subtraction is included. The plots describe this measured setup; they do not
 establish guaranteed output power, filtered antenna power, or emissions compliance.
-The power sweep does not extend the mode-test qualification to other drive settings.
 
 ![Meter-indicated bare Si5351 CLK0 power versus frequency setting, with separate curves for 2, 4, 6, and 8 mA drive. Power generally falls as frequency increases.](../_static/images/output/pico2w-bare-si5351-power-frequency.png)
 
-*Power versus frequency setting.* Band labels identify the requested test
-frequencies and are equally spaced; the horizontal axis is not a linear
-frequency scale. At 8 mA, the mean indication was **20.1 mW** at 475,700 Hz,
+*Power versus frequency setting.* Band labels correspond to the HP power-sweep
+RF carriers in the band table and are equally spaced; the horizontal axis is
+not a linear frequency scale. At 8 mA, the mean indication was **20.1 mW** at 475,700 Hz,
 **19.4 mW** at 14,097,100 Hz, and **16.6 mW** at 144,490,500 Hz.
 
 ![Meter-indicated bare Si5351 CLK0 power versus the four drive settings, with one curve per tested band from 2200 m through 2 m. Higher drive increases indicated power at every sampled frequency.](../_static/images/output/pico2w-bare-si5351-power-drive.png)
