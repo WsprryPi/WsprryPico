@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 #include "application/resources.hpp"
+#include "hardware/si5351_qualification.hpp"
 #include "network/api.hpp"
 #include "network/control_contract.hpp"
 #include "network/test_tone_query.hpp"
@@ -22,6 +23,17 @@ std::string optional_number(std::optional<std::uint64_t> value) {
 std::string boolean(bool value) {
     return value ? "true" : "false";
 }
+std::string engine_name(hardware::PinPlan::Engine engine) {
+    return engine == hardware::PinPlan::Engine::I2c ? "si5351" : "pio-dma-gp2";
+}
+std::string synthesis_identity(const std::optional<rf::si5351::Configuration>& configuration,
+                               std::string_view execution) {
+    const bool synthesis = configuration.has_value();
+    return ",\"execution_engine\":" + quote(execution) + ",\"transmit_output\":" +
+           (synthesis ? std::to_string(static_cast<unsigned>(configuration->transmit)) : "null") +
+           ",\"reference_hz\":" +
+           (synthesis ? std::to_string(configuration->reference_hz) : "null");
+}
 bool integer(wtp::json::Value value, std::uint64_t& out) {
     if (value.raw.empty() || value.raw.size() > 20)
         return false;
@@ -31,7 +43,7 @@ bool integer(wtp::json::Value value, std::uint64_t& out) {
     const auto parsed = std::from_chars(raw.data(), raw.data() + raw.size(), out);
     return parsed.ec == std::errc{} && parsed.ptr == raw.data() + raw.size();
 }
-std::string realization(const application::TestToneReview& r) {
+std::string realization(const application::TestToneReview& r, bool synthesis) {
     const auto& f = r.frequency;
     std::string correction = "null";
     if (f.correction) {
@@ -45,7 +57,7 @@ std::string realization(const application::TestToneReview& r) {
     return "{\"requested_nhz\":" + optional_number(r.requested_nhz) +
            ",\"programmed_nhz\":" + optional_number(f.programmed_nhz) +
            ",\"increment\":" + (f.increment ? std::to_string(*f.increment) : "null") +
-           ",\"nominal_sample_hz\":" + std::to_string(rf::sample_rate) +
+           ",\"nominal_sample_hz\":" + (synthesis ? "null" : std::to_string(rf::sample_rate)) +
            ",\"quantization_bound_nhz\":" +
            (f.programmed_nhz ? number(r.quantization_bound_nhz) : "null") +
            ",\"correction\":" + correction + "}";
@@ -59,14 +71,42 @@ std::string record_json(const application::TestToneRecord& r) {
                           : r.state == wtp::State::Missed  ? "missed"
                                                            : "failed";
     const auto& pad = r.pad;
-    const bool verified_pad = pad.epoch && pad.rf_pin == int(r.rf_pin) &&
+    const bool verified_pad = r.rf_pin && pad.epoch && pad.rf_pin == int(*r.rf_pin) &&
                               pad.drive_ma == int(r.proposal.proposed_drive_ma);
+    const bool synthesis = r.synthesis_configuration.has_value();
+    const auto& observation = r.synthesis;
+    const bool verified_synthesis =
+        synthesis && observation.epoch &&
+        observation.transmit_output == static_cast<int>(r.synthesis_configuration->transmit) &&
+        observation.reference_hz == r.synthesis_configuration->reference_hz &&
+        observation.drive_ma == static_cast<int>(r.proposal.proposed_drive_ma);
+    const auto synthesis_readback =
+        !synthesis
+            ? "null"
+            : "{\"epoch\":" + (observation.epoch ? number(observation.epoch) : "null") +
+                  ",\"observed_monotonic_ns\":" +
+                  (observation.epoch ? number(observation.observed_monotonic_ns) : "null") +
+                  ",\"transmit_output\":" +
+                  (observation.transmit_output >= 0 ? std::to_string(observation.transmit_output)
+                                                    : "null") +
+                  ",\"reference_hz\":" +
+                  (observation.reference_hz ? std::to_string(observation.reference_hz) : "null") +
+                  ",\"drive_ma\":" +
+                  (observation.drive_ma > 0 ? std::to_string(observation.drive_ma) : "null") +
+                  ",\"stage\":" +
+                  quote(verified_synthesis  ? "verified"
+                        : observation.epoch ? "failed"
+                                            : "unavailable") +
+                  "}";
     return "{\"request_id\":" + quote(r.request_id) + ",\"job_id\":" + quote(r.job_id) +
            ",\"phase\":" + quote(phase) + ",\"native_state\":" + quote(wtp::state_name(r.state)) +
            ",\"outcome\":" + (r.terminal ? quote(outcome) : "null") +
            ",\"carrier_hz\":" + std::to_string(r.proposal.carrier_hz) +
            ",\"duration_ms\":" + std::to_string(r.proposal.duration_ms) +
-           ",\"engine\":\"pio-dma-gp2\",\"rf_pin\":" + std::to_string(r.rf_pin) +
+           ",\"engine\":" + quote(engine_name(r.proposal.engine)) +
+           synthesis_identity(r.synthesis_configuration, r.execution_engine) +
+           ",\"profile_id\":" + (r.matched_profile ? quote(hardware::si5351_support::id) : "null") +
+           ",\"rf_pin\":" + (r.rf_pin ? std::to_string(*r.rf_pin) : "null") +
            ",\"boot_drive_ma\":" + std::to_string(r.proposal.proposed_drive_ma) +
            ",\"admission_revision\":" + quote(r.admission_revision) +
            ",\"control_revision\":" + quote(r.control_revision) +
@@ -75,17 +115,22 @@ std::string record_json(const application::TestToneRecord& r) {
            ",\"scheduled_monotonic_ns\":" + optional_number(r.assessment.launch_monotonic_ns) +
            ",\"launch_monotonic_ns\":" + optional_number(r.launch_ns) +
            ",\"ended_monotonic_ns\":" + (r.terminal ? number(r.ended_ns) : "null") +
-           ",\"realization\":" + realization(r.assessment) +
-           ",\"pad_readback\":{\"epoch\":" + (pad.epoch ? number(pad.epoch) : "null") +
-           ",\"observed_monotonic_ns\":" +
-           (pad.drive_ma != -1 ? number(pad.observed_monotonic_ns) : "null") +
-           ",\"rf_pin\":" + (pad.rf_pin >= 0 ? std::to_string(pad.rf_pin) : "null") +
-           ",\"drive_ma\":" + (pad.drive_ma > 0 ? std::to_string(pad.drive_ma) : "null") +
-           ",\"stage\":" +
-           quote(verified_pad         ? "verified"
-                 : pad.drive_ma != -1 ? "failed"
-                                      : "unavailable") +
-           "},\"output_inactive_confirmed\":" + boolean(r.output_inactive_confirmed) +
+           ",\"realization\":" + realization(r.assessment, synthesis) + ",\"pad_readback\":" +
+           (synthesis
+                ? "null"
+                : "{\"epoch\":" + (pad.epoch ? number(pad.epoch) : "null") +
+                      ",\"observed_monotonic_ns\":" +
+                      (pad.drive_ma != -1 ? number(pad.observed_monotonic_ns) : "null") +
+                      ",\"rf_pin\":" + (pad.rf_pin >= 0 ? std::to_string(pad.rf_pin) : "null") +
+                      ",\"drive_ma\":" +
+                      (pad.drive_ma > 0 ? std::to_string(pad.drive_ma) : "null") + ",\"stage\":" +
+                      quote(verified_pad         ? "verified"
+                            : pad.drive_ma != -1 ? "failed"
+                                                 : "unavailable") +
+                      "}") +
+           ",\"synthesis_readback\":" + synthesis_readback + ",\"inactivity_basis\":" +
+           quote(synthesis ? "si5351_register_shutdown" : "native_gpio_shutdown") +
+           ",\"output_inactive_confirmed\":" + boolean(r.output_inactive_confirmed) +
            ",\"recovery_required\":" + boolean(r.recovery_required) + ",\"native_error\":" +
            (r.error == wtp::ErrorCode::None ? "null" : wtp::error_json(r.error)) + "}";
 }
@@ -96,8 +141,14 @@ std::string BrowserApi::test_tone_capability() const {
     const auto limit = std::min({application::test_tone_maximum_duration_ms,
                                  service_.config().max_job_duration_ns / 1'000'000,
                                  rf::max_duration_ns / 1'000'000});
-    return descriptor + ",\"available\":" +
-           boolean(test_tone_.supported() && service_.config().capability_engine == "pio-dma-gp2") +
+    const auto& execution = service_.config().capability_engine;
+    const bool available =
+        test_tone_.supported() &&
+        (execution == "pio-dma-gp2" || execution == "si5351" || execution == "si5351-engineering");
+    const bool synthesis = scheduler_.active_pins().engine == hardware::PinPlan::Engine::I2c;
+    return descriptor + ",\"available\":" + boolean(available) + ",\"active_engine\":" +
+           (available ? quote(synthesis ? "si5351" : "pio-dma-gp2") : "null") +
+           ",\"minimum_duration_ms\":" + std::to_string(available ? (synthesis ? 10 : 1) : 0) +
            ",\"maximum_duration_ms\":" + std::to_string(limit) +
            ",\"output_disable_timeout_ns\":" + number(service_.config().output_disable_timeout_ns) +
            "}";
@@ -108,7 +159,22 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
     const auto operation = std::string_view(request.path).substr(prefix.size());
     const auto boot = service_.status(false).boot_id;
     const auto saved_config = saved_settings();
-    const auto saved_drive = saved_config ? std::to_string(saved_config->gpio_drive_ma) : "null";
+    const auto& pins = scheduler_.active_pins();
+    const bool synthesis = pins.engine == hardware::PinPlan::Engine::I2c;
+    const auto& boot_si = scheduler_.active_si5351();
+    const auto boot_drive =
+        synthesis ? (boot_si ? boot_si->synthesis.drive_ma : 0) : scheduler_.active_gpio_drive_ma();
+    const auto saved_drive =
+        !saved_config ? "null"
+        : synthesis
+            ? (saved_config->si5351 ? std::to_string(saved_config->si5351->synthesis.drive_ma)
+                                    : "null")
+            : std::to_string(saved_config->gpio_drive_ma);
+    const bool matched_profile = synthesis && boot_si &&
+                                 hardware::si5351_ordinary_qualified(
+                                     pins, *boot_si, rf::sample_rate, scheduler_.active_filters());
+    const std::optional<rf::si5351::Configuration> boot_synthesis =
+        synthesis && boot_si ? std::optional(boot_si->synthesis) : std::nullopt;
     if (!test_tone_.supported())
         return http_error(409, "test_tone_unavailable");
     if (!wtp::memory_admitted(16'384))
@@ -136,8 +202,9 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
             ",\"receipt\":" + quote(result.record ? "known" : "receipt_unavailable") +
             ",\"job\":" + (result.record ? record_json(*result.record) : "null") +
             ",\"observation_monotonic_ns\":" + number(service_.clock_snapshot().monotonic_now_ns) +
-            ",\"current\":{\"saved_drive_ma\":" + saved_drive +
-            ",\"boot_drive_ma\":" + std::to_string(scheduler_.active_gpio_drive_ma()) +
+            ",\"current\":{\"engine\":" + quote(engine_name(pins.engine)) +
+            ",\"saved_drive_ma\":" + saved_drive +
+            ",\"boot_drive_ma\":" + std::to_string(boot_drive) +
             ",\"output_active\":" + boolean(current.output_active) +
             ",\"owned\":" + boolean(current.owned) +
             ",\"native_state\":" + quote(wtp::state_name(current.state)) + "}}";
@@ -186,7 +253,7 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
     }
     const auto tone = *root->get("tone");
     const auto drive_key = review ? "proposed_drive_ma" : "expected_drive_ma";
-    if (!fields(tone, {"carrier_hz", "duration_ms", drive_key}))
+    if (!fields(tone, {"engine", "carrier_hz", "duration_ms", drive_key}))
         return http_error(400, "invalid_tone");
     application::TestToneProposal proposal;
     std::uint64_t drive;
@@ -194,6 +261,12 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
         !integer(*tone.get("duration_ms"), proposal.duration_ms) ||
         !integer(*tone.get(drive_key), drive) || drive > UINT_MAX)
         return http_error(400, "invalid_tone_integer");
+    const auto requested_engine = tone.get("engine");
+    if (requested_engine->type() != '"' ||
+        (requested_engine->string() != "pio-dma-gp2" && requested_engine->string() != "si5351"))
+        return http_error(400, "invalid_tone_engine");
+    proposal.engine = requested_engine->string() == "si5351" ? hardware::PinPlan::Engine::I2c
+                                                             : hardware::PinPlan::Engine::Direct;
     proposal.proposed_drive_ma = static_cast<unsigned>(drive);
     if (start) {
         if (!wtp::json::identifier(*root->get("request_id")))
@@ -215,21 +288,22 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
                            : assessed.admission == application::TestToneAdmission::RequiresRestart
                                ? "requires_restart"
                                : "refused";
-    const auto& pins = scheduler_.active_pins();
     const auto clock = service_.clock_snapshot();
     response.body =
         "{\"schema\":\"test-tone-review\",\"target\":" + application::target(device_, boot) +
         ",\"assessment_revision\":" + quote(revision()) + ",\"admission\":" + quote(admission) +
         ",\"reasons\":" + reasons +
+        ",\"minimum_duration_ms\":" + std::to_string(assessed.minimum_duration_ms) +
         ",\"maximum_duration_ms\":" + std::to_string(assessed.maximum_duration_ms) +
         ",\"proposed_drive_ma\":" + std::to_string(proposal.proposed_drive_ma) +
-        ",\"saved_drive_ma\":" + saved_drive +
-        ",\"boot_drive_ma\":" + std::to_string(scheduler_.active_gpio_drive_ma()) +
+        ",\"saved_drive_ma\":" + saved_drive + ",\"boot_drive_ma\":" + std::to_string(boot_drive) +
         ",\"requires_restart\":" +
-        boolean(scheduler_.reboot_required() ||
-                proposal.proposed_drive_ma != scheduler_.active_gpio_drive_ma()) +
+        boolean(scheduler_.reboot_required() || proposal.proposed_drive_ma != boot_drive) +
         ",\"rf_pin\":" + (pins.rf ? std::to_string(*pins.rf) : "null") +
-        ",\"engine\":\"pio-dma-gp2\",\"realization\":" + realization(assessed) +
+        ",\"engine\":" + quote(engine_name(pins.engine)) +
+        synthesis_identity(boot_synthesis, service_.config().capability_engine) +
+        ",\"profile_id\":" + (matched_profile ? quote(hardware::si5351_support::id) : "null") +
+        ",\"realization\":" + realization(assessed, synthesis) +
         ",\"clock_assumptions\":{\"state\":" +
         quote(clock.state == wtp::ClockState::Synchronized ? "synchronized"
               : clock.state == wtp::ClockState::Holdover   ? "holdover"

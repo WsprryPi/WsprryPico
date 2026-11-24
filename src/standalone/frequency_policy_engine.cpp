@@ -20,9 +20,9 @@ const char* FrequencyPolicyEngine::frequency_refusal(std::uint64_t frequency) co
                ? "non_amateur_frequency_not_permitted"
                : "unqualified_frequency_not_permitted";
 }
-FrequencyPolicyEngine::DirectToneAssessment
+FrequencyPolicyEngine::ToneAssessment
 FrequencyPolicyEngine::assess_direct_tone(std::uint64_t frequency) const {
-    DirectToneAssessment result;
+    ToneAssessment result;
     if (!store_.healthy()) {
         result.refusal = "storage_fault";
         return result;

@@ -13,6 +13,7 @@ namespace wsprrypico::rf::si5351 {
 // AN619 rev. 0.8 register arithmetic, implemented independently. These plans
 // describe synthesis, never measured timing, lock, electrical safety or RF.
 // Execution and pure tone assessment use one numerical admission/report policy.
+inline constexpr std::uint64_t execution_minimum_transition_ns = 10'000'000;
 inline constexpr long double execution_frequency_error_hz = 0.001L;
 inline constexpr std::uint64_t frequency_reporting_guard_nhz = 1024;
 inline constexpr std::uint64_t minimum_output_hz = 8'000;

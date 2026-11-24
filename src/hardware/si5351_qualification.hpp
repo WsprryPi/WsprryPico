@@ -13,7 +13,7 @@ inline bool si5351_profile_matches(const PinPlan& pins, const Si5351Settings& se
            s.reference_hz == si5351_support::reference_hz &&
            s.reference == rf::si5351::Reference::ExternalXa &&
            static_cast<unsigned>(s.transmit) == si5351_support::transmit_output &&
-           s.drive_ma == si5351_support::drive_ma && !settings.gate &&
+           si5351_support::supports_drive(s.drive_ma) && !settings.gate &&
            (!s.loopback || (static_cast<unsigned>(*s.loopback) == si5351_support::loopback_output &&
                             settings.loopback_input == si5351_support::loopback_input_gp)) &&
            validate_si5351(pins, settings, 0, filters).valid();

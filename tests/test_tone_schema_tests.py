@@ -32,6 +32,18 @@ for key, value in [('carrier_hz', 5366200.5), ('duration_ms', 120001),
     changed = copy.deepcopy(job)
     changed['job'][key] = value
     assert not validator.is_valid(changed)
+for document in documents:
+    if 'test_tone' in document:
+        changed = copy.deepcopy(document)
+        changed['test_tone']['active_engine'] = 'si5351' if document['test_tone']['active_engine'] != 'si5351' else 'pio-dma-gp2'
+        assert not validator.is_valid(changed)
+    if document.get('schema') == 'test-tone-status' and document.get('job', {}).get('engine') == 'si5351':
+        changed = copy.deepcopy(document)
+        changed['job']['realization']['nominal_sample_hz'] = 138000000
+        assert not validator.is_valid(changed)
+        changed = copy.deepcopy(document)
+        changed['job']['pad_readback'] = documents[2]['job']['pad_readback']
+        assert not validator.is_valid(changed)
 assert not any('test-tone' in value for value in schema['public_resources'])
 assert not any('test-tone' in value for names in schema['controller_adapter']['pico_routes'].values() for value in names)
 print('PASS current Test Tone schema, descriptors, and authority boundaries')

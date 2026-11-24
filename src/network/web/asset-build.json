@@ -8,8 +8,8 @@
       "inputs": {
         "locked-controls.js": "17d657eb75f51f840f320fefd8cc6c7f98ee2ca9fb36d42b741b7b05ad091320",
         "submission.js": "aa43e47fe56d85ab10164e90e2a8f9c95ffa18e5c22fb59fea407fb313d526fd",
-        "control-contract.js": "a916e0025ad32e6f4cf84d25c3ec3386a48bcc484253098bae98c9ca0531d7d3",
-        "si5351.js": "c0325caa6eebb5281bfa92843011312dd9fb87d5adaed86a5bebb7c6a001e889",
+        "control-contract.js": "32083bf484cf47f926f4e3937ed2688be7c0bd42b5b6576ac5cb0bb7b245051b",
+        "si5351.js": "b9a7cb6328bde5efb6fc3da0adec4747a39ff2ddf9a5ba7a0f059c423460e308",
         "gps.js": "1d9a53e7e89aa6e12da1c73c65229998d9f10bf2a290185e258bf7db2bc5ad29",
         "gray-line.js": "42c8a8a58959c96aeaa2f7cbf5beb23dd437e270f99c1d60f13aade7daa49c1b",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
@@ -26,8 +26,8 @@
         "message-schedule.js": "eee46ee321424f4d7834b9ef785bafd1bdbf89800d83904bb4880fc9edfb85bf",
         "app.js": "6c55a8522641211c551808b4a74705f3c99439e7b3994f2c8cf890c28f9be565"
       },
-      "sha256": "f2c41729d570af40bef160c179773c000f89c98da7f423b8a8107f511df59c7d",
-      "bytes": 370925
+      "sha256": "60a11d16fb59b01a9ac61d9248f8ba6acc3ec318cd6ec017a7c2d58340e30678",
+      "bytes": 371344
     },
     "config-validation.min.js": {
       "inputs": {

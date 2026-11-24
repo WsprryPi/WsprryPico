@@ -875,7 +875,10 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
         (!store_.config() || !store_.config()->wspr_dial_frequency_hz))
         config->enabled = false; // First Console selection also requires deliberate enablement.
     const bool drive_write = purpose == ConfigPurpose::Drive;
-    if (!drive_write && config->callsign.empty() && config->locator.empty())
+    const bool synthesis_settings = purpose == ConfigPurpose::Hardware && store_.config() &&
+                                    config->pins.engine == hardware::PinPlan::Engine::I2c &&
+                                    config->si5351 && !config->enabled;
+    if (!drive_write && !synthesis_settings && config->callsign.empty() && config->locator.empty())
         return error("invalid_station");
     const bool hardware_write = purpose == ConfigPurpose::Hardware || drive_write;
     const bool first_drive = drive_write && !store_.config();

@@ -51,14 +51,14 @@ const control=globalThis.WsprryControl;
 const descriptor=structuredClone(control.descriptors.si5351);
 assert.equal(si.profileDescription({...descriptor.ordinary_profile,qualified:false}),'');
 const profileText=si.profileDescription({...descriptor.ordinary_profile,qualified:true});
-for(const term of ['QRP Labs Rev. 6','25 MHz TCXO into XA','SDA GP4 / SCL GP5','CLK0 at 8 mA','None or CLK2 to GP7','Independent RF gate: None wired','138 MHz']) assert(profileText.includes(term),term);
+for(const term of ['QRP Labs Rev. 6','25 MHz TCXO into XA','SDA GP4 / SCL GP5','CLK0 at 2/4/6/8 mA','None or CLK2 to GP7','Independent RF gate: None wired','138 MHz']) assert(profileText.includes(term),term);
 const ordinary=JSON.parse(execFileSync(process.argv[2],['--qualified-samples'],{encoding:'utf8'}));
 assert(si.readback(ordinary,ordinary.target),'actual producer ordinary-profile readback');
 assert.equal(ordinary.physically_qualified,descriptor.ordinary_profile.qualified);
 assert.equal(ordinary.runtime.engineering_enabled,false);
 if (ordinary.physically_qualified) {
   assert.equal(ordinary.execution_engine,'si5351');
-  for(const change of [v=>v.qualification.profile_id='other',v=>v.qualification.system_clock_hz=132000000,v=>v.qualification.i2c_pair=0,v=>v.boot_active.drive_ma=4,v=>v.runtime.engineering_enabled=true]) {
+  for(const change of [v=>v.qualification.profile_id='other',v=>v.qualification.system_clock_hz=132000000,v=>v.qualification.i2c_pair=0,v=>v.boot_active.drive_ma=12,v=>v.runtime.engineering_enabled=true]) {
     const bad=structuredClone(ordinary);change(bad);assert(!si.readback(bad,bad.target),'qualification mismatch refused');
   }
 } else assert.equal(ordinary.execution_engine,'si5351-inhibited');

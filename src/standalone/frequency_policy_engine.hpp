@@ -54,7 +54,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         std::uint64_t generation, observed_raw_ns;
         std::uint32_t uncertainty_ppb;
     };
-    struct DirectToneAssessment {
+    struct ToneAssessment {
         std::string_view refusal;
         std::optional<CorrectionSnapshot> correction;
         std::optional<std::uint32_t> increment;
@@ -62,7 +62,7 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     };
     // Numerical/policy assessment only: no engine methods, calibration freeze,
     // filter preparation, GPIO access, or journal writes.
-    DirectToneAssessment assess_direct_tone(std::uint64_t frequency_nhz) const;
+    ToneAssessment assess_direct_tone(std::uint64_t frequency_nhz) const;
     struct SynthesisToneAssessment {
         std::string_view refusal;
         std::optional<CorrectionSnapshot> correction;

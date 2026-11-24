@@ -17,15 +17,34 @@ TestToneReview review_test_tone(const TestToneProposal& proposal, const TestTone
     result.maximum_duration_ms =
         std::min({test_tone_maximum_duration_ms, limits.max_job_duration_ns / millisecond,
                   rf::max_duration_ns / millisecond});
-    if (!standalone::valid_gpio_drive(proposal.proposed_drive_ma))
+    const bool synthesis = context.boot_pins.engine == hardware::PinPlan::Engine::I2c;
+    result.minimum_duration_ms =
+        synthesis ? rf::si5351::execution_minimum_transition_ns / millisecond : 1;
+    if (proposal.engine != context.boot_pins.engine)
+        refuse("engine_mismatch");
+    const auto valid_drive = [&](unsigned drive) {
+        return synthesis ? drive == 2 || drive == 4 || drive == 6 || drive == 8
+                         : standalone::valid_gpio_drive(drive);
+    };
+    if (proposal.engine != context.boot_pins.engine)
+        refuse("engine_mismatch");
+    if (!valid_drive(proposal.proposed_drive_ma))
         refuse("invalid_gpio_drive");
-    if (!standalone::valid_gpio_drive(context.boot_drive_ma))
+    if (!valid_drive(context.boot_drive_ma))
         refuse("invalid_boot_drive");
-    if (!context.physical_direct || context.boot_pins.engine != hardware::PinPlan::Engine::Direct)
-        refuse("inactive_direct_engine");
-    if (!context.boot_pins.rf || !hardware::operational(context.boot_pins) ||
-        !hardware::validate(context.boot_pins).valid())
-        refuse("invalid_boot_pins");
+    if (synthesis) {
+        if (!context.physical_si5351 || !context.boot_si5351)
+            refuse("inactive_si5351_engine");
+        if (!context.boot_si5351 ||
+            !hardware::validate_si5351(context.boot_pins, *context.boot_si5351).valid())
+            refuse("invalid_boot_pins");
+    } else {
+        if (!context.physical_direct)
+            refuse("inactive_direct_engine");
+        if (!context.boot_pins.rf || !hardware::operational(context.boot_pins) ||
+            !hardware::validate(context.boot_pins).valid())
+            refuse("invalid_boot_pins");
+    }
     if (context.wspr_enabled || context.message_enabled)
         refuse("native_schedules_enabled");
     if (context.owned || context.busy)
@@ -43,7 +62,15 @@ TestToneReview review_test_tone(const TestToneProposal& proposal, const TestTone
         refuse("invalid_carrier");
     else {
         result.requested_nhz = proposal.carrier_hz * second;
-        result.frequency = policy.assess_direct_tone(*result.requested_nhz);
+        if (synthesis) {
+            const auto assessed =
+                policy.assess_si5351_tone(*result.requested_nhz, proposal.proposed_drive_ma);
+            result.frequency.refusal = assessed.refusal;
+            result.frequency.correction = assessed.correction;
+            result.frequency.programmed_nhz = assessed.programmed_nhz;
+            result.quantization_bound_nhz = assessed.numerical_bound_nhz;
+        } else
+            result.frequency = policy.assess_direct_tone(*result.requested_nhz);
         if (!result.frequency.refusal.empty())
             refuse(result.frequency.refusal);
         const auto outside_service = [&](std::uint64_t frequency) {
@@ -53,13 +80,14 @@ TestToneReview review_test_tone(const TestToneProposal& proposal, const TestTone
         if (outside_service(*result.requested_nhz) ||
             (result.frequency.programmed_nhz && outside_service(*result.frequency.programmed_nhz)))
             refuse("native_frequency_out_of_range");
-        if (result.frequency.programmed_nhz) {
+        if (!synthesis && result.frequency.programmed_nhz) {
             constexpr auto numerator = rf::sample_rate * second;
             constexpr auto denominator = 2ULL * (1ULL << 32);
             result.quantization_bound_nhz = (numerator + denominator - 1) / denominator + 1;
         }
     }
-    if (proposal.duration_ms == 0 || proposal.duration_ms > result.maximum_duration_ms)
+    if (proposal.duration_ms < result.minimum_duration_ms ||
+        proposal.duration_ms > result.maximum_duration_ms)
         refuse("invalid_duration");
     else {
         // Review a near-term whole-UTC-second native launch, not a client time

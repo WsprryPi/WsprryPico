@@ -1639,8 +1639,12 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                 break;
             }
             supplied = *root->get("config");
-            mode = effective_config() ? application::ConfigWrite::Merge
-                                      : application::ConfigWrite::Legacy;
+            // A Si5351 hardware patch can use persisted settings without
+            // granting an absent WSPR station any execution authority.
+            const bool synthesis_settings = supplied.get("si5351") && saved_settings() &&
+                                            json::fields(supplied, {}, {"pins", "si5351"});
+            mode = effective_config() || synthesis_settings ? application::ConfigWrite::Merge
+                                                            : application::ConfigWrite::Legacy;
         }
         if (config_update && json::fields(supplied, {"gpio_drive_ma"})) {
             auto apply = r;
@@ -1708,16 +1712,21 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     // prerequisites are absent (for example a legacy enabled schedule without
     // a dial). Validate the entire hardware candidate; never activate recurrence.
     const auto existing = effective_config();
+    const bool synthesis_settings = config_update && root->get("config")->get("si5351") &&
+                                    json::fields(*root->get("config"), {}, {"pins", "si5351"});
+    const auto hardware_existing = existing             ? existing
+                                   : synthesis_settings ? saved_settings()
+                                                        : std::nullopt;
     const bool hardware_write =
-        store_.config() && existing &&
+        store_.config() && hardware_existing &&
         (hardware_resource ||
          (config_update && json::fields(*root->get("config"), {}, {"pins", "si5351", "gps"})));
     if (hardware_write) {
         auto unchanged = *validated;
-        unchanged.pins = existing->pins;
-        unchanged.si5351 = existing->si5351;
-        unchanged.gps = existing->gps;
-        if (unchanged != *existing)
+        unchanged.pins = hardware_existing->pins;
+        unchanged.si5351 = hardware_existing->si5351;
+        unchanged.gps = hardware_existing->gps;
+        if (unchanged != *hardware_existing)
             return http_error(400, "invalid_hardware_update");
     }
     if (!hardware_write && !drive_resource && validated->enabled &&

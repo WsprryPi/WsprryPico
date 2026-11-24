@@ -21,7 +21,11 @@ struct TestToneRecord {
     TestToneProposal proposal;
     TestToneReview assessment;
     wtp::PadObservation pad;
-    unsigned rf_pin = 0;
+    std::optional<unsigned> rf_pin;
+    std::optional<rf::si5351::Configuration> synthesis_configuration;
+    wtp::SynthesisObservation synthesis;
+    std::string execution_engine;
+    bool matched_profile = false;
     wtp::State state = wtp::State::Loaded;
     wtp::ErrorCode error = wtp::ErrorCode::None;
     std::uint64_t accepted_ns = 0, ended_ns = 0, sequence = 0;
@@ -59,6 +63,8 @@ class TestTone {
     void poll();
 
   private:
+    TestToneContext context(bool mutation_pending) const;
+    unsigned boot_drive() const;
     static void terminal(const wtp::TerminalRecord&, void*);
     wtp::Response command(std::string_view, wtp::RequestBody = {});
     void settle(TestToneRecord&, wtp::State, wtp::ErrorCode, bool inactive, std::uint64_t);

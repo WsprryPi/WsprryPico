@@ -403,11 +403,11 @@ void test_tone_field_reconnect() {
     };
     auto cookie = login();
     const auto target = application::target(device, f.service.status(false).boot_id);
-    auto start = request(
-        "POST", "/api/control/v1/test-tone/start",
-        "{\"schema\":\"test-tone-start\",\"target\":" + target + ",\"request_id\":\"" +
-            std::string(32, '6') +
-            "\",\"tone\":{\"carrier_hz\":5366200,\"duration_ms\":1000,\"expected_drive_ma\":12}}");
+    auto start = request("POST", "/api/control/v1/test-tone/start",
+                         "{\"schema\":\"test-tone-start\",\"target\":" + target +
+                             ",\"request_id\":\"" + std::string(32, '6') +
+                             "\",\"tone\":{\"engine\":\"pio-dma-gp2\",\"carrier_hz\":5366200,"
+                             "\"duration_ms\":1000,\"expected_drive_ma\":12}}");
     start.headers["if-match"] = f.browser.revision();
     start.headers["cookie"] = cookie;
     const auto accepted = send(start);

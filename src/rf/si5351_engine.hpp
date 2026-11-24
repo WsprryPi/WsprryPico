@@ -85,7 +85,7 @@ class Engine final : public wtp::RfEngine {
   private:
     static constexpr std::uint64_t preparation_budget_ns = 60'000'000;
     static constexpr std::uint64_t transition_budget_ns = 8'000'000;
-    static constexpr std::uint64_t minimum_transition_ns = 10'000'000;
+    static constexpr std::uint64_t minimum_transition_ns = execution_minimum_transition_ns;
     static constexpr std::uint64_t chain_service_margin_ns = 1'000'000;
     bool initialize();
     bool fail(std::string_view, wtp::EngineState = wtp::EngineState::Failed);

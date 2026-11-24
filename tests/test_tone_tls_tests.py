@@ -49,11 +49,11 @@ with process_scope(timeout=45):
     _, _, observations = http('/api/control/v1/ntp-observations')
     target = observations['target']
     status, headers, review = http(prefix+'review', {'schema':'test-tone-review', 'target':target,
-        'tone':{'carrier_hz':5366200, 'duration_ms':120000, 'proposed_drive_ma':12}})
+        'tone':{'engine':'pio-dma-gp2', 'carrier_hz':5366200, 'duration_ms':120000, 'proposed_drive_ma':12}})
     assert status == 200 and review['admission'] == 'ready'
     assert review['realization']['requested_nhz'] == '5366200000000000'
     request = {'schema':'test-tone-start', 'target':target, 'request_id':'1'*32,
-        'tone':{'carrier_hz':5366200, 'duration_ms':120000, 'expected_drive_ma':12}}
+        'tone':{'engine':'pio-dma-gp2', 'carrier_hz':5366200, 'duration_ms':120000, 'expected_drive_ma':12}}
     original_revision = review['assessment_revision']
     status, _, accepted = http(prefix+'start', request, original_revision)
     assert status == 202 and accepted['job']['phase'] == 'accepted'

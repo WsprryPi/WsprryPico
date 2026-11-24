@@ -87,7 +87,7 @@ void qualification_scope() {
     pins.rf.reset();
     pins.i2c_pair = 1;
     auto s = settings();
-    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.drive_ma = 8;
     REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000));
     REQUIRE(!hardware::si5351_profile_matches(pins, s, 132'000'000));
     pins.i2c_pair = 2;
@@ -96,14 +96,15 @@ void qualification_scope() {
     for (const unsigned ma : {2, 4, 6, 8}) {
         s.synthesis.drive_ma = ma;
         REQUIRE(hardware::validate_si5351_settings(s).empty());
-        REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000) == (ma == 8));
+        REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000) ==
+                (ma == 2 || ma == 4 || ma == 6 || ma == 8));
     }
     s = settings();
-    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.drive_ma = 8;
     s.synthesis.reference_hz = 27'000'000;
     REQUIRE(!hardware::si5351_profile_matches(pins, s, 138'000'000));
     s = settings();
-    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.drive_ma = 8;
     s.synthesis.loopback.reset();
     s.loopback_input.reset();
     REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000));
@@ -198,7 +199,7 @@ int main(int argc, char** argv) {
         config.si5351 = settings();
         const bool matched_profile = std::string_view(argv[1]) == "--qualified-samples";
         if (matched_profile)
-            config.si5351->synthesis.drive_ma = hardware::si5351_support::drive_ma;
+            config.si5351->synthesis.drive_ma = 8;
         REQUIRE(f.store.save(config));
         const auto service_policy = standalone::wtp_profile(
             matched_profile, standalone::default_ntp_timeout_s,

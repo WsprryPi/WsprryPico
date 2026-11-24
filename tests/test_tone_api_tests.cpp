@@ -4,6 +4,7 @@
 #include "network/test_tone_query.hpp"
 #include "network_support.hpp"
 #include "rf/waveform.hpp"
+#include "si5351_test_tone_fixture.hpp"
 #include "usb/management_endpoint.hpp"
 
 #include <fstream>
@@ -100,8 +101,8 @@ struct Fixture {
     std::string review_body(std::string carrier = "5366200", std::string duration = "1000",
                             std::string drive = "12") {
         return "{\"contract\":\"Wsprry-Control/1\",\"schema\":\"test-tone-review\",\"target\":" +
-               target() + ",\"tone\":{\"carrier_hz\":" + carrier + ",\"duration_ms\":" + duration +
-               ",\"proposed_drive_ma\":" + drive + "}}";
+               target() + ",\"tone\":{\"engine\":\"pio-dma-gp2\",\"carrier_hz\":" + carrier +
+               ",\"duration_ms\":" + duration + ",\"proposed_drive_ma\":" + drive + "}}";
     }
     std::string start_body(std::string id = std::string(32, '1'), std::string duration = "1000",
                            unsigned drive = 12) {
@@ -477,8 +478,10 @@ void carriers_and_documents(const char* output) {
         std::ofstream stream(output);
         const auto caps = f.send(f.request("GET", "/api/control/v1/capabilities"));
         stream << '[' << caps.body_text() << ',' << f.review().body_text() << ','
-               << accepted.body_text() << ',' << read.body_text() << ',' << stopped.body_text()
-               << ']';
+               << accepted.body_text() << ',' << read.body_text() << ',' << stopped.body_text();
+        for (const auto& document : synthesis_tone_test::exercise())
+            stream << ',' << document;
+        stream << ']';
     }
 }
 } // namespace
@@ -491,6 +494,8 @@ int main(int argc, char** argv) {
     maintenance_reconciliation();
     validation();
     usb_framing_reconnect();
+    if (argc <= 1)
+        (void)synthesis_tone_test::exercise();
     carriers_and_documents(argc > 1 ? argv[1] : nullptr);
     std::cout << "PASS Test Tone API: drives, native expiry, lost replies, exact Stop, faults, "
                  "schemas, USB scope\n";

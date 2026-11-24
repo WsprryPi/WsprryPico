@@ -163,7 +163,7 @@
       "i2c_hz": 100000,
       "completion_control_timeout_ns": "8000000",
       "ordinary_profile": {
-        "id": "qrp-labs-rev6-25mhz-clk0-8ma",
+        "id": "qrp-labs-rev6-25mhz-clk0",
         "qualified": true,
         "system_clock_hz": 138000000,
         "i2c_pair": 1,
@@ -172,7 +172,12 @@
         "reference_source": "external_xa",
         "crystal_load_pf": null,
         "transmit_output": 0,
-        "drive_ma": 8,
+        "drive_ma": [
+          2,
+          4,
+          6,
+          8
+        ],
         "loopback_output": 2,
         "loopback_input_gp": 7,
         "allow_none": true,
@@ -374,6 +379,54 @@
       "max_period_s": 86400,
       "max_storage_bytes": 1984,
       "preparation_lead_ns": "2000000000"
+    },
+    "test_tone": {
+      "schema": "test-tone",
+      "review": "/api/control/v1/test-tone/review",
+      "start": "/api/control/v1/test-tone/start",
+      "status": "/api/control/v1/test-tone/status",
+      "stop": "/api/control/v1/test-tone/stop",
+      "review_method": "POST",
+      "start_method": "POST",
+      "status_method": "GET",
+      "stop_method": "POST",
+      "carrier_units": "Hz",
+      "carrier_reference": "absolute",
+      "duration_units": "ms",
+      "drive_activation": "restart",
+      "terminal_capacity": 8,
+      "terminal_retention_ns": "3600000000000",
+      "status_selector": "device_boot_and_exactly_one_request_or_job",
+      "start_revision": "current_admission",
+      "stop_revision": "identified_job",
+      "reauthentication": "same_authority_generation",
+      "engines": {
+        "pio-dma-gp2": {
+          "drive_ma": [
+            2,
+            4,
+            8,
+            12
+          ],
+          "minimum_duration_ms": 1,
+          "verification": "sdk_pad"
+        },
+        "si5351": {
+          "drive_ma": [
+            2,
+            4,
+            6,
+            8
+          ],
+          "minimum_duration_ms": 10,
+          "verification": "register_readback"
+        }
+      },
+      "available": false,
+      "active_engine": null,
+      "minimum_duration_ms": 0,
+      "maximum_duration_ms": 120000,
+      "output_disable_timeout_ns": "100000000"
     },
     "schedule_stop": {
       "schema": "schedule-stop",

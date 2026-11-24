@@ -24,7 +24,7 @@ if profile['qualified']:
                                             system_clock_hz=profile['system_clock_hz'],
                                             i2c_pair=profile['i2c_pair'])
     for change in (
-        lambda v: v['boot_active'].update(drive_ma=4),
+        lambda v: v['boot_active'].update(drive_ma=12),
         lambda v: v['boot_active'].update(reference_hz=27000000),
         lambda v: v['boot_active'].update(transmit_output=1),
         lambda v: v['qualification'].update(profile_id='other'),

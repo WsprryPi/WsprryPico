@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "application/test_tone.hpp"
 
+#include "hardware/si5351_qualification.hpp"
 #include "wtp/memory_budget.hpp"
 
 namespace wsprrypico::application {
@@ -29,10 +30,23 @@ TestToneReview TestTone::review(const TestToneProposal& proposal, bool pending) 
         result.refusals[result.refusal_count++] = "test_tone_unavailable";
         return result;
     }
+    return review_test_tone(proposal, context(pending), *policy_, service_.config(),
+                            service_.clock_snapshot());
+}
+unsigned TestTone::boot_drive() const {
+    const auto& si = scheduler_.active_si5351();
+    return scheduler_.active_pins().engine == hardware::PinPlan::Engine::I2c
+               ? (si ? si->synthesis.drive_ma : 0)
+               : scheduler_.active_gpio_drive_ma();
+}
+TestToneContext TestTone::context(bool pending) const {
     const auto activity = service_.activity();
     TestToneContext context;
     context.boot_pins = scheduler_.active_pins();
-    context.boot_drive_ma = scheduler_.active_gpio_drive_ma();
+    context.boot_drive_ma = boot_drive();
+    context.boot_si5351 = scheduler_.active_si5351();
+    context.physical_si5351 = service_.config().capability_engine == "si5351" ||
+                              service_.config().capability_engine == "si5351-engineering";
     context.physical_direct = service_.config().capability_engine == "pio-dma-gp2";
     context.wspr_enabled = store_.config() && store_.config()->enabled;
     context.message_enabled = store_.message_schedule() && store_.message_schedule()->enabled;
@@ -46,18 +60,20 @@ TestToneReview TestTone::review(const TestToneProposal& proposal, bool pending) 
     context.restart_required = scheduler_.reboot_required();
     // A drive-only restart latch must not suppress a numerical projection.
     const auto& config = store_.config();
+    auto saved_si5351 = config ? config->si5351 : std::nullopt;
+    if (saved_si5351 && context.boot_si5351)
+        saved_si5351->synthesis.drive_ma = context.boot_si5351->synthesis.drive_ma;
     context.other_hardware_pending =
         config &&
         (config->pins != context.boot_pins ||
          config->amplifier_timing != scheduler_.active_amplifier_timing() ||
-         config->si5351 != scheduler_.active_si5351() || config->gps != scheduler_.active_gps() ||
+         saved_si5351 != scheduler_.active_si5351() || config->gps != scheduler_.active_gps() ||
          store_.filters() != scheduler_.active_filters());
     context.recovery_inhibited =
         service_.output_inhibited() && !scheduler_.hardware_restart_required();
     context.preparation_lead_ns = scheduler_.message_lead_ns();
     context.start_resolution_ns = service_.start_resolution_ns();
-    return review_test_tone(proposal, context, *policy_, service_.config(),
-                            service_.clock_snapshot());
+    return context;
 }
 wtp::Response TestTone::command(std::string_view operation, wtp::RequestBody body) {
     if (native_sequence_ == UINT64_MAX) {
@@ -78,10 +94,19 @@ wtp::Response TestTone::command(std::string_view operation, wtp::RequestBody bod
         const auto* record = find(arm->job_id, true);
         return service_.handle_internal(
             std::move(request),
-            [](const wtp::PadObservation& pad, const wtp::SynthesisObservation&,
+            [](const wtp::PadObservation& pad, const wtp::SynthesisObservation& synthesis,
                const void* context) {
                 const auto* record = static_cast<const TestToneRecord*>(context);
-                return record && pad.epoch && pad.rf_pin == int(record->rf_pin) &&
+                if (!record)
+                    return false;
+                if (record->synthesis_configuration) {
+                    const auto& c = *record->synthesis_configuration;
+                    return synthesis.epoch &&
+                           synthesis.transmit_output == static_cast<int>(c.transmit) &&
+                           synthesis.drive_ma == int(record->proposal.proposed_drive_ma) &&
+                           synthesis.reference_hz == c.reference_hz;
+                }
+                return record->rf_pin && pad.epoch && pad.rf_pin == int(*record->rf_pin) &&
                        pad.drive_ma == int(record->proposal.proposed_drive_ma);
             },
             record);
@@ -177,7 +202,7 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
     if (auto* record = find(request, false)) {
         if (!(record->authority == authority))
             return {nullptr, "foreign_authority"};
-        if (record->admission_revision != match ||
+        if (record->admission_revision != match || record->proposal.engine != proposal.engine ||
             record->proposal.carrier_hz != proposal.carrier_hz ||
             record->proposal.duration_ms != proposal.duration_ms ||
             record->proposal.proposed_drive_ma != proposal.proposed_drive_ma)
@@ -190,7 +215,9 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
         return {nullptr, "revision_conflict"};
     if (!authority.valid())
         return {nullptr, "invalid_authority"};
-    if (proposal.proposed_drive_ma != scheduler_.active_gpio_drive_ma())
+    if (proposal.engine != scheduler_.active_pins().engine)
+        return {nullptr, "engine_mismatch"};
+    if (proposal.proposed_drive_ma != boot_drive())
         return {nullptr, "boot_drive_mismatch"};
     const auto assessment = review(proposal, pending);
     if (assessment.admission != TestToneAdmission::Ready)
@@ -221,7 +248,14 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
     record.authority = authority;
     record.request_id = request;
     record.job_id = job.job_id;
-    record.rf_pin = *scheduler_.active_pins().rf;
+    record.rf_pin = scheduler_.active_pins().rf;
+    record.execution_engine = service_.config().capability_engine;
+    if (proposal.engine == hardware::PinPlan::Engine::I2c) {
+        record.synthesis_configuration = scheduler_.active_si5351()->synthesis;
+        record.matched_profile = hardware::si5351_ordinary_qualified(
+            scheduler_.active_pins(), *scheduler_.active_si5351(), rf::sample_rate,
+            scheduler_.active_filters());
+    }
     record.proposal = proposal;
     record.assessment = assessment;
     record.admission_revision = match;
@@ -249,10 +283,8 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
             if (policy_)
                 accepted.assessment.frequency.correction = policy_->prepared_correction();
             // Preparation may have consumed lead time. Pick the launch again now.
-            const auto launch = review_test_tone(
-                proposal,
-                TestToneContext{scheduler_.active_pins(), scheduler_.active_gpio_drive_ma(), true},
-                *policy_, service_.config(), service_.clock_snapshot());
+            const auto launch = review_test_tone(proposal, context(false), *policy_,
+                                                 service_.config(), service_.clock_snapshot());
             if (!launch.launch_utc_ns) {
                 result.ok = false;
                 result.error = launch.clock_error;
@@ -261,6 +293,7 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
                 result = command("ARM", wtp::ArmBody{accepted.job_id, *launch.launch_utc_ns,
                                                      service_.config().maximum_arm_uncertainty_ns});
                 accepted.pad = service_.execution_pad(accepted.job_id);
+                accepted.synthesis = service_.execution_synthesis(accepted.job_id);
                 if (result.ok)
                     accepted.assessment.launch_monotonic_ns = result.start_monotonic_ns;
             }

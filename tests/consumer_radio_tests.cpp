@@ -286,10 +286,10 @@ void tone_reconnect_authority() {
     t.login(__LINE__);
     const auto target =
         application::target(std::string(32, 'a'), t.fixture.service.status(false).boot_id);
-    const auto start =
-        "{\"schema\":\"test-tone-start\",\"target\":" + target + ",\"request_id\":\"" +
-        std::string(32, '9') +
-        "\",\"tone\":{\"carrier_hz\":5366200,\"duration_ms\":120000,\"expected_drive_ma\":12}}";
+    const auto start = "{\"schema\":\"test-tone-start\",\"target\":" + target +
+                       ",\"request_id\":\"" + std::string(32, '9') +
+                       "\",\"tone\":{\"engine\":\"pio-dma-gp2\",\"carrier_hz\":5366200,\"duration_"
+                       "ms\":120000,\"expected_drive_ma\":12}}";
     auto accepted =
         t.call("POST", "/api/control/v1/test-tone/start", start, t.fixture.api.revision());
     assert(wtp::json::parse(accepted.body)->get("status")->integer() == 202);
