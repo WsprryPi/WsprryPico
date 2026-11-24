@@ -18,6 +18,42 @@ The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1
 
 For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**. The four RF tones surround dial +1,500 Hz, and every tone must fit the generator range and frequency permissions. On numeric engine limits alone, the normal 138 MHz engine allows dial values from 98503 through 68998496 Hz; frequency permissions also apply. The dial is a reference, not an emitted RF frequency.
 
+### Measured bare-GPIO power
+
+The following graphs show a bare **Pico 2 W GP2** sweep recorded on
+**24 November 2026 (UTC)** by Lee Bussy [AA0NT]. GP2 was connected through a
+coax adapter directly to an **HP 8482A power sensor** and **HP 437B power meter**,
+without an output filter, amplifier, or attenuator chain. The sweep covered
+13 frequency settings from **137,500 Hz to 50,294,500 Hz** at each of the
+**2, 4, 8, and 12 mA** GPIO drive settings, with two readings averaged per point.
+
+These are **meter-indicated power readings at the sensor input**, with the
+recorded sensor calibration factors applied. The unfiltered output includes
+harmonics, so the readings do not isolate power at the wanted frequency.
+No additional fixture-loss correction, uncertainty estimate, or baseline
+subtraction is included. The plots describe this measured setup; they do not
+establish guaranteed output power, filtered antenna power, or emissions compliance.
+
+![Meter-indicated bare GP2 power versus frequency setting, with separate curves for 2, 4, 8, and 12 mA GPIO drive. Power generally falls as frequency increases.](../_static/images/output/pico2w-bare-gpio-power-frequency.png)
+
+*Power versus frequency setting.* Band labels identify the requested test
+frequencies and are equally spaced; the horizontal axis is not a linear
+frequency scale. At 12 mA, the mean indication was **28.0 mW** at 475,700 Hz,
+**23.5 mW** at 14,097,100 Hz, and **14.2 mW** at 50,294,500 Hz.
+
+![Meter-indicated bare GP2 power versus the four GPIO drive settings, with one curve per tested band from 2200 m through 6 m. Higher drive increases indicated power, with a smaller increase from 8 to 12 mA.](../_static/images/output/pico2w-bare-gpio-power-drive.png)
+
+*Power versus GPIO drive setting.* Drive labels are equally spaced categories,
+not a linear current scale. Increasing drive raised the indication at every
+sampled frequency, with a smaller increase from 8 to 12 mA than from 4 to 8 mA.
+GPIO drive remains an electrical setting, not a calibrated RF-power control.
+
+The graphs are reproduced from the HP 437B Automation `report-revised-6`
+bare-GPIO report, record `b38bd9c81f104aa3bdb36ea952c14835` (52 completed
+points). Meter serial: `3125U22346`; sensor serial: `MY41094127`;
+sensor-correction profile: `8482a-MY41094127-20261015`. These measurements
+apply to direct GPIO output; the Si5351 results below use a separate RF path.
+
 ## Si5351 output
 
 Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](../configure.md#si5351-output-settings). RF comes from the module's CLK0 connector, rather than a Pico RF GPIO. The numeric synthesis range is **8 kHz–160 MHz**, subject to complete-plan validation; this is not qualification of every frequency or configuration in that range. Other module/reference/drive arrangements require an engineering build.
