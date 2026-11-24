@@ -18,7 +18,7 @@ The [CI execution contract](software-build-ci.md#execution-completeness-and-loca
 
 ## RF qualification
 
-The [Pico RF qualification guide](pico-rf-qualification.md) describes native execution, campaign coverage, measurement limits, installation and recovery duties, and historical evidence. The older external-WTP Harness workflow does not execute jobs on current firmware. Software checks remain separate from an exact-artifact physical campaign.
+The [Pico RF qualification guide](pico-rf-qualification.md) describes native execution, campaign coverage, measurement limits, installation and recovery duties, and evidence requirements. Software checks remain separate from an exact-artifact physical campaign.
 
 ## Deterministic validation
 
@@ -128,7 +128,7 @@ The opt-in [Si5351 bench diagnostics](../../tests/hardware/si5351-diagnostics.md
 
 The [Si5351 library and adapters](si5351.md) provide synthesis, register control, allocation, and reference-measurement calculations. Application selection, conditional controls, atomic persistence and capture integration are implemented. Ordinary transmission and reference activation support the qualified QRP Labs Rev. 6 / 25 MHz TCXO profile; other configurations require an explicit engineering build. Conducted mode results and their limits are recorded in the Si5351 guide.
 
-`scripts/usb_inventory.py` provides a read-only, explicitly selected USB Console and WTP inventory. `scripts/console_trace.py` reads bounded diagnostic pages; `scripts/network_trace.py` validates trace framing and identity offline, and `scripts/radio_capture.py` decodes radiotap/802.11 PCAP records offline. `scripts/gp14_diagnostics.py` drives the explicit button diagnostic image. Inspect an opt-in entry point before running it; normal software checks do not open devices.
+Use [USB management discovery and identity checks](../protocol/USB-Management.md) or the shared installer's documented discovery workflow for current images. `scripts/console_trace.py` reads bounded diagnostic pages; `scripts/network_trace.py` validates trace framing and identity offline, and `scripts/radio_capture.py` decodes radiotap/802.11 PCAP records offline. `scripts/gp14_diagnostics.py` drives the explicit button diagnostic image. Inspect an opt-in entry point before running it; normal software checks do not open devices.
 
 μChrony supplies UTC discipline and a persisted provisional clock rate. Optional [GPS/PPS input](gps-pps.md) uses its existing servo, with separate PPS-derived RF correction, position snapshots, and day/night policy. The [GPS/PPS validation record](gps-pps-validation.md) identifies completed checks, source/image provenance and remaining qualification. The [UTC/RF contract](clock-discipline.md) defines compatibility and the independent measurement boundary. NTP-derived RF calibration and the retired Pico-to-Pi GPIO pulse path remain unavailable.
 
