@@ -2,12 +2,20 @@
 
 One normal firmware image supports **Direct GPIO** and the qualified external **Si5351** setup. Select the RF engine in Radio pins.
 
+Both HP power sweeps report **meter-indicated power at the sensor input**, with
+sensor calibration factors applied. Because the unfiltered outputs include
+harmonics, the readings include power outside the wanted frequency. Neither
+sweep adds fixture-loss correction, uncertainty estimates, or baseline
+subtraction. These measurements describe the recorded setups and do not
+establish guaranteed output power, filtered antenna power, or emissions
+compliance.
+
 (gpio-drive-strength)=
 ## Direct GPIO output
 
-The direct engine generates **RF**, a radio-frequency signal, on the configured **GPIO output pin**. The factory selection is **GP2, physical pin 4**; see [hardware preparation](../start.md#hardware-connections) for wiring and other pin choices. The Pico uses a **138 MHz** system clock for this output.
+The direct engine generates a **radio-frequency (RF) signal** on the configured **GPIO output pin**. The factory selection is **GP2 (physical pin 4)**; see [hardware preparation](../start.md#hardware-connections) for wiring and other pin choices. The Pico uses a **138 MHz** system clock for this output.
 
-The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1,000 Hz; 1 MHz is 1,000,000 Hz.** That range does not mean every frequency inside it is enabled or suitable for transmission. The firmware also checks permissions for the selected band and frequency.
+The generator's numeric range is **100 kHz through 68,999,999 Hz**. **1 kHz is 1,000 Hz; 1 MHz is 1,000,000 Hz.** This range does not mean every frequency inside it is enabled or suitable for transmission. The firmware also checks band and frequency permissions for the selected setting.
 
 ### Band coverage
 
@@ -35,7 +43,7 @@ marks a band omitted from the sweep.
 | 4 m | — | Unavailable with direct GPIO in the normal 138 MHz firmware |
 | 2 m | — | Unavailable with direct GPIO output |
 
-For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**. The four RF tones surround dial +1,500 Hz, and every tone must fit the generator range and frequency permissions. On numeric engine limits alone, the normal 138 MHz engine allows dial values from 98503 through 68998496 Hz; frequency permissions also apply. The dial is a reference, not an emitted RF frequency.
+For standalone WSPR, enter the whole-Hz USB dial in **WSPR dial frequency (Hz)**. The four RF tones surround dial +1,500 Hz, and each tone must fit the generator range and frequency permissions. On numeric engine limits alone, the normal 138 MHz engine allows dial values from 98503 through 68998496 Hz. The dial is a reference, not an emitted RF frequency.
 
 ### Drive strength
 
@@ -49,7 +57,7 @@ use **12 mA**; settings-preserving upgrades retain the saved selection.
 | 8 mA | Bare-GPIO power sweep at all 13 sampled frequencies |
 | 12 mA | Bare-GPIO power sweep at all 13 sampled frequencies |
 
-Drive is not a calibrated RF-power control. See [Pins and drive](../configure.md#pins-and-drive)
+See [Pins and drive](../configure.md#pins-and-drive)
 for configuration and restart requirements.
 
 ### Measured bare-GPIO power
@@ -60,13 +68,6 @@ coax adapter directly to an **HP 8482A power sensor** and **HP 437B power meter*
 without an output filter, amplifier, or attenuator chain. The sweep covered
 13 frequency settings from **137,500 Hz to 50,294,500 Hz** at each of the
 **2, 4, 8, and 12 mA** GPIO drive settings, with two readings averaged per point.
-
-These are **meter-indicated power readings at the sensor input**, with the
-recorded sensor calibration factors applied. The unfiltered output includes
-harmonics, so the readings do not isolate power at the wanted frequency.
-No additional fixture-loss correction, uncertainty estimate, or baseline
-subtraction is included. The plots describe this measured setup; they do not
-establish guaranteed output power, filtered antenna power, or emissions compliance.
 
 ![Meter-indicated bare GP2 power versus frequency setting, with separate curves for 2, 4, 8, and 12 mA GPIO drive. Power generally falls as frequency increases.](../_static/images/output/pico2w-bare-gpio-power-frequency.png)
 
@@ -80,11 +81,10 @@ not a linear frequency scale. At 12 mA, the mean indication was **28.0 mW** at 4
 *Power versus GPIO drive setting.* Drive labels are equally spaced categories,
 not a linear current scale. Increasing drive raised the indication at every
 sampled frequency, with a smaller increase from 8 to 12 mA than from 4 to 8 mA.
-GPIO drive remains an electrical setting, not a calibrated RF-power control.
 
 ## Si5351 output
 
-Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](../configure.md#si5351-output-settings). RF comes from the module's CLK0 connector, rather than a Pico RF GPIO. The numeric synthesis range is **8 kHz–160 MHz**, subject to complete-plan validation; this is not qualification of every frequency or configuration in that range. Other module/reference/drive arrangements require an engineering build.
+Ordinary firmware supports the [qualified QRP Labs Rev. 6 / 25 MHz TCXO setup](../configure.md#si5351-output-settings). RF comes from the module's CLK0 connector, rather than a Pico RF GPIO. The numeric synthesis range is **8 kHz–160 MHz**, subject to complete-plan validation; this range does not qualify every frequency or configuration. Other module, reference, or drive arrangements require an engineering build.
 
 ### Band coverage
 
@@ -114,7 +114,12 @@ omitted from the power sweep.
 | 4 m | 70400000 | — | Disabled by default; requires explicit advanced experimental-frequency permission |
 | 2 m | 144490500 | 144490500 | Native Test Tone admits this exact carrier on the ordinary Si5351 profile by default. Other 2 m carriers and transmission modes require explicit advanced experimental-frequency permission. |
 
-Every transmission remains subject to the chosen frequency, RF setup, and operating privileges. The mode-test results apply to the recorded Pico C engineering image and QRP Labs Rev. 6 / 25 MHz TCXO setup, using CLK0 at **8 mA**. They qualify the sampled points under those test conditions, rather than complete band ranges or other module/reference/drive configurations. All three consecutive WSPR frames decoded the expected message at each point; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing.
+The mode tests used the recorded Pico C engineering image and QRP Labs
+Rev. 6 / 25 MHz TCXO setup, with CLK0 at **8 mA**. Three consecutive WSPR
+frames decoded the expected message at each sampled carrier. CW acceptance
+used human-readable marks and frequency states. These results apply to the
+sampled carriers and recorded configuration; they do not establish calibrated
+frequency, power, emissions, or absolute UTC timing.
 
 ### Drive strength
 
@@ -124,14 +129,13 @@ The settings offer **2, 4, 6, or 8 mA**; the recorded mode tests above used
 
 | Drive setting | Recorded test coverage |
 | --- | --- |
-| 2 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies |
-| 4 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies |
-| 6 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies |
-| 8 mA | Bare-Si5351 power sweep at all 14 power-sweep frequencies; conducted tone, WSPR, QRSS, FSKCW, and DFCW tests at all 17 mode-test frequencies |
+| 2 mA | Bare-Si5351 power sweep at all 14 sampled frequencies |
+| 4 mA | Bare-Si5351 power sweep at all 14 sampled frequencies |
+| 6 mA | Bare-Si5351 power sweep at all 14 sampled frequencies |
+| 8 mA | Bare-Si5351 power sweep at all 14 sampled frequencies; conducted tone, WSPR, QRSS, FSKCW, and DFCW tests at all 17 mode-test frequencies |
 
-Drive is not a calibrated RF-power control. See [Si5351 output settings](../configure.md#si5351-output-settings)
-for supported module, reference, drive, and restart requirements. The bare-GPIO
-power graphs do not measure Si5351 output power.
+See [Si5351 output settings](../configure.md#si5351-output-settings)
+for supported module, reference, drive, and restart requirements.
 
 ### Measured bare-Si5351 power
 
@@ -143,17 +147,9 @@ without an output filter, amplifier, or attenuator chain. The sweep covered
 14 frequency settings from **137,500 Hz to 144,490,500 Hz** at each of the
 **2, 4, 6, and 8 mA** Si5351 drive settings, with two readings averaged per point.
 
-On **60 m**, the HP power sweep used **5.366200 MHz**, and the mode tests
-used **5.288700 MHz**. On **40 m**, the HP power sweep used **7.040100 MHz**,
-and the mode tests used **7.050000 MHz**. The band table lists the RF carriers
-for both tests.
-
-These are **meter-indicated power readings at the sensor input**, with the
-recorded sensor calibration factors applied. The unfiltered output includes
-harmonics, so the readings do not isolate power at the wanted frequency.
-No additional fixture-loss correction, uncertainty estimate, or baseline
-subtraction is included. The plots describe this measured setup; they do not
-establish guaranteed output power, filtered antenna power, or emissions compliance.
+The HP power-sweep carriers were **5.366200 MHz** on 60 m and **7.040100 MHz**
+on 40 m. The mode-test carriers were **5.288700 MHz** and **7.050000 MHz**,
+respectively.
 
 ![Meter-indicated bare Si5351 CLK0 power versus frequency setting, with separate curves for 2, 4, 6, and 8 mA drive. Power generally falls as frequency increases.](../_static/images/output/pico2w-bare-si5351-power-frequency.png)
 
@@ -165,17 +161,22 @@ not a linear frequency scale. At 8 mA, the mean indication was **20.1 mW** at 47
 ![Meter-indicated bare Si5351 CLK0 power versus the four drive settings, with one curve per tested band from 2200 m through 2 m. Higher drive increases indicated power at every sampled frequency.](../_static/images/output/pico2w-bare-si5351-power-drive.png)
 
 *Power versus Si5351 drive setting.* Increasing drive raised the indication at
-every sampled frequency. The 2 m indication was lower than the other sampled
-bands at every drive setting. Si5351 drive remains an electrical setting,
-not a calibrated RF-power control.
+every sampled frequency. The indication at the 2 m carrier was lower than at
+the other sampled carriers at every drive setting.
 
 ## RF connections and permissions
 
-The band names in metres describe approximate radio wavelengths. They are not frequency entries for the browser's Hz fields. Use a frequency appropriate for your chosen mode and operating privileges.
+The band names in meters describe approximate radio wavelengths. They are not frequency entries for the browser's Hz fields. Use a frequency appropriate for your chosen mode and operating privileges.
 
 The RF output is **unfiltered**. It contains the wanted signal and unwanted frequencies, including **harmonics**, which are multiples of the intended frequency. Use a suitable output filter before connecting to an antenna. A **load** is the circuit or device receiving the output; use a suitable test load or measurement connection while checking the setup. **Attenuation** reduces signal level to suit the next device. Filtering, attenuation, the load, and any amplifier must suit the frequency and signal level.
 
-**Reported WSPR power** is the power value sent in the beacon message. **GPIO drive** selects the output pin's electrical drive setting: **2, 4, 8, or 12 mA**, with **12 mA** for a new installation. Settings-preserving upgrades retain the saved drive strength. Neither control measures RF power. Measure the actual output with suitable equipment; a received signal level alone is not a transmitter-power measurement. Recheck the RF setup when changing drive, frequency, filtering, or amplification. The [radio defaults table](defaults.md#radio-pins-and-filtering) also lists the initial pin, amplifier, and filtering selections.
+**Reported WSPR power** is the power value sent in the beacon message.
+**GPIO drive** and **Si5351 drive** select the electrical output drive strength.
+None of these settings measures RF power. Measure the actual output with
+suitable equipment, and recheck the RF setup after changing drive, frequency,
+filtering, or amplification. A received signal level alone is not a
+transmitter-power measurement. The [radio defaults table](defaults.md#radio-pins-and-filtering)
+lists the initial pin, amplifier, and filtering selections.
 
 The optional **amplifier-enable** output is a separate logic control signal. It stays active for an entire job, including message gaps, and becomes inactive when the job stops. It does not supply amplifier power. Before connecting amplifier control circuitry, check its [pin and polarity settings](../configure.md#pins-and-drive).
 
