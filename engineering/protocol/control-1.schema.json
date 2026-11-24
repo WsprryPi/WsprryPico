@@ -3959,6 +3959,200 @@
                         "mode",
                         "config"
                     ]
+                },
+                "saved": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "station": {
+                            "oneOf": [
+                                {
+                                    "$ref": "#/$defs/config-update/$defs/station"
+                                },
+                                {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                        "callsign",
+                                        "locator",
+                                        "power_dbm"
+                                    ],
+                                    "properties": {
+                                        "callsign": {
+                                            "const": ""
+                                        },
+                                        "locator": {
+                                            "const": ""
+                                        },
+                                        "power_dbm": {
+                                            "type": "integer",
+                                            "enum": [
+                                                0,
+                                                3,
+                                                7,
+                                                10,
+                                                13,
+                                                17,
+                                                20,
+                                                23,
+                                                27,
+                                                30,
+                                                33,
+                                                37,
+                                                40,
+                                                43,
+                                                47,
+                                                50,
+                                                53,
+                                                57,
+                                                60
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        "wifi": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "properties": {
+                                "ssid": {
+                                    "type": "string",
+                                    "maxLength": 32
+                                },
+                                "password": {
+                                    "type": "null"
+                                },
+                                "ntp_ipv4": {
+                                    "type": "string",
+                                    "minLength": 1,
+                                    "maxLength": 253
+                                }
+                            },
+                            "required": [
+                                "ssid",
+                                "password"
+                            ]
+                        },
+                        "schedules": {
+                            "type": "array",
+                            "maxItems": 8,
+                            "items": {
+                                "$ref": "#/$defs/config-update/$defs/schedule"
+                            }
+                        },
+                        "expires_utc_s": {
+                            "type": "integer",
+                            "oneOf": [
+                                {
+                                    "const": 0
+                                },
+                                {
+                                    "minimum": 1735689600,
+                                    "maximum": 2147483647
+                                }
+                            ]
+                        },
+                        "pins": {
+                            "$ref": "#/$defs/config-update/$defs/pins"
+                        },
+                        "allow_unqualified_frequency": {
+                            "type": "boolean"
+                        },
+                        "allow_non_amateur_frequency": {
+                            "type": "boolean"
+                        },
+                        "gpio_drive_ma": {
+                            "type": "integer",
+                            "enum": [
+                                2,
+                                4,
+                                8,
+                                12
+                            ]
+                        },
+                        "si5351": {
+                            "anyOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "$ref": "#/$defs/si5351-settings"
+                                }
+                            ]
+                        },
+                        "gps": {
+                            "anyOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "$ref": "#/$defs/gps-settings"
+                                }
+                            ]
+                        },
+                        "gray_line": {
+                            "$ref": "#/$defs/gray-line-settings"
+                        }
+                    },
+                    "required": [
+                        "enabled",
+                        "station",
+                        "wifi",
+                        "schedules",
+                        "gpio_drive_ma"
+                    ],
+                    "allOf": [
+                        {
+                            "if": {
+                                "properties": {
+                                    "station": {
+                                        "properties": {
+                                            "callsign": {
+                                                "const": ""
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            "then": {
+                                "properties": {
+                                    "enabled": {
+                                        "const": false
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                "read": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                        "contract",
+                        "config"
+                    ],
+                    "properties": {
+                        "contract": {
+                            "const": "Wsprry-Control/1"
+                        },
+                        "config": {
+                            "oneOf": [
+                                {
+                                    "type": "null"
+                                },
+                                {
+                                    "$ref": "#/$defs/config-update/$defs/saved"
+                                }
+                            ]
+                        },
+                        "reboot_required": {
+                            "type": "boolean"
+                        }
+                    }
                 }
             },
             "anyOf": [

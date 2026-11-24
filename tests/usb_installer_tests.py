@@ -686,6 +686,31 @@ class InstallerTests(unittest.TestCase):
             changed=copy.deepcopy(snapshot);changed['frequency']['frequency_hz']=wrong
             self.assertNotEqual(before,installer.saved_semantics(changed))
 
+    def test_station_free_drive_settings_remain_upgradeable_without_clearing_stop(self):
+        snapshot = dict(config={'config':{'enabled':False,'gpio_drive_ma':8,
+                            'station':{'callsign':'','locator':'','power_dbm':0}}},
+                        progress={'fields':{},'draft_revision':'0'},hostname={'saved':None},
+                        frequency={'frequency_hz':None},calibration={'saved':None},
+                        status={'job':dict(state='empty',output_active=False,owner_id=None),
+                                'standalone':dict(suspended=True,watermark_utc_ns='0')})
+        installer.admit_snapshot(snapshot)
+        with self.assertRaisesRegex(installer.Refusal, 'cannot read station-independent'):
+            installer.admit_saved_grid_storage(snapshot, b'old firmware')
+        installer.admit_saved_grid_storage(snapshot, b'WsprryPico station-independent GPIO drive settings\0')
+        before=installer.saved_semantics(snapshot)
+        assert before['suspended'] is True
+        changed=copy.deepcopy(snapshot); changed['status']['standalone']['suspended']=False
+        self.assertNotEqual(before,installer.saved_semantics(changed))
+        for mutation in ({'callsign':'AA0NT'}, {'locator':'EM18'}, {'power_dbm':True}, {'power_dbm':1}, {'extra':0}):
+            changed=copy.deepcopy(snapshot); changed['config']['config']['station'].update(mutation)
+            with self.assertRaises(installer.Refusal):installer.admit_snapshot(changed)
+        for mutation in ({'enabled':True}, {'gpio_drive_ma':True}, {'gpio_drive_ma':6}):
+            changed=copy.deepcopy(snapshot); changed['config']['config'].update(mutation)
+            with self.assertRaises(installer.Refusal):installer.admit_snapshot(changed)
+        for mutation in ({'state':'running'},{'output_active':True},{'owner_id':'owned'}):
+            changed=copy.deepcopy(snapshot); changed['status']['job'].update(mutation)
+            with self.assertRaises(installer.Refusal):installer.admit_snapshot(changed)
+
     def test_message_schedule_preservation_and_update_admission(self):
         snapshot = dict(config={'config':None},progress={'fields':{},'draft_revision':'0'},
                         hostname={'saved':None},frequency={'frequency_hz':None},calibration={'saved':None},

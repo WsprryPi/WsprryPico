@@ -104,7 +104,7 @@ class Scheduler {
     }
     // Hardware intent is internal to the validated shared configuration writer.
     // Console CONFIG and all transmission-setting writes retain full prerequisites.
-    enum class ConfigPurpose { General, Hardware };
+    enum class ConfigPurpose { General, Hardware, Drive };
     std::string command(std::string_view line, ConfigPurpose purpose = ConfigPurpose::General);
     std::string status(const wtp::ServiceStatus* observation = nullptr) const;
 

@@ -51,6 +51,8 @@ extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
     "WsprryPico USB maintenance 1 postboot verification 1";
 extern "C" [[gnu::used]] const char wsprrypico_saved_grid_storage[] =
     "WsprryPico GPS and beacon storage 4";
+extern "C" [[gnu::used]] const char wsprrypico_station_free_drive_settings[] =
+    "WsprryPico station-independent GPIO drive settings";
 #include "network/control_contract.hpp"
 extern "C" [[gnu::used]] const char wsprrypico_control_schema[] =
     "WsprryPico Control schema sha256 " WSPRRY_PICO_CONTROL_SCHEMA_SHA256;
@@ -337,6 +339,7 @@ std::string access_reply(wsprrypico::provisioning::AccessCode code) {
 int main() {
     asm volatile("" : : "r"(wsprrypico_usb_update_contract) : "memory");
     asm volatile("" : : "r"(wsprrypico_saved_grid_storage) : "memory");
+    asm volatile("" : : "r"(wsprrypico_station_free_drive_settings) : "memory");
     asm volatile("" : : "r"(wsprrypico_control_schema) : "memory");
     paint_stack();
     const bool usb_update_boot = rom_get_last_boot_type() == BOOT_TYPE_FLASH_UPDATE;

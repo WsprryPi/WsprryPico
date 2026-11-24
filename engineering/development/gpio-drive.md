@@ -8,9 +8,38 @@ The RP2350 adapter maps nominal mA explicitly to `GPIO_DRIVE_STRENGTH_2MA`, `GPI
 
 Read the authenticated selected member's capabilities `gpio_drive` descriptor. It explicitly identifies the field, legal values, default, units, direct PIO engine, read/write routes, and restart activation. Absence means unavailable; never infer support from firmware labels or WTP CAPS. The current contract advertises drive support explicitly.
 
-`GET /api/control/v1/gpio-drive` uses `gpio-drive` and returns the target, `saved`, `boot_active`, `pad_readback` (mA or null), `rf_gp`, `execution_engine`, `pending_restart`, `application_error`, and `storage_healthy`. Null saved means no complete configuration; boot-active is this boot's validated selection, including 12 for a healthy unconfigured boot. It is not a physical observation. Inhibited firmware leaves pad readback null. `rf_gp` identifies the boot-active route; the saved pin remains in `hardware.saved`. RF firmware reports a verified SDK observation only after its adapter has initialized during ARM, before local scheduled launch; LOAD alone does not open it. The value is a cached SDK register verification from that initialization, bound to this boot, not continuous electrical sensing. Errors remain explicit.
+`GET /api/control/v1/gpio-drive` uses `gpio-drive` and returns the target, `saved`, `boot_active`, `pad_readback` (mA or null), `rf_gp`, `execution_engine`, `pending_restart`, `application_error`, and `storage_healthy`. Null saved means no persisted RF/settings configuration; boot-active is this boot's validated selection, including 12 for a healthy unconfigured boot. It is not a physical observation. Inhibited firmware leaves pad readback null. `rf_gp` identifies the boot-active route; the saved pin remains in `hardware.saved`. RF firmware reports a verified SDK observation only after its adapter has initialized during ARM, before local scheduled launch; LOAD alone does not open it. The value is a cached SDK register verification from that initialization, bound to this boot, not continuous electrical sensing. Errors remain explicit.
 
 PUT the same route with exactly `{contract,schema,target,gpio_drive_ma}`, with `contract:"Wsprry-Control/1"`, and current If-Match. It uses the existing idle/unowned/inactive/nonfaulted admission and one validated Config journal commit. Loaded/armed/running/faulted states refuse. Saving does not program the pad. An actual change latches hardware restart and output inhibition for this boot, including A/B/A. Use the existing explicit restart. A lost reply is unknown: read authoritative state and review before another explicit save. No automatic retry or restart is performed.
+
+## Station-independent settings
+
+Drive saves do not require a callsign, locator, WSPR dial, or station commissioning.
+The direct drive resource, a drive-only configuration merge, and explicit saved
+progress drive Apply use the same validated settings transaction. Existing applied
+settings and profile authority are preserved. A healthy device without saved
+settings uses its validated factory hardware defaults and current network profile;
+local USB settings do not require Wi-Fi credentials. Invalid or unhealthy stored
+state never falls back to factory defaults.
+
+The existing Config journal can hold settings with absent station identity (both
+callsign and locator empty), valid reported power, and WSPR disabled. This is not a
+WSPR station and cannot enable WSPR. Partial identities and malformed settings
+refuse. Station readbacks stay null until valid identity is applied. Saved drive
+becomes non-null after a verified drive save, independently of station readiness.
+The first save of the already active 12 mA selection is not a hardware change;
+actual drive changes retain explicit restart and sticky output inhibition.
+
+For an HP 437B Automation sweep, read and retain the original boot-active drive
+and saved state before changing settings. With both native schedules disabled,
+save each desired drive, explicitly restart, rediscover, and verify boot drive.
+Restore the original drive through the same sequence. If no drive was previously
+saved, restoring that nominal drive does not erase the newly saved settings.
+
+The shared installer preserves these settings and the exact saved suspension
+observation. Its image admission requires linked support for station-independent
+settings before programming an image over such saved state; an older image without
+that support refuses before programming. No storage or firmware version changes.
 
 ## Current control model
 

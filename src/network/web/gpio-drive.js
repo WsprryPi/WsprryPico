@@ -24,13 +24,13 @@
     function render() {
       read.disabled = busy || !available;
       select.disabled = busy || !available || !observed || !revision || !observed.storage_healthy || !!observed.application_error;
-      save.disabled = select.disabled || observed.saved === null || !edited || !allowedValues.includes(Number(select.value)) || draftTarget !== identity(observed);
+      save.disabled = select.disabled || !edited || !allowedValues.includes(Number(select.value)) || draftTarget !== identity(observed);
       discard.disabled = busy || !observed || !revision;
       if (saveDraft) saveDraft.disabled = select.disabled || !edited || !allowedValues.includes(Number(select.value)) || draftTarget !== identity(observed) || !progress;
       if (applyDraft) applyDraft.disabled = select.disabled || !progress || !allowedValues.includes(progress.fields.gpio_drive_ma) || !progress.apply_domains.drive || draftTarget !== identity(observed);
       select.setAttribute('aria-invalid',String(!!select.value && !allowedValues.includes(Number(select.value))));
     }
-    const summary = v => `Pico ${v.target.device_id} · RF GP${v.rf_gp ?? 'unavailable'}. Saved: ${v.saved === null ? 'not configured' : v.saved + ' mA'}. Boot selection: ${v.boot_active === null ? 'unknown' : v.boot_active + ' mA'}. Verified pad: ${v.pad_readback === null ? 'unavailable' : v.pad_readback + ' mA'}.${v.pending_restart ? ' Pending explicit restart; output remains inhibited.' : ''}${v.application_error ? ' ' + v.application_error + '.' : ''}`;
+    const summary = v => `Pico ${v.target.device_id} · RF GP${v.rf_gp ?? 'unavailable'}. Saved: ${v.saved === null ? 'not saved' : v.saved + ' mA'}. Boot selection: ${v.boot_active === null ? 'unknown' : v.boot_active + ' mA'}. Verified pad: ${v.pad_readback === null ? 'unavailable' : v.pad_readback + ' mA'}.${v.pending_restart ? ' Pending explicit restart; output remains inhibited.' : ''}${v.application_error ? ' ' + v.application_error + '.' : ''}`;
     function validProgress(v,target) {
       return v?.schema === 'progress' && JSON.stringify(v.target) === JSON.stringify(target) &&
         typeof v.draft_revision === 'string' && /^(0|[1-9][0-9]*)$/.test(v.draft_revision) &&

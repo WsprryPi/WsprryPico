@@ -2258,8 +2258,23 @@ def saved_semantics(snapshot):
             'suspended': snapshot['status']['standalone']['suspended'] if config is not None else None}
 
 
+def station_free_drive_settings(config):
+    station = config.get('station') if isinstance(config, dict) else None
+    return (isinstance(station, dict) and
+            set(station) == {'callsign', 'locator', 'power_dbm'} and
+            station['callsign'] == station['locator'] == '' and
+            type(station['power_dbm']) is int and
+            station['power_dbm'] in (0, 3, 7, 10, 13, 17, 20, 23, 27, 30,
+                                     33, 37, 40, 43, 47, 50, 53, 57, 60) and
+            config.get('enabled') is False and type(config.get('gpio_drive_ma')) is int and
+            config['gpio_drive_ma'] in (2, 4, 8, 12))
+
+
 def admit_saved_grid_storage(snapshot, image):
     config = snapshot['config'].get('config')
+    if station_free_drive_settings(config):
+        require(b'WsprryPico station-independent GPIO drive settings\0' in image,
+                'Selected image cannot read station-independent GPIO drive settings')
     gps = config.get('gps') if config is not None else None
     require(gps is None or isinstance(gps, dict), 'Malformed saved GPS settings')
     if gps is not None:
@@ -2287,7 +2302,11 @@ def admit_snapshot(snapshot):
     job = snapshot['status']['job']
     require(job['state'] == 'empty' and job['output_active'] is False and job['owner_id'] is None,
             'Pico is busy, owned, stopped/faulted, or uncertain; leave its state unchanged')
-    require(snapshot['status']['standalone']['suspended'] is False or snapshot['config'].get('config') is None,
+    config = snapshot['config'].get('config')
+    # Settings-only startup suspension is admitted without clearing it. The exact
+    # value remains part of saved_semantics and must survive postboot verification.
+    settings_only = station_free_drive_settings(config)
+    require(snapshot['status']['standalone']['suspended'] is False or config is None or settings_only,
             'STOP/suspension is active; resolve it deliberately before an update')
 
 

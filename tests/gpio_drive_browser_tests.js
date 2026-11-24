@@ -5,14 +5,14 @@ function element() { return {value:'',disabled:false,textContent:'',handlers:{},
 const observation = {schema:'gpio-drive',target:{scope:'member',device_id:'a'.repeat(32),boot_id:'b'.repeat(32)},saved:4,boot_active:4,pad_readback:null,pending_restart:false,application_error:null,rf_gp:2,execution_engine:'inhibited',storage_healthy:true};
 (async()=>{
  const e=Object.fromEntries(['select','read','save','discard','status'].map(k=>[k,element()]));
- let state=structuredClone(observation),version=1,fail=false; const calls=[];
+ let state={...structuredClone(observation),saved:null},version=1,fail=false; const calls=[];
  const controller=create({...e,exchange:async(method,body,revision)=>{
    calls.push({method,body,revision}); if(fail)throw new Error('disconnected');
    if(method==='PUT'){assert.equal(revision,'"'+version+'"');assert.deepEqual(body.target,state.target);state.saved=body.gpio_drive_ma;state.pending_restart=true;++version;}
    return {data:structuredClone(state),revision:'"'+version+'"'};
  }});
  assert.equal(e.select.value,'');controller.setAvailability(true);assert(e.save.disabled);
- await e.read.handlers.click();assert.equal(e.select.value,'4');assert(e.save.disabled);
+ await e.read.handlers.click();assert.equal(e.select.value,'');assert(e.save.disabled);
  for(const value of ['2','8','12','4']) {
    e.select.value=value;e.select.handlers.change();const before=calls.length;assert(!e.save.disabled);assert.equal(calls.length,before);
    await e.save.handlers.click();assert.equal(state.saved,Number(value));assert.match(e.status.textContent,/confirmed saved/);assert(e.save.disabled);
@@ -28,7 +28,7 @@ const observation = {schema:'gpio-drive',target:{scope:'member',device_id:'a'.re
 (async()=>{
  const e=Object.fromEntries(['select','read','save','discard','status','saveDraft','applyDraft','draftStatus'].map(k=>[k,element()]));
  let applied=null,draft,version=1;const writes=[];
- const progress=()=>({schema:'progress',target:observation.target,draft_revision:draft===undefined?'0':'1',fields:draft===undefined?{}:{gpio_drive_ma:draft},apply_domains:{drive:applied!==null}});
+ const progress=()=>({schema:'progress',target:observation.target,draft_revision:draft===undefined?'0':'1',fields:draft===undefined?{}:{gpio_drive_ma:draft},apply_domains:{drive:true}});
  const controller=create({...e,exchange:async(method,body,match,resource='gpio-drive')=>{
    if(method!=='GET'){assert.equal(match,'"'+version+'"');writes.push({resource,body});++version;
      if(resource==='progress/update'){draft=body.fields.gpio_drive_ma;return {data:{...progress(),request_id:body.request_id,outcomes:{gpio_drive_ma:'saved'}},revision:'"'+version+'"'};}
@@ -37,9 +37,9 @@ const observation = {schema:'gpio-drive',target:{scope:'member',device_id:'a'.re
    return {data:resource==='progress'?progress():{...observation,saved:applied,pending_restart:applied===8},revision:'"'+version+'"'};
  }});
  controller.setAvailability(true);await e.read.handlers.click();assert.equal(e.select.value,'');
- e.select.value='8';e.select.handlers.change();assert(!e.saveDraft.disabled);assert(e.save.disabled);assert(e.applyDraft.disabled);
+ e.select.value='8';e.select.handlers.change();assert(!e.saveDraft.disabled);assert(!e.save.disabled);assert(e.applyDraft.disabled);
  await e.saveDraft.handlers.click();assert.equal(applied,null);assert.equal(draft,8);assert.equal(e.select.value,'8');assert.equal(writes.length,1);
- applied=4;await e.read.handlers.click();assert(!e.applyDraft.disabled);await e.applyDraft.handlers.click();assert.equal(applied,8);assert.equal(writes.length,2);assert.equal(e.select.value,'8');
+ await e.read.handlers.click();assert(!e.applyDraft.disabled);await e.applyDraft.handlers.click();assert.equal(applied,8);assert.equal(writes.length,2);assert.equal(e.select.value,'8');
  console.log('GPIO drive progress editor: independent blank-member draft save and explicit domain-only application passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
 

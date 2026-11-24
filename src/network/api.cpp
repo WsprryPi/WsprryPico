@@ -204,10 +204,28 @@ HttpResponse BrowserApi::message_schedule_resource(const HttpRequest& r) {
     return readback();
 }
 std::optional<standalone::Config> BrowserApi::effective_config() const {
-    if (!store_.healthy())
+    const auto settings = saved_settings();
+    // Applied WSPR station authority is separate from persisted RF settings.
+    if (!settings || (consumer_runtime_ && consumer_runtime_->network_profile()) ||
+        !encoding::valid_station_details(settings->callsign, settings->locator,
+                                         settings->power_dbm))
         return {};
-    if (consumer_runtime_ && consumer_runtime_->network_profile())
-        return {}; // Wi-Fi-only setup does not manufacture a runnable station.
+    return settings;
+}
+std::optional<standalone::Config> BrowserApi::saved_settings() const {
+    if (!store_.healthy() ||
+        (consumer_runtime_ && consumer_runtime_->source() == provisioning::RuntimeSource::Fault))
+        return {};
+    if (consumer_runtime_ && consumer_runtime_->network_profile()) {
+        if (!store_.config())
+            return {};
+        auto settings = *store_.config();
+        const auto& profile = *consumer_runtime_->network_profile();
+        settings.ssid = profile.ssid;
+        settings.password = profile.password;
+        settings.ntp_ipv4 = profile.time_server;
+        return settings; // Settings do not establish WSPR station completeness.
+    }
     if (consumer_runtime_ && consumer_runtime_->consumer_profile()) {
         // A USB profile can save a name/network before a complete runnable
         // station exists. Do not manufacture an empty station or generation 0.
@@ -217,6 +235,24 @@ std::optional<standalone::Config> BrowserApi::effective_config() const {
             (store_.config() ? *store_.config() : standalone::factory_config()));
     }
     return store_.config();
+}
+standalone::Config BrowserApi::drive_baseline() const {
+    if (const auto saved = saved_settings())
+        return *saved;
+    auto base = standalone::factory_config();
+    base.pins = scheduler_.active_pins();
+    base.gpio_drive_ma = scheduler_.active_gpio_drive_ma();
+    if (consumer_runtime_) {
+        if (const auto overlaid = consumer_runtime_->overlay(base))
+            base = *overlaid;
+    }
+    if (consumer_runtime_ && consumer_runtime_->network_profile()) {
+        const auto& profile = *consumer_runtime_->network_profile();
+        base.ssid = profile.ssid;
+        base.password = profile.password;
+        base.ntp_ipv4 = profile.time_server;
+    }
+    return base;
 }
 std::string BrowserApi::revision() const {
     const auto config = effective_config();
@@ -250,47 +286,55 @@ HttpResponse BrowserApi::progress_readback(bool station_only, bool drive, bool a
         return http_error(404, "not_found");
     if (!store_.healthy() || !progress_->healthy())
         return http_error(503, "storage_fault");
-    const auto applied = station_only && consumer_runtime_ && !consumer_runtime_->consumer_profile()
-                             ? std::optional<standalone::Config>{}
-                             : effective_config();
+    auto applied = station_only && consumer_runtime_ && !consumer_runtime_->consumer_profile()
+                       ? std::optional<standalone::Config>{}
+                       : saved_settings();
+    if (consumer_runtime_ && consumer_runtime_->network_profile() && applied &&
+        (!applied->callsign.empty() || !applied->locator.empty()))
+        applied.reset();
     const auto candidate = progress_->candidate(applied, "all", drive, amplifier);
     const auto station = progress_->station_candidate(applied);
     // Keep the backing scheduler status string alive while reading its views.
     const auto status_text = scheduler_.status();
     const auto status = json::parse(status_text);
-    auto result =
-        ok("{\"schema\":" +
-           json::quote(amplifier ? "progress"
-                       : drive   ? "progress"
-                                 : "progress") +
-           ",\"target\":" + application::target(device_, service_.status().boot_id) +
-           ",\"draft_revision\":" + json::quote(std::to_string(progress_->sequence())) +
-           ",\"config_revision\":" + json::quote(std::to_string(store_.config_sequence())) +
-           ",\"profile_revision\":" +
-           json::quote(std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0)) +
-           ",\"fields\":" + progress_->fields(true, station_only, drive, amplifier) +
-           ",\"last_receipt\":" + (station_only ? std::string("null") : progress_->receipt()) +
-           ",\"last_outcomes\":" + progress_->outcomes(station_only, drive) +
-           ",\"applied_station\":" + (applied ? application::station(*applied) : "null") +
-           ",\"station\":" + progress_->station_fields(applied) +
-           ",\"station_complete\":" + (station ? "true" : "false") +
-           ",\"complete\":" + (candidate ? "true" : "false") + ",\"apply_domains\":{\"station\":" +
-           (progress_->candidate(applied, "station") ? "true" : "false") + ",\"network\":" +
-           (progress_->candidate(applied, "network") ? "true" : "false") + ",\"radio\":" +
-           (progress_->candidate(applied, "radio", drive, amplifier) ? "true" : "false") +
-           (drive ? ",\"drive\":" +
-                        std::string(progress_->candidate(applied, "drive", true) ? "true" : "false")
-                  : "") +
-           ",\"all\":" + (candidate ? "true}" : "false}") + ",\"wspr_plan\":" +
-           (station ? application::wspr_plan(*station) : "null") + ",\"schedule_enabled\":" +
-           (station_only ? std::string("null") : std::string(status->get("enabled")->raw)) +
-           ",\"schedule_suspended\":" +
-           (station_only ? std::string("null") : std::string(status->get("suspended")->raw)) +
-           ",\"matches_applied\":" +
-           (candidate && applied && *candidate == *applied &&
-                    (!drive || progress_->drive_matches(applied->gpio_drive_ma))
-                ? "true}"
-                : "false}"));
+    auto result = ok(
+        "{\"schema\":" +
+        json::quote(amplifier ? "progress"
+                    : drive   ? "progress"
+                              : "progress") +
+        ",\"target\":" + application::target(device_, service_.status().boot_id) +
+        ",\"draft_revision\":" + json::quote(std::to_string(progress_->sequence())) +
+        ",\"config_revision\":" + json::quote(std::to_string(store_.config_sequence())) +
+        ",\"profile_revision\":" +
+        json::quote(std::to_string(consumer_runtime_ ? consumer_runtime_->generation() : 0)) +
+        ",\"fields\":" + progress_->fields(true, station_only, drive, amplifier) +
+        ",\"last_receipt\":" + (station_only ? std::string("null") : progress_->receipt()) +
+        ",\"last_outcomes\":" + progress_->outcomes(station_only, drive) + ",\"applied_station\":" +
+        (applied && encoding::valid_station_details(applied->callsign, applied->locator,
+                                                    applied->power_dbm)
+             ? application::station(*applied)
+             : "null") +
+        ",\"station\":" + progress_->station_fields(applied) +
+        ",\"station_complete\":" + (station ? "true" : "false") +
+        ",\"complete\":" + (candidate ? "true" : "false") + ",\"apply_domains\":{\"station\":" +
+        (progress_->candidate(applied, "station") ? "true" : "false") + ",\"network\":" +
+        (progress_->candidate(applied, "network") ? "true" : "false") + ",\"radio\":" +
+        (progress_->candidate(applied, "radio", drive, amplifier) ? "true" : "false") +
+        (drive ? ",\"drive\":" + std::string(progress_->candidate(std::optional{drive_baseline()},
+                                                                  "drive", true)
+                                                 ? "true"
+                                                 : "false")
+               : "") +
+        ",\"all\":" + (candidate ? "true}" : "false}") + ",\"wspr_plan\":" +
+        (station ? application::wspr_plan(*station) : "null") + ",\"schedule_enabled\":" +
+        (station_only ? std::string("null") : std::string(status->get("enabled")->raw)) +
+        ",\"schedule_suspended\":" +
+        (station_only ? std::string("null") : std::string(status->get("suspended")->raw)) +
+        ",\"matches_applied\":" +
+        (candidate && applied && *candidate == *applied &&
+                 (!drive || progress_->drive_matches(applied->gpio_drive_ma))
+             ? "true}"
+             : "false}"));
     result.etag = revision();
     return result;
 }
@@ -353,7 +397,7 @@ HttpResponse BrowserApi::save_progress(const HttpRequest& r, bool station_only, 
             if (draft && draft->raw != "null")
                 plan->amplifier_active_high =
                     hardware::parse_plan(std::string(draft->raw))->amplifier_active_high;
-            else if (const auto applied = effective_config())
+            else if (const auto applied = saved_settings())
                 plan->amplifier_active_high = applied->pins.amplifier_active_high;
             normalized_pins = std::string(fields.raw);
             normalized_pins.replace(pins->raw.offset() - fields.raw.offset(), pins->raw.size(),
@@ -416,7 +460,11 @@ HttpResponse BrowserApi::save_progress(const HttpRequest& r, bool station_only, 
 HttpResponse BrowserApi::config() const {
     constexpr bool drive = true;
     std::string body = "null";
-    if (const auto config = effective_config()) {
+    auto config = saved_settings();
+    if (consumer_runtime_ && consumer_runtime_->network_profile() && config &&
+        (!config->callsign.empty() || !config->locator.empty()))
+        config.reset();
+    if (config) {
         auto redacted = *config;
         redacted.password.clear();
         redacted.manual_correction_ppb = 0;
@@ -448,7 +496,8 @@ HttpResponse BrowserApi::station_config() const {
             (plan && plan->frames[0].type != encoding::WsprType::Type1))
             return http_error(409, "unsupported_station_encoding");
     }
-    const bool saved = config.has_value();
+    const bool saved = config && encoding::valid_station_details(config->callsign, config->locator,
+                                                                 config->power_dbm);
     auto result =
         ok("{\"schema\":" + json::quote(extended ? "station" : application::station_schema) +
            ",\"target\":" + application::target(device_, service_.status().boot_id) +
@@ -601,7 +650,7 @@ HttpResponse BrowserApi::filter_selector() const {
     return result;
 }
 HttpResponse BrowserApi::gpio_drive() const {
-    const auto config = effective_config();
+    const auto config = saved_settings();
     const int pad = drive_observer_ ? drive_observer_() : -1;
     auto result =
         ok("{\"schema\":\"gpio-drive\",\"target\":" +
@@ -1187,15 +1236,35 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                 std::to_string(progress_->sequence()) ||
             !progress_->sequence())
             return http_error(400, "invalid_progress_application");
+        const auto requested_domain = root->get("application")->get("domain")->string();
+        auto applied = saved_settings();
+        if (consumer_runtime_ && consumer_runtime_->network_profile() && applied &&
+            (!applied->callsign.empty() || !applied->locator.empty()))
+            applied.reset();
         const auto candidate = progress_->candidate(
-            effective_config(), root->get("application")->get("domain")->string(), drive,
-            amplifier);
+            requested_domain == "drive" ? std::optional{drive_baseline()} : applied,
+            requested_domain, drive, amplifier);
         if (!candidate)
             return http_error(409, "incomplete_progress");
         const auto domain = root->get("application")->get("domain")->string();
         if (!amplifier && progress_->amplifier_view_required() &&
             (domain == "radio" || domain == "all"))
             return http_error(409, "amplifier_view_required");
+        if (domain == "drive") {
+            auto apply = r;
+            apply.method = "PUT";
+            apply.path = "/api/control/v1/gpio-drive";
+            apply.body = "{\"schema\":\"gpio-drive\",\"target\":" +
+                         application::target(device_, service_.status().boot_id) +
+                         ",\"gpio_drive_ma\":" + std::to_string(candidate->gpio_drive_ma) + "}";
+            apply.buffered_body.reset();
+            apply.selected_body = {};
+            auto result =
+                handle_current(apply, principal, authority, transaction, carrier, tone_authority);
+            if (result.status != 200)
+                return result;
+            return progress_readback(false, true, true);
+        }
         // Re-enter complete idle/profile/encoding/restart authority. The scheduler
         // and legacy CONFIG/PUT never read this draft or implicitly promote it.
         auto apply = r;
@@ -1499,9 +1568,10 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                               "invalid_drive_resource");
         if (!standalone::valid_gpio_drive_token(*root->get("gpio_drive_ma")))
             return http_error(400, "invalid_gpio_drive");
-        if (!effective_config())
-            return http_error(409, "not_configured");
-        auto updated = *effective_config();
+        if (!store_.healthy() || (consumer_runtime_ && consumer_runtime_->source() ==
+                                                           provisioning::RuntimeSource::Fault))
+            return http_error(503, "storage_fault");
+        auto updated = drive_baseline();
         updated.gpio_drive_ma = unsigned(root->get("gpio_drive_ma")->integer());
         candidate = standalone::serialize_config(updated);
     } else if (scoped_resource) {
@@ -1572,12 +1642,32 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
             mode = effective_config() ? application::ConfigWrite::Merge
                                       : application::ConfigWrite::Legacy;
         }
+        if (config_update && json::fields(supplied, {"gpio_drive_ma"})) {
+            auto apply = r;
+            apply.method = "PUT";
+            apply.path = "/api/control/v1/gpio-drive";
+            apply.body = "{\"schema\":\"gpio-drive\",\"target\":" +
+                         application::target(device_, service_.status().boot_id) +
+                         ",\"gpio_drive_ma\":" + std::string(supplied.get("gpio_drive_ma")->raw) +
+                         "}";
+            apply.buffered_body.reset();
+            apply.selected_body = {};
+            auto result =
+                handle_current(apply, principal, authority, transaction, carrier, tone_authority);
+            if (result.status != 200)
+                return result;
+            result = config();
+            result.body.pop_back();
+            result.body += std::string(",\"reboot_required\":") +
+                           (scheduler_.reboot_required() ? "true}" : "false}");
+            return result;
+        }
         auto wifi = supplied.get("wifi");
         auto password = wifi ? wifi->get("password") : std::nullopt;
         const auto current_config = effective_config();
         if (password && password->raw == "null" && !current_config)
             return http_error(400, "password_required");
-        const auto built = application::config_candidate(supplied, current_config, mode,
+        const auto built = application::config_candidate(supplied, saved_settings(), mode,
                                                          drive_config, amplifier_config);
         if (!built)
             return http_error(400, "invalid_config");
@@ -1630,16 +1720,25 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         if (unchanged != *existing)
             return http_error(400, "invalid_hardware_update");
     }
-    if (!hardware_write && validated->enabled && scheduler_.message_recovery_required())
+    if (!hardware_write && !drive_resource && validated->enabled &&
+        scheduler_.message_recovery_required())
         return http_error(409, "message_recovery_required");
-    if (!hardware_write && validated->enabled && store_.message_schedule() &&
+    if (!hardware_write && !drive_resource && validated->enabled && store_.message_schedule() &&
         store_.message_schedule()->enabled)
         return http_error(409, "message_schedule_enabled");
-    if (!hardware_write && validated->enabled && !validated->wspr_dial_frequency_hz)
+    if (!hardware_write && !drive_resource && validated->enabled &&
+        !validated->wspr_dial_frequency_hz)
         return http_error(400, "standalone_frequency_required");
-    const bool station_changed = !existing || existing->callsign != validated->callsign ||
-                                 existing->locator != validated->locator ||
-                                 existing->power_dbm != validated->power_dbm;
+    const bool absent_station = validated->callsign.empty() && validated->locator.empty();
+    if (!drive_resource && absent_station &&
+        (station_resource || (config_update && root->get("config")->get("station")) ||
+         r.path == "/api/control/v1/config"))
+        return http_error(400, "invalid_station");
+    const bool station_changed =
+        !drive_resource && ((!existing && !absent_station) ||
+                            (existing && (existing->callsign != validated->callsign ||
+                                          existing->locator != validated->locator ||
+                                          existing->power_dbm != validated->power_dbm)));
     if (station_changed &&
         !encoding::wspr_plan(validated->callsign, validated->locator, validated->power_dbm))
         return http_error(400, "unsupported_station_encoding");
@@ -1647,7 +1746,8 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         !encoding::wspr_type1_from_station(validated->callsign, validated->locator,
                                            validated->power_dbm))
         return http_error(400, "unsupported_station_encoding");
-    if (local_usb && local_settings_ && consumer_runtime_ && !consumer_runtime_->profile() &&
+    if (!drive_resource && local_usb && local_settings_ && consumer_runtime_ &&
+        !consumer_runtime_->profile() &&
         consumer_runtime_->source() != provisioning::RuntimeSource::Factory) {
         const auto error = local_settings_->ensure_local_profile();
         if (!error.empty())
@@ -1690,8 +1790,9 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
                                                   validated->power_dbm)))
         return http_error(400, "unsupported_station_encoding");
     auto response = scheduler_.command(
-        "CONFIG " + candidate, hardware_write ? standalone::Scheduler::ConfigPurpose::Hardware
-                                              : standalone::Scheduler::ConfigPurpose::General);
+        "CONFIG " + candidate, drive_resource   ? standalone::Scheduler::ConfigPurpose::Drive
+                               : hardware_write ? standalone::Scheduler::ConfigPurpose::Hardware
+                                                : standalone::Scheduler::ConfigPurpose::General);
     auto value = json::parse(response);
     if (!value || value->get("ok")->raw != "true") {
         if (value && value->get("error") &&

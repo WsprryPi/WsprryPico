@@ -41,3 +41,13 @@ USB and network discovery use the same current `management` shape within `Wsprry
 The [GPIO-drive descriptor](gpio-drive.md) identifies the current `gpio-drive`, `application`, `hardware`, `config-update`, and `progress` resources under `/api/control/v1/`. Ordinary omitted drive fields preserve their saved value. Draft saving does not apply drive; explicit progress domain `drive` applies it through complete Config validation and the sticky restart/output-inhibit latch. No save programs the physical pad. Nullable pad readback is a cached ARM-initialization register verification, distinct from saved and immutable boot selection. Amplifier GPIO and polarity use the same complete hardware and progress representations; amplifier timing retains its dedicated resource.
 
 Source: [local settings/profile lifecycle](../../src/provisioning/local_settings.cpp), [local dispatch](../../src/network/local_usb_api.hpp), [BrowserApi](../../src/network/api.cpp), and [existing local-management tests](../../tests/usb_local_management_tests.cpp).
+
+## Drive before station setup
+
+The authenticated local `gpio-drive` resource can save 2, 4, 8, or 12 mA without
+Wi-Fi credentials, callsign, locator, or a WSPR dial. Existing settings and profile
+authority are preserved; healthy absent settings use validated factory hardware
+defaults. Read saved versus boot-active drive, restart explicitly after a change,
+and rediscover before execution. Saving drive does not commission a station,
+program a pad, or enable transmission. Storage, ownership, output, and hardware
+admission remain mandatory.

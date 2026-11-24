@@ -732,3 +732,16 @@ if (require.main === module) (async () => {
     assert.equal(numeric.context.numericFields.expires_utc_s,'2208988800');
     console.log('Browser native scheduling, draft preservation, conflicts, bindings and recovery passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});
+
+{
+ const context=vm.createContext({});
+ vm.runInContext(fs.readFileSync(__dirname+'/../src/network/web/'+(process.env.WSPRRY_PICO_BROWSER_SHIPPED?'config-validation.min.js':'config-validation.js'),'utf8'),context);
+ const saved={enabled:false,gpio_drive_ma:12,station:{callsign:'',locator:'',power_dbm:0},wifi:{ssid:'',password:null,ntp_ipv4:'pool.ntp.org'},schedules:[]};
+ const valid=x=>context.validSavedConfig(x);
+ assert(valid(saved));
+ assert(!valid({...saved,enabled:true}));
+ assert(!valid({...saved,station:{...saved.station,callsign:'AA0NT'}}));
+ assert(!valid({...saved,station:{...saved.station,locator:'EM18'}}));
+ assert(!valid({...saved,station:{...saved.station,power_dbm:1}}));
+ assert(!valid({...saved,station:{...saved.station,extra:1}}));
+}

@@ -129,7 +129,8 @@ struct Test {
         return api.handle(r, now, tx, interface);
     }
     Test(bool network_only = false, wtp::RfEngine* engine = nullptr,
-         wtp::ServiceConfig policy = Fixture::physical_policy())
+         wtp::ServiceConfig policy = Fixture::physical_policy(), bool no_config = false,
+         bool usb_managed = false)
         : fixture(0, std::string(32, 'a'), engine, policy) {
         provisioning::ConsumerProfile profile;
         profile.device_id = device;
@@ -140,6 +141,12 @@ struct Test {
         profile.callsign = "AA0NT";
         profile.locator = "EM18";
         profile.power_dbm = 37;
+        if (usb_managed) {
+            profile.usb_managed = true;
+            profile.callsign.clear();
+            profile.locator.clear();
+            profile.power_dbm = 0;
+        }
         profile.tls_pending = true;
         profile.tls.hostname = "wsprrypico-0a60df.local";
         profile.request_sha256 = std::string(64, 'a');
@@ -156,7 +163,7 @@ struct Test {
         fixture.api.consumer_config(runtime);
         assert(progress.load());
         fixture.api.local_usb_settings(settings);
-        if (!network_only)
+        if (!network_only && !no_config)
             assert(fixture.scheduler.command("CONFIG " + config).find("true") != std::string::npos);
         api.admission(runtime.control_healthy(store) && runtime.consumer_browser_selected(store));
         api.listeners(true, "192.168.1.53", "wsprrypico-0a60df.local");
@@ -199,6 +206,44 @@ struct Test {
         return send(request("/api/consumer/v1/request", packet, true), transaction++);
     }
 };
+
+void station_independent_drive() {
+    for (unsigned profile_kind : {0, 1, 2, 3})
+        for (bool station_interface : {false, true}) {
+            const bool network_only = profile_kind == 0 || profile_kind == 3;
+            Test t(network_only, nullptr, Fixture::physical_policy(), true, profile_kind == 2);
+            if (station_interface) {
+                t.interface = network::ConsumerInterface::Station;
+                t.authority = "192.168.1.53";
+            }
+            if (profile_kind == 3)
+                assert(t.fixture.store.save(*standalone::parse_config(config)));
+            t.login();
+            const auto generation = t.runtime.generation();
+            const auto profile = t.store.data();
+            for (unsigned drive : {2, 4, 8, 12}) {
+                const auto body =
+                    "{\"contract\":\"Wsprry-Control/1\",\"schema\":\"gpio-drive\",\"target\":" +
+                    application::target(std::string(32, 'a'), t.fixture.service.status().boot_id) +
+                    ",\"gpio_drive_ma\":" + std::to_string(drive) + "}";
+                const auto r =
+                    t.call("PUT", "/api/control/v1/gpio-drive", body, t.fixture.api.revision());
+                if (r.body_text().find("\"status\":200") == std::string::npos)
+                    std::cerr << r.body_text() << "\n";
+                assert(r.body_text().find("\"status\":200") != std::string::npos);
+                t.api.finish_request(t.transaction - 1, true);
+                assert(t.fixture.store.config()->gpio_drive_ma == drive);
+                assert(t.fixture.store.config()->callsign ==
+                       (profile_kind == 1 || profile_kind == 3 ? "AA0NT" : ""));
+                assert(t.fixture.store.config()->locator ==
+                       (profile_kind == 1 || profile_kind == 3 ? "EM18" : ""));
+                assert(!t.fixture.store.config()->enabled);
+                assert(t.fixture.store.config()->ssid == "test-network");
+                assert(t.runtime.generation() == generation && t.store.data() == profile &&
+                       t.api.active(t.now));
+            }
+        }
+}
 
 void tone_reconnect_authority() {
     struct Engine : wtp::RfEngine {
@@ -291,6 +336,7 @@ network::HttpResponse read_public(Test& test) {
 }
 } // namespace
 int main() {
+    station_independent_drive();
     tone_reconnect_authority();
     {
         Test t;

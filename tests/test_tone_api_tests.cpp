@@ -75,16 +75,21 @@ struct Fixture {
         c.max_job_duration_ns = rf::max_duration_ns;
         return c;
     }
-    standalone::Store& initialize(unsigned drive) {
+    standalone::Store& initialize(unsigned drive, bool absent_station) {
         REQUIRE(store.load());
         auto config = *standalone::parse_config(network_test::config);
         config.gpio_drive_ma = drive;
+        if (absent_station) {
+            config.callsign.clear();
+            config.locator.clear();
+        }
         REQUIRE(store.save(config));
         raw.drive = drive;
         return store;
     }
-    explicit Fixture(unsigned drive = 12)
-        : policy(raw, initialize(drive), rf::minimum_frequency_nhz, rf::maximum_frequency_nhz),
+    explicit Fixture(unsigned drive = 12, bool absent_station = false)
+        : policy(raw, initialize(drive, absent_station), rf::minimum_frequency_nhz,
+                 rf::maximum_frequency_nhz),
           service(clock, policy, identity, limits()), scheduler(store, service),
           api(service, store, scheduler, network, std::string(32, 'a'), "test") {
         api.test_tone_policy(policy);
@@ -167,45 +172,62 @@ std::uint64_t timing(const network::HttpResponse& r, std::string_view name) {
     REQUIRE(wtp::json::decimal(*value->get("job")->get(name), n));
     return n;
 }
+void station_free_reviews() {
+    Fixture f(12, true);
+    const auto before = f.flash.bytes;
+    for (unsigned drive : {2, 4, 8, 12})
+        for (unsigned carrier : {137500, 475700, 1900000, 3600000, 5366200, 7100000, 10120000,
+                                 14100000, 18100000, 21100000, 24920000, 28100000, 50100000}) {
+            auto r =
+                f.review(f.review_body(std::to_string(carrier), "12000", std::to_string(drive)));
+            REQUIRE(r.status == 200);
+            REQUIRE(r.body_text().find(drive == 12 ? "\"admission\":\"ready\""
+                                                   : "\"admission\":\"requires_restart\"") !=
+                    std::string::npos);
+        }
+    REQUIRE(before == f.flash.bytes && !f.raw.prepares && !f.raw.schedules);
+}
 void lifecycle() {
-    for (unsigned drive : {2, 4, 8, 12}) {
-        Fixture f(drive);
-        const auto before = f.flash.bytes;
-        const auto revision = f.api.revision();
-        const auto review = f.review(f.review_body("5366200", "120000", std::to_string(drive)));
-        REQUIRE(review.status == 200 &&
-                review.body_text().find("\"admission\":\"ready\"") != std::string::npos);
-        REQUIRE(f.raw.prepares == 0 && f.raw.schedules == 0 && f.flash.bytes == before);
-        const auto body = f.start_body(std::string(32, '1'), "120000", drive);
-        const auto accepted = f.start(body, revision);
-        REQUIRE(accepted.status == 202);
-        const auto job = field(accepted, "job_id"), control = accepted.etag;
-        REQUIRE(field(accepted, "phase") == "accepted");
-        REQUIRE(accepted.body_text().find("\"drive_ma\":" + std::to_string(drive)) !=
-                std::string::npos);
-        REQUIRE(f.api.revision() != revision);
-        // Lost Start reply: same retained request, same original binding; no new native work.
-        REQUIRE(f.start(body, revision).status == 202 && f.raw.schedules == 1);
-        auto conflict = body;
-        conflict.replace(conflict.find("120000"), 6, "119999");
-        REQUIRE(f.start(conflict, revision).body_text().find("request_conflict") !=
-                std::string::npos);
-        const auto at = timing(accepted, "scheduled_monotonic_ns");
-        f.background(at + 1'000'000);
-        REQUIRE(field(f.status(), "phase") == "running");
-        // No client traffic across lease expiry: native ownership remains exclusive.
-        f.background(at + 90'000'000'000ULL);
-        REQUIRE(f.service.activity().owned);
-        REQUIRE(f.start(f.start_body(std::string(32, '2'), "1000", drive)).status == 409);
-        f.background(at + 120'001'000'000ULL);
-        REQUIRE(!f.service.activity().owned);
-        const auto ended = f.status();
-        REQUIRE(field(ended, "outcome") == "completed");
-        REQUIRE(ended.body_text().find("\"output_inactive_confirmed\":true") != std::string::npos);
-        const auto calls = f.raw.disables;
-        REQUIRE(f.stop(job, control).status == 200 && f.raw.disables == calls);
-        REQUIRE(f.flash.bytes == before);
-    }
+    for (bool absent_station : {false, true})
+        for (unsigned drive : {2, 4, 8, 12}) {
+            Fixture f(drive, absent_station);
+            const auto before = f.flash.bytes;
+            const auto revision = f.api.revision();
+            const auto review = f.review(f.review_body("5366200", "120000", std::to_string(drive)));
+            REQUIRE(review.status == 200 &&
+                    review.body_text().find("\"admission\":\"ready\"") != std::string::npos);
+            REQUIRE(f.raw.prepares == 0 && f.raw.schedules == 0 && f.flash.bytes == before);
+            const auto body = f.start_body(std::string(32, '1'), "120000", drive);
+            const auto accepted = f.start(body, revision);
+            REQUIRE(accepted.status == 202);
+            const auto job = field(accepted, "job_id"), control = accepted.etag;
+            REQUIRE(field(accepted, "phase") == "accepted");
+            REQUIRE(accepted.body_text().find("\"drive_ma\":" + std::to_string(drive)) !=
+                    std::string::npos);
+            REQUIRE(f.api.revision() != revision);
+            // Lost Start reply: same retained request, same original binding; no new native work.
+            REQUIRE(f.start(body, revision).status == 202 && f.raw.schedules == 1);
+            auto conflict = body;
+            conflict.replace(conflict.find("120000"), 6, "119999");
+            REQUIRE(f.start(conflict, revision).body_text().find("request_conflict") !=
+                    std::string::npos);
+            const auto at = timing(accepted, "scheduled_monotonic_ns");
+            f.background(at + 1'000'000);
+            REQUIRE(field(f.status(), "phase") == "running");
+            // No client traffic across lease expiry: native ownership remains exclusive.
+            f.background(at + 90'000'000'000ULL);
+            REQUIRE(f.service.activity().owned);
+            REQUIRE(f.start(f.start_body(std::string(32, '2'), "1000", drive)).status == 409);
+            f.background(at + 120'001'000'000ULL);
+            REQUIRE(!f.service.activity().owned);
+            const auto ended = f.status();
+            REQUIRE(field(ended, "outcome") == "completed");
+            REQUIRE(ended.body_text().find("\"output_inactive_confirmed\":true") !=
+                    std::string::npos);
+            const auto calls = f.raw.disables;
+            REQUIRE(f.stop(job, control).status == 200 && f.raw.disables == calls);
+            REQUIRE(f.flash.bytes == before);
+        }
 }
 void stops_and_replay() {
     Fixture f;
@@ -461,6 +483,7 @@ void carriers_and_documents(const char* output) {
 }
 } // namespace
 int main(int argc, char** argv) {
+    station_free_reviews();
     lifecycle();
     stops_and_replay();
     shutdown_and_pad_failures();

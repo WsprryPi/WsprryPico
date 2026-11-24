@@ -107,7 +107,7 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
     constexpr std::string_view prefix = "/api/control/v1/test-tone/";
     const auto operation = std::string_view(request.path).substr(prefix.size());
     const auto boot = service_.status(false).boot_id;
-    const auto saved_config = effective_config();
+    const auto saved_config = saved_settings();
     const auto saved_drive = saved_config ? std::to_string(saved_config->gpio_drive_ma) : "null";
     if (!test_tone_.supported())
         return http_error(409, "test_tone_unavailable");

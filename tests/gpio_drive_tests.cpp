@@ -1,4 +1,5 @@
 #include "application/config_update.hpp"
+#include "network/local_usb_api.hpp"
 #include "network_support.hpp"
 
 using namespace wsprrypico;
@@ -42,6 +43,143 @@ struct Member {
                     envelope("gpio-drive", "gpio_drive_ma", value));
     }
 };
+void station_independent() {
+    for (unsigned value : {2, 4, 8, 12}) {
+        for (int route = 0; route < 3; ++route)
+            for (bool physical_usb : {false, true}) {
+                network_test::Fixture f;
+                network::LocalUsbApi usb(f.api);
+                network_test::Flash draft_flash;
+                standalone::Progress progress(draft_flash);
+                REQUIRE(progress.load());
+                f.api.progress_settings(progress);
+                auto call = [&](std::string method, std::string path, std::string body = {}) {
+                    auto r = request(method, path, body);
+                    r.headers["if-match"] = f.api.revision();
+                    return physical_usb ? usb.handle(network_test::control_request(r))
+                                        : f.api.handle(network_test::control_request(r), "test",
+                                                       "127.0.0.1:8443");
+                };
+                auto envelope = [&](std::string schema, std::string key, std::string v) {
+                    return "{\"schema\":" + quote(schema) + ",\"target\":" +
+                           application::target(std::string(32, 'a'), f.service.status().boot_id) +
+                           "," + quote(key) + ":" + v + "}";
+                };
+                auto unrelated = envelope("progress", "fields", R"({"locator":"EM18"})");
+                unrelated.insert(unrelated.size() - 1,
+                                 ",\"request_id\":\"99999999999999999999999999999999\"");
+                REQUIRE(call("POST", "/api/control/v1/progress/update", unrelated).status == 200);
+                REQUIRE(call("POST", "/api/control/v1/progress/apply",
+                             envelope("progress", "application",
+                                      "{\"domain\":\"drive\",\"draft_revision\":" +
+                                          quote(std::to_string(progress.sequence())) + "}"))
+                            .status == 409);
+                REQUIRE(!f.store.config() && !f.store.config_sequence());
+                const auto pins = f.scheduler.active_pins();
+                network::HttpResponse response;
+                if (route == 0)
+                    response = call("PUT", "/api/control/v1/gpio-drive",
+                                    envelope("gpio-drive", "gpio_drive_ma", std::to_string(value)));
+                if (route == 1) {
+                    auto body = envelope("config-update", "config",
+                                         "{\"gpio_drive_ma\":" + std::to_string(value) + "}");
+                    body.insert(body.size() - 1, ",\"mode\":\"merge\"");
+                    response = call("POST", "/api/control/v1/config/update", body);
+                }
+                if (route == 2) {
+                    auto body = envelope("progress", "fields",
+                                         "{\"gpio_drive_ma\":" + std::to_string(value) +
+                                             ",\"locator\":\"FN42\"}");
+                    body.insert(body.size() - 1,
+                                ",\"request_id\":\"11111111111111111111111111111111\"");
+                    REQUIRE(call("POST", "/api/control/v1/progress/update", body).status == 200);
+                    REQUIRE(!f.store.config());
+                    response = call("POST", "/api/control/v1/progress/apply",
+                                    envelope("progress", "application",
+                                             "{\"domain\":\"drive\",\"draft_revision\":" +
+                                                 quote(std::to_string(progress.sequence())) + "}"));
+                }
+                if (response.status != 200)
+                    std::cerr << response.body_text() << "\n";
+                REQUIRE(response.status == 200);
+                if (!f.store.config() || f.store.config()->gpio_drive_ma != value)
+                    std::cerr << "route=" << route << " value=" << value
+                              << " body=" << response.body_text() << "\n";
+                REQUIRE(f.store.config() && f.store.config()->gpio_drive_ma == value);
+                REQUIRE(f.store.config()->callsign.empty() && f.store.config()->locator.empty());
+                REQUIRE(!f.store.config()->enabled && !f.store.message_schedule());
+                REQUIRE(f.store.config()->pins == pins);
+                REQUIRE(f.scheduler.active_gpio_drive_ma() == 12);
+                REQUIRE(f.scheduler.hardware_restart_required() == (value != 12));
+                REQUIRE(f.scheduler.reboot_required() == (value != 12));
+                auto station = call("GET", "/api/control/v1/station");
+                REQUIRE(parse(station.body_view())->get("station")->raw == "null");
+                auto read = call("GET", "/api/control/v1/progress");
+                REQUIRE(parse(read.body_view())->get("station_complete")->raw == "false");
+                REQUIRE(parse(read.body_view())->get("applied_station")->raw == "null");
+                const auto before = f.store.config_sequence();
+                auto bad = *f.store.config();
+                bad.enabled = true;
+                REQUIRE(!standalone::parse_config(standalone::serialize_config(bad)));
+                bad.enabled = false;
+                bad.callsign = "AA0NT";
+                REQUIRE(!standalone::parse_config(standalone::serialize_config(bad)));
+                REQUIRE(
+                    f.scheduler.command("CONFIG " + standalone::serialize_config(*f.store.config()))
+                        .find("invalid_station") != std::string::npos);
+                REQUIRE(f.store.config_sequence() == before);
+                standalone::Store reboot(f.flash);
+                REQUIRE(reboot.load());
+                standalone::Scheduler boot(reboot, f.service);
+                REQUIRE(boot.active_gpio_drive_ma() == value && boot.active_pins() == pins);
+                REQUIRE(!boot.hardware_restart_required());
+                // Applying a real station later preserves the previously saved RF settings.
+                auto station_draft = envelope(
+                    "progress", "fields", R"({"callsign":"AA0NT","locator":"EM18","power_dbm":0})");
+                station_draft.insert(station_draft.size() - 1,
+                                     ",\"request_id\":\"22222222222222222222222222222222\"");
+                REQUIRE(call("POST", "/api/control/v1/progress/update", station_draft).status ==
+                        200);
+                REQUIRE(call("POST", "/api/control/v1/progress/apply",
+                             envelope("progress", "application",
+                                      "{\"domain\":\"station\",\"draft_revision\":" +
+                                          quote(std::to_string(progress.sequence())) + "}"))
+                            .status == 200);
+                REQUIRE(f.store.config()->callsign == "AA0NT" &&
+                        f.store.config()->locator == "EM18");
+                REQUIRE(f.store.config()->gpio_drive_ma == value && f.store.config()->pins == pins);
+                REQUIRE(!f.store.config()->enabled);
+            }
+    }
+}
+void no_wspr_frequency_prerequisite() {
+    auto policy = network_test::Fixture::physical_policy();
+    policy.maximum_frequency_nhz = 10'000'000'000'000'000ULL;
+    network_test::Fixture f(0, std::string(32, 'a'), nullptr, policy);
+    auto r = request("PUT", "/api/control/v1/gpio-drive",
+                     "{\"schema\":\"gpio-drive\",\"target\":" +
+                         application::target(std::string(32, 'a'), f.service.status().boot_id) +
+                         ",\"gpio_drive_ma\":8}");
+    r.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(network_test::control_request(r), "test", "127.0.0.1:8443").status == 200);
+    REQUIRE(f.store.config()->gpio_drive_ma == 8 && !f.store.config()->enabled);
+}
+void first_write_failure() {
+    network_test::Fixture f;
+    auto put = request("PUT", "/api/control/v1/gpio-drive",
+                       "{\"schema\":\"gpio-drive\",\"target\":" +
+                           application::target(std::string(32, 'a'), f.service.status().boot_id) +
+                           ",\"gpio_drive_ma\":8}");
+    put.headers["if-match"] = f.api.revision();
+    f.flash.fail = true;
+    REQUIRE(f.api.handle(network_test::control_request(put), "test", "127.0.0.1:8443").status ==
+            503);
+    REQUIRE(!f.store.config() && !f.store.healthy());
+    put.headers["if-match"] = f.api.revision();
+    REQUIRE(f.api.handle(network_test::control_request(put), "test", "127.0.0.1:8443").status ==
+            503);
+    REQUIRE(!f.store.config() && !f.store.config_sequence());
+}
 void validation() {
     REQUIRE(standalone::factory_config().gpio_drive_ma == 12);
     auto c = *standalone::parse_config(network_test::config);
@@ -198,7 +336,28 @@ void drafts_and_failures() {
     REQUIRE(busy.drive("8").status == 409);
 }
 } // namespace
-int main(int argc, char**) {
+int main(int argc, char** argv) {
+    if (argc == 2 && std::string_view(argv[1]) == "--station-free-samples") {
+        for (unsigned drive : {2, 4, 8, 12}) {
+            network_test::Fixture f;
+            auto put =
+                request("PUT", "/api/control/v1/gpio-drive",
+                        "{\"schema\":\"gpio-drive\",\"target\":" +
+                            application::target(std::string(32, 'a'), f.service.status().boot_id) +
+                            ",\"gpio_drive_ma\":" + std::to_string(drive) + "}");
+            put.headers["if-match"] = f.api.revision();
+            REQUIRE(
+                f.api.handle(network_test::control_request(put), "test", "127.0.0.1:8443").status ==
+                200);
+            std::cout << f.api
+                             .handle(network_test::control_request(
+                                         request("GET", "/api/control/v1/config")),
+                                     "test", "127.0.0.1:8443")
+                             .body_text()
+                      << '\n';
+        }
+        return 0;
+    }
     if (argc == 2) {
         Member m;
         for (unsigned value : {2, 4, 8, 12}) {
@@ -210,6 +369,9 @@ int main(int argc, char**) {
         return 0;
     }
 
+    no_wspr_frequency_prerequisite();
+    first_write_failure();
+    station_independent();
     validation();
     current_persistence();
     observations_and_admission();

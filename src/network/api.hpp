@@ -158,6 +158,8 @@ class BrowserApi {
     std::uint64_t nominal_sample_hz_ = 0;
     ManagementAvailability management_;
     std::optional<standalone::Config> effective_config() const;
+    std::optional<standalone::Config> saved_settings() const;
+    standalone::Config drive_baseline() const;
     HttpResponse message_schedule_resource(const HttpRequest& request);
     HttpResponse schedule_stop_resource(const HttpRequest& request);
     HttpResponse config() const;
