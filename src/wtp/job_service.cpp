@@ -157,7 +157,11 @@ Response JobService::handle_internal(Request&& request, ExecutionVerifier verify
     return handle_owned(request, false);
 }
 
-Response JobService::handle_owned(Request& request, bool retain_response) {
+Response JobService::handle_internal_test_tone_load(Request&& request) {
+    return handle_owned(request, false, LoadPurpose::NativeTestTone);
+}
+
+Response JobService::handle_owned(Request& request, bool retain_response, LoadPurpose purpose) {
     const auto now = clock_.snapshot();
     runtime::ActivitySpan status_span(
         runtime::activity_trace(), runtime::ActivityKind::Status,
@@ -239,13 +243,13 @@ Response JobService::handle_owned(Request& request, bool retain_response) {
         return response;
     }
 
-    auto response = dispatch(request);
+    auto response = dispatch(request, purpose);
     if (retain_response)
         remember(request, response, now.monotonic_now_ns);
     return response;
 }
 
-Response JobService::dispatch(Request& request) {
+Response JobService::dispatch(Request& request, LoadPurpose purpose) {
     const auto now = clock_.snapshot();
     constexpr std::array<std::string_view, 11> operations{"HELLO",   "CAPS",      "CLAIM", "RENEW",
                                                           "RELEASE", "LOAD",      "ARM",   "ABORT",
@@ -437,7 +441,9 @@ Response JobService::dispatch(Request& request) {
             }
             return reject(error);
         };
-        auto preparation = engine_.prepare(accepted);
+        auto preparation = purpose == LoadPurpose::NativeTestTone
+                               ? engine_.prepare_native_test_tone(accepted)
+                               : engine_.prepare(accepted);
         if (!preparation.accepted)
             return preparation_failure(ErrorCode::FrequencyRejected);
         if (!accepted.allow_frequency_adjustment && !preparation.adjustments.empty()) {

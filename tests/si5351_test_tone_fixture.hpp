@@ -58,14 +58,31 @@ struct Bus : rf::si5351::Bus {
         return true;
     }
 };
+struct Flash : network_test::Flash {
+    unsigned writes = 0;
+    bool erase(std::size_t offset) override {
+        ++writes;
+        return network_test::Flash::erase(offset);
+    }
+    bool program(std::size_t offset, std::span<const std::uint8_t> bytes) override {
+        ++writes;
+        return network_test::Flash::program(offset, bytes);
+    }
+};
+struct Settings {
+    bool allow_unqualified_frequency = true;
+    bool engineering = false;
+    std::int32_t correction_ppb = 0;
+};
 struct Fixture {
-    network_test::Flash flash;
+    Flash flash;
     standalone::Store store{flash};
     network_test::Clock clock;
     Platform platform{clock};
     Bus bus{clock};
     rf::si5351::Device device{bus};
     standalone::Config config;
+    const bool ordinary_profile;
     rf::si5351::Engine raw;
     standalone::FrequencyPolicyEngine policy;
     network_test::Identity identity;
@@ -73,34 +90,38 @@ struct Fixture {
     standalone::Scheduler scheduler;
     network_test::Network network;
     network::BrowserApi api;
-    standalone::Config initialize(unsigned drive) {
+    standalone::Config initialize(unsigned drive, Settings settings) {
         REQUIRE(store.load());
         auto selected = *standalone::parse_config(network_test::config);
         selected.pins.engine = hardware::PinPlan::Engine::I2c;
         selected.pins.rf.reset();
         selected.pins.i2c_pair = 1;
         selected.si5351.emplace();
-        selected.si5351->synthesis = {
-            25'000'000, rf::si5351::Reference::ExternalXa, {}, rf::si5351::Output::Clk0, {}, drive};
+        selected.si5351->synthesis = {settings.engineering ? 27'000'000u : 25'000'000u,
+                                     rf::si5351::Reference::ExternalXa, {},
+                                     rf::si5351::Output::Clk0, {}, drive};
+        selected.si5351->manual_correction_ppb = settings.correction_ppb;
         selected.enabled = false;
         selected.callsign.clear();
         selected.locator.clear();
-        selected.allow_unqualified_frequency = true;
+        selected.allow_unqualified_frequency = settings.allow_unqualified_frequency;
         REQUIRE(store.save(selected));
-        REQUIRE(
-            hardware::si5351_ordinary_qualified(selected.pins, *selected.si5351, rf::sample_rate));
         return selected;
     }
-    explicit Fixture(unsigned drive)
-        : config(initialize(drive)),
-          raw(config.si5351->synthesis, device, platform, false, nullptr, nullptr, nullptr,
-              hardware::si5351_ordinary_qualified(config.pins, *config.si5351, rf::sample_rate)),
-          policy(raw, store, 8'000'000'000'000ULL, 160'000'000'000'000'000ULL),
+    explicit Fixture(unsigned drive, Settings settings = {})
+        : config(initialize(drive, settings)),
+          ordinary_profile(hardware::si5351_ordinary_qualified(
+              config.pins, *config.si5351, rf::sample_rate, store.filters())),
+          raw(config.si5351->synthesis, device, platform, settings.engineering, nullptr, nullptr,
+              nullptr, ordinary_profile),
+          policy(raw, store, 8'000'000'000'000ULL, 160'000'000'000'000'000ULL, ordinary_profile),
           service(clock, policy, identity,
                   standalone::wtp_profile(true, standalone::default_ntp_timeout_s,
-                                          hardware::PinPlan::Engine::I2c, false, true)),
+                                          hardware::PinPlan::Engine::I2c, settings.engineering,
+                                          ordinary_profile)),
           scheduler(store, service),
           api(service, store, scheduler, network, std::string(32, 'a'), "test") {
+        REQUIRE(ordinary_profile != settings.engineering);
         REQUIRE(raw.disable(clock.now + 100'000'000));
         api.test_tone_policy(policy);
     }
@@ -119,12 +140,13 @@ struct Fixture {
                             {"if-match", std::move(revision)}}},
                           "cert", "127.0.0.1:8443");
     }
-    std::string body(bool start, unsigned drive, unsigned duration = 120000) {
+    std::string body(bool start, unsigned drive, unsigned duration = 120000,
+                     unsigned carrier_hz = 14'097'100) {
         return "{\"contract\":\"Wsprry-Control/1\",\"schema\":\"test-tone-" +
                std::string(start ? "start" : "review") + "\",\"target\":" + target() +
                (start ? ",\"request_id\":\"" + std::string(32, '1') + "\"" : "") +
-               ",\"tone\":{\"engine\":\"si5351\",\"carrier_hz\":14097100,\"duration_ms\":" +
-               std::to_string(duration) +
+               ",\"tone\":{\"engine\":\"si5351\",\"carrier_hz\":" + std::to_string(carrier_hz) +
+               ",\"duration_ms\":" + std::to_string(duration) +
                (start ? ",\"expected_drive_ma\":" : ",\"proposed_drive_ma\":") +
                std::to_string(drive) + "}}";
     }

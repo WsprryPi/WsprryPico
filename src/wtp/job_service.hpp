@@ -521,6 +521,10 @@ class RfEngine {
         return 32768;
     }
     virtual PrepareResult prepare(const Job& job) = 0;
+    // Local application preparation policy. The engine still prepares the same job.
+    virtual PrepareResult prepare_native_test_tone(const Job& job) {
+        return prepare(job);
+    }
     // Permanent local interlock also suppresses optional background hardware
     // work. Cleanup remains available; this never re-enables an inhibited job.
     virtual void inhibit_output() {}
@@ -745,6 +749,9 @@ class JobService {
                                        const void*);
     Response handle_internal(Request&& request, ExecutionVerifier verify = nullptr,
                              const void* context = nullptr);
+    // Only for the trusted Test Tone coordinator's LOAD. This purpose is
+    // passed on the call stack and is never decoded from a request.
+    Response handle_internal_test_tone_load(Request&& request);
     // Physical Console safety control only; never exposed as a network operation.
     Response local_abort();
     // Local physical output interlock. Once set, no transport or scheduler may
@@ -866,8 +873,10 @@ class JobService {
         std::uint64_t lru;
     };
 
-    Response handle_owned(Request& request, bool retain_response = true);
-    Response dispatch(Request& request);
+    enum class LoadPurpose { Ordinary, NativeTestTone };
+    Response handle_owned(Request& request, bool retain_response = true,
+                          LoadPurpose purpose = LoadPurpose::Ordinary);
+    Response dispatch(Request& request, LoadPurpose purpose);
     Response abort_job(std::string_view job_id);
     Response reject(ErrorCode code) const;
     Response success() const;

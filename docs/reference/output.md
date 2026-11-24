@@ -109,7 +109,7 @@ Conducted tone, WSPR, QRSS, FSKCW, and DFCW tests passed at each sampled RF freq
 | 6 m | 50294500 | Enabled by the normal frequency policy |
 | 5 m | 60001000 | Disabled by default; requires explicit advanced experimental-frequency permission |
 | 4 m | 70400000 | Disabled by default; requires explicit advanced experimental-frequency permission |
-| 2 m | 144490500 | Disabled by default; requires explicit advanced experimental-frequency permission |
+| 2 m | 144490500 | Native Test Tone admits this exact carrier on the ordinary Si5351 profile by default. Other 2 m carriers and transmission modes require explicit advanced experimental-frequency permission. |
 
 Every transmission remains subject to the chosen frequency, RF setup, and operating privileges. These results apply to the recorded Pico C engineering image and QRP Labs Rev. 6 / 25 MHz TCXO setup, using CLK0 at **8 mA**. They qualify the sampled points under those test conditions, rather than complete band ranges or other module/reference/drive configurations. All three consecutive WSPR frames decoded the expected message at each point; CW acceptance uses human-readable marks and frequency states. These results do not establish calibrated frequency, power, emissions, or absolute UTC timing.
 

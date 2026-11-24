@@ -506,20 +506,23 @@ int main() {
         return runtime_profile.consumer_browser_selected(profile_store);
     };
 #ifdef WSPRRY_PICO_STANDALONE_RF
+    const bool boot_ordinary_si5351 =
+        store.config() && store.config()->si5351 &&
+        wsprrypico::hardware::si5351_ordinary_qualified(
+            boot_pins, *store.config()->si5351, clock_get_hz(clk_sys), filter_selector.settings());
     auto config = wsprrypico::standalone::wtp_profile(
         true, ntp_timeout_s, boot_pins.engine, WSPRRY_PICO_SI5351_ENGINEERING,
-        store.config() && store.config()->si5351 &&
-            wsprrypico::hardware::si5351_ordinary_qualified(boot_pins, *store.config()->si5351,
-                                                            clock_get_hz(clk_sys),
-                                                            filter_selector.settings()));
+        boot_ordinary_si5351);
 #else
+    constexpr bool boot_ordinary_si5351 = false;
     auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s, boot_pins.engine);
 #endif
     if (store.config() && store.config()->gps && store.config()->gps->enabled)
         config.maximum_holdover_age_ns = std::max<std::uint64_t>(config.maximum_holdover_age_ns,
                                                                3'600'000'000'000ULL);
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
-        engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
+        engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz,
+        boot_ordinary_si5351);
     static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
     if (usb_update_boot)
         service.hold_update_verification();

@@ -7,6 +7,7 @@
 #include "si5351_test_tone_fixture.hpp"
 #include "usb/management_endpoint.hpp"
 
+#include <cmath>
 #include <fstream>
 
 using namespace wsprrypico;
@@ -188,6 +189,168 @@ void station_free_reviews() {
         }
     REQUIRE(before == f.flash.bytes && !f.raw.prepares && !f.raw.schedules);
 }
+constexpr unsigned qualified_carrier_hz = 144'490'500;
+constexpr std::uint64_t qualified_carrier_nhz = 144'490'500'000'000'000ULL;
+constexpr std::string_view review_path = "/api/control/v1/test-tone/review";
+constexpr std::string_view start_path = "/api/control/v1/test-tone/start";
+
+void ordinary_load_refuses(synthesis_tone_test::Fixture& f, bool internal) {
+    unsigned sequence = 0;
+    const auto send = [&](std::string_view operation, wtp::RequestBody body = {}) {
+        wtp::Request request;
+        request.session_id = std::string(32, 'e');
+        request.request_id = std::string(31, 'e') + std::to_string(++sequence);
+        request.principal = "other-producer";
+        request.payload_digest[0] = sequence;
+        request.operation = operation;
+        request.body = std::move(body);
+        return internal ? f.service.handle_internal(std::move(request))
+                        : f.service.handle(std::move(request));
+    };
+    const std::string job_id(32, 'd');
+    REQUIRE(send("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
+    REQUIRE(send("CLAIM", wtp::ClaimBody{job_id, 30'000}).ok);
+    wtp::Job job;
+    job.job_id = job_id;
+    job.mode = "tone";
+    job.total_duration_ns = 1'000'000'000;
+    job.allow_frequency_adjustment = true;
+    REQUIRE(job.events.push_back({0, job.total_duration_ns, true, qualified_carrier_nhz}));
+    const auto loaded = send("LOAD", std::move(job));
+    REQUIRE(!loaded.ok && loaded.error == wtp::ErrorCode::FrequencyRejected);
+    REQUIRE(f.service.activity().state != wtp::State::Loaded && !f.raw.output_active());
+    REQUIRE(send("RELEASE").ok);
+}
+
+void exact_si5351_carrier() {
+    constexpr std::array drives{2u, 4u, 6u, 8u};
+    for (const unsigned boot_drive : drives) {
+        const int correction_ppb = boot_drive == 8 ? 10'000 : 0;
+        synthesis_tone_test::Fixture f(
+            boot_drive, {.allow_unqualified_frequency = false, .correction_ppb = correction_ppb});
+        REQUIRE(!f.store.config()->allow_unqualified_frequency &&
+                !f.store.config()->allow_non_amateur_frequency);
+        const auto revision = f.api.revision();
+        const auto bytes = f.flash.bytes;
+        const auto writes = f.flash.writes;
+        const auto operations = f.bus.operations;
+        const auto before = f.service.status();
+        std::string ready_revision;
+        std::uint64_t ready_programmed = 0;
+        for (const unsigned proposed : drives) {
+            const auto response =
+                f.send("POST", std::string(review_path),
+                       f.body(false, proposed, 1000, qualified_carrier_hz));
+            REQUIRE(response.status == 200);
+            const auto text = response.body_text();
+            const auto review = wtp::json::parse(text);
+            REQUIRE(review && review->get("admission")->string() ==
+                                  (proposed == boot_drive ? "ready" : "requires_restart"));
+            REQUIRE(review->get("reasons")->raw == "[]");
+            REQUIRE(review->get("assessment_revision")->string() == revision);
+            const auto realization = review->get("realization");
+            std::uint64_t requested = 0, programmed = 0, bound = 0;
+            REQUIRE(realization &&
+                    wtp::json::decimal(*realization->get("requested_nhz"), requested) &&
+                    requested == qualified_carrier_nhz);
+            REQUIRE(wtp::json::decimal(*realization->get("programmed_nhz"), programmed));
+            REQUIRE(wtp::json::decimal(*realization->get("quantization_bound_nhz"), bound));
+            const long double target = qualified_carrier_nhz / (1 + correction_ppb / 1e9L);
+            REQUIRE(std::fabs(programmed - target) <= bound);
+            REQUIRE(bound <= 1'000'000 + rf::si5351::frequency_reporting_guard_nhz);
+            if (proposed == boot_drive) {
+                ready_revision = review->get("assessment_revision")->string();
+                ready_programmed = programmed;
+            }
+        }
+        REQUIRE(f.api.revision() == revision && f.service.status() == before);
+        REQUIRE(f.flash.bytes == bytes && f.flash.writes == writes &&
+                f.bus.operations == operations && !f.policy.prepared_correction());
+        const auto wrong_drive = boot_drive == 2 ? 4 : 2;
+        const auto mismatch = f.send("POST", std::string(start_path),
+                                     f.body(true, wrong_drive, 1000, qualified_carrier_hz),
+                                     revision);
+        REQUIRE(mismatch.status == 409 &&
+                mismatch.body_text().find("boot_drive_mismatch") != std::string::npos);
+        REQUIRE(f.bus.operations == operations && f.service.status() == before);
+
+        const auto accepted = f.send("POST", std::string(start_path),
+                                     f.body(true, boot_drive, 1000, qualified_carrier_hz),
+                                     ready_revision);
+        REQUIRE(accepted.status == 202 &&
+                synthesis_tone_test::job_field(accepted, "phase") == "accepted" &&
+                f.service.activity().state == wtp::State::Armed);
+        const auto readback = f.raw.synthesis_observation();
+        REQUIRE(readback.epoch && readback.drive_ma == int(boot_drive) &&
+                readback.transmit_output == 0 && readback.reference_hz == 25'000'000);
+        const auto correction = f.policy.prepared_correction();
+        REQUIRE(correction && correction->ppb == correction_ppb);
+        const auto accepted_text = accepted.body_text();
+        const auto receipt = wtp::json::parse(accepted_text);
+        REQUIRE(receipt);
+        const auto job = receipt->get("job");
+        REQUIRE(job);
+        const auto synthesis = job->get("synthesis_readback");
+        REQUIRE(synthesis && synthesis->get("stage")->string() == "verified" &&
+                synthesis->get("drive_ma")->raw == std::to_string(boot_drive));
+        std::uint64_t prepared = 0;
+        REQUIRE(wtp::json::decimal(*job->get("realization")->get("programmed_nhz"), prepared));
+        REQUIRE(prepared == ready_programmed);
+        if (correction_ppb)
+            REQUIRE(prepared != qualified_carrier_nhz);
+        const auto at = synthesis_tone_test::launch(accepted);
+        f.advance(at);
+        REQUIRE(synthesis_tone_test::job_field(f.status(), "phase") == "running");
+        f.advance(at + 1'001'000'000);
+        const auto done = f.status();
+        REQUIRE(synthesis_tone_test::job_field(done, "outcome") == "completed");
+        REQUIRE(done.body_text().find("\"output_inactive_confirmed\":true") != std::string::npos);
+        REQUIRE(!f.service.activity().owned && !f.raw.output_active());
+        ordinary_load_refuses(f, true);
+        REQUIRE(f.flash.bytes == bytes && f.flash.writes == writes);
+    }
+}
+
+void exact_carrier_exclusions() {
+    synthesis_tone_test::Fixture ordinary(8, {.allow_unqualified_frequency = false});
+    synthesis_tone_test::Fixture engineering(
+        8, {.allow_unqualified_frequency = false, .engineering = true});
+    const auto check_refused = [](synthesis_tone_test::Fixture& f, unsigned carrier_hz) {
+        const auto before = f.service.status();
+        const auto revision = f.api.revision();
+        const auto operations = f.bus.operations;
+        const auto review =
+            f.send("POST", std::string(review_path), f.body(false, 8, 1000, carrier_hz));
+        REQUIRE(review.status == 200);
+        const auto text = review.body_text();
+        const auto doc = wtp::json::parse(text);
+        REQUIRE(doc && doc->get("admission")->string() == "refused" &&
+                doc->get("reasons")->raw == "[\"unqualified_frequency_not_permitted\"]");
+        std::uint64_t programmed = 0;
+        REQUIRE(wtp::json::decimal(*doc->get("realization")->get("programmed_nhz"), programmed));
+        const auto start =
+            f.send("POST", std::string(start_path), f.body(true, 8, 1000, carrier_hz), revision);
+        REQUIRE(start.status == 409 &&
+                start.body_text().find("unqualified_frequency_not_permitted") != std::string::npos);
+        REQUIRE(f.bus.operations == operations && f.service.status() == before &&
+                f.api.revision() == revision && !f.policy.prepared_correction());
+    };
+    check_refused(ordinary, qualified_carrier_hz - 1);
+    check_refused(ordinary, qualified_carrier_hz + 1);
+    check_refused(engineering, qualified_carrier_hz);
+    ordinary_load_refuses(ordinary, false);
+
+    Fixture direct;
+    const auto body = direct.review_body(std::to_string(qualified_carrier_hz));
+    const auto reviewed = direct.review(body);
+    REQUIRE(reviewed.status == 200 &&
+            reviewed.body_text().find("\"admission\":\"refused\"") != std::string::npos &&
+            reviewed.body_text().find("native_frequency_out_of_range") != std::string::npos);
+    auto start_body = direct.start_body();
+    start_body.replace(start_body.find("5366200"), 7, std::to_string(qualified_carrier_hz));
+    REQUIRE(direct.start(start_body).status == 409 && !direct.raw.prepares && !direct.raw.schedules);
+}
+
 void lifecycle() {
     for (bool absent_station : {false, true})
         for (unsigned drive : {2, 4, 8, 12}) {
@@ -487,6 +650,8 @@ void carriers_and_documents(const char* output) {
 } // namespace
 int main(int argc, char** argv) {
     station_free_reviews();
+    exact_si5351_carrier();
+    exact_carrier_exclusions();
     lifecycle();
     stops_and_replay();
     shutdown_and_pad_failures();

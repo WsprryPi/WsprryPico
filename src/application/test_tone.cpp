@@ -111,6 +111,8 @@ wtp::Response TestTone::command(std::string_view operation, wtp::RequestBody bod
             },
             record);
     }
+    if (operation == "LOAD")
+        return service_.handle_internal_test_tone_load(std::move(request));
     return service_.handle_internal(std::move(request));
 }
 TestToneRecord* TestTone::find(std::string_view value, bool job) {
