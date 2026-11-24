@@ -1,6 +1,6 @@
 # 8574-based LPF output implementation plan
 
-Status: ▧ not started. This document records proposed functionality, not an implemented contract or qualified hardware capability. The planned implementation includes coordinated WsprryPi selected-member changes. The current task updates this plan only; implementation, companion repository edits, deployment, hardware/RF activity, commits, and publication have not started or been authorized by this plan update.
+Status: ▧ not started. This document records proposed functionality, not an implemented contract or qualified hardware capability. The planned implementation includes coordinated WsprryPi selected-member changes. Implementation requires coordinated source changes and independent software and hardware validation.
 
 ## Objective and references
 
@@ -30,7 +30,7 @@ Define P0 as bit 0 and P7 as bit 7. These are arbitrary patterns, not BCD codes.
 
 ## 2. Selector model and coverage
 
-At plan preparation, Pico supports five direct GPIO selectors and ten frequency ranges. Retain its complete-job coverage boundary: every nominal and programmed RF frequency must be covered by one consistent selected output pattern, including modulation shifts and frequency correction. Multiple bands or disjoint ranges may share a pattern. Reject conflicting overlapping assignments. Unassigned required coverage refuses transmission.
+The direct-GPIO selector supports five outputs and ten frequency ranges. Retain its complete-job coverage boundary: every nominal and programmed RF frequency must be covered by one consistent selected output pattern, including modulation shifts and frequency correction. Multiple bands or disjoint ranges may share a pattern. Reject conflicting overlapping assignments. Unassigned required coverage refuses transmission.
 
 Separate backend from policy: backend is direct GPIO or I²C; policy is fixed/manual or required. Fixed/manual retains the chosen backend configuration but performs no automatic frequency selection. GPIO initializes inactive; I²C initializes to the configured idle byte and holds it. Required policy enables coverage admission and job-dependent selection. Fresh installations retain fixed/manual with empty direct-GPIO settings. Preserve existing direct-GPIO configurations. Do not activate both selector backends.
 
@@ -54,7 +54,7 @@ Keep Pico SDA/SCL and pull-ups at 3.3 V. Verify input thresholds, board pull-up 
 
 ## 4. Pico I²C ownership and driver boundaries
 
-The Si5351 bus adapter directly initializes and can deinitialize its controller at plan preparation. Introduce one owner per physical I²C controller before adding another device to that controller.
+The Si5351 bus adapter directly initializes and can deinitialize its controller during RF engine preparation. Introduce one owner per physical I²C controller before adding another device to that controller.
 
 - Permit an expander alongside direct GPIO RF.
 - Permit an expander and Si5351 on one shared SDA/SCL pair, with distinct addresses and serialized transactions.
@@ -110,7 +110,7 @@ Runtime readback must represent nullable selected logical pattern, nullable last
 
 Extend the existing `filter-selector` resource. Do not add raw I²C commands or filter-specific fields to WTP. Retain `Wsprry-Control/1` and its namespace under the current prerelease policy, with one current schema and no historical views.
 
-Coordinate Pico and WsprryPi selected-member controls in the same implementation task. Planned companion scope includes the production Pi client/coordinator, selected-member API and Fleet editor, capability negotiation, exact descriptor and resource validation, serialization/readback, generated assets, paired test adapters, and affected Pi operator documentation. Both USB and network paths must consume the current resource. Pi-native I²C filter selection is a separate feature: this task controls Pico-owned hardware and does not implement the Pi-local issue #470 proposal. Establish implementation authority for both repositories before execution; including them in this plan starts no code work. Update descriptors, canonical schema, exact validators, generated assets, serialization, runtime consumption, and paired test adapters together. Validate document shape before field access and reject malformed or inconsistent variant/address/profile combinations, limits, device/boot bindings, carriers, and revisions before mutation.
+Coordinate Pico and WsprryPi selected-member controls in the same implementation task. Planned companion scope includes the production Pi client/coordinator, selected-member API and Fleet editor, capability negotiation, exact descriptor and resource validation, serialization/readback, generated assets, paired test adapters, and affected Pi operator documentation. Both USB and network paths must consume the current resource. Pi-native I²C filter selection is a separate feature: the proposed backend controls Pico-owned hardware and does not implement the Pi-local issue #470 proposal. Update descriptors, canonical schema, exact validators, generated assets, serialization, runtime consumption, and paired test adapters together. Validate document shape before field access and reject malformed or inconsistent variant/address/profile combinations, limits, device/boot bindings, carriers, and revisions before mutation.
 
 Preserve saved, boot-active, and runtime distinctions. Selector changes retain restart requirements and A/B/A output inhibition. Saving never applies the new bus, pins, polarity, or patterns and never starts a job. Existing inhibition may invoke bounded cleanup using only the immutable boot configuration; it must not initialize a newly saved device or select its idle byte. Account for cleanup failure after a durable save as a committed change with pending restart and a fault, not a rejected mutation safe to retry. Use the independent storage encoding and explicit upgrade/rollback rules in section 9. Preserve existing direct-GPIO configurations and fixed/manual defaults on upgrade. Unsupported or corrupt I²C records must inhibit operation rather than silently become an enabled alternative configuration. Restore the compatible defaults before downgrade as specified in section 9; do not promise rollback that the older reader cannot perform safely. Preserve the selector domain across unrelated saves and reset only through its defined authority. Measure aggregate journal, request, response, stack, and RAM budgets.
 
