@@ -28,7 +28,7 @@ class LocalSettings {
     std::string wifi_readback(std::string_view boot) const;
     // Explicit no-network is null; password null preserves only the current
     // network's password. Return empty on success; errors contain no secrets.
-    std::string wifi_save(wtp::json::Value wifi);
+    std::string wifi_save(execution::json::Value wifi);
     std::string ensure_local_profile();
     std::string station_save(const standalone::Config& candidate);
     bool pending_restart() const {

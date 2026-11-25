@@ -2,7 +2,7 @@
 #include "network/control.hpp"
 #include "network_support.hpp"
 #include "standalone/progress.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 using namespace wsprrypico;
 
 namespace {
@@ -15,27 +15,27 @@ void envelope_admission() {
     for (const auto body : {R"({"contract":"Wsprry-Control/1","x":{"contract":"nested"}})",
                             R"({"x":{"contract":"nested"},"contract":"Wsprry-Control/1"})",
                             R"({"x":[1,2],"contr\u0061ct":"Wsprry-Control/1","y":false})"}) {
-        const auto payload = network::control_payload(wtp::InputView(body));
-        REQUIRE(payload && wtp::json::parse(*payload));
-        REQUIRE(!wtp::json::parse(*payload)->get("contract"));
-        REQUIRE(wtp::json::parse(*payload)->get("x"));
+        const auto payload = network::control_payload(execution::InputView(body));
+        REQUIRE(payload && execution::json::parse(*payload));
+        REQUIRE(!execution::json::parse(*payload)->get("contract"));
+        REQUIRE(execution::json::parse(*payload)->get("x"));
     }
     for (const auto body : {R"({})", R"([])", R"({"contract":1})",
                             R"({"contract":"Wsprry-Control/2"})",
                             R"({"contract":"Wsprry-Control/1","contract":"Wsprry-Control/1"})",
                             R"({"contract":"Wsprry-Control/1","x":1,"x":2})"})
-        REQUIRE(!network::control_payload(wtp::InputView(body)));
+        REQUIRE(!network::control_payload(execution::InputView(body)));
     // A complete bare Config v1 document carries no current control authority.
-    REQUIRE(wtp::json::parse(network_test::config)->get("version")->integer() == 1);
-    REQUIRE(!network::control_payload(wtp::InputView(network_test::config)));
-    const auto empty = network::control_payload(wtp::InputView(R"({"contract":"Wsprry-Control/1"})"));
+    REQUIRE(execution::json::parse(network_test::config)->get("version")->integer() == 1);
+    REQUIRE(!network::control_payload(execution::InputView(network_test::config)));
+    const auto empty = network::control_payload(execution::InputView(R"({"contract":"Wsprry-Control/1"})"));
     REQUIRE(empty && *empty == "{}");
     network::HttpResponse response;
     const std::string body = "{\"value\":\"" + std::string(4200, 'x') + "\"}";
     REQUIRE(response.buffered_body.reserve(body.size()));
     REQUIRE(response.buffered_body.append(std::span(reinterpret_cast<const std::uint8_t*>(body.data()), body.size())));
     response = network::control_response(std::move(response));
-    const auto parsed = wtp::json::parse(response.buffered_body.view());
+    const auto parsed = execution::json::parse(response.buffered_body.view());
     REQUIRE(parsed && parsed->get("contract")->string() == network::control_contract);
     REQUIRE(parsed->get("value")->string() == std::string(4200, 'x'));
 }
@@ -48,7 +48,7 @@ void exact_progress_receipts() {
     const auto wire = std::string("  {\"contract\":\"Wsprry-Control/1\",\"schema\":\"progress\",\"target\":") +
         application::target(std::string(32, 'a'), f.service.status().boot_id) +
         ",\"request_id\":\"11111111111111111111111111111111\",\"fields\":{\"callsign\":\"AA0NT\"}}  ";
-    const auto digest = wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(wire.data()), wire.size()));
+    const auto digest = execution::sha256(std::span(reinterpret_cast<const std::uint8_t*>(wire.data()), wire.size()));
     std::string expected;
     for (const auto byte : digest) {
         expected += "0123456789abcdef"[byte >> 4];
@@ -57,17 +57,17 @@ void exact_progress_receipts() {
     auto r = request("POST", "/api/control/v1/progress/update", wire);
     r.headers["if-match"] = f.api.revision();
     REQUIRE(f.api.handle(r, "test", "127.0.0.1:8443").status == 200);
-    REQUIRE(progress.receipt() == wtp::json::quote(expected));
+    REQUIRE(progress.receipt() == execution::json::quote(expected));
     // Commissioning uses the same synchronous save path after decrypting and
     // stripping the envelope. A copied request borrows this stack view only
     // until save_progress returns; exact original bytes remain the receipt input.
-    const wtp::InputView original_wire(wire);
+    const execution::InputView original_wire(wire);
     r.body = *network::control_payload(original_wire);
     r.control_wire_body = &original_wire;
     r.headers["if-match"] = f.api.revision();
     const auto copied = r;
     REQUIRE(f.api.save_progress(copied, true).status == 200);
-    REQUIRE(progress.receipt() == wtp::json::quote(expected));
+    REQUIRE(progress.receipt() == execution::json::quote(expected));
 }
 void current_hardware_and_refusals() {
     network_test::Fixture f;
@@ -81,7 +81,7 @@ void current_hardware_and_refusals() {
     REQUIRE(call(request("GET", "/api/control/v1/application/4")).status == 404);
     const auto app = call(request("GET", "/api/control/v1/application"));
     REQUIRE(app.status == 200);
-    const auto document = wtp::json::parse(app.body_view());
+    const auto document = execution::json::parse(app.body_view());
     REQUIRE(document && document->get("contract")->string() == network::control_contract);
     REQUIRE(document->get("schema")->string() == "application");
     REQUIRE(document->get("hardware")->get("schema")->string() == "hardware");

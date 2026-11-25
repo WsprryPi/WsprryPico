@@ -1,17 +1,17 @@
 #pragma once
 
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <string>
 
 namespace wsprrypico::firmware {
 
-class PicoClock final : public wtp::Clock {
+class PicoClock final : public execution::Clock {
   public:
-    [[nodiscard]] wtp::ClockSnapshot snapshot() const override;
+    [[nodiscard]] execution::ClockSnapshot snapshot() const override;
 };
 
-class PicoIdentitySource final : public wtp::IdentitySource {
+class PicoIdentitySource final : public execution::IdentitySource {
   public:
     PicoIdentitySource();
 

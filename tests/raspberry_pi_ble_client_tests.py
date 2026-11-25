@@ -241,12 +241,8 @@ class FramingTests(unittest.TestCase):
 
 
 class ClientTests(unittest.TestCase):
-    def test_retired_execution_carrier_is_unavailable(self):
+    def test_commissioning_characteristic_set(self):
         self.assertEqual(set(ble.UUIDS), {"service", "identity", "command", "status"})
-        for name in ("WtpReceiver", "wtp_frame"):
-            self.assertFalse(hasattr(ble, name))
-        for name in ("enable_local_control", "wtp_exchange", "wtp_status"):
-            self.assertFalse(hasattr(ble.Client, name))
 
     def connected(self):
         backend = FakeBackend()

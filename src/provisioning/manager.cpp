@@ -11,10 +11,10 @@ namespace {
 std::span<const std::uint8_t> bytes(std::string_view text) {
     return {reinterpret_cast<const std::uint8_t*>(text.data()), text.size()};
 }
-wtp::PayloadDigest request_digest(std::string_view operation,
+execution::PayloadDigest request_digest(std::string_view operation,
                                   std::initializer_list<std::string_view> fields,
                                   std::span<const std::uint8_t> payload = {}) {
-    wtp::Sha256 hash;
+    execution::Sha256 hash;
     hash.update(bytes(operation));
     const std::uint8_t separator = 0;
     for (auto field : fields) {
@@ -78,7 +78,7 @@ void Manager::terminate(State state) {
     session_.reset();
     state_ = state;
 }
-std::optional<Result> Manager::replay(std::string_view request_id, const wtp::PayloadDigest& digest,
+std::optional<Result> Manager::replay(std::string_view request_id, const execution::PayloadDigest& digest,
                                       std::uint64_t now_ms) {
     expire(now_ms);
     if (!network::valid_device_id(request_id))
@@ -96,7 +96,7 @@ std::optional<Result> Manager::replay(std::string_view request_id, const wtp::Pa
     result.replayed = true;
     return result;
 }
-Result Manager::remember(std::string_view request_id, const wtp::PayloadDigest& digest,
+Result Manager::remember(std::string_view request_id, const execution::PayloadDigest& digest,
                          Result result, std::uint64_t now_ms) {
     if (network::valid_device_id(request_id)) {
         if (replay_.size() == replay_capacity) {
@@ -292,7 +292,7 @@ ActivationRelease Manager::release_activation(std::string_view request_id, std::
     return result;
 }
 
-std::optional<wtp::PayloadDigest> Manager::staged_digest(std::string_view session_id,
+std::optional<execution::PayloadDigest> Manager::staged_digest(std::string_view session_id,
                                                          Transport transport,
                                                          const Authorization& authorization,
                                                          std::uint64_t expected_generation) const {
@@ -301,7 +301,7 @@ std::optional<wtp::PayloadDigest> Manager::staged_digest(std::string_view sessio
         session_->id != session_id || session_->transport != transport ||
         session_->principal != authorization.principal || expected_generation != store_.sequence())
         return {};
-    return wtp::sha256(session_->staged);
+    return execution::sha256(session_->staged);
 }
 
 Status Manager::status() const {

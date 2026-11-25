@@ -7,7 +7,7 @@
 
 namespace wsprrypico::standalone {
 namespace {
-using namespace wtp::json;
+using namespace execution::json;
 void member(std::string& out, std::string_view key, std::string_view value) {
     if (out.size() > 1)
         out += ',';
@@ -28,7 +28,7 @@ std::string record(const std::array<std::optional<std::string>, progress_fields.
     return out + '}';
 }
 } // namespace
-bool valid_progress_field(std::string_view name, wtp::json::Value value) {
+bool valid_progress_field(std::string_view name, execution::json::Value value) {
     if (name == "gpio_drive_ma")
         return valid_gpio_drive_token(value);
     if (value.raw == "null")
@@ -52,7 +52,7 @@ bool valid_progress_field(std::string_view name, wtp::json::Value value) {
         return plan && hardware::operational(*plan);
     }
     if (name == "frequency_policy") {
-        if (!wtp::json::fields(value,
+        if (!execution::json::fields(value,
                                {"allow_unqualified_frequency", "allow_non_amateur_frequency"}))
             return false;
         const auto a = *value.get("allow_unqualified_frequency"),
@@ -60,7 +60,7 @@ bool valid_progress_field(std::string_view name, wtp::json::Value value) {
         return boolean(a) && boolean(b) && (!b.boolean() || a.boolean());
     }
     if (name == "wifi") {
-        if (!wtp::json::fields(value, {"ssid", "password"}) || value.get("ssid")->type() != '"' ||
+        if (!execution::json::fields(value, {"ssid", "password"}) || value.get("ssid")->type() != '"' ||
             value.get("password")->type() != '"')
             return false;
         const auto ssid = value.get("ssid")->string(), password = value.get("password")->string();
@@ -74,7 +74,7 @@ bool valid_progress_field(std::string_view name, wtp::json::Value value) {
         return false;
     std::vector<Schedule> checked;
     for (const auto row : schedules) {
-        if (!wtp::json::fields(row, {"period_s", "phase_s"}))
+        if (!execution::json::fields(row, {"period_s", "phase_s"}))
             return false;
         const auto period = *row.get("period_s"), phase = *row.get("phase_s");
         if (!number(period) || !number(phase))
@@ -98,15 +98,15 @@ bool Progress::load() {
     if (!journal_.load())
         return false;
     if (!journal_.data().empty()) {
-        const auto root = wtp::json::parse(journal_.data());
-        if (!root || !wtp::json::fields(*root, {"schema", "fields", "receipt", "outcomes"}) ||
+        const auto root = execution::json::parse(journal_.data());
+        if (!root || !execution::json::fields(*root, {"schema", "fields", "receipt", "outcomes"}) ||
             (root->get("schema")->string() != "saved-progress/1" &&
              root->get("schema")->string() != "saved-progress/2" &&
              root->get("schema")->string() != "saved-progress/3"))
             return false;
         const auto input = *root->get("fields");
         if (input.raw.size() > max_progress_bytes ||
-            !wtp::json::fields(input, {},
+            !execution::json::fields(input, {},
                                {"callsign", "locator", "power_dbm", "enabled", "schedules",
                                 "expires_utc_s", "pins", "frequency_policy", "wifi", "ntp_ipv4",
                                 "gpio_drive_ma"}))
@@ -127,7 +127,7 @@ bool Progress::load() {
         const auto receipt = root->get("receipt")->string();
         if (!std::all_of(receipt.begin(), receipt.end(),
                          [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }) ||
-            !wtp::json::fields(*root->get("outcomes"), {},
+            !execution::json::fields(*root->get("outcomes"), {},
                                {"callsign", "locator", "power_dbm", "enabled", "schedules",
                                 "expires_utc_s", "pins", "frequency_policy", "wifi", "ntp_ipv4",
                                 "gpio_drive_ma"}))
@@ -155,11 +155,11 @@ std::optional<std::string> Progress::save(Value input, std::string_view receipt)
         !std::all_of(receipt.begin(), receipt.end(),
                      [](char c) { return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f'); }) ||
         input.raw.size() > 2048 ||
-        !wtp::json::fields(input, {},
+        !execution::json::fields(input, {},
                            {"callsign", "locator", "power_dbm", "enabled", "schedules",
                             "expires_utc_s", "pins", "frequency_policy", "wifi", "ntp_ipv4",
                             "gpio_drive_ma"}) ||
-        wtp::json::fields(input, {}))
+        execution::json::fields(input, {}))
         return {};
     if (const auto drive = input.get("gpio_drive_ma"); drive && !valid_gpio_drive_token(*drive))
         return {};
@@ -216,7 +216,7 @@ std::string Progress::fields(bool redacted, bool station_only, bool drive,
     if (amplifier_view && values[6] && *values[6] != "null")
         values[6] = hardware::serialize_plan(*hardware::parse_plan(*values[6]), true);
     if (redacted && values[8] && *values[8] != "null") {
-        const auto wifi = wtp::json::parse(*values[8]);
+        const auto wifi = execution::json::parse(*values[8]);
         values[8] = "{\"ssid\":" + std::string(wifi->get("ssid")->raw) + ",\"password\":null}";
     }
     return record(values);
@@ -224,7 +224,7 @@ std::string Progress::fields(bool redacted, bool station_only, bool drive,
 std::string Progress::outcomes(bool station_only, bool drive) const {
     if (!station_only && drive)
         return outcomes_;
-    const auto root = wtp::json::parse(outcomes_);
+    const auto root = execution::json::parse(outcomes_);
     std::string result = "{";
     for (std::size_t i = 0; i < (station_only ? 3U : 10U); ++i)
         if (const auto v = root->get(progress_fields[i]))
@@ -244,8 +244,8 @@ std::optional<Config> Progress::candidate(const std::optional<Config>& applied,
     if (domain == "drive" && !values_[10])
         return {}; // A domain request cannot invent an unapplied drive draft.
     Config c = (applied ? *applied : factory_config());
-    const auto value = [&](std::size_t i) -> std::optional<wtp::json::Value> {
-        return values_[i] ? std::optional{wtp::json::Value{*values_[i]}} : std::nullopt;
+    const auto value = [&](std::size_t i) -> std::optional<execution::json::Value> {
+        return values_[i] ? std::optional{execution::json::Value{*values_[i]}} : std::nullopt;
     };
     for (std::size_t i = 0; i < values_.size(); ++i) {
         if (i == 10 && (!drive || domain != "drive"))
@@ -335,7 +335,7 @@ std::optional<Config> Progress::station_candidate(const std::optional<Config>& a
     if (!healthy())
         return {};
     const auto text = station_fields(applied);
-    const auto station = wtp::json::parse(text);
+    const auto station = execution::json::parse(text);
     for (const auto name : {"callsign", "locator", "power_dbm"})
         if (station->get(name)->raw == "null")
             return {};

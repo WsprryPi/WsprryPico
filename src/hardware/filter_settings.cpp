@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: MIT
 #include "hardware/filter_settings.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <charconv>
 
@@ -17,7 +17,7 @@ bool name_valid(std::string_view s) {
             return false;
     return true;
 }
-bool number(wtp::json::Value v, unsigned& n) {
+bool number(execution::json::Value v, unsigned& n) {
     if (v.raw.empty() || v.type() < '0' || v.type() > '9')
         return false;
     const std::string raw(v.raw);
@@ -61,7 +61,7 @@ std::string validate_filters(const FilterSettings& s, const PinPlan& pins) {
     return {};
 }
 std::optional<FilterSettings> parse_filters(std::string_view text) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (text.size() > FilterSettings::maximum_bytes)
         return {};
     const auto root = parse(text);
@@ -106,7 +106,7 @@ std::optional<FilterSettings> parse_filters(std::string_view text) {
     return s;
 }
 std::string serialize_filters(const FilterSettings& s) {
-    using wtp::json::quote;
+    using execution::json::quote;
     if (s.output_count > s.outputs.size() || s.range_count > s.ranges.size())
         return {};
     std::string out = "{\"policy\":" + quote(s.required ? "required" : "fixed_manual") +

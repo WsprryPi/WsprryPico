@@ -16,7 +16,7 @@ Fresh installations use `wpico-` followed by the last four hexadecimal character
 
 The full local hostname is required: one **1–63 character ASCII LDH label** plus `.local`, at most 69 canonical bytes. The editor also accepts one final root dot (70 input bytes). ASCII case is normalized and the root dot removed. Bare labels, Unicode (including Kelvin-sign case folding), whitespace, control bytes, IP/URL/port syntax, extra labels, and edge hyphens refuse without truncation. The UI uses the same grammar as `canonical_local_hostname`.
 
-WTP full device ID, station MAC, MAC-derived default, saved hostname, boot-active hostname, and actually advertised hostname remain separate. The AP SSID, BLE name, default/local password, retained owners/clients, station details, schedules, experimental flags, pin plan, STOP state, and watermark do not change in a rename. DNS-SD remains a destination hint; it supplies neither identity nor trust.
+The full Pico device ID, station MAC, MAC-derived default, saved hostname, boot-active hostname, and advertised hostname remain separate. The AP SSID, BLE name, default/local password, retained owners/clients, station details, schedules, experimental flags, pin plan, STOP state, and watermark do not change in a rename. DNS-SD remains a destination hint; it supplies neither identity nor trust.
 
 The status resource's `network.configured_hostname` contains the full canonical `.local` name, including before station commissioning, or an empty string when no name is available. A bare label is not a canonical status hostname.
 

@@ -4,7 +4,7 @@ Each device owns its recurring schedule and executes locally. A Pi uses its expl
 
 ## Internal execution contract
 
-The Pico scheduler submits typed, bounded requests to the existing JobService and engine. Internal `wtp` types and namespaces remain implementation details; they are not a supported external protocol. A request is immutable and belongs to one full device/boot/owner context. Names, catalog handles, and connection state do not establish identity or authority.
+The Pico scheduler submits typed, bounded requests to the JobService and engine in `src/rf/`. A request is immutable and belongs to one full device/boot/owner context. Names, catalog handles, and connection state do not establish identity or authority.
 
 The shared event profile uses integer nanoseconds and integer nanohertz. Events start at offset zero, have positive durations, remain contiguous and ordered, and exactly fill the declared duration. RF-on events specify a positive frequency; RF-off events omit it. Arithmetic must fit unsigned 64-bit bounds. Validate event count, complete duration, supported mode, engine range, and realization policy before admission. The current Pico execution descriptor supplies the actual bounds, including the 512-event ceiling and smaller configured duration limits. Never truncate, split, stretch, or silently substitute an unsupported request.
 
@@ -79,9 +79,9 @@ After each drive save, explicitly restart, rediscover the new boot, read current
 
 Hardware-free fixtures cover 13 representative legal carriers at all four drives, including 5,366,200 Hz. Those synthetic carriers do not replace the HP campaign list and establish no physical RF, pad-current, timing, or power qualification.
 
-## Authority and migration
+## Management and execution authority
 
-Retain protected management/retirement channels, credentials, durable receipts, and recovery journals. Stored active WTP backend selection, enabled inbound listener, or unresolved legacy recurrence/cleanup duties refuse affected execution. Inactive dormant WTP connection values remain private storage data and must not be erased by ordinary autosave. Complete retirement with WTP-capable software before replacing it; see the managing Pi’s migration and recovery guide.
+Protected management credentials, durable receipts, and recovery journals retain their own authority. A native job starts only after local schedule or Test Tone admission. The Pico scheduler and Test Tone coordinator bind execution to their own native ownership. Ordinary settings saves preserve private stored data outside their selected domain.
 
 ### Four-drive Si5351 testing
 

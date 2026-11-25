@@ -38,8 +38,8 @@ std::uint64_t ns_at(std::uint64_t samples) {
     return (samples * 1000000000ULL + rf::sample_rate / 2) / rf::sample_rate;
 }
 
-wtp::Job job_for(std::span<const std::uint64_t> lengths) {
-    wtp::Job job;
+execution::Job job_for(std::span<const std::uint64_t> lengths) {
+    execution::Job job;
     job.job_id = std::string(32, '3');
     job.mode = "wspr";
     job.allow_frequency_adjustment = true;
@@ -54,7 +54,7 @@ wtp::Job job_for(std::span<const std::uint64_t> lengths) {
     return job;
 }
 
-wtp::Job tone_job(std::uint64_t samples) {
+execution::Job tone_job(std::uint64_t samples) {
     return job_for(std::array{samples});
 }
 
@@ -112,7 +112,7 @@ class TestSink final : public rf::BlockSink {
         if (reject_arm) {
             return false;
         }
-        report = {wtp::EngineState::Armed, epoch, 0, 0};
+        report = {execution::EngineState::Armed, epoch, 0, 0};
         start = start_ns;
         total = samples;
         return true;
@@ -123,8 +123,8 @@ class TestSink final : public rf::BlockSink {
                 CHECK(checksum(slot.words) == slot.digest);
             }
         }
-        if (now >= start && report.state == wtp::EngineState::Armed) {
-            report.state = wtp::EngineState::Running;
+        if (now >= start && report.state == execution::EngineState::Armed) {
+            report.state = execution::EngineState::Running;
         }
         return report;
     }
@@ -138,8 +138,8 @@ class TestSink final : public rf::BlockSink {
         slot.held = false;
         report.consumed_samples += slot.samples;
         ++report.completed_blocks;
-        report.state = report.consumed_samples == total ? wtp::EngineState::Complete
-                                                        : wtp::EngineState::Running;
+        report.state = report.consumed_samples == total ? execution::EngineState::Complete
+                                                        : execution::EngineState::Running;
     }
 };
 
@@ -458,15 +458,15 @@ void lifecycle_test() {
     const auto before = allocations;
     CHECK(engine.begin(job, 100));
     CHECK(!engine.begin(job, 100));
-    CHECK(engine.poll(99).state == wtp::EngineState::Armed);
-    CHECK(engine.poll(100).state == wtp::EngineState::Running);
+    CHECK(engine.poll(99).state == execution::EngineState::Armed);
+    CHECK(engine.poll(100).state == execution::EngineState::Running);
     CHECK(!engine.prepare(job).accepted);
     while (sink.report.consumed_samples < sink.total) {
         sink.consume();
         const auto report = engine.poll(100 + ns_at(sink.report.consumed_samples));
         CHECK(report.state == (sink.report.consumed_samples == sink.total
-                                   ? wtp::EngineState::Complete
-                                   : wtp::EngineState::Running));
+                                   ? execution::EngineState::Complete
+                                   : execution::EngineState::Running));
     }
     CHECK(engine.disable(100 + job.total_duration_ns));
     CHECK(allocations == before);
@@ -475,7 +475,7 @@ void lifecycle_test() {
     CHECK(!engine.begin(job, std::numeric_limits<std::uint64_t>::max()));
     CHECK(engine.begin(job, 100));
     CHECK(engine.disable(101));
-    CHECK(engine.poll(102).state == wtp::EngineState::Idle);
+    CHECK(engine.poll(102).state == execution::EngineState::Idle);
 }
 
 void owned_plan_survives_input_destruction_test() {
@@ -498,8 +498,8 @@ void owned_plan_survives_input_destruction_test() {
             sink.consume();
             const auto report = engine.poll(100 + ns_at(sink.report.consumed_samples));
             CHECK(report.state == (sink.report.consumed_samples == sink.total
-                                       ? wtp::EngineState::Complete
-                                       : wtp::EngineState::Running));
+                                       ? execution::EngineState::Complete
+                                       : execution::EngineState::Running));
         }
         CHECK(engine.disable(100 + ns_at(sink.total)));
         CHECK(allocations == before);
@@ -517,13 +517,13 @@ void quantized_lifecycle_test() {
         job.events[0].duration_ns = job.total_duration_ns;
         CHECK(engine.prepare(job).accepted);
         CHECK(engine.begin(job, 100));
-        CHECK(engine.poll(100).state == wtp::EngineState::Running);
+        CHECK(engine.poll(100).state == execution::EngineState::Running);
         while (sink.report.consumed_samples < sink.total) {
             sink.consume();
             const auto report = engine.poll(100 + ns_at(sink.report.consumed_samples));
             CHECK(report.state == (sink.report.consumed_samples == sink.total
-                                       ? wtp::EngineState::Complete
-                                       : wtp::EngineState::Running));
+                                       ? execution::EngineState::Complete
+                                       : execution::EngineState::Running));
         }
         CHECK(engine.disable(100 + job.total_duration_ns + 10));
     }
@@ -536,7 +536,7 @@ void faults_test() {
         auto job = tone_job(rf::block_samples * 4);
         CHECK(engine.prepare(job).accepted);
         CHECK(engine.begin(job, 100));
-        CHECK(engine.poll(100).state == wtp::EngineState::Running);
+        CHECK(engine.poll(100).state == execution::EngineState::Running);
         switch (kind) {
         case 0:
             ++sink.report.epoch;
@@ -545,14 +545,14 @@ void faults_test() {
             sink.report.completed_blocks = 100;
             break;
         case 2:
-            sink.report.state = wtp::EngineState::Failed;
+            sink.report.state = execution::EngineState::Failed;
             break;
         case 3:
             sink.consume();
             sink.consume();
             break; // Both buffers exhausted.
         case 4:
-            sink.report.state = wtp::EngineState::Complete;
+            sink.report.state = execution::EngineState::Complete;
             break;
         case 5:
             sink.report.consumed_samples = sink.total + 1;
@@ -563,7 +563,7 @@ void faults_test() {
             break;
         case 7:
             sink.consume();
-            CHECK(engine.poll(100 + ns_at(rf::block_samples)).state == wtp::EngineState::Running);
+            CHECK(engine.poll(100 + ns_at(rf::block_samples)).state == execution::EngineState::Running);
             sink.report.completed_blocks = 0;
             break;
         case 9:
@@ -574,7 +574,7 @@ void faults_test() {
             break; // Progress before the launch time.
         case 11:
             sink.consume();
-            CHECK(engine.poll(100 + ns_at(rf::block_samples)).state == wtp::EngineState::Running);
+            CHECK(engine.poll(100 + ns_at(rf::block_samples)).state == execution::EngineState::Running);
             sink.report.consumed_samples = 0;
             break;
         case 8:
@@ -582,7 +582,7 @@ void faults_test() {
         }
         const auto now =
             kind == 8 ? 100 + job.total_duration_ns : 100 + ns_at(rf::block_samples * 2);
-        CHECK(engine.poll(kind == 10 ? 99 : now).state == wtp::EngineState::Failed);
+        CHECK(engine.poll(kind == 10 ? 99 : now).state == execution::EngineState::Failed);
         CHECK(!engine.begin(job, now));
         CHECK(engine.disable(now));
     }
@@ -602,7 +602,7 @@ void faults_test() {
             sink.active = true;
         }
         CHECK(!engine.begin(job, 100));
-        CHECK(engine.poll(100).state == wtp::EngineState::Failed);
+        CHECK(engine.poll(100).state == execution::EngineState::Failed);
         if (kind == 2) {
             CHECK(engine.output_active());
             CHECK(!engine.disable(101));
@@ -613,26 +613,26 @@ void faults_test() {
     }
 }
 
-class Clock final : public wtp::Clock {
+class Clock final : public execution::Clock {
   public:
     std::uint64_t now = 1'000'000'000;
-    wtp::ClockSnapshot snapshot() const override {
-        return {wtp::ClockState::Synchronized, now, now, 0, 0, wtp::LeapState::Normal, {}};
+    execution::ClockSnapshot snapshot() const override {
+        return {execution::ClockState::Synchronized, now, now, 0, 0, execution::LeapState::Normal, {}};
     }
 };
-class Identity final : public wtp::IdentitySource {
+class Identity final : public execution::IdentitySource {
   public:
     std::string new_boot_id() override {
         return std::string(32, '9');
     }
 };
-wtp::Request request(std::string op, wtp::RequestBody body, char id) {
-    return {"WTP/1",
+execution::Request request(std::string op, execution::RequestBody body, char id) {
+    return {"native-execution/1",
             std::string(32, '1'),
             std::string(32, id),
             "local",
             std::move(op),
-            wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(&id), 1)),
+            execution::sha256(std::span(reinterpret_cast<const std::uint8_t*>(&id), 1)),
             std::move(body)};
 }
 
@@ -642,40 +642,40 @@ void service_test() {
         Identity identity;
         TestSink sink;
         rf::StreamEngine engine(sink);
-        wtp::JobService service(clock, engine, identity);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        execution::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
         const auto job = tone_job(rf::block_samples * 3);
         const auto load = service.handle(request("LOAD", job, 'c'));
         CHECK(load.ok && load.adjustments.size() == 1);
         const auto start = clock.now + 100'000'000;
-        CHECK(service.handle(request("ARM", wtp::ArmBody{job.job_id, start, 1000}, 'd')).ok);
+        CHECK(service.handle(request("ARM", execution::ArmBody{job.job_id, start, 1000}, 'd')).ok);
         clock.now = start;
         service.poll();
-        CHECK(service.status().state == wtp::State::Running);
+        CHECK(service.status().state == execution::State::Running);
         if (action == 2 || action == 3) {
-            sink.report.state = wtp::EngineState::Failed;
+            sink.report.state = execution::EngineState::Failed;
             if (action == 3) {
                 sink.reject_stop = true;
                 sink.active = true;
             }
             service.poll();
-            CHECK(service.status().state == wtp::State::Failed);
+            CHECK(service.status().state == execution::State::Failed);
             CHECK(service.status().terminal_records.back().error ==
-                  (action == 3 ? wtp::ErrorCode::OutputStateUnknown : wtp::ErrorCode::DeviceFault));
+                  (action == 3 ? execution::ErrorCode::OutputStateUnknown : execution::ErrorCode::DeviceFault));
             CHECK(service.status().output_active == (action == 3));
             sink.reject_stop = false;
             CHECK(engine.disable(clock.now));
         } else if (action == 1) {
-            CHECK(service.handle(request("ABORT", wtp::AbortBody{job.job_id}, 'e')).ok);
-            CHECK(service.status().state == wtp::State::Aborted);
+            CHECK(service.handle(request("ABORT", execution::AbortBody{job.job_id}, 'e')).ok);
+            CHECK(service.status().state == execution::State::Aborted);
         } else {
             for (unsigned block = 1; block <= 3; ++block) {
                 sink.consume();
                 clock.now = start + ns_at(block * rf::block_samples);
                 service.poll();
             }
-            CHECK(service.status().state == wtp::State::Complete);
+            CHECK(service.status().state == execution::State::Complete);
         }
         CHECK(!service.status().output_active);
     }
@@ -712,7 +712,7 @@ void benchmark() {
               << "\nNo RP2350 timing qualification.\n";
 }
 void extended_plan_limits() {
-    wtp::Job job;
+    execution::Job job;
     job.job_id = std::string(32, 'a');
     job.mode = "qrss";
     job.allow_frequency_adjustment = true;

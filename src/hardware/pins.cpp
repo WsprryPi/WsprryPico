@@ -1,6 +1,6 @@
 #include "hardware/pins.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <charconv>
 
@@ -66,7 +66,7 @@ Validation validate(const PinPlan& p) {
     return v;
 }
 namespace {
-bool number(wtp::json::Value value, unsigned& result) {
+bool number(execution::json::Value value, unsigned& result) {
     if (value.raw.empty() || value.type() < '0' || value.type() > '9')
         return false;
     const std::string raw(value.raw);
@@ -75,7 +75,7 @@ bool number(wtp::json::Value value, unsigned& result) {
 }
 } // namespace
 std::optional<PinPlan> parse_plan(std::string_view text) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (text.size() > 2048)
         return {};
     auto root = parse(text);
@@ -150,7 +150,7 @@ bool operational(const PinPlan& p) {
 std::string serialize_plan(const PinPlan& p, bool amplifier_view) {
     const auto pin = [](std::optional<unsigned> gp) { return gp ? std::to_string(*gp) : "null"; };
     std::string out =
-        "{\"engine\":" + wtp::json::quote(p.engine == PinPlan::Engine::Direct ? "direct" : "i2c") +
+        "{\"engine\":" + execution::json::quote(p.engine == PinPlan::Engine::Direct ? "direct" : "i2c") +
         ",\"rf_gp\":" + pin(p.rf) + ",\"i2c_pair\":" + pin(p.i2c_pair) +
         ",\"button_gp\":" + pin(p.button) + ",\"amplifier_gp\":" + pin(p.amplifier) +
         ",\"lpf_gps\":[";
@@ -160,7 +160,7 @@ std::string serialize_plan(const PinPlan& p, bool amplifier_view) {
         out += std::to_string(p.lpf[i]);
     }
     return out + "],\"indicator\":" +
-           wtp::json::quote(p.indicator == PinPlan::Indicator::Onboard    ? "onboard_led"
+           execution::json::quote(p.indicator == PinPlan::Indicator::Onboard    ? "onboard_led"
                             : p.indicator == PinPlan::Indicator::External ? "external"
                                                                           : "disabled") +
            ",\"indicator_gp\":" + pin(p.indicator_gp) +
@@ -171,7 +171,7 @@ std::string serialize_plan(const PinPlan& p, bool amplifier_view) {
                 : "}");
 }
 std::string describe(const PinPlan& p) {
-    using wtp::json::quote;
+    using execution::json::quote;
     const auto v = validate(p);
     std::string out = "{\"valid\":" + std::string(v.valid() ? "true" : "false") +
                       ",\"error\":" + quote(v.error) + ",\"role\":" + quote(v.role) +

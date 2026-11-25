@@ -39,7 +39,7 @@ struct Member {
         auto r = request("POST", "/api/control/v1/config/update",
                          "{\"schema\":\"config-update\",\"target\":" +
                              application::target(std::string(32, 'a'), f.service.status().boot_id) +
-                             ",\"mode\":" + wtp::json::quote(mode) + ",\"config\":" + body + '}');
+                             ",\"mode\":" + execution::json::quote(mode) + ",\"config\":" + body + '}');
         r.headers["if-match"] = api.revision();
         return r;
     }
@@ -48,7 +48,7 @@ void advertised_contract_and_individual_omissions() {
     Member m;
     const auto response=m.call(request("GET","/api/control/v1/capabilities"));
     REQUIRE(response.status==200 && response.body_size()<=application::max_capabilities_bytes);
-    const auto caps=wtp::json::parse(response.body_view());
+    const auto caps=execution::json::parse(response.body_view());
     REQUIRE(caps && caps->get("contract")->string()=="Wsprry-Control/1");
     const auto updates=caps->get("configuration_updates");
     REQUIRE(updates && updates->raw==application::config_update_capabilities());
@@ -118,7 +118,7 @@ void invalid_is_atomic() {
     reject(r, 400);
     for (const auto field : {"scope", "device_id", "boot_id"}) {
         r = m.update(R"({"enabled":false})");
-        const auto root = wtp::json::parse(r.body_view());
+        const auto root = execution::json::parse(r.body_view());
         const auto raw = root->get("target")->get(field)->raw;
         r.body.replace(raw.offset(), raw.size(), "\"wrong\"");
         reject(r, 409);
@@ -163,7 +163,7 @@ void expanded_candidate_limits() {
     for (char c : host)
         escaped += c == 'a' ? "\\u0061" : ".";
     const auto patch = "{\"wifi\":{\"ntp_ipv4\":\"" + escaped + "\"}}";
-    const auto parsed = wtp::json::parse(patch);
+    const auto parsed = execution::json::parse(patch);
     REQUIRE(parsed);
     auto candidate = application::config_candidate(*parsed, m.f.store.config(),
                                                    application::ConfigWrite::Merge, true, true);
@@ -179,21 +179,21 @@ void expanded_candidate_limits() {
     // Test the candidate builder's independent byte budget at its exact edge.
     // The HTTP request budget above remains a separate, smaller limit.
     std::string schedules = R"({"schedules":[{"period_s":120,"phase_s":0}]})";
-    auto schedule_document = wtp::json::parse(schedules);
+    auto schedule_document = execution::json::parse(schedules);
     REQUIRE(schedule_document);
     candidate = application::config_candidate(*schedule_document, m.f.store.config(),
                                                application::ConfigWrite::Merge, true, true);
     REQUIRE(candidate && candidate->size() < standalone::max_config_bytes);
     schedules.insert(schedules.find('[') + 1,
                      standalone::max_config_bytes - candidate->size(), ' ');
-    schedule_document = wtp::json::parse(schedules);
+    schedule_document = execution::json::parse(schedules);
     REQUIRE(schedule_document);
     candidate = application::config_candidate(*schedule_document, m.f.store.config(),
                                                application::ConfigWrite::Merge, true, true);
     REQUIRE(candidate && candidate->size() == standalone::max_config_bytes &&
             standalone::parse_config(*candidate));
     schedules.insert(schedules.find('[') + 1, 1, ' ');
-    schedule_document = wtp::json::parse(schedules);
+    schedule_document = execution::json::parse(schedules);
     REQUIRE(schedule_document);
     REQUIRE(!application::config_candidate(*schedule_document, m.f.store.config(),
                                            application::ConfigWrite::Merge, true, true));
@@ -246,10 +246,10 @@ void revisions_pending_and_storage() {
 void paged_and_password() {
     Member m;
     auto r = m.update(R"({"wifi":{"password":null}})");
-    auto pages = std::make_shared<wtp::FrameBuffer>();
+    auto pages = std::make_shared<execution::FrameBuffer>();
     REQUIRE(pages->reserve(r.body.size() + 600));
-    pages->append(wtp::InputView(std::string(600, ' ')));
-    pages->append(wtp::InputView(r.body));
+    pages->append(execution::InputView(std::string(600, ' ')));
+    pages->append(execution::InputView(r.body));
     r.selected_body = pages->view().substr(600);
     r.buffered_body = std::move(pages);
     r.body.clear();
@@ -263,8 +263,8 @@ void paged_and_password() {
 void ownership_and_restart_exclusions() {
     Member m;
     unsigned sequence = 0;
-    const auto invoke = [&](std::string operation, wtp::RequestBody body) {
-        wtp::Request r;
+    const auto invoke = [&](std::string operation, execution::RequestBody body) {
+        execution::Request r;
         r.principal = "usb";
         r.session_id = std::string(32, 'b');
         r.request_id = std::string(31, '0') + std::to_string(++sequence);
@@ -274,21 +274,21 @@ void ownership_and_restart_exclusions() {
         return m.f.service.handle(std::move(r));
     };
     const auto saved = m.f.flash.bytes;
-    REQUIRE(invoke("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-    REQUIRE(invoke("CLAIM", wtp::ClaimBody{std::string(32, 'b'), 60000}).ok);
+    REQUIRE(invoke("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+    REQUIRE(invoke("CLAIM", execution::ClaimBody{std::string(32, 'b'), 60000}).ok);
     REQUIRE(m.call(m.update(R"({"enabled":false})")).status == 409);
-    wtp::Job job{std::string(32, 'c'), "rf-events/1", "tone", 1'000'000'000, {}, false};
+    execution::Job job{std::string(32, 'c'), "rf-events/1", "tone", 1'000'000'000, {}, false};
     REQUIRE(job.events.push_back({0, job.total_duration_ns, true, 7'040'000'000'000'000ULL}));
     REQUIRE(invoke("LOAD", std::move(job)).ok);
-    REQUIRE(m.f.service.status().state == wtp::State::Loaded);
+    REQUIRE(m.f.service.status().state == execution::State::Loaded);
     REQUIRE(m.call(m.update(R"({"enabled":false})")).status == 409);
-    REQUIRE(invoke("ARM", wtp::ArmBody{std::string(32, 'c'),
+    REQUIRE(invoke("ARM", execution::ArmBody{std::string(32, 'c'),
                                        m.f.clock.snapshot().utc_now_ns + 3'000'000'000, 1000})
                 .ok);
     REQUIRE(m.call(m.update(R"({"enabled":false})")).status == 409);
     m.f.clock.now += 3'000'000'000;
     m.f.service.poll();
-    REQUIRE(m.f.service.status().state == wtp::State::Running);
+    REQUIRE(m.f.service.status().state == execution::State::Running);
     REQUIRE(m.call(m.update(R"({"enabled":false})")).status == 409);
     REQUIRE(m.f.flash.bytes == saved);
 
@@ -303,16 +303,16 @@ void ownership_and_restart_exclusions() {
     pending.api.finish_request(0, false);
     REQUIRE(pending.call(pending.update(R"({"enabled":false})")).status == 200);
 }
-class DisableFailure final : public wtp::RfEngine {
+class DisableFailure final : public execution::RfEngine {
   public:
     bool disable_ok = true, active = false;
-    wtp::PrepareResult prepare(const wtp::Job&) override {
+    execution::PrepareResult prepare(const execution::Job&) override {
         return {true, {}};
     }
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t) override {
+    execution::EngineReport poll(std::uint64_t) override {
         return {};
     }
     bool disable(std::uint64_t) override {
@@ -326,7 +326,7 @@ void application_failure() {
     Member m;
     DisableFailure engine;
     network_test::Identity identity;
-    wtp::JobService service(m.f.clock, engine, identity);
+    execution::JobService service(m.f.clock, engine, identity);
     standalone::Scheduler scheduler(m.f.store, service);
     network::BrowserApi api(service, m.f.store, scheduler, m.f.network, std::string(32, 'a'),
                             "test");
@@ -369,7 +369,7 @@ void interrupted_journal() {
         network_test::Clock clock;
         standalone::DryRunEngine engine;
         network_test::Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         network_test::Network network;
         network::BrowserApi api(service, store, scheduler, network, std::string(32, 'a'), "test");

@@ -4,10 +4,7 @@
 #include "network/identity.hpp"
 #include "network_support.hpp"
 #include "rf/stream_engine.hpp"
-#include "wtp/codec.hpp"
-#include "wtp/endpoint.hpp"
-#include "wtp/frame_parser.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <new>
 
@@ -86,13 +83,9 @@ void framing() {
 }
 void maximum_http_allocation() {
     Fixture f;
-    std::string body = "{\"session_id\":\"" + std::string(32, 'a') + "\",\"request_id\":\"" +
-                       std::string(32, '1') +
-                       "\",\"operation\":\"HELLO\",\"body\":{\"versions\":[\"WTP/"
-                       "1\"],\"client_name\":\"test\",\"client_version\":\"1\"}}";
-    body = network_test::control_request(request("POST", "/api/control/v1/jobs", body)).body;
+    auto body = network_test::control_request(request("POST", "/api/control/v1/unregistered", R"({"purpose":"bounded input"})")).body;
     body.resize(network::max_http_body, ' ');
-    const std::string wire = "POST /api/control/v1/jobs HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
+    const std::string wire = "POST /api/control/v1/unregistered HTTP/1.1\r\nHost: 127.0.0.1:8443\r\n"
                              "Origin: https://127.0.0.1:8443\r\nX-WsprryPico-Request: 1\r\n"
                              "Content-Type: application/json\r\nContent-Length: 32768\r\n\r\n" +
                              body;
@@ -109,17 +102,17 @@ void maximum_http_allocation() {
     REQUIRE(largest_new <= 4096);
     const auto response = f.api.handle(parser.request(), "cert", "127.0.0.1:8443");
     REQUIRE(response.status == 404);
-    REQUIRE(f.service.status().state == wtp::State::Empty);
-    // Retired routes never allocate an execution session.
+    REQUIRE(f.service.status().state == execution::State::Empty);
+    // Unregistered routes leave the execution service idle.
     REQUIRE(largest_new <= 8192);
     bounded_http = false;
 }
 std::size_t body_pages_live = 0;
 unsigned body_page_calls = 0, body_page_failure = 0;
 void http_body_failure_and_lifetime() {
-    const auto allocate = wtp::allocate_input;
-    const auto deallocate = wtp::deallocate_input;
-    wtp::allocate_input = [](std::size_t size) -> void* {
+    const auto allocate = execution::allocate_input;
+    const auto deallocate = execution::deallocate_input;
+    execution::allocate_input = [](std::size_t size) -> void* {
         REQUIRE(size <= 4096);
         if (++body_page_calls == body_page_failure)
             return nullptr;
@@ -128,7 +121,7 @@ void http_body_failure_and_lifetime() {
             ++body_pages_live;
         return page;
     };
-    wtp::deallocate_input = [](void* page) {
+    execution::deallocate_input = [](void* page) {
         if (page) {
             REQUIRE(body_pages_live > 0);
             --body_pages_live;
@@ -166,7 +159,7 @@ void http_body_failure_and_lifetime() {
             REQUIRE(body_pages_live == 8);
         }
         REQUIRE(retained.body_view() == body);
-        const auto parsed = wtp::json::parse(retained.body_view());
+        const auto parsed = execution::json::parse(retained.body_view());
         REQUIRE(parsed && parsed->get("value") && parsed->get("value")->raw == "1");
         retained = {};
         REQUIRE(body_pages_live == 0);
@@ -179,15 +172,15 @@ void http_body_failure_and_lifetime() {
         network::HttpParser empty;
         empty.receive(bytes("GET / HTTP/1.1\r\nHost: x\r\n\r\n"));
         REQUIRE(empty.ready() && body_page_calls == 0);
-        wtp::available_memory = []() -> std::size_t { return 32768 + 32768 + 1023; };
+        execution::available_memory = []() -> std::size_t { return 32768 + 32768 + 1023; };
         network::HttpParser refused;
         refused.receive(bytes(header));
         REQUIRE(refused.exhausted() && body_page_calls == 0);
-        wtp::available_memory = nullptr;
+        execution::available_memory = nullptr;
     }
     REQUIRE(body_pages_live == 0);
-    wtp::allocate_input = allocate;
-    wtp::deallocate_input = deallocate;
+    execution::allocate_input = allocate;
+    execution::deallocate_input = deallocate;
 }
 void streamed_asset_admission() {
     Fixture f;
@@ -209,10 +202,10 @@ void streamed_asset_admission() {
     // Static asset requests retain 16 KiB of processing scratch; that is the
     // controlling bound for this zero-body GET.
     available_asset_memory = 16384 + 32768;
-    wtp::available_memory = []() -> std::size_t { return available_asset_memory; };
-    const auto allocator = wtp::allocate_input;
+    execution::available_memory = []() -> std::size_t { return available_asset_memory; };
+    const auto allocator = execution::allocate_input;
     asset_allocation_calls = 0;
-    wtp::allocate_input = [](std::size_t size) -> void* {
+    execution::allocate_input = [](std::size_t size) -> void* {
         ++asset_allocation_calls;
         return std::malloc(size);
     };
@@ -239,17 +232,17 @@ void streamed_asset_admission() {
     const auto direct = f.api.handle(network_test::control_request(request("GET", "/")), "cert", "127.0.0.1:8443");
     REQUIRE(direct.status == 200 && direct.static_body == asset->body);
     REQUIRE(asset_allocation_calls == 0);
-    wtp::allocate_input = allocator;
+    execution::allocate_input = allocator;
     REQUIRE(f.api.handle(network_test::control_request(request("GET", "/")), "cert", "127.0.0.1:8443").body_text() == expected);
-    REQUIRE(f.service.status().state == wtp::State::Empty && !f.service.status().output_active);
-    wtp::available_memory = nullptr;
+    REQUIRE(f.service.status().state == execution::State::Empty && !f.service.status().output_active);
+    execution::available_memory = nullptr;
 }
 void identities() {
     using network::canonical_local_hostname;
     const auto name = network::default_hostname("88:A2:9E:0A:60:DF");
     REQUIRE(name == "wpico-60df.local");
     REQUIRE(network::default_hostname("02:00:00:00:00:01") == "wpico-0001.local");
-    // A suffix collision must not collapse independent full WTP identities.
+    // A suffix collision must not collapse independent full device identities.
     REQUIRE(network::default_hostname("02:00:00:0a:60:df") == name);
     REQUIRE(network::deployment_identity_matches(std::string(32, 'a'), std::string(32, 'a'), name));
     REQUIRE(network::deployment_identity_matches(std::string(32, 'a'), "", ""));
@@ -338,7 +331,7 @@ void api_checks() {
     REQUIRE(saved.status == 200 && saved.etag != initial);
     REQUIRE(f.store.config()->password == "test-password");
     REQUIRE(saved.body_text().find("test-password") == saved.body_text().npos);
-    auto value = wtp::json::parse(saved.body_view());
+    auto value = execution::json::parse(saved.body_view());
     REQUIRE(value);
     REQUIRE(value->get("config")->get("wifi")->get("password")->raw == "null");
     REQUIRE(call(r).status == 412);
@@ -346,14 +339,14 @@ void api_checks() {
                       "/api/control/v1/capabilities"}) {
         auto result = call(request("GET", path));
         REQUIRE(result.status == 200);
-        REQUIRE(wtp::json::parse(result.body_view()));
+        REQUIRE(execution::json::parse(result.body_view()));
         REQUIRE(result.body_text().find("test-password") == result.body_text().npos);
     }
     auto preserved = request("POST", "/api/control/v1/config/update", network_test::configuration_update(std::string(value->get("config")->raw)));
     // Redacted password offsets retain the original leading whitespace when
     // a paged configuration is materialized within the existing config limit.
     preserved.body.insert(0, 50, ' ');
-    auto config_pages = std::make_shared<wtp::FrameBuffer>();
+    auto config_pages = std::make_shared<execution::FrameBuffer>();
     REQUIRE(config_pages->reserve(preserved.body.size()));
     config_pages->append(bytes(preserved.body));
     preserved.buffered_body = std::move(config_pages);
@@ -394,33 +387,33 @@ void deferred() {
     off.headers["if-match"] = f.api.revision();
     REQUIRE(f.api.handle(network_test::control_request(off), "cert-a", "127.0.0.1:8443", 19).status == 200);
     // USB and browser share authority; claim arriving before ACK cancels change.
-    wtp::Request hello;
+    execution::Request hello;
     hello.principal = "usb-physical";
     hello.session_id = std::string(32, '7');
     hello.request_id = std::string(32, '8');
     hello.operation = "HELLO";
     hello.payload_digest[0] = 1;
-    hello.body = wtp::HelloBody{{"WTP/1"}};
+    hello.body = execution::HelloBody{{"native-execution/1"}};
     REQUIRE(f.service.handle(hello).ok);
     hello.request_id = std::string(32, '9');
     hello.operation = "CLAIM";
-    hello.body = wtp::ClaimBody{std::string(32, '7'), 60000};
+    hello.body = execution::ClaimBody{std::string(32, '7'), 60000};
     REQUIRE(f.service.handle(hello).ok);
-    wtp::available_memory = []() -> std::size_t { return 50000; };
+    execution::available_memory = []() -> std::size_t { return 50000; };
     hello.request_id = std::string(32, 'a');
     hello.operation = "NOT_AN_OPERATION";
-    REQUIRE(f.service.handle(hello).error == wtp::ErrorCode::UnknownOperation);
+    REQUIRE(f.service.handle(hello).error == execution::ErrorCode::UnknownOperation);
     hello.request_id = std::string(32, 'b');
     hello.operation = "LOAD";
-    wtp::Job plan;
+    execution::Job plan;
     plan.job_id = std::string(32, 'c');
     plan.mode = "tone";
     plan.total_duration_ns = 1000000;
     plan.events.push_back({0, 1000000, true, 1000000});
     hello.body = plan;
-    REQUIRE(f.service.handle(hello).error == wtp::ErrorCode::InternalError);
-    REQUIRE(f.service.status().state == wtp::State::Empty);
-    wtp::available_memory = nullptr;
+    REQUIRE(f.service.handle(hello).error == execution::ErrorCode::InternalError);
+    REQUIRE(f.service.status().state == execution::State::Empty);
+    execution::available_memory = nullptr;
     f.api.finish_request(19);
     REQUIRE(f.network.enabled && !f.network.pending && f.network.applied == 0);
     off.headers["if-match"] = f.api.revision();
@@ -456,17 +449,17 @@ void restart_tests() {
     REQUIRE(resets == 1);
     restart.headers["if-match"] = f.api.revision();
     REQUIRE(f.api.handle(network_test::control_request(restart), "cert-a", "127.0.0.1:8443", 34).status == 202);
-    wtp::Request r;
+    execution::Request r;
     r.payload_digest[0] = 1;
     r.principal = "usb-physical";
     r.session_id = std::string(32, '7');
     r.request_id = std::string(32, '8');
     r.operation = "HELLO";
-    r.body = wtp::HelloBody{{"WTP/1"}};
+    r.body = execution::HelloBody{{"native-execution/1"}};
     REQUIRE(f.service.handle(r).ok);
     r.request_id = std::string(32, '9');
     r.operation = "CLAIM";
-    r.body = wtp::ClaimBody{std::string(32, '7'), 60000};
+    r.body = execution::ClaimBody{std::string(32, '7'), 60000};
     REQUIRE(f.service.handle(r).ok);
     f.api.finish_request(34);
     REQUIRE(resets == 1);
@@ -489,8 +482,8 @@ void operations_tests() {
     REQUIRE(f.api.public_status().body_text().find("accepted") == std::string::npos);
     f.api.restart_control([](void*) { return true; }, nullptr);
     unsigned seq = 0;
-    auto send = [&](std::string operation, wtp::RequestBody body) {
-        wtp::Request r;
+    auto send = [&](std::string operation, execution::RequestBody body) {
+        execution::Request r;
         r.session_id = std::string(32, '1');
         r.principal = "test";
         r.request_id = std::string(30, '0') + std::to_string(10 + ++seq);
@@ -505,8 +498,8 @@ void operations_tests() {
     for (unsigned i = 0; i < 8; ++i)
         full_config.schedules.push_back({1920, i * 120});
     REQUIRE(f.store.save(full_config));
-    REQUIRE(send("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-    REQUIRE(send("CLAIM", wtp::ClaimBody{std::string(32, '1'), 60000}).ok);
+    REQUIRE(send("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+    REQUIRE(send("CLAIM", execution::ClaimBody{std::string(32, '1'), 60000}).ok);
     encoding::MorseMessage m;
     m.job_id = std::string(32, '2');
     m.mode = "dfcw";
@@ -529,13 +522,13 @@ void operations_tests() {
     REQUIRE(compiled.job);
     REQUIRE(send("LOAD", std::move(*compiled.job)).ok);
     const auto start = f.clock.snapshot().utc_now_ns + 2000000000ULL;
-    REQUIRE(send("ARM", wtp::ArmBody{m.job_id, start, 1000}).ok);
+    REQUIRE(send("ARM", execution::ArmBody{m.job_id, start, 1000}).ok);
     auto reset = request("POST", "/api/control/v1/restart", "{}");
     reset.headers["if-match"] = f.api.revision();
     REQUIRE(f.api.handle(network_test::control_request(reset), "cert", "127.0.0.1:8443").status == 409);
     f.clock.now += 2000000000ULL;
     f.service.poll();
-    REQUIRE(f.service.status().state == wtp::State::Running);
+    REQUIRE(f.service.status().state == execution::State::Running);
     REQUIRE(!f.service.status().output_active); // Inhibited RF-off job remains running.
     const auto watermark = f.store.watermark();
     const auto revision = f.api.revision();
@@ -557,22 +550,22 @@ void operations_tests() {
 void jobs() {
     Fixture f;
     const std::string session(32,'1'),job_id(32,'2');
-    const auto command=[&](std::string op,wtp::RequestBody body={},std::string principal="cert-a"){
+    const auto command=[&](std::string op,execution::RequestBody body={},std::string principal="cert-a"){
         return internal_command(f.service,std::move(op),std::move(body),std::move(principal),session);
     };
-    REQUIRE(command("HELLO",wtp::HelloBody{{"WTP/1"}}).ok);
-    REQUIRE(command("CLAIM",wtp::ClaimBody{session,5000}).ok);
+    REQUIRE(command("HELLO",execution::HelloBody{{"native-execution/1"}}).ok);
+    REQUIRE(command("CLAIM",execution::ClaimBody{session,5000}).ok);
     auto mutation=request("POST","/api/control/v1/config/update",configuration_update(config));
     mutation.headers["if-match"]=f.api.revision();
     REQUIRE(f.api.handle(control_request(mutation),"cert-b","127.0.0.1:8443").status==409);
-    wtp::Job job;job.job_id=job_id;job.mode="tone";job.total_duration_ns=1'000'000'000;
+    execution::Job job;job.job_id=job_id;job.mode="tone";job.total_duration_ns=1'000'000'000;
     job.events.push_back({0,job.total_duration_ns,true,3'570'100'000'000'000});
     REQUIRE(command("LOAD",std::move(job)).ok);
-    REQUIRE(command("ARM",wtp::ArmBody{job_id,f.clock.snapshot().utc_now_ns+2'000'000'000,1000}).ok);
-    REQUIRE(command("ABORT",wtp::AbortBody{job_id},"cert-b").error==wtp::ErrorCode::AuthenticationRequired);
-    REQUIRE(f.service.status().state==wtp::State::Armed);
-    f.clock.now+=2'000'000'000;f.service.poll();REQUIRE(f.service.status().state==wtp::State::Running);
-    f.clock.now+=1'000'000'000;f.service.poll();REQUIRE(f.service.status().state==wtp::State::Complete);
+    REQUIRE(command("ARM",execution::ArmBody{job_id,f.clock.snapshot().utc_now_ns+2'000'000'000,1000}).ok);
+    REQUIRE(command("ABORT",execution::AbortBody{job_id},"cert-b").error==execution::ErrorCode::AuthenticationRequired);
+    REQUIRE(f.service.status().state==execution::State::Armed);
+    f.clock.now+=2'000'000'000;f.service.poll();REQUIRE(f.service.status().state==execution::State::Running);
+    f.clock.now+=1'000'000'000;f.service.poll();REQUIRE(f.service.status().state==execution::State::Complete);
     REQUIRE(!f.service.status().output_active);REQUIRE(command("RELEASE").ok);
 }
 void maximum_http_job() {
@@ -581,58 +574,58 @@ void maximum_http_job() {
     const std::string body(network::max_http_body,' ');
     network::HttpParser parser;const auto wire=header(body.size())+body;
     REQUIRE(parser.receive(bytes(wire))==wire.size()&&parser.ready()&&!parser.failed());
-    wtp::available_memory=[]()->std::size_t{return 90000;};
+    execution::available_memory=[]()->std::size_t{return 90000;};
     REQUIRE(f.api.handle(parser.request(),"cert-a","127.0.0.1:8443").status==404);
-    wtp::available_memory=nullptr;
+    execution::available_memory=nullptr;
     network::HttpParser oversized;oversized.receive(bytes(header(body.size()+1)));
     REQUIRE(oversized.failed()&&!oversized.ready());
-    REQUIRE(f.service.status().state==wtp::State::Empty&&!f.service.status().owner_id);
+    REQUIRE(f.service.status().state==execution::State::Empty&&!f.service.status().owner_id);
 }
 void fragmented_raw_browser_load() {
     Fixture f;
     auto value=request("POST","/api/control/v1/jobs",std::string(17000,'x'));
-    auto storage=std::make_shared<wtp::FrameBuffer>();REQUIRE(storage->reserve(value.body.size()));
+    auto storage=std::make_shared<execution::FrameBuffer>();REQUIRE(storage->reserve(value.body.size()));
     storage->append(bytes(value.body));value.buffered_body=storage;value.body.clear();
     largest_new=0;bounded_http_limit=4096;bounded_http=true;
     const auto result=f.api.handle(value,"cert-a","127.0.0.1:8443");
     bounded_http=false;bounded_http_limit=8192;
     REQUIRE(result.status==404&&largest_new<=4096);
-    REQUIRE(f.service.status().state==wtp::State::Empty&&!f.service.status().owner_id);
+    REQUIRE(f.service.status().state==execution::State::Empty&&!f.service.status().owner_id);
 }
 std::string compact_body(std::string message,std::string mode="fskcw") {
-    return "{\"job_id\":\"44444444444444444444444444444444\",\"mode\":"+wtp::json::quote(mode)+
-        ",\"message\":"+wtp::json::quote(message)+
+    return "{\"job_id\":\"44444444444444444444444444444444\",\"mode\":"+execution::json::quote(mode)+
+        ",\"message\":"+execution::json::quote(message)+
         R"(,"frequency_nhz":"10140005000000000","space_frequency_nhz":"10140000000000000","timing":{"dot_ns":"3000000000","dash_ns":"9000000000","intra_gap_ns":"3000000000","character_gap_ns":"9000000000","word_gap_ns":"21000000000"},"repeat_count":1,"repeat_gap_ns":"0","allow_frequency_adjustment":true})";
 }
 void message_jobs() {
     Fixture f;const std::string session(32,'a');
     REQUIRE(!internal_message(f.service,compact_body(std::string(32,'?'))).ok);
-    REQUIRE(internal_command(f.service,"HELLO",wtp::HelloBody{{"WTP/1"}},"cert",session).ok);
-    REQUIRE(internal_command(f.service,"CLAIM",wtp::ClaimBody{session,60000},"cert",session).ok);
+    REQUIRE(internal_command(f.service,"HELLO",execution::HelloBody{{"native-execution/1"}},"cert",session).ok);
+    REQUIRE(internal_command(f.service,"CLAIM",execution::ClaimBody{session,60000},"cert",session).ok);
     REQUIRE(!internal_message(f.service,compact_body(std::string(33,'?'))).ok);
-    REQUIRE(f.service.status().state==wtp::State::Empty);
+    REQUIRE(f.service.status().state==execution::State::Empty);
     REQUIRE(internal_message(f.service,compact_body(std::string(32,'?'))).ok);
-    REQUIRE(f.service.status().state==wtp::State::Loaded&&!f.service.status().output_active);
+    REQUIRE(f.service.status().state==execution::State::Loaded&&!f.service.status().output_active);
     REQUIRE(internal_command(f.service,"RELEASE",{},"cert",session).ok);
 }
 void compact_message_actual_admission() {
     Fixture f;const std::string session(32,'a');
-    REQUIRE(internal_command(f.service,"HELLO",wtp::HelloBody{{"WTP/1"}},"cert",session).ok);
-    REQUIRE(internal_command(f.service,"CLAIM",wtp::ClaimBody{session,60000},"cert",session).ok);
-    wtp::available_memory=[]()->std::size_t{return 67000;};
+    REQUIRE(internal_command(f.service,"HELLO",execution::HelloBody{{"native-execution/1"}},"cert",session).ok);
+    REQUIRE(internal_command(f.service,"CLAIM",execution::ClaimBody{session,60000},"cert",session).ok);
+    execution::available_memory=[]()->std::size_t{return 67000;};
     const auto loaded=internal_message(f.service,compact_body("ET E"));
-    wtp::available_memory=nullptr;REQUIRE(loaded.ok);
-    REQUIRE(f.service.status().state==wtp::State::Loaded&&!f.service.status().output_active);
+    execution::available_memory=nullptr;REQUIRE(loaded.ok);
+    REQUIRE(f.service.status().state==execution::State::Loaded&&!f.service.status().output_active);
     REQUIRE(internal_command(f.service,"RELEASE",{},"cert",session).ok);
 }
 
 void status_read_admission() {
     Fixture f;
-    wtp::available_memory = []() -> std::size_t { return 32768 + 8192; };
+    execution::available_memory = []() -> std::size_t { return 32768 + 8192; };
     REQUIRE(f.api.handle(network_test::control_request(request("GET", "/api/control/v1/status")), "cert", "127.0.0.1:8443").status == 200);
-    wtp::available_memory = []() -> std::size_t { return 32768 + 8192 - 1; };
+    execution::available_memory = []() -> std::size_t { return 32768 + 8192 - 1; };
     REQUIRE(f.api.handle(network_test::control_request(request("GET", "/api/control/v1/status")), "cert", "127.0.0.1:8443").status == 503);
-    wtp::available_memory = nullptr;
+    execution::available_memory = nullptr;
 }
 
 void message_jobs_with_resident_heap_pressure() {
@@ -658,12 +651,12 @@ void message_jobs_with_resident_heap_pressure() {
     rf::StreamEngine engine(sink);
     Fixture f(0, std::string(32, 'a'), &engine);
     const std::string session(32,'a');
-    const auto send=[&](std::string op,wtp::RequestBody body={}){
+    const auto send=[&](std::string op,execution::RequestBody body={}){
         return internal_command(f.service,std::move(op),std::move(body),"cert",session);
     };
-    REQUIRE(send("HELLO",wtp::HelloBody{{"WTP/1"}}).ok);
+    REQUIRE(send("HELLO",execution::HelloBody{{"native-execution/1"}}).ok);
     for (const auto mode : {"qrss", "fskcw", "dfcw"}) {
-        REQUIRE(send("CLAIM",wtp::ClaimBody{session,60000}).ok);
+        REQUIRE(send("CLAIM",execution::ClaimBody{session,60000}).ok);
         const auto body =
             "{\"job_id\":\"" + std::string(32, '8') + "\",\"mode\":\"" + mode +
             "\",\"message\":\"CQ CQ DE AA0NT EM18 QRSS TEST 73\","
@@ -675,11 +668,11 @@ void message_jobs_with_resident_heap_pressure() {
         // The resident event pages and transport/history allocations leave
         // less than the old fixed 64 KiB gate, but enough for this actual plan
         // plus the unchanged independent 32 KiB reserve.
-        wtp::available_memory = []() -> std::size_t { return 60000; };
+        execution::available_memory = []() -> std::size_t { return 60000; };
         const auto loaded = internal_message(f.service, body);
-        wtp::available_memory = nullptr;
+        execution::available_memory = nullptr;
         REQUIRE(loaded.ok);
-        REQUIRE(f.service.status().state == wtp::State::Loaded);
+        REQUIRE(f.service.status().state == execution::State::Loaded);
         REQUIRE(!f.service.status().output_active);
         REQUIRE(send("RELEASE").ok);
         REQUIRE(!f.service.status().owner_id);
@@ -703,68 +696,19 @@ int main() {
     deferred();
     restart_tests();
     operations_tests();
-    // JSON scratch admission must not silently narrow WTP's body grammar.
+    // JSON scratch admission must not silently narrow the JSON object grammar.
     std::string many_keys = "{";
     for (unsigned i = 0; i < 40; ++i)
         many_keys +=
-            (i ? "," : "") + wtp::json::quote(std::string(129, 'k') + std::to_string(i)) + ":0";
+            (i ? "," : "") + execution::json::quote(std::string(129, 'k') + std::to_string(i)) + ":0";
     many_keys += '}';
-    REQUIRE(wtp::json::parse(many_keys));
-    const auto unknown_wire = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
-                              std::string(32, '1') + "\",\"request_id\":\"" + std::string(32, '2') +
-                              "\",\"op\":\"UNKNOWN\",\"body\":" + many_keys + "}";
-    const auto unknown = wtp::json::parse(unknown_wire);
-    REQUIRE(unknown);
-    const auto decoded = wtp::decode_request(*unknown, "cert-a", unknown->raw);
-    REQUIRE(decoded && decoded->operation == "UNKNOWN");
-    {
-        Fixture f;
-        wtp::Endpoint endpoint(f.service, std::string(32, 'a'), "test");
-        endpoint.connect("cert-a");
-        const auto hello = wtp::encode_frame(bytes(
-            R"({"type":"request","protocol":"WTP/1","session_id":"11111111111111111111111111111111","request_id":"22222222222222222222222222222222","op":"HELLO","body":{"versions":["WTP/1"],"client_name":"pressure","client_version":"1"}})"));
-        std::size_t offset = 0;
-        while (offset < hello.size()) {
-            const auto used = endpoint.receive(std::span(hello).subspan(offset), 0);
-            REQUIRE(used != 0);
-            offset += used;
-        }
-        while (!endpoint.output().empty())
-            endpoint.consume_output(endpoint.output().size(), 0);
-        wtp::Request claim;
-        claim.principal = "cert-a";
-        claim.session_id = std::string(32, '1');
-        claim.request_id = std::string(32, '3');
-        claim.operation = "CLAIM";
-        claim.payload_digest[0] = 1;
-        claim.body = wtp::ClaimBody{std::string(32, '1'), 60000};
-        REQUIRE(f.service.handle(claim).ok);
-        wtp::Job plan;
-        plan.job_id = std::string(32, '4');
-        plan.mode = "tone";
-        plan.total_duration_ns = 1000000;
-        plan.events.push_back({0, 1000000, true, 1000000});
-        claim.request_id = std::string(32, '4');
-        claim.operation = "LOAD";
-        claim.payload_digest[0] = 2;
-        claim.body = plan;
-        REQUIRE(f.service.handle(claim).ok);
-        wtp::available_memory = []() -> std::size_t { return 0; };
-        endpoint.poll(1); // Memory pressure drops advisory output, never authority.
-        REQUIRE(endpoint.output().empty() && !endpoint.closed());
-        REQUIRE(f.service.status().owner_id == std::string(32, '1'));
-        REQUIRE(f.service.status().state == wtp::State::Loaded);
-        wtp::available_memory = nullptr;
-    }
-    wtp::available_memory = []() -> std::size_t { return 0; };
+    REQUIRE(execution::json::parse(many_keys));
+    execution::available_memory = []() -> std::size_t { return 0; };
     network::HttpParser starved;
     starved.receive(bytes("PUT / HTTP/1.1\r\nHost: x\r\nContent-Length: 32768\r\n\r\n"));
     REQUIRE(starved.exhausted());
-    wtp::FrameParser frame;
-    frame.feed(bytes("W"), 0);
-    REQUIRE(frame.closed());
     Fixture f;
     REQUIRE(f.api.handle(network_test::control_request(request("GET", "/api/control/v1/status")), "cert", "127.0.0.1:8443").status == 503);
-    wtp::available_memory = nullptr;
+    execution::available_memory = nullptr;
     std::cout << "HTTP/API adversarial behavior checks passed\n";
 }

@@ -299,6 +299,7 @@
     "browser_npm": "passed",
     "compatibility_rf": "passed",
     "consumer_ui": "passed",
+    "control_policy": "passed",
     "failed": 0,
     "historical_evidence_skips": [
       {
@@ -649,9 +650,9 @@
       "network_browser_tests",
       "network_certificate_strict_tests",
       "network_certificate_tests",
-      "network_local_wtp_tests",
+      "fixture_native_case_80",
       "network_plain_admission_tests",
-      "network_plain_wtp_tests",
+      "fixture_native_case_82",
       "network_tests",
       "network_tls_nagle_tests",
       "network_tls_tests",
@@ -777,7 +778,7 @@
       "rf_stream_tests",
       "rf_worker_failure_tests",
       "rf_worker_tests",
-      "rf_wtp_client_tests",
+      "fixture_native_case_208",
       "saved_progress_browser_tests",
       "shutdown_image_tests",
       "shutdown_trace_tests",
@@ -799,10 +800,9 @@
       "wspr_resource_schema_tests",
       "wspr_resource_tests",
       "wsprrypico_core_tests",
-      "wtp_monitor_tests",
-      "wtp_probe_tests"
-    ],
-    "wtp_contract": "passed"
+      "fixture_native_case_230",
+      "fixture_native_case_231"
+    ]
   },
   "deployment_candidate": true,
   "firmware": {
@@ -832,7 +832,7 @@
     "software_build_only": true
   },
   "repository": "https://github.com/WsprryPi/WsprryPico",
-  "schema_version": 1,
+  "schema_version": 2,
   "source": {
     "clean": true,
     "input_digest_sha256": "1e7447743f92bb3aadb8987fb86ddad9f778ece18a92f6023dab2535339c9004",
@@ -840,10 +840,11 @@
     "tree": "09446a9724c0304ee6d322b4f43b2e20467a1929"
   },
   "update": {
-    "application_end": "103f0000",
+    "application_end": "103ec000",
     "first_frequency_save_enables_schedule": false,
     "ordinary_update_erases_settings": false,
     "rollback": "Older firmware may reject extended saved configuration; downgrade preservation is unqualified.",
+    "storage_contract": 2,
     "unset_frequency_transmits": false,
     "whole_flash_erase_required": false
   },

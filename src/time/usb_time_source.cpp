@@ -38,18 +38,18 @@ std::string UsbTimeSource::command(std::string_view line) {
         if (!number(fields[1], sample) || !number(fields[2], utc) ||
             !number(fields[3], uncertainty) || !sample_ || sample != *sample_)
             return "{\"ok\":false,\"error\":\"invalid_observation\"}\n";
-        wtp::LeapState leap = wtp::LeapState::Unknown;
+        execution::LeapState leap = execution::LeapState::Unknown;
         std::optional<std::uint64_t> leap_transition;
         if (fields[4] == "NORMAL" && fields.size() == 5)
-            leap = wtp::LeapState::Normal;
+            leap = execution::LeapState::Normal;
         else if ((fields[4] == "INSERT" || fields[4] == "DELETE") && fields.size() == 6 &&
                  number(fields[5], transition)) {
-            leap = fields[4] == "INSERT" ? wtp::LeapState::InsertPending
-                                         : wtp::LeapState::DeletePending;
+            leap = fields[4] == "INSERT" ? execution::LeapState::InsertPending
+                                         : execution::LeapState::DeletePending;
             leap_transition = transition;
         }
         sample_.reset();
-        if (leap == wtp::LeapState::Unknown ||
+        if (leap == execution::LeapState::Unknown ||
             !clock_.observe(utc, sample, uncertainty, leap, leap_transition))
             return "{\"ok\":false,\"error\":\"observation_rejected\"}\n";
         const auto status = clock_.snapshot();

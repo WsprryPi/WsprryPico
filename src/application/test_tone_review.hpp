@@ -31,7 +31,7 @@ struct TestToneReview {
     std::uint64_t minimum_duration_ms = 1, maximum_duration_ms = 0;
     std::optional<std::uint64_t> requested_nhz, launch_utc_ns, launch_monotonic_ns;
     standalone::FrequencyPolicyEngine::ToneAssessment frequency;
-    wtp::ErrorCode clock_error = wtp::ErrorCode::None;
+    execution::ErrorCode clock_error = execution::ErrorCode::None;
     // Direct: half an NCO step plus report rounding. Si5351: synthesis error
     // plus report rounding. Both are relative to the corrected target, not RF.
     std::uint64_t quantization_bound_nhz = 0;
@@ -39,6 +39,6 @@ struct TestToneReview {
 inline constexpr std::uint64_t test_tone_maximum_duration_ms = 120'000;
 
 TestToneReview review_test_tone(const TestToneProposal&, const TestToneContext&,
-                                const standalone::FrequencyPolicyEngine&, const wtp::ServiceConfig&,
-                                const wtp::ClockSnapshot&);
+                                const standalone::FrequencyPolicyEngine&, const execution::ServiceConfig&,
+                                const execution::ClockSnapshot&);
 } // namespace wsprrypico::application

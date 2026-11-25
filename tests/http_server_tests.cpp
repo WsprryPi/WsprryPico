@@ -1,5 +1,5 @@
 #include "network/pico/http_server.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <cstring>
 #include <iostream>
@@ -93,7 +93,7 @@ struct Harness {
     bool ap = true, station = true, accepting = true, generated = false;
     std::vector<std::uint64_t> handled;
     std::map<std::uint64_t, bool> finished;
-    std::weak_ptr<wsprrypico::wtp::FrameBuffer> input;
+    std::weak_ptr<wsprrypico::execution::FrameBuffer> input;
     PicoHttpServer server{this, classify, handle, finish};
     static ConsumerInterface classify(void* context, const tcp_pcb* pcb, bool accepting) {
         auto& self = *static_cast<Harness*>(context);
@@ -114,7 +114,7 @@ struct Harness {
             static const std::string body(16000, 'x');
             if (self.generated)
                 response.generated_body =
-                    wsprrypico::wtp::make_response_source<wsprrypico::wtp::TextResponseSource>(
+                    wsprrypico::execution::make_response_source<wsprrypico::execution::TextResponseSource>(
                         body);
             else
                 response.static_body = body;
@@ -311,7 +311,7 @@ void parser_and_pressure() {
         h.accept(hostile);
         // The real running WSPR frame leaves about 61 KiB. Small status
         // requests fit while the 32 KiB authority reserve remains intact.
-        wsprrypico::wtp::available_memory = []() -> std::size_t { return 61280; };
+        wsprrypico::execution::available_memory = []() -> std::size_t { return 61280; };
         h.request(ordinary);
         h.complete(ordinary);
         check(h.handled.size() == 1 && !ordinary.aborted);
@@ -323,7 +323,7 @@ void parser_and_pressure() {
         h.receive(hostile, prefix);
         h.complete(hostile);
         check(h.handled.size() == 1 && hostile.wire.starts_with("HTTP/1.1 400"));
-        wsprrypico::wtp::available_memory = nullptr;
+        wsprrypico::execution::available_memory = nullptr;
     }
     for (auto bad :
          {std::string("GET / HTTP/1.1\n\n"),
@@ -345,28 +345,28 @@ void parser_and_pressure() {
     h.accept(phone);
     h.accept(mac);
     h.request(mac); // Its parsed request predates the low-memory condition.
-    wsprrypico::wtp::available_memory = []() -> std::size_t { return 32768; };
+    wsprrypico::execution::available_memory = []() -> std::size_t { return 32768; };
     h.receive(phone, "POST /post HTTP/1.1\r\nHost: x\r\nContent-Length: 4096\r\n\r\n");
     check(phone.aborted && h.handled.empty());
     h.complete(mac);
-    wsprrypico::wtp::available_memory = nullptr;
+    wsprrypico::execution::available_memory = nullptr;
     check(h.handled.size() == 1 && h.server.connections() == 0);
     // Already reserved body pages must remain usable below header workspace.
     tcp_pcb reserved;
     h.accept(reserved);
     h.receive(reserved, "POST /post HTTP/1.1\r\nHost: x\r\nContent-Length: 4096\r\n\r\n");
-    wsprrypico::wtp::available_memory = []() -> std::size_t { return 33000; };
+    wsprrypico::execution::available_memory = []() -> std::size_t { return 33000; };
     h.receive(reserved, std::string(4096, 'a'));
     h.complete(reserved);
-    wsprrypico::wtp::available_memory = nullptr;
+    wsprrypico::execution::available_memory = nullptr;
     check(h.input.expired());
     // Header workspace fits, but a maximum body would violate its own reserve.
     tcp_pcb body_pressure;
     h.accept(body_pressure);
-    wsprrypico::wtp::available_memory = []() -> std::size_t { return 65536; };
+    wsprrypico::execution::available_memory = []() -> std::size_t { return 65536; };
     h.receive(body_pressure, "POST /post HTTP/1.1\r\nHost: x\r\nContent-Length: 32768\r\n\r\n");
     h.complete(body_pressure);
-    wsprrypico::wtp::available_memory = nullptr;
+    wsprrypico::execution::available_memory = nullptr;
     check(body_pressure.wire.starts_with("HTTP/1.1 400"));
 }
 void acknowledgment_and_fragment_boundaries() {

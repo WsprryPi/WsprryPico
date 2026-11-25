@@ -3,16 +3,16 @@
 #include "rf/filter_selector.hpp"
 #include "standalone/storage.hpp"
 #include "time/ntp_filter.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 #include "time/gps_calibration.hpp"
 
 namespace wsprrypico::standalone {
 // One application admission boundary for USB/LAN/BLE/browser and autonomous
-// jobs. WTP remains device-neutral; the underlying engine retains all physical
+// jobs. The job representation is device-neutral, and the underlying engine retains all physical
 // limits, preparation, timing, ownership and safety behavior.
-class FrequencyPolicyEngine final : public wtp::RfEngine {
+class FrequencyPolicyEngine final : public execution::RfEngine {
   public:
-    FrequencyPolicyEngine(wtp::RfEngine& engine, const Store& store,
+    FrequencyPolicyEngine(execution::RfEngine& engine, const Store& store,
                           std::uint64_t minimum_frequency_nhz, std::uint64_t maximum_frequency_nhz,
                           bool boot_ordinary_si5351 = false)
         : engine_(engine), store_(store), minimum_(minimum_frequency_nhz),
@@ -21,17 +21,17 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
                                       : hardware::PinPlan::Engine::Direct),
           boot_si5351_(store.config() ? store.config()->si5351 : std::nullopt),
           boot_ordinary_si5351_(boot_ordinary_si5351) {}
-    wtp::PadObservation pad_observation() const override {
+    execution::PadObservation pad_observation() const override {
         return engine_.pad_observation();
     }
-    wtp::SynthesisObservation synthesis_observation() const override {
+    execution::SynthesisObservation synthesis_observation() const override {
         return engine_.synthesis_observation();
     }
-    std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
+    std::size_t preparation_memory_bytes(const execution::Job& job) const override {
         return engine_.preparation_memory_bytes(job);
     }
-    wtp::PrepareResult prepare(const wtp::Job& job) override;
-    wtp::PrepareResult prepare_native_test_tone(const wtp::Job& job) override;
+    execution::PrepareResult prepare(const execution::Job& job) override;
+    execution::PrepareResult prepare_native_test_tone(const execution::Job& job) override;
     void inhibit_output() override {
         engine_.inhibit_output();
     }
@@ -112,16 +112,16 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     bool externally_controlled_completion() const override {
         return engine_.externally_controlled_completion();
     }
-    bool schedule(const wtp::Job& job, std::uint64_t start,
-                  const wtp::LocalStartConditions& conditions) override {
+    bool schedule(const execution::Job& job, std::uint64_t start,
+                  const execution::LocalStartConditions& conditions) override {
         // Preparation may precede a latched storage fault. Keep cleanup paths
         // below available even when a new launch is no longer admitted.
         return store_.healthy() && engine_.schedule(job, start, conditions);
     }
-    bool begin(const wtp::Job& job, std::uint64_t start) override {
+    bool begin(const execution::Job& job, std::uint64_t start) override {
         return store_.healthy() && engine_.begin(job, start);
     }
-    wtp::EngineReport poll(std::uint64_t now) override {
+    execution::EngineReport poll(std::uint64_t now) override {
         return engine_.poll(now);
     }
     bool disable(std::uint64_t deadline) override {
@@ -149,12 +149,12 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     bool qualified_test_tone_carrier(std::uint64_t requested_nhz) const;
     const char* frequency_refusal(std::uint64_t frequency_nhz,
                                   bool qualified_test_tone = false) const;
-    wtp::PrepareResult prepare_job(const wtp::Job& job, bool qualified_test_tone);
+    execution::PrepareResult prepare_job(const execution::Job& job, bool qualified_test_tone);
     std::optional<Selection> frozen_;
     std::string prepared_job_id_;
     bool pair_frozen_ = false;
     std::optional<std::int32_t> programmed_;
-    wtp::RfEngine& engine_;
+    execution::RfEngine& engine_;
     const Store& store_;
     const std::uint64_t minimum_, maximum_;
     const hardware::FilterSettings boot_filters_;

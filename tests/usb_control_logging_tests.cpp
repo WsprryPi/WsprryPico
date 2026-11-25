@@ -93,7 +93,7 @@ int main() {
     // Retain historical forwarding, while admitting only the retained fixed
     // messages. Port labels must never become an arbitrary-text export path.
     assert(wsprry::logging::export_safe_pico("USB_STATE", "USB control connection changed"));
-    assert(!wsprry::logging::export_safe_pico("USB_STATE", "USB WTP port opened password=secret"));
+    assert(!wsprry::logging::export_safe_pico("USB_STATE", "USB Management port opened password=secret"));
     assert(!wsprry::logging::export_safe_pico("USB_STATE", "USB Console port opened"));
-    assert(!wsprry::logging::export_safe_pico("UNKNOWN", "USB WTP port opened"));
+    assert(!wsprry::logging::export_safe_pico("UNKNOWN", "USB Management port opened"));
 }

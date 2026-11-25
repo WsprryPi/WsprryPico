@@ -5,27 +5,27 @@
 #include <limits>
 
 using namespace wsprrypico;
-using namespace wtp::json;
+using namespace execution::json;
 namespace {
 constexpr std::uint64_t ns = 1'000'000'000;
-struct Engine : wtp::RfEngine {
+struct Engine : execution::RfEngine {
     standalone::DryRunEngine dry;
-    std::vector<wtp::Job> jobs;
-    wtp::PrepareResult prepare(const wtp::Job& job) override {
+    std::vector<execution::Job> jobs;
+    execution::PrepareResult prepare(const execution::Job& job) override {
         jobs.push_back(job);
         return dry.prepare(job);
     }
     bool schedules_locally() const override {
         return true;
     }
-    bool schedule(const wtp::Job& job, std::uint64_t start,
-                  const wtp::LocalStartConditions& conditions) override {
+    bool schedule(const execution::Job& job, std::uint64_t start,
+                  const execution::LocalStartConditions& conditions) override {
         return dry.schedule(job, start, conditions);
     }
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t now) override {
+    execution::EngineReport poll(std::uint64_t now) override {
         return dry.poll(now);
     }
     bool disable(std::uint64_t deadline) override {
@@ -41,13 +41,13 @@ struct Member {
     network_test::Clock clock;
     Engine engine;
     network_test::Identity identity;
-    static wtp::ServiceConfig limits(std::uint64_t maximum, std::uint64_t minimum) {
-        wtp::ServiceConfig result;
+    static execution::ServiceConfig limits(std::uint64_t maximum, std::uint64_t minimum) {
+        execution::ServiceConfig result;
         result.minimum_frequency_nhz = minimum;
         result.maximum_frequency_nhz = maximum;
         return result;
     }
-    wtp::JobService service;
+    execution::JobService service;
     standalone::Scheduler scheduler;
     network_test::Network network;
     network::BrowserApi api;
@@ -208,8 +208,8 @@ void blocked_dial_survives_unrelated_updates() {
 void absolute_jobs_ignore_standalone_dial() {
     Member m;
     unsigned sequence = 0;
-    auto send = [&](std::string operation, wtp::RequestBody body = {}) {
-        wtp::Request request;
+    auto send = [&](std::string operation, execution::RequestBody body = {}) {
+        execution::Request request;
         request.principal = "remote";
         request.session_id = std::string(32, 'c');
         ++sequence;
@@ -222,9 +222,9 @@ void absolute_jobs_ignore_standalone_dial() {
     };
     for (const auto dial : {"3568737", "14095600"}) {
         REQUIRE(m.frequency(dial).status == 200);
-        REQUIRE(send("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-        REQUIRE(send("CLAIM", wtp::ClaimBody{std::string(32, 'c'), 30000}).ok);
-        wtp::Job job{std::string(32, 'd'), "rf-events/1", "wspr", ns, {}, true};
+        REQUIRE(send("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+        REQUIRE(send("CLAIM", execution::ClaimBody{std::string(32, 'c'), 30000}).ok);
+        execution::Job job{std::string(32, 'd'), "rf-events/1", "wspr", ns, {}, true};
         REQUIRE(job.events.push_back({0, ns, true, 14095600123456789ULL}));
         REQUIRE(send("LOAD", job).ok);
         REQUIRE(m.engine.jobs.back().events[0].frequency_nhz == 14095600123456789ULL);

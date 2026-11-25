@@ -3,7 +3,7 @@
 #include "provisioning/runtime.hpp"
 #include "standalone/config.hpp"
 #include "standalone/storage.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1460,17 +1460,17 @@ void consumer_runtime_readback_and_reload() {
 
     auto check_readback = [&] {
         const auto text = runtime.consumer_readback_json();
-        const auto readback = wtp::json::parse(text);
+        const auto readback = execution::json::parse(text);
         CHECK(readback &&
-              wtp::json::fields(*readback, {"station", "network", "owner_count", "owner_epoch",
+              execution::json::fields(*readback, {"station", "network", "owner_count", "owner_epoch",
                                             "tls_pending", "request_sha256"}));
         const auto station = readback->get("station");
-        CHECK(station && wtp::json::fields(*station, {"callsign", "locator", "power_dbm"}));
+        CHECK(station && execution::json::fields(*station, {"callsign", "locator", "power_dbm"}));
         CHECK(station->get("callsign")->string() == candidate.callsign);
         CHECK(station->get("locator")->string() == candidate.locator);
         CHECK(station->get("power_dbm")->integer() == static_cast<int>(candidate.power_dbm));
         const auto network = readback->get("network");
-        CHECK(network && wtp::json::fields(*network, {"ssid", "time_server"}));
+        CHECK(network && execution::json::fields(*network, {"ssid", "time_server"}));
         CHECK(network->get("ssid")->string() == candidate.ssid);
         CHECK(network->get("time_server")->string() == candidate.time_server);
         CHECK(readback->get("owner_count")->integer() == static_cast<int>(candidate.owners.size()));

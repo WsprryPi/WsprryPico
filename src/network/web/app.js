@@ -744,7 +744,6 @@ async function api(path, method = 'GET', body, etag, timeout = 30000, frequencyO
   if(accessClosing || localLocked && localIdentity && !radio) throw new Error('Controls are locked in this browser. An earlier request may already have been accepted; read back before repeating it.');
   if (method !== 'GET' && nativeStopUnknown) throw new Error('Read stop status before another change. The earlier stop is unconfirmed.');
   if (method !== 'GET' && !controlsUnlocked()) { const e=new Error('Unlock controls before changing the Pico.'); e.local=true; throw e; }
-  if (path === 'jobs' && method === 'POST') await updateFieldTime();
   if (method !== 'GET') body = {...(body || {}),contract:WsprryControl.contract};
   const requestEpoch=accessEpoch;
   if ((returnReceipt || consumerAttempt) && localIdentity) checkReturningDevice(localIdentity.device_id);

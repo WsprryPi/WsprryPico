@@ -23,17 +23,17 @@ class ExecutionPlatform {
     virtual void inhibit_reference() = 0;
 };
 
-class Engine final : public wtp::RfEngine {
+class Engine final : public execution::RfEngine {
   public:
     Engine(const Configuration& configuration, Device& device, ExecutionPlatform& platform,
            bool engineering_allowed, IndicatorGate* indicator = nullptr,
            AmplifierEnable* amplifier = nullptr, FilterSelector* filters = nullptr,
            bool ordinary_qualified = false);
-    wtp::SynthesisObservation synthesis_observation() const override {
+    execution::SynthesisObservation synthesis_observation() const override {
         return synthesis_observation_;
     }
-    std::size_t preparation_memory_bytes(const wtp::Job&) const override;
-    wtp::PrepareResult prepare(const wtp::Job&) override;
+    std::size_t preparation_memory_bytes(const execution::Job&) const override;
+    execution::PrepareResult prepare(const execution::Job&) override;
     bool set_frequency_correction_ppb(std::int32_t) override;
     bool schedules_locally() const override {
         return true;
@@ -53,9 +53,9 @@ class Engine final : public wtp::RfEngine {
     std::uint64_t amplifier_lead_ns() const override;
     std::uint64_t amplifier_tail_ns() const override;
     std::uint64_t filter_preparation_ns() const override;
-    bool schedule(const wtp::Job&, std::uint64_t, const wtp::LocalStartConditions&) override;
-    bool begin(const wtp::Job&, std::uint64_t) override;
-    wtp::EngineReport poll(std::uint64_t) override;
+    bool schedule(const execution::Job&, std::uint64_t, const execution::LocalStartConditions&) override;
+    bool begin(const execution::Job&, std::uint64_t) override;
+    execution::EngineReport poll(std::uint64_t) override;
     bool disable(std::uint64_t deadline_ns) override;
     bool output_active() const override;
     bool execution_started() const override {
@@ -88,12 +88,12 @@ class Engine final : public wtp::RfEngine {
     static constexpr std::uint64_t minimum_transition_ns = execution_minimum_transition_ns;
     static constexpr std::uint64_t chain_service_margin_ns = 1'000'000;
     bool initialize();
-    bool fail(std::string_view, wtp::EngineState = wtp::EngineState::Failed);
+    bool fail(std::string_view, execution::EngineState = execution::EngineState::Failed);
     bool project_start(std::uint64_t& target) const;
     bool launch();
     bool transition(unsigned index);
     bool finish_rf();
-    wtp::EngineReport report() const;
+    execution::EngineReport report() const;
     const Configuration configuration_;
     Device& device_;
     ExecutionPlatform& platform_;
@@ -105,14 +105,14 @@ class Engine final : public wtp::RfEngine {
     bool initialized_ = false, inhibited_ = false, primed_ = false, background_suspended_ = false;
     std::optional<JobPlan> plan_;
     std::int32_t correction_ppb_ = 0;
-    wtp::EngineState state_ = wtp::EngineState::Idle;
-    wtp::ChainPhase phase_ = wtp::ChainPhase::Inactive;
-    wtp::LocalStartConditions conditions_;
+    execution::EngineState state_ = execution::EngineState::Idle;
+    execution::ChainPhase phase_ = execution::ChainPhase::Inactive;
+    execution::LocalStartConditions conditions_;
     std::uint64_t epoch_ = 0, start_ns_ = 0, end_ns_ = 0, deadline_ns_ = 0;
     std::optional<std::uint64_t> launch_ns_, release_ns_, selection_ns_, enable_ns_, tail_ns_;
     std::uint64_t enable_command_ns_ = 0, disable_command_ns_ = 0;
     AmplifierObservation amplifier_observation_;
-    wtp::SynthesisObservation synthesis_observation_;
+    execution::SynthesisObservation synthesis_observation_;
     unsigned event_ = 0;
     std::uint8_t primed_tone_ = JobPlan::off;
     std::string_view failure_ = "not_initialized";

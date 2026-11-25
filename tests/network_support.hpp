@@ -2,7 +2,7 @@
 #include "network/api.hpp"
 #include "standalone/dry_run_engine.hpp"
 #include "encoding/message_wire.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 #include <atomic>
 
 #include <algorithm>
@@ -20,26 +20,26 @@ namespace network_test {
 using namespace wsprrypico;
 // Typed native-core fixture only. Each call allocates a fresh identity; replay
 // tests continue to own their exact byte digests. No HTTP or external carrier.
-inline wtp::Response internal_command(wtp::JobService &service,std::string operation,
-    wtp::RequestBody body={},std::string principal="test",std::string session=std::string(32,'1'),
+inline execution::Response internal_command(execution::JobService &service,std::string operation,
+    execution::RequestBody body={},std::string principal="test",std::string session=std::string(32,'1'),
     std::string_view payload={}) {
     static std::atomic<std::uint64_t> sequence{0};
     const auto next=++sequence;REQUIRE(next);
     std::string id(32,'0');
     for(unsigned i=0;i<16;++i)id[31-i]="0123456789abcdef"[(next>>(i*4))&15];
-    wtp::Request request;request.principal=std::move(principal);request.session_id=std::move(session);
+    execution::Request request;request.principal=std::move(principal);request.session_id=std::move(session);
     request.request_id=id;request.operation=std::move(operation);request.body=std::move(body);
     const std::string digest=std::string(payload)+request.operation+id;
-    request.payload_digest=wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(digest.data()),digest.size()));
+    request.payload_digest=execution::sha256(std::span(reinterpret_cast<const std::uint8_t*>(digest.data()),digest.size()));
     return service.handle_internal(std::move(request));
 }
-inline wtp::Response internal_message(wtp::JobService &service,const std::string &body,
+inline execution::Response internal_message(execution::JobService &service,const std::string &body,
     std::string principal="cert",std::string session=std::string(32,'a')) {
-    const auto value=wtp::json::parse(body);
+    const auto value=execution::json::parse(body);
     const auto message=value?encoding::decode_message(*value):std::nullopt;
-    if(!message){wtp::Response result;result.error=wtp::ErrorCode::InvalidMessage;return result;}
+    if(!message){execution::Response result;result.error=execution::ErrorCode::InvalidMessage;return result;}
     auto compiled=encoding::compile_message(*message,service.config().max_events,service.config().max_job_duration_ns);
-    if(!compiled.job){wtp::Response result;result.error=wtp::ErrorCode::InvalidMessage;return result;}
+    if(!compiled.job){execution::Response result;result.error=execution::ErrorCode::InvalidMessage;return result;}
     return internal_command(service,"LOAD",std::move(*compiled.job),std::move(principal),std::move(session),body);
 }
 // Current control request producer for API behavioral tests. The independent
@@ -47,12 +47,12 @@ inline wtp::Response internal_message(wtp::JobService &service,const std::string
 inline network::HttpRequest control_request(network::HttpRequest request) {
     if (request.method != "GET" &&
         (request.path.starts_with("/api/control/v1/") || request.path == "/api/usb/v1/wifi")) {
-        const auto root = wtp::json::parse(request.body_view());
+        const auto root = execution::json::parse(request.body_view());
         if (root && root->type() == '{' && !root->get("contract")) {
             std::string body(request.body_view());
             const auto position = root->raw.offset() - request.body_view().offset() + 1;
             body.insert(position, "\"contract\":\"Wsprry-Control/1\"" +
-                                      std::string(wtp::json::fields(*root, {}) ? "" : ","));
+                                      std::string(execution::json::fields(*root, {}) ? "" : ","));
             request.body = std::move(body);
             request.buffered_body.reset();
             request.selected_body.reset();
@@ -65,7 +65,7 @@ inline network::HttpRequest control_request(network::HttpRequest request) {
 // This is a test producer, not a protocol adapter or runtime fallback.
 inline std::string configuration_update(std::string config,
                                         std::string boot = std::string(31, '0') + '1') {
-    if (const auto root = wtp::json::parse(config); root && root->get("version")) {
+    if (const auto root = execution::json::parse(config); root && root->get("version")) {
         const auto at = config.find("\"version\"");
         const auto end = config.find(',', at);
         if (end != std::string::npos)
@@ -81,7 +81,7 @@ inline std::string configuration_update(std::string config,
     }
     return "{\"schema\":\"config-update\",\"target\":{\"scope\":\"member\",\"device_id\":"
            "\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"boot_id\":" +
-           wtp::json::quote(boot) + "},\"mode\":\"merge\",\"config\":" + config + "}";
+           execution::json::quote(boot) + "},\"mode\":\"merge\",\"config\":" + config + "}";
 }
 struct Flash : standalone::Flash {
     std::array<std::uint8_t, 16384> bytes{};
@@ -108,17 +108,17 @@ struct Flash : standalone::Flash {
         return true;
     }
 };
-struct Clock : wtp::Clock {
-    const wtp::Clock* selected = nullptr;
+struct Clock : execution::Clock {
+    const execution::Clock* selected = nullptr;
     std::uint64_t now = 1'000'000'000, utc = 1'800'000'000'000'000'000ULL, uncertainty = 1000;
-    wtp::ClockSnapshot snapshot() const override {
+    execution::ClockSnapshot snapshot() const override {
         if (selected)
             return selected->snapshot();
-        return {wtp::ClockState::Synchronized, utc + now, now, uncertainty, 0,
-                wtp::LeapState::Normal,        {}};
+        return {execution::ClockState::Synchronized, utc + now, now, uncertainty, 0,
+                execution::LeapState::Normal,        {}};
     }
 };
-struct Identity : wtp::IdentitySource {
+struct Identity : execution::IdentitySource {
     unsigned boot = 0;
     explicit Identity(unsigned initial = 0) : boot(initial) {}
     std::string new_boot_id() override {
@@ -163,18 +163,18 @@ struct Fixture {
     Clock clock;
     standalone::DryRunEngine engine;
     Identity identities;
-    static wtp::ServiceConfig physical_policy() {
-        wtp::ServiceConfig config;
+    static execution::ServiceConfig physical_policy() {
+        execution::ServiceConfig config;
         config.capability_engine = "pio-dma-simulated-worker";
         return config;
     }
-    wtp::JobService service{clock, engine, identities, physical_policy()};
+    execution::JobService service{clock, engine, identities, physical_policy()};
     standalone::Scheduler scheduler{store, service};
     Network network;
     network::BrowserApi api;
     Fixture(unsigned boot = 0, std::string device = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            wtp::RfEngine* observer = nullptr,
-            wtp::ServiceConfig policy = physical_policy())
+            execution::RfEngine* observer = nullptr,
+            execution::ServiceConfig policy = physical_policy())
         : identities(boot),
           service(clock, observer ? *observer : engine, identities, policy),
           api(service, store, scheduler, network, device, "test-firmware") {

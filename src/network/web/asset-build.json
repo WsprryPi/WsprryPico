@@ -8,12 +8,12 @@
       "inputs": {
         "locked-controls.js": "17d657eb75f51f840f320fefd8cc6c7f98ee2ca9fb36d42b741b7b05ad091320",
         "submission.js": "aa43e47fe56d85ab10164e90e2a8f9c95ffa18e5c22fb59fea407fb313d526fd",
-        "control-contract.js": "32083bf484cf47f926f4e3937ed2688be7c0bd42b5b6576ac5cb0bb7b245051b",
+        "control-contract.js": "9baf8f4c5b694de8c578105734e6f2c7c72a680300ec8f0ea708d21383b7d4e6",
         "si5351.js": "b9a7cb6328bde5efb6fc3da0adec4747a39ff2ddf9a5ba7a0f059c423460e308",
         "gps.js": "1d9a53e7e89aa6e12da1c73c65229998d9f10bf2a290185e258bf7db2bc5ad29",
         "gray-line.js": "42c8a8a58959c96aeaa2f7cbf5beb23dd437e270f99c1d60f13aade7daa49c1b",
         "udp-logging.js": "c75a07a806f16007424d530f8983beaff6a77d14dfbe440cdd159b1f28ceae0b",
-        "operations.js": "fbb07d7139a004f4e305a80834ca7146725de08bdb10bd648b1e3984549a6ff3",
+        "operations.js": "419767061dcecca927b08b4fadc39e0ed97594c04a159cd1302dc1d517ae7313",
         "standalone-frequency.js": "690df1c89b02c8075f149b1d48644dee0c2fb8f87d923303822bc804766c1c7e",
         "rf-calibration.js": "239586cc9a5703a9f6f8bf0b0f1a351565d718d3d6ca8e3ed2d8d08e4e6235db",
         "amplifier-enable.js": "40d804e65e7f9a0889d2188e5139880c72a65914c9153c1ee11cf6869ba37e08",
@@ -24,10 +24,10 @@
         "saved-progress.js": "dc07bb447d3e3f1c75d5c54eea0b9088f91bbf154a37be66611dc4994d2ace4c",
         "utc-datetime.js": "0083cffdc69bd33663ac57fda397537583cf5b853f88e789a3620cb5d9dd759c",
         "message-schedule.js": "eee46ee321424f4d7834b9ef785bafd1bdbf89800d83904bb4880fc9edfb85bf",
-        "app.js": "6c55a8522641211c551808b4a74705f3c99439e7b3994f2c8cf890c28f9be565"
+        "app.js": "d010a5ff307bfb963e37312fdffcb01e16cd86e88c9cbe4a3bfd39cf12217819"
       },
-      "sha256": "60a11d16fb59b01a9ac61d9248f8ba6acc3ec318cd6ec017a7c2d58340e30678",
-      "bytes": 371344
+      "sha256": "8cc5b582aeeb2dfbc3177b7291d8200d8ebb484d8019da2b784e9bf3686b1085",
+      "bytes": 370728
     },
     "config-validation.min.js": {
       "inputs": {

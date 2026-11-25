@@ -50,7 +50,7 @@ struct ControllerTimeStatus {
     std::uint64_t age_ns = 0;
     std::uint64_t uncertainty_ns = 0;
     bool disagreement = false;
-    wtp::ClockState state = wtp::ClockState::Unsynchronized;
+    execution::ClockState state = execution::ClockState::Unsynchronized;
 };
 
 class ControllerTimeArbiter final : public ObservationSink {
@@ -72,15 +72,15 @@ class ControllerTimeArbiter final : public ObservationSink {
                               std::uint64_t utc_ns, bool browser = false);
     bool seed_browser_hint(std::uint64_t utc_ms, std::uint64_t challenge_age_ns);
     bool observe(ObservationSource source, std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
-                 std::uint64_t uncertainty_ns, wtp::LeapState leap,
+                 std::uint64_t uncertainty_ns, execution::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns = {},
                  std::string_view principal = {}) override;
     bool observe_rate(std::uint64_t utc, std::uint64_t raw, std::uint64_t uncertainty,
                       std::int32_t rate, std::uint32_t rate_uncertainty,
                       std::uint64_t generation) override;
-    bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+    bool observe_ntp_model(const RateObservation& source, const execution::ClockSnapshot& model,
                            std::uint32_t max_clock_error_ppb) override;
-    bool observe_reference_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+    bool observe_reference_model(const RateObservation& source, const execution::ClockSnapshot& model,
                                  std::uint32_t max_clock_error_ppb) override;
     bool observe_frequency_reference(const LocalFrequencyReference&, std::uint64_t now) override;
     void retire_frequency_reference(std::uint64_t now, bool policy_removed) override;
@@ -90,7 +90,7 @@ class ControllerTimeArbiter final : public ObservationSink {
     ControllerTimeStatus status() const;
 
   private:
-    bool import_model(ObservationSource kind, const RateObservation&, const wtp::ClockSnapshot&,
+    bool import_model(ObservationSource kind, const RateObservation&, const execution::ClockSnapshot&,
                       std::uint32_t max_clock_error_ppb);
     struct Observation {
         ObservationSource source = ObservationSource::Sntp;
@@ -114,7 +114,7 @@ class ControllerTimeArbiter final : public ObservationSink {
     };
 
     bool observe_model(ObservationSource source, std::uint64_t utc, std::uint64_t raw,
-                       std::uint64_t uncertainty, wtp::LeapState leap,
+                       std::uint64_t uncertainty, execution::LeapState leap,
                        std::optional<std::uint64_t> transition, std::string_view principal,
                        std::int32_t rate = 0, std::uint32_t rate_uncertainty = 0,
                        std::uint64_t generation = 0);

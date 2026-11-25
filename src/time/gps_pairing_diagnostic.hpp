@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 #pragma once
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <array>
 #include <cstdint>
@@ -39,7 +39,7 @@ struct PairingDiagnostic {
 static_assert(sizeof(PairingDiagnostic) == 64);
 inline std::optional<PairingDiagnostic> pairing_diagnostic(std::string_view status,
                                                            std::uint64_t now) {
-    namespace json = wtp::json;
+    namespace json = execution::json;
     const auto doc = json::parse(status);
     if (!doc || !json::fields(*doc, {"serial_present",
                                      "pps_present",

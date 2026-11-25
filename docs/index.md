@@ -1,8 +1,8 @@
 # WsprryPico
 
-WsprryPico turns a **Raspberry Pi Pico 2 W** into a radio beacon. It can run **standalone**, using settings and schedules saved on the Pico, or accept transmissions from **WsprryPi**, a Raspberry Pi controller.
+WsprryPico turns a **Raspberry Pi Pico 2 W** into a radio beacon. The Pico runs its own saved schedules. You can manage its settings and schedules in the Pico's browser controls or from **WsprryPi** on a Raspberry Pi.
 
-A **job** is one complete, finite transmission, including any message repeats and gaps. A **schedule** starts WSPR jobs automatically at selected times. The Pico runs accepted jobs locally, so their timing does not depend on continuous USB or Wi-Fi delivery.
+A **job** is one complete, finite transmission, including any message repeats and gaps. A **schedule** starts WSPR or Morse jobs automatically at selected times. The Pico runs and times accepted jobs locally.
 
 | Transmission | What it sends |
 | --- | --- |
@@ -10,7 +10,7 @@ A **job** is one complete, finite transmission, including any message repeats an
 | QRSS | Slow Morse code, with the radio signal switched on for dots and dashes |
 | FSKCW | Slow Morse code, with the signal shifted to a lower frequency between dots and dashes |
 | DFCW | Slow Morse code, using different frequencies for dots and dashes of equal length |
-| Finite test tone | A steady signal for a specified duration, submitted by a controller or a prepared job file |
+| Finite test tone | A steady signal for a specified duration, requested by an [authenticated measurement client](operate.md#conducted-test-tones-from-a-local-client) |
 
 For a first standalone setup, follow these pages in order:
 
@@ -18,13 +18,13 @@ For a first standalone setup, follow these pages in order:
 2. [Install firmware](install.md): load the Pico's operating program over USB.
 3. [Connect](connect.md): join the setup Wi-Fi, save your home network, and open the control page.
 4. [Configure your station](configure.md): enter station details and a transmit frequency, then review the schedule.
-5. [Your first WSPR transmission](operate.md#your-first-wspr-transmission): save and apply the schedule, observe its first transmission, and turn it off after the trial. Use [Operate](operate.md) for individual message jobs.
+5. [Your first WSPR transmission](operate.md#your-first-wspr-transmission): save and apply the schedule, observe its first transmission, and turn it off after the trial. Use [Operate](operate.md) to set up a Morse schedule.
 
-Already configured? Go to [Operate](operate.md).
+Already configured? Go to [Operate](operate.md). This manual follows development firmware. For an exact published image and its qualification scope, see the [release notes](reference/releases.md).
 
-For a WsprryPi-controlled output, start with [Add a WsprryPico in the WsprryPi manual](https://wsprry-pi.readthedocs.io/en/devel/Install/pico.html). It covers Pi connections, the **Fleet** list of transmitters, schedules run by the Pi, and Pi-managed firmware updates. This manual covers the Pico's own setup, browser controls, standalone operation, output limits, and recovery. [Use with WsprryPi](wsprrypi.md) explains the handoff.
+To manage the Pico from a Raspberry Pi, see [Use with WsprryPi](wsprrypi.md) for Fleet settings, device-owned schedules, and USB maintenance.
 
-**RF** means radio-frequency output. WsprryPico generates it on a **GPIO** (general-purpose input/output) pin. That output needs suitable filtering and a suitable load before use on air. Check [Output and band limits](reference/output.md) before choosing a frequency, amplifier, or antenna connection.
+**RF** means radio-frequency output. WsprryPico generates it through a **GPIO** (general-purpose input/output) pin or a supported **Si5351** board. Use suitable filtering and a suitable load. Check [Output and band limits](reference/output.md) before choosing a frequency, amplifier, or antenna connection.
 
 ```{toctree}
 :maxdepth: 2

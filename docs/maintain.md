@@ -9,7 +9,7 @@ The **Continue at … (sign in again)** link opens **Station Control** at the to
 
 A **hostname** is the Pico's network name, such as `pico-a.local`. Choose a different name for each Pico on the same network. Changing this name does not change the permanent device ID.
 
-Disable the Pico's standalone schedule and resolve any pending, owned, or active job before editing. On a page with saved progress, save and apply the schedule change, then confirm it is disabled. Turning off WsprryPi transmission alone does not disable the Pico's schedule.
+Disable both saved schedules and confirm inactive, unowned output before editing. If you changed a schedule in the browser, save and apply it, then confirm the disabled state.
 
 1. In **Wi-Fi/Host → Device hostname**, read **Active** and **Saved**. The editable field contains the name active in this boot; a saved rename remains pending until restart. Enter the **Hostname**, such as `pico-a`: 1–63 ASCII letters, digits, or hyphens, starting and ending with a letter or digit. Dots, spaces, and underscores are refused. The page adds `.local` automatically and saves letters in lowercase.
 2. Choose **Save hostname**. Wait for confirmation. **Active** belongs to this boot; **Saved** belongs to the next boot. Saving does not restart or immediately change the address. Sign in again if requested, then select **Refresh** to confirm the saved result.

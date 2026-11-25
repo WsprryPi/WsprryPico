@@ -23,7 +23,7 @@
 #ifdef WSPRRY_PICO_STANDALONE_RF
 #include "pico/flash.h"
 #endif
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -333,7 +333,7 @@ std::string PicoNetwork::association() {
     }
     if (network::default_hostname(address).empty())
         return "{\"valid\":false,\"error\":\"invalid_bssid\"}";
-    return "{\"valid\":true,\"bssid\":" + wtp::json::quote(address) + "}";
+    return "{\"valid\":true,\"bssid\":" + execution::json::quote(address) + "}";
 }
 #endif
 bool PicoNetwork::initialize() {
@@ -838,8 +838,8 @@ std::string PicoNetwork::pool_status(std::uint64_t now) const {
             result += ',';
         const auto state = ntp_.status(peer.index, now);
         result += "{\"slot\":" + std::to_string(peer.index) +
-                  ",\"hostname\":" + wtp::json::quote(peer.hostname) + ",\"endpoint\":" +
-                  wtp::json::quote(
+                  ",\"hostname\":" + execution::json::quote(peer.hostname) + ",\"endpoint\":" +
+                  execution::json::quote(
                       server_literal_ || peer.lookup.ready() ? ipaddr_ntoa(&peer.address) : "") +
                   ",\"queries\":" + std::to_string(peer.queries) +
                   ",\"accepted\":" + std::to_string(peer.accepted) +
@@ -850,7 +850,7 @@ std::string PicoNetwork::pool_status(std::uint64_t now) const {
                   ",\"poll_seconds\":" + std::to_string(1U << state.poll) +
                   ",\"selected\":" + (state.selected ? "true" : "false") +
                   ",\"combined\":" + (state.combined ? "true" : "false") +
-                  ",\"reason\":" + wtp::json::quote(microchrony::name(state.reason)) + "}";
+                  ",\"reason\":" + execution::json::quote(microchrony::name(state.reason)) + "}";
     }
     return result + "]}";
 }
@@ -858,17 +858,17 @@ std::string PicoNetwork::operations_status() const {
     return "{\"enabled\":" + std::string(enabled_ ? "true" : "false") + ",\"link_status\":" +
            std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
                                        : -99) +
-           ",\"ipv4\":" + wtp::json::quote(ipv4()) +
-           ",\"configured_hostname\":" + wtp::json::quote(mdns_.hostname()) +
-           ",\"mdns_state\":" + wtp::json::quote(mdns_.state()) +
-           ",\"mdns_reason\":" + wtp::json::quote(mdns_.reason()) + "}";
+           ",\"ipv4\":" + execution::json::quote(ipv4()) +
+           ",\"configured_hostname\":" + execution::json::quote(mdns_.hostname()) +
+           ",\"mdns_state\":" + execution::json::quote(mdns_.state()) +
+           ",\"mdns_reason\":" + execution::json::quote(mdns_.reason()) + "}";
 }
 std::string PicoNetwork::status() const {
     const auto* softap = &cyw43_state.netif[CYW43_ITF_AP];
     const auto softap_netif =
         std::string("{\"up\":") + (netif_is_up(softap) ? "true" : "false") +
         ",\"link_up\":" + (netif_is_link_up(softap) ? "true" : "false") +
-        ",\"ipv4\":" + wtp::json::quote(ip4addr_ntoa(netif_ip4_addr(softap))) + "}";
+        ",\"ipv4\":" + execution::json::quote(ip4addr_ntoa(netif_ip4_addr(softap))) + "}";
     const auto& selected = active_peer();
     const auto uncertainty = ntp_.last_uncertainty_ns();
     std::string tx_guard;
@@ -887,7 +887,7 @@ std::string PicoNetwork::status() const {
            ",\"enabled\":" + (enabled_ ? "true" : "false") + ",\"link_status\":" +
            std::to_string(initialized_ ? cyw43_tcpip_link_status(&cyw43_state, CYW43_ITF_STA)
                                        : -99) +
-           ",\"ipv4\":" + wtp::json::quote(ipv4()) + ",\"softap_netif\":" + softap_netif +
+           ",\"ipv4\":" + execution::json::quote(ipv4()) + ",\"softap_netif\":" + softap_netif +
            ",\"requested_enabled\":" +
            (pending_enabled_ ? (*pending_enabled_ ? "true" : "false") : "null") +
            ",\"withdrawal_pending\":" + (withdrawal_started_us_ ? "true" : "false") +
@@ -897,12 +897,12 @@ std::string PicoNetwork::status() const {
            ",\"consumer_web_ready\":" + (consumer_http_ && link_up() ? "true" : "false") +
            ",\"consumer_web_port\":80" +
            ",\"deployment_identity_matches\":" + (identity_matches_ ? "true" : "false") +
-           ",\"station_mac\":" + wtp::json::quote(station_mac_) +
-           ",\"stable_hostname\":" + wtp::json::quote(stable_hostname_) +
-           ",\"configured_hostname\":" + wtp::json::quote(mdns_.hostname()) +
-           ",\"advertised_hostname\":" + wtp::json::quote(mdns_.advertised()) +
-           ",\"mdns_state\":" + wtp::json::quote(mdns_.state()) +
-           ",\"mdns_reason\":" + wtp::json::quote(mdns_.reason()) +
+           ",\"station_mac\":" + execution::json::quote(station_mac_) +
+           ",\"stable_hostname\":" + execution::json::quote(stable_hostname_) +
+           ",\"configured_hostname\":" + execution::json::quote(mdns_.hostname()) +
+           ",\"advertised_hostname\":" + execution::json::quote(mdns_.advertised()) +
+           ",\"mdns_state\":" + execution::json::quote(mdns_.state()) +
+           ",\"mdns_reason\":" + execution::json::quote(mdns_.reason()) +
            ",\"mdns_registrations\":" + std::to_string(mdns_.registrations()) +
            ",\"mdns_conflicts\":" + std::to_string(mdns_.conflicts()) +
            ",\"mdns_failures\":" + std::to_string(mdns_.failures()) +
@@ -914,11 +914,11 @@ std::string PicoNetwork::status() const {
            ",\"packets\":{\"arp\":" + packet_stats(lwip_stats.etharp) +
            ",\"ipv4\":" + packet_stats(lwip_stats.ip) + ",\"tcp\":" + packet_stats(lwip_stats.tcp) +
            ",\"udp\":" + packet_stats(lwip_stats.udp) + "}" + ",\"memory\":" + network_memory() +
-           tx_guard + ",\"ntp_server\":" + wtp::json::quote(time_server_) + ",\"ntp_address\":" +
-           wtp::json::quote(
+           tx_guard + ",\"ntp_server\":" + execution::json::quote(time_server_) + ",\"ntp_address\":" +
+           execution::json::quote(
                server_literal_ || selected.lookup.ready() ? ipaddr_ntoa(&selected.address) : "") +
            ",\"ntp_resolution\":" +
-           wtp::json::quote(server_literal_             ? "literal"
+           execution::json::quote(server_literal_             ? "literal"
                             : selected.lookup.pending() ? "resolving"
                             : selected.lookup.ready()   ? "resolved"
                                                         : "unresolved") +

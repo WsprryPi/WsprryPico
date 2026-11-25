@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "rf/si5351_observation.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <cmath>
 
@@ -23,7 +23,7 @@ std::string observation_json(const Engine::Observation& o,
                              std::string_view error, std::uint64_t now,
                              std::string_view clock_reference_state,
                              std::uint64_t clock_reference_observed_raw_ns) {
-    const auto decimal = [](auto value) { return wtp::json::quote(std::to_string(value)); };
+    const auto decimal = [](auto value) { return execution::json::quote(std::to_string(value)); };
     std::string measured = "null";
     const bool fresh = measurement && reference_fresh(*measurement, measurement->policy, now,
                                                       measurement->plan_generation);
@@ -42,13 +42,13 @@ std::string observation_json(const Engine::Observation& o,
             ",\"local_rate_ppb\":" +
             (m.local_rate_ppb ? std::to_string(*m.local_rate_ppb) : "null") +
             ",\"reference_use\":" +
-            wtp::json::quote(m.policy.use == ReferenceUse::TrustedLocal ? "trusted_local"
+            execution::json::quote(m.policy.use == ReferenceUse::TrustedLocal ? "trusted_local"
                                                                         : "measurement_only") +
             ",\"age_ns\":" + decimal(now - m.observed_raw_ns) + "}";
     }
     return "{\"transmit\":" + state(o.transmit) + ",\"reference_output\":" + state(o.reference) +
            ",\"communication\":" +
-           wtp::json::quote(o.transmit == ClockOutputState::Unknown ||
+           execution::json::quote(o.transmit == ClockOutputState::Unknown ||
                                     o.reference == ClockOutputState::Unknown
                                 ? "unknown"
                                 : "register_control_verified") +
@@ -57,16 +57,16 @@ std::string observation_json(const Engine::Observation& o,
            ",\"enable_command_completed_ns\":" + decimal(o.enable_command_completed_ns) +
            ",\"disable_command_completed_ns\":" + decimal(o.disable_command_completed_ns) +
            ",\"reference_measurement\":" + measured +
-           ",\"clock_reference_state\":" + wtp::json::quote(clock_reference_state) +
+           ",\"clock_reference_state\":" + execution::json::quote(clock_reference_state) +
            ",\"clock_reference_observed_raw_ns\":" + decimal(clock_reference_observed_raw_ns) +
            ",\"clock_reference_age_ns\":" +
            decimal(clock_reference_observed_raw_ns && now >= clock_reference_observed_raw_ns
                        ? now - clock_reference_observed_raw_ns
                        : 0) +
            ",\"measurement_error\":" +
-           (measurement && !fresh ? wtp::json::quote("stale_or_invalid_measurement")
+           (measurement && !fresh ? execution::json::quote("stale_or_invalid_measurement")
             : error.empty()       ? "null"
-                                  : wtp::json::quote(error)) +
+                                  : execution::json::quote(error)) +
            "}";
 }
 } // namespace wsprrypico::rf::si5351

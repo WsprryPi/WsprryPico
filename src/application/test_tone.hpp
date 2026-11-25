@@ -20,14 +20,14 @@ struct TestToneRecord {
     std::string request_id, job_id, admission_revision, control_revision;
     TestToneProposal proposal;
     TestToneReview assessment;
-    wtp::PadObservation pad;
+    execution::PadObservation pad;
     std::optional<unsigned> rf_pin;
     std::optional<rf::si5351::Configuration> synthesis_configuration;
-    wtp::SynthesisObservation synthesis;
+    execution::SynthesisObservation synthesis;
     std::string execution_engine;
     bool matched_profile = false;
-    wtp::State state = wtp::State::Loaded;
-    wtp::ErrorCode error = wtp::ErrorCode::None;
+    execution::State state = execution::State::Loaded;
+    execution::ErrorCode error = execution::ErrorCode::None;
     std::uint64_t accepted_ns = 0, ended_ns = 0, sequence = 0;
     std::optional<std::uint64_t> launch_ns;
     bool terminal = false, output_inactive_confirmed = false, recovery_required = false;
@@ -36,7 +36,7 @@ class TestTone {
   public:
     static constexpr std::size_t terminal_capacity = 8;
     static constexpr std::uint64_t retention_ns = 3'600'000'000'000ULL;
-    TestTone(wtp::JobService&, standalone::Store&, standalone::Scheduler&);
+    TestTone(execution::JobService&, standalone::Store&, standalone::Scheduler&);
     ~TestTone();
     TestTone(const TestTone&) = delete;
     TestTone& operator=(const TestTone&) = delete;
@@ -53,7 +53,7 @@ class TestTone {
     struct Result {
         TestToneRecord* record = nullptr;
         std::string_view error;
-        wtp::ErrorCode native_error = wtp::ErrorCode::None;
+        execution::ErrorCode native_error = execution::ErrorCode::None;
     };
     Result start(const TestToneAuthority&, std::string_view request, const TestToneProposal&,
                  std::string_view match, std::string_view current_revision, bool pending);
@@ -65,12 +65,12 @@ class TestTone {
   private:
     TestToneContext context(bool mutation_pending) const;
     unsigned boot_drive() const;
-    static void terminal(const wtp::TerminalRecord&, void*);
-    wtp::Response command(std::string_view, wtp::RequestBody = {});
-    void settle(TestToneRecord&, wtp::State, wtp::ErrorCode, bool inactive, std::uint64_t);
+    static void terminal(const execution::TerminalRecord&, void*);
+    execution::Response command(std::string_view, execution::RequestBody = {});
+    void settle(TestToneRecord&, execution::State, execution::ErrorCode, bool inactive, std::uint64_t);
     void prune();
     TestToneRecord* find(std::string_view, bool job);
-    wtp::JobService& service_;
+    execution::JobService& service_;
     standalone::Store& store_;
     standalone::Scheduler& scheduler_;
     const standalone::FrequencyPolicyEngine* policy_ = nullptr;

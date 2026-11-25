@@ -12,8 +12,8 @@ struct MessageSchedule {
     std::uint32_t period_s = 0;
     encoding::MorseMessage message;
 };
-inline std::optional<MessageSchedule> parse_message_schedule(wtp::json::Value root) {
-    using namespace wtp::json;
+inline std::optional<MessageSchedule> parse_message_schedule(execution::json::Value root) {
+    using namespace execution::json;
     if (!fields(root, {"enabled", "first_start_utc_ns", "period_s", "expires_utc_s", "message"}))
         return {};
     MessageSchedule s;
@@ -60,13 +60,13 @@ inline std::optional<MessageSchedule> parse_message_schedule(wtp::json::Value ro
 }
 inline std::string serialize_message_schedule(const MessageSchedule& s) {
     return "{\"enabled\":" + std::string(s.enabled ? "true" : "false") +
-           ",\"first_start_utc_ns\":" + wtp::json::quote(std::to_string(s.first_start_utc_ns)) +
+           ",\"first_start_utc_ns\":" + execution::json::quote(std::to_string(s.first_start_utc_ns)) +
            ",\"period_s\":" + std::to_string(s.period_s) +
            ",\"expires_utc_s\":" + std::to_string(s.expires_utc_s) +
            ",\"message\":" + encoding::serialize_message(s.message) + "}";
 }
 // UTC period/phase ceiling and consumed-start rule adapted from WsprryPi
-// devel 5bc24e893646, src/wtp_integration/fleet_schedule.cpp (MIT).
+// WsprryPi devel 5bc24e893646, fleet recurrence grid (MIT).
 inline std::optional<std::uint64_t> next_message_slot(const MessageSchedule& s,
                                                       std::uint64_t earliest, std::uint64_t last) {
     constexpr auto maximum = std::numeric_limits<std::uint64_t>::max();

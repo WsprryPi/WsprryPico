@@ -1,6 +1,6 @@
 #include "network/bootstrap_codec.hpp"
 
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 namespace wsprrypico::network {
 namespace {
@@ -85,6 +85,6 @@ bool bootstrap_unb64url(std::string_view text, std::vector<std::uint8_t>& out, s
     return true;
 }
 std::string bootstrap_digest(std::span<const std::uint8_t> bytes) {
-    return bootstrap_hex(wtp::sha256(bytes));
+    return bootstrap_hex(execution::sha256(bytes));
 }
 } // namespace wsprrypico::network

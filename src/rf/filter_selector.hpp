@@ -30,8 +30,8 @@ class FilterSelector {
     FilterSelector(const hardware::FilterSettings& settings, FilterOutputs* outputs)
         : settings_(settings), outputs_(outputs) {}
     bool initialize();
-    bool prepare(const wtp::Job&, const Plan&);
-    bool prepare_frequencies(std::span<const wtp::FrequencyAdjustment>);
+    bool prepare(const execution::Job&, const Plan&);
+    bool prepare_frequencies(std::span<const execution::FrequencyAdjustment>);
     bool deactivate();
     bool activate();
     bool verify() const;

@@ -4,7 +4,7 @@
 #include "provisioning/consumer_claim_commit.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "time/controller_time.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <string>
 
@@ -15,7 +15,7 @@ namespace wsprrypico::provisioning {
 class PicoConsumerClaimPlatform final : public ConsumerClaimCommitPlatform {
   public:
     PicoConsumerClaimPlatform(const AccessStore& access, standalone::PicoNetwork& network,
-                              wtp::JobService& service, time::ControllerTimeArbiter& arbiter,
+                              execution::JobService& service, time::ControllerTimeArbiter& arbiter,
                               std::string hostname)
         : access_(access), network_(network), service_(service), arbiter_(arbiter),
           hostname_(std::move(hostname)) {}
@@ -42,7 +42,7 @@ class PicoConsumerClaimPlatform final : public ConsumerClaimCommitPlatform {
   private:
     const AccessStore& access_;
     standalone::PicoNetwork& network_;
-    wtp::JobService& service_;
+    execution::JobService& service_;
     time::ControllerTimeArbiter& arbiter_;
     std::string hostname_;
 };

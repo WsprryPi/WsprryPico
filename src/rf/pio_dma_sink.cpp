@@ -25,12 +25,12 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
     // Also clean no-open and partially-open paths. Never short-circuit enable
     // cleanup behind a failed open/halt or an unconfirmed RF state.
     if (!halt_output(deadline_ns) || output_active()) {
-        state_ = wtp::EngineState::Failed;
+        state_ = execution::EngineState::Failed;
         return false;
     }
     if (indicator_)
         indicator_->inactive();
-    state_ = wtp::EngineState::Idle;
+    state_ = execution::EngineState::Idle;
     queue_ = {};
     head_ = queued_ = 0;
     tail_ = tail_submitted_ = false;
@@ -48,10 +48,10 @@ bool PioDmaSink::stop(std::uint64_t deadline_ns) {
 bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
                         std::span<const std::uint32_t> words, std::uint64_t samples) {
     Guard lock(hw_);
-    if (state_ == wtp::EngineState::Idle)
+    if (state_ == execution::EngineState::Idle)
         failure_ = "";
-    if (state_ != wtp::EngineState::Idle && state_ != wtp::EngineState::Armed &&
-        state_ != wtp::EngineState::Running) {
+    if (state_ != execution::EngineState::Idle && state_ != execution::EngineState::Armed &&
+        state_ != execution::EngineState::Running) {
         if (!*failure_)
             failure_ = "state_changed";
         return false;
@@ -82,7 +82,7 @@ bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
     ++queued_;
     ++submitted_;
     accepted_ += samples;
-    if (state_ != wtp::EngineState::Idle) {
+    if (state_ != execution::EngineState::Idle) {
         if (!hw_.dma(words.data(), static_cast<std::uint32_t>(words.size()), true, epoch,
                      sequence)) {
             failure_ = "dma_rejected";
@@ -110,7 +110,7 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
     Guard lock(hw_);
     const bool selecting = filters_ && filters_->required();
     const auto preparation = amplifier_lead_ns() + (selecting ? filters_->preparation_ns() : 0);
-    if (state_ != wtp::EngineState::Idle || !opened_ || epoch != epoch_ || queued_ == 0 ||
+    if (state_ != execution::EngineState::Idle || !opened_ || epoch != epoch_ || queued_ == 0 ||
         total_samples == 0 || total_samples > max_duration_ns / 1000 * (sample_rate / 1000000) ||
         accepted_ > total_samples ||
         (accepted_ < total_samples && accepted_ % block_samples != 0) || start_ns % 1000 != 0 ||
@@ -138,7 +138,7 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
     }
     total_ = total_samples;
     guard_ = guard;
-    state_ = wtp::EngineState::Armed;
+    state_ = execution::EngineState::Armed;
     for (std::size_t i = 0; i < queued_; ++i) {
         const auto& block = queue_[(head_ + i) % 2];
         if (!hw_.dma(block.words.data(), static_cast<std::uint32_t>(block.words.size()), true,
@@ -161,7 +161,7 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
 void PioDmaSink::fault(const char* reason) {
     if (!*failure_)
         failure_ = reason;
-    state_ = wtp::EngineState::Failed;
+    state_ = execution::EngineState::Failed;
     (void)halt_output(hw_.now_ns());
 }
 
@@ -172,7 +172,7 @@ void PioDmaSink::dispatch(void* context, DriverEvent event) {
 void PioDmaSink::event(DriverEvent event) {
     Guard lock(hw_);
     if (event.epoch != epoch_ ||
-        (state_ != wtp::EngineState::Armed && state_ != wtp::EngineState::Running)) {
+        (state_ != execution::EngineState::Armed && state_ != execution::EngineState::Running)) {
         return;
     }
     if (event.kind == DriverEventKind::Alarm) {
@@ -180,7 +180,7 @@ void PioDmaSink::event(DriverEvent event) {
             finish_tail();
             return;
         }
-        if (state_ != wtp::EngineState::Armed) {
+        if (state_ != execution::EngineState::Armed) {
             return;
         }
         const auto deadline = guard_.deadline_ns ? guard_.deadline_ns : start_ + 1;
@@ -188,7 +188,7 @@ void PioDmaSink::event(DriverEvent event) {
         if (!target.admissible || target.monotonic_ns >= deadline || hw_.inhibited()) {
             failure_ = "launch_clock_guard_rejected";
             state_ =
-                halt_output(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                halt_output(hw_.now_ns()) ? execution::EngineState::Missed : execution::EngineState::Failed;
             return;
         }
         start_ = target.monotonic_ns;
@@ -258,7 +258,7 @@ void PioDmaSink::event(DriverEvent event) {
             if (!enable_ns_) {
                 if (start_ < lead || now > start_ - lead) {
                     failure_ = "insufficient_amplifier_lead";
-                    state_ = halt_output(now) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                    state_ = halt_output(now) ? execution::EngineState::Missed : execution::EngineState::Failed;
                     return;
                 }
                 const auto activation = start_ - lead;
@@ -286,7 +286,7 @@ void PioDmaSink::event(DriverEvent event) {
             }
             if (start_ < *enable_ns_ || start_ - *enable_ns_ < lead) {
                 failure_ = "shortened_amplifier_lead";
-                state_ = halt_output(now) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                state_ = halt_output(now) ? execution::EngineState::Missed : execution::EngineState::Failed;
                 return;
             }
         }
@@ -318,8 +318,8 @@ void PioDmaSink::event(DriverEvent event) {
                 }
                 if (!queued) {
                     failure_ = "launch_retry_alarm_rejected";
-                    state_ = halt_output(hw_.now_ns()) ? wtp::EngineState::Missed
-                                                       : wtp::EngineState::Failed;
+                    state_ = halt_output(hw_.now_ns()) ? execution::EngineState::Missed
+                                                       : execution::EngineState::Failed;
                 }
                 return;
             }
@@ -338,7 +338,7 @@ void PioDmaSink::event(DriverEvent event) {
         if (launch == LaunchResult::Rejected) {
             failure_ = "launch_driver_rejected";
             state_ =
-                halt_output(hw_.now_ns()) ? wtp::EngineState::Missed : wtp::EngineState::Failed;
+                halt_output(hw_.now_ns()) ? execution::EngineState::Missed : execution::EngineState::Failed;
         } else if (launch == LaunchResult::Launched) {
             const auto observed = hw_.launch_observed_ns();
             if (observed < start_ || observed >= deadline) {
@@ -348,7 +348,7 @@ void PioDmaSink::event(DriverEvent event) {
             launch_ns_ = observed;
             observation_.rf_start_ns = observed;
             start_ = *launch_ns_;
-            state_ = wtp::EngineState::Running;
+            state_ = execution::EngineState::Running;
         }
         return;
     }
@@ -363,14 +363,14 @@ void PioDmaSink::event(DriverEvent event) {
         // Ten zero words have entered an eight-word FIFO: every data word,
         // including the OSR word, has drained and a zero word has been emitted. No
         // frequency-bearing tail remains.
-        if (state_ != wtp::EngineState::Running || dma_samples_ != total_) {
+        if (state_ != execution::EngineState::Running || dma_samples_ != total_) {
             fault("tail_completion");
             return;
         }
         complete_rf();
         return;
     }
-    if (queued_ == 0 || (state_ == wtp::EngineState::Running && hw_.stalled())) {
+    if (queued_ == 0 || (state_ == execution::EngineState::Running && hw_.stalled())) {
         fault(queued_ == 0 ? "empty_dma_queue" : "pio_txstall");
         return;
     }
@@ -404,7 +404,7 @@ void PioDmaSink::complete_rf() {
     observation_.normal_rf_completion = true;
     if (!dwell) {
         if (halt_output(now))
-            state_ = wtp::EngineState::Complete;
+            state_ = execution::EngineState::Complete;
         else
             fault("tail_cleanup_failed");
         return;
@@ -420,7 +420,7 @@ void PioDmaSink::complete_rf() {
 
 void PioDmaSink::finish_tail() {
     const auto now = hw_.now_ns();
-    if (!tail_deadline_ns_ || state_ != wtp::EngineState::Running)
+    if (!tail_deadline_ns_ || state_ != execution::EngineState::Running)
         return;
     if (hw_.inhibited() || hw_.active()) {
         fault("tail_inhibited_or_rf_active");
@@ -432,7 +432,7 @@ void PioDmaSink::finish_tail() {
         return;
     }
     if (halt_output(now))
-        state_ = wtp::EngineState::Complete;
+        state_ = execution::EngineState::Complete;
     else
         fault("tail_cleanup_failed");
 }
@@ -440,7 +440,7 @@ void PioDmaSink::finish_tail() {
 SinkReport PioDmaSink::poll(std::uint64_t) {
     Guard lock(hw_);
     const auto now_ns = hw_.now_ns();
-    if (state_ == wtp::EngineState::Running && !tail_ && hw_.stalled()) {
+    if (state_ == execution::EngineState::Running && !tail_ && hw_.stalled()) {
         fault("pio_txstall");
     }
     // The zero-tail descriptor chains directly to the hardware stop channel.
@@ -449,23 +449,23 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
     // executed. That is authoritative completion even if tail DMA IRQ entry is
     // delayed; requiring the software IRQ first creates a false DEVICE_FAULT
     // window after output is already safely low.
-    if (state_ == wtp::EngineState::Running && tail_ && !hw_.active()) {
+    if (state_ == execution::EngineState::Running && tail_ && !hw_.active()) {
         complete_rf();
         if (tail_deadline_ns_ && (now_ns >= *tail_deadline_ns_ || hw_.inhibited()))
             finish_tail();
     }
     // A failed stop may later become verifiably inactive. Pending activation
     // is the exception: Armed retains its request while waiting for the LED.
-    if (indicator_ && state_ != wtp::EngineState::Armed && !hw_.active())
+    if (indicator_ && state_ != execution::EngineState::Armed && !hw_.active())
         indicator_->inactive();
-    if (state_ == wtp::EngineState::Complete) {
+    if (state_ == execution::EngineState::Complete) {
         return {state_,     epoch_,
                 submitted_, total_,
                 now_ns,     output_active(),
-                launch_ns_, wtp::ChainPhase::Inactive,
+                launch_ns_, execution::ChainPhase::Inactive,
                 {},         filters_ ? filters_->observation() : -1};
     }
-    if (tail_deadline_ns_ && state_ == wtp::EngineState::Running) {
+    if (tail_deadline_ns_ && state_ == execution::EngineState::Running) {
         return {state_,
                 epoch_,
                 submitted_,
@@ -473,11 +473,11 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
                 now_ns,
                 output_active(),
                 launch_ns_,
-                wtp::ChainPhase::Tail,
+                execution::ChainPhase::Tail,
                 tail_deadline_ns_,
                 filters_ ? filters_->observation() : -1};
     }
-    if (state_ != wtp::EngineState::Running) {
+    if (state_ != execution::EngineState::Running) {
         return {state_,
                 epoch_,
                 0,
@@ -485,12 +485,12 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
                 now_ns,
                 output_active(),
                 launch_ns_,
-                state_ == wtp::EngineState::Armed
-                    ? (enable_ns_                         ? wtp::ChainPhase::Lead
-                       : filters_ && filters_->required() ? wtp::ChainPhase::Selecting
-                                                          : wtp::ChainPhase::Waiting)
-                : state_ == wtp::EngineState::Failed ? wtp::ChainPhase::Fault
-                                                     : wtp::ChainPhase::Inactive,
+                state_ == execution::EngineState::Armed
+                    ? (enable_ns_                         ? execution::ChainPhase::Lead
+                       : filters_ && filters_->required() ? execution::ChainPhase::Selecting
+                                                          : execution::ChainPhase::Waiting)
+                : state_ == execution::EngineState::Failed ? execution::ChainPhase::Fault
+                                                     : execution::ChainPhase::Inactive,
                 {},
                 filters_ ? filters_->observation() : -1};
     }
@@ -505,7 +505,7 @@ SinkReport PioDmaSink::poll(std::uint64_t) {
             now_ns,
             output_active(),
             launch_ns_,
-            wtp::ChainPhase::Rf,
+            execution::ChainPhase::Rf,
             {},
             filters_ ? filters_->observation() : -1};
 }

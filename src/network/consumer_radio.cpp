@@ -7,9 +7,9 @@
 #include "network/public_read.hpp"
 #include "network/test_tone_query.hpp"
 #include "time/controller_time.hpp"
-#include "wtp/json.hpp"
-#include "wtp/memory_budget.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -19,7 +19,7 @@
 
 namespace wsprrypico::network {
 namespace {
-using wtp::json::Value;
+using execution::json::Value;
 bool elapsed(std::uint64_t now, std::uint64_t then, std::uint64_t limit) {
     return now < then || now - then >= limit;
 }
@@ -30,7 +30,7 @@ bool hex_field(const Value& root, std::string_view name, std::array<std::uint8_t
 }
 bool same_id(const Value& root, std::string_view name, std::string_view expected) {
     const auto value = root.get(name);
-    return value && wtp::json::identifier(*value) && value->string() == expected;
+    return value && execution::json::identifier(*value) && value->string() == expected;
 }
 bool printable(std::string_view value, std::size_t maximum) {
     return value.size() <= maximum && std::all_of(value.begin(), value.end(), [](unsigned char c) {
@@ -73,19 +73,19 @@ std::array<std::uint8_t, 32> consumer_recovery_context(std::span<const std::uint
     bytes.push_back(interface == ConsumerInterface::AccessPoint ? 1 : 2);
     bytes.push_back(static_cast<std::uint8_t>(authority.size()));
     bytes.insert(bytes.end(), authority.begin(), authority.end());
-    return wtp::sha256(bytes);
+    return execution::sha256(bytes);
 }
 std::array<std::uint8_t, 32> consumer_radio_digest(const ConsumerRadioBinding& binding) {
     const auto transcript = consumer_radio_transcript(binding);
     if (std::all_of(binding.recovery_context.begin(), binding.recovery_context.end(),
                     [](auto b) { return b == 0; }))
-        return wtp::sha256(transcript);
+        return execution::sha256(transcript);
     constexpr char domain[] = "WsprryPico/Consumer-Recovery/1";
     std::array<std::uint8_t, consumer_radio_transcript_bytes + sizeof(domain) + 32> bytes{};
     auto out = std::copy(transcript.begin(), transcript.end(), bytes.begin());
     out = std::copy_n(reinterpret_cast<const std::uint8_t*>(domain), sizeof(domain), out);
     std::copy(binding.recovery_context.begin(), binding.recovery_context.end(), out);
-    return wtp::sha256(bytes);
+    return execution::sha256(bytes);
 }
 std::array<std::uint8_t, 16> consumer_recovery_selector(const ConsumerRadioBinding& binding) {
     constexpr char domain[] = "WsprryPico/Consumer-Recovery/1/selector";
@@ -95,7 +95,7 @@ std::array<std::uint8_t, 16> consumer_recovery_selector(const ConsumerRadioBindi
     out = std::copy(binding.device.begin(), binding.device.end(), out);
     out = std::copy(binding.boot.begin(), binding.boot.end(), out);
     std::copy(binding.session.begin(), binding.session.end(), out);
-    const auto digest = wtp::sha256(bytes);
+    const auto digest = execution::sha256(bytes);
     std::array<std::uint8_t, 16> result{};
     std::copy_n(digest.begin(), result.size(), result.begin());
     return result;
@@ -109,7 +109,7 @@ consumer_radio_header(std::span<const std::uint8_t, 16> session, std::uint64_t s
         result[20 + i] = static_cast<std::uint8_t>(sequence >> (56 - i * 8));
     return result;
 }
-bool consumer_radio_header_matches(wtp::InputView packet, std::span<const std::uint8_t, 16> session,
+bool consumer_radio_header_matches(execution::InputView packet, std::span<const std::uint8_t, 16> session,
                                    std::uint64_t sequence) {
     if (packet.size() < consumer_radio_header_bytes + consumer_radio_tag_bytes ||
         packet.size() > max_http_body)
@@ -151,7 +151,7 @@ bool ConsumerRadioApi::available() const {
 std::array<std::uint8_t, 32> ConsumerRadioApi::password_digest() const {
     const auto* record = password_store_ ? password_store_->record() : nullptr;
     const std::string_view password = record ? std::string_view(record->radio_password) : "";
-    return wtp::sha256(
+    return execution::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(password.data()), password.size()));
 }
 
@@ -171,7 +171,7 @@ HttpResponse ConsumerRadioApi::password_resource(const HttpRequest& request) {
             return http_error(412, "revision_conflict");
         if (request.body_view().size() > 512)
             return http_error(400, "invalid_password");
-        const auto root = wtp::json::parse(request.body_view());
+        const auto root = execution::json::parse(request.body_view());
         if (!root || application::validate_envelope(*root, "pico-password", "password", device_,
                                                     boot_) != application::Envelope::Valid)
             return http_error(400, "invalid_password");
@@ -220,7 +220,7 @@ HttpResponse ConsumerRadioApi::field_resource(const HttpRequest& request, Sessio
             return http_error(428, "revision_required");
         if (request.header("if-match") != revision)
             return http_error(412, "revision_conflict");
-        const auto root = wtp::json::parse(request.body_view());
+        const auto root = execution::json::parse(request.body_view());
         if (!root ||
             application::validate_envelope(*root, "field-access", "enabled", device_, boot_) !=
                 application::Envelope::Valid ||
@@ -259,17 +259,17 @@ HttpResponse ConsumerRadioApi::time_resource(const HttpRequest& request, Session
     const auto logical = bootstrap_hex(session.binding.session);
     if (request.method == "POST") {
         const bool challenge = request.path == "/api/control/v1/consumer/time/challenge";
-        const auto root = wtp::json::parse(request.body_view());
+        const auto root = execution::json::parse(request.body_view());
         if (!root ||
             application::validate_envelope(
                 *root, challenge ? "browser-time-challenge" : "browser-time-sample",
                 challenge ? "nonce" : "sample", device_, boot_) != application::Envelope::Valid)
             return http_error(400, "invalid_browser_time");
         const auto payload = root->get(challenge ? "nonce" : "sample");
-        if (!challenge && !wtp::json::fields(*payload, {"nonce", "utc_ns"}))
+        if (!challenge && !execution::json::fields(*payload, {"nonce", "utc_ns"}))
             return http_error(400, "invalid_browser_time");
         const auto nonce = challenge ? payload : payload->get("nonce");
-        if (!nonce || !wtp::json::identifier(*nonce))
+        if (!nonce || !execution::json::identifier(*nonce))
             return http_error(400, "invalid_browser_time");
         if (challenge) {
             const auto result = time_->challenge(principal, logical, device_, nonce->string());
@@ -303,12 +303,12 @@ HttpResponse ConsumerRadioApi::time_resource(const HttpRequest& request, Session
                                                                                : "none";
     return {200,
             "{\"schema\":\"browser-time\",\"target\":" + application::target(device_, boot_) +
-                ",\"source\":" + wtp::json::quote(source) + ",\"clock_state\":" +
-                wtp::json::quote(status.state == wtp::ClockState::Unsynchronized ? "unsynchronized"
-                                 : status.state == wtp::ClockState::Holdover     ? "holdover"
+                ",\"source\":" + execution::json::quote(source) + ",\"clock_state\":" +
+                execution::json::quote(status.state == execution::ClockState::Unsynchronized ? "unsynchronized"
+                                 : status.state == execution::ClockState::Holdover     ? "holdover"
                                                                                  : "synchronized") +
-                ",\"age_ns\":" + wtp::json::quote(std::to_string(status.age_ns)) +
-                ",\"uncertainty_ns\":" + wtp::json::quote(std::to_string(status.uncertainty_ns)) +
+                ",\"age_ns\":" + execution::json::quote(std::to_string(status.age_ns)) +
+                ",\"uncertainty_ns\":" + execution::json::quote(std::to_string(status.uncertainty_ns)) +
                 ",\"disagreement\":" + (status.disagreement ? "true}" : "false}"),
             "application/json",
             {}};
@@ -419,7 +419,7 @@ void ConsumerRadioApi::close() {
         close(session);
     close(recovery_);
 }
-ConsumerRadioApi::Session* ConsumerRadioApi::select(wtp::InputView packet) {
+ConsumerRadioApi::Session* ConsumerRadioApi::select(execution::InputView packet) {
     if (packet.size() < consumer_radio_header_bytes + consumer_radio_tag_bytes ||
         packet.size() > max_http_body || packet.substr(0, 4) != "CR01")
         return nullptr;
@@ -457,14 +457,14 @@ HttpResponse ConsumerRadioApi::start(const HttpRequest& request, std::uint64_t n
         return http_error(429, "radio_login_rate_limited");
     if (request.body_view().size() > 512)
         return http_error(413, "radio_body_too_large");
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     std::uint64_t generation = 0;
     if (!root ||
-        !wtp::json::fields(
+        !execution::json::fields(
             *root, {"version", "device_id", "boot_id", "generation", "public_key", "nonce"}) ||
         !root->get("version") || root->get("version")->raw != "1" ||
         !same_id(*root, "device_id", device_) || !same_id(*root, "boot_id", boot_) ||
-        !root->get("generation") || !wtp::json::decimal(*root->get("generation"), generation) ||
+        !root->get("generation") || !execution::json::decimal(*root->get("generation"), generation) ||
         generation != store_.sequence())
         return http_error(400, "invalid_radio_identity");
     const auto key = root->get("public_key");
@@ -501,12 +501,12 @@ HttpResponse ConsumerRadioApi::start(const HttpRequest& request, std::uint64_t n
     session.state = State::Pending;
     session.started_ms = session.seen_ms = now_ms;
     return {200,
-            "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                ",\"boot_id\":" + wtp::json::quote(boot_) +
-                ",\"generation\":" + wtp::json::quote(std::to_string(generation)) +
-                ",\"session_id\":" + wtp::json::quote(bootstrap_hex(session.binding.session)) +
-                ",\"public_key\":" + wtp::json::quote(bootstrap_b64url(session.binding.pico_key)) +
-                ",\"challenge\":" + wtp::json::quote(bootstrap_hex(session.binding.challenge)) +
+            "{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+                ",\"boot_id\":" + execution::json::quote(boot_) +
+                ",\"generation\":" + execution::json::quote(std::to_string(generation)) +
+                ",\"session_id\":" + execution::json::quote(bootstrap_hex(session.binding.session)) +
+                ",\"public_key\":" + execution::json::quote(bootstrap_b64url(session.binding.pico_key)) +
+                ",\"challenge\":" + execution::json::quote(bootstrap_hex(session.binding.challenge)) +
                 ",\"login_ms\":30000}",
             "application/json",
             {}};
@@ -524,8 +524,8 @@ HttpResponse ConsumerRadioApi::finish(Session& session, const HttpRequest& reque
         close(session);
         return http_error(401, "radio_authentication_failed");
     }
-    const auto plain = "{\"authenticated\":true,\"device_id\":" + wtp::json::quote(device_) +
-                       ",\"boot_id\":" + wtp::json::quote(boot_) + "}";
+    const auto plain = "{\"authenticated\":true,\"device_id\":" + execution::json::quote(device_) +
+                       ",\"boot_id\":" + execution::json::quote(boot_) + "}";
     auto response = session.crypto->seal(plain, session.binding, 0);
     if (!response) {
         close(session);
@@ -548,16 +548,16 @@ HttpResponse ConsumerRadioApi::recovery_discovery(const HttpRequest& request,
             entries += ',';
         entries +=
             "{\"selector\":" +
-            wtp::json::quote(bootstrap_hex(consumer_recovery_selector(s.binding))) +
-            ",\"state\":" + wtp::json::quote(s.state == State::Pending ? "pending" : "active") +
+            execution::json::quote(bootstrap_hex(consumer_recovery_selector(s.binding))) +
+            ",\"state\":" + execution::json::quote(s.state == State::Pending ? "pending" : "active") +
             "}";
     }
     return {200,
-            "{\"schema\":\"consumer-recovery/1\",\"device_id\":" + wtp::json::quote(device_) +
-                ",\"boot_id\":" + wtp::json::quote(boot_) +
-                ",\"generation\":" + wtp::json::quote(std::to_string(store_.sequence())) +
-                ",\"authority\":" + wtp::json::quote(request.header("host")) + ",\"interface\":" +
-                wtp::json::quote(interface == ConsumerInterface::AccessPoint ? "ap" : "station") +
+            "{\"schema\":\"consumer-recovery/1\",\"device_id\":" + execution::json::quote(device_) +
+                ",\"boot_id\":" + execution::json::quote(boot_) +
+                ",\"generation\":" + execution::json::quote(std::to_string(store_.sequence())) +
+                ",\"authority\":" + execution::json::quote(request.header("host")) + ",\"interface\":" +
+                execution::json::quote(interface == ConsumerInterface::AccessPoint ? "ap" : "station") +
                 ",\"proof_ms\":5000,\"sessions\":[" + entries + "]}",
             "application/json",
             {}};
@@ -572,17 +572,17 @@ HttpResponse ConsumerRadioApi::recovery_start(const HttpRequest& request, std::u
         return http_error(429, "radio_recovery_rate_limited");
     if (request.body_view().size() > 640)
         return http_error(413, "radio_body_too_large");
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     std::uint64_t generation = 0;
     ConsumerRadioBinding binding;
     std::array<std::uint8_t, 16> target{};
     std::vector<std::uint8_t> key;
     if (!root ||
-        !wtp::json::fields(*root, {"version", "device_id", "boot_id", "generation", "public_key",
+        !execution::json::fields(*root, {"version", "device_id", "boot_id", "generation", "public_key",
                                    "nonce", "target_selector"}) ||
         !root->get("version") || root->get("version")->raw != "1" ||
         !same_id(*root, "device_id", device_) || !same_id(*root, "boot_id", boot_) ||
-        !root->get("generation") || !wtp::json::decimal(*root->get("generation"), generation) ||
+        !root->get("generation") || !execution::json::decimal(*root->get("generation"), generation) ||
         generation != store_.sequence() || !hex_field(*root, "target_selector", target) ||
         !hex_field(*root, "nonce", binding.browser_nonce) || !root->get("public_key") ||
         root->get("public_key")->type() != '"' ||
@@ -620,16 +620,16 @@ HttpResponse ConsumerRadioApi::recovery_start(const HttpRequest& request, std::u
     recovery_.authority = request.header("host");
     recovery_target_ = target;
     return {200,
-            "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                ",\"boot_id\":" + wtp::json::quote(boot_) +
-                ",\"generation\":" + wtp::json::quote(std::to_string(generation)) +
-                ",\"session_id\":" + wtp::json::quote(bootstrap_hex(binding.session)) +
-                ",\"public_key\":" + wtp::json::quote(bootstrap_b64url(binding.pico_key)) +
-                ",\"challenge\":" + wtp::json::quote(bootstrap_hex(binding.challenge)) +
+            "{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+                ",\"boot_id\":" + execution::json::quote(boot_) +
+                ",\"generation\":" + execution::json::quote(std::to_string(generation)) +
+                ",\"session_id\":" + execution::json::quote(bootstrap_hex(binding.session)) +
+                ",\"public_key\":" + execution::json::quote(bootstrap_b64url(binding.pico_key)) +
+                ",\"challenge\":" + execution::json::quote(bootstrap_hex(binding.challenge)) +
                 ",\"login_ms\":5000,\"recovery\":{\"target_selector\":" +
-                wtp::json::quote(bootstrap_hex(target)) +
-                ",\"authority\":" + wtp::json::quote(recovery_.authority) + ",\"interface\":" +
-                wtp::json::quote(interface == ConsumerInterface::AccessPoint ? "ap" : "station") +
+                execution::json::quote(bootstrap_hex(target)) +
+                ",\"authority\":" + execution::json::quote(recovery_.authority) + ",\"interface\":" +
+                execution::json::quote(interface == ConsumerInterface::AccessPoint ? "ap" : "station") +
                 "}}",
             "application/json",
             {}};
@@ -660,9 +660,9 @@ HttpResponse ConsumerRadioApi::recovery_finish(const HttpRequest& request,
         }
     }
     const auto plain = "{\"retired\":true,\"present\":" + std::string(victim ? "true" : "false") +
-                       ",\"target_selector\":" + wtp::json::quote(bootstrap_hex(recovery_target_)) +
-                       ",\"device_id\":" + wtp::json::quote(device_) +
-                       ",\"boot_id\":" + wtp::json::quote(boot_) + "}";
+                       ",\"target_selector\":" + execution::json::quote(bootstrap_hex(recovery_target_)) +
+                       ",\"device_id\":" + execution::json::quote(device_) +
+                       ",\"boot_id\":" + execution::json::quote(boot_) + "}";
     auto response = recovery_.crypto->seal(plain, recovery_.binding, 0);
     if (response && victim)
         close(*victim); // False delivery only; never acknowledge another reply.
@@ -692,10 +692,10 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         close(session);
         return http_error(401, "radio_authentication_failed");
     }
-    const auto root = wtp::json::parse(*plaintext);
+    const auto root = execution::json::parse(*plaintext);
     HttpResponse result = http_error(400, "invalid_radio_request");
     bool password_saved = false;
-    if (root && wtp::json::fields(*root, {"method", "path", "if_match", "body"})) {
+    if (root && execution::json::fields(*root, {"method", "path", "if_match", "body"})) {
         const auto method = root->get("method"), path = root->get("path"),
                    match = root->get("if_match"), body = root->get("body");
         if (method && path && match && body && method->type() == '"' && path->type() == '"' &&
@@ -726,7 +726,7 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
                 return http_error(400, "unsupported_control_contract");
             }
             if (method->string() == "POST" && path->string() == "/api/control/v1/consumer/logout" &&
-                wtp::json::fields(*wtp::json::parse(special_text), {})) {
+                execution::json::fields(*execution::json::parse(special_text), {})) {
                 auto response =
                     session.crypto->seal("{\"status\":200,\"etag\":null,\"body\":{\"contract\":"
                                          "\"Wsprry-Control/1\",\"ok\":true}}",
@@ -740,7 +740,7 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
             inner.method = method->string();
             inner.path = path->string();
             inner.buffered_body = request.buffered_body;
-            inner.selected_body = body->raw == "null" ? wtp::InputView{} : body->raw;
+            inner.selected_body = body->raw == "null" ? execution::InputView{} : body->raw;
             // A trusted adapter supplies the already-authenticated principal;
             // this internal Host/Origin pair is never a public plaintext API.
             const std::string authority = "192.168.4.1";
@@ -817,19 +817,19 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         }
     }
     const auto prefix = "{\"status\":" + std::to_string(result.status) + ",\"etag\":" +
-                        (result.etag.empty() ? "null" : wtp::json::quote(result.etag)) +
+                        (result.etag.empty() ? "null" : execution::json::quote(result.etag)) +
                         ",\"body\":";
     const auto size = prefix.size() + result.body_size() + 1;
     // BrowserApi returns one JSON value. Validate its existing storage, then
     // borrow its pages between the small envelope delimiters during sealing.
     const auto body = !result.buffered_body.empty() ? result.buffered_body.view()
-                      : !result.static_body.empty() ? wtp::InputView(result.static_body)
-                                                    : wtp::InputView(result.body);
+                      : !result.static_body.empty() ? execution::InputView(result.static_body)
+                                                    : execution::InputView(result.body);
     if (size > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes ||
         !result.static_parts.empty() ||
         (result.generated_body ? !result.generated_body->json_document()
-                               : !wtp::json::parse(body)) ||
-        !wtp::memory_admitted(
+                               : !execution::json::parse(body)) ||
+        !execution::memory_admitted(
             result.generated_body ? 8192 : (result.buffered_body.empty() ? size + 4096 : 8192))) {
         finish_request(transaction, false);
         if (password_saved)
@@ -842,7 +842,7 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
     if (result.generated_body) {
         auto inner_source = response_source(std::move(result));
         if (inner_source) {
-            auto source = wtp::make_response_source<wtp::JoinedResponseSource>(
+            auto source = execution::make_response_source<execution::JoinedResponseSource>(
                 prefix, std::move(inner_source), "}", true);
             if (source)
                 response =
@@ -853,12 +853,12 @@ HttpResponse ConsumerRadioApi::exchange(Session& session, const HttpRequest& req
         // in-place path instead of paying for a streaming snapshot/cipher owner.
         auto envelope = std::move(result.buffered_body);
         if (envelope.reserve(size + consumer_radio_header_bytes + consumer_radio_tag_bytes) &&
-            envelope.prepend(wtp::InputView(prefix).at(0)) &&
-            envelope.append(wtp::InputView("}").at(0)))
+            envelope.prepend(execution::InputView(prefix).at(0)) &&
+            envelope.append(execution::InputView("}").at(0)))
             response = session.crypto->seal_buffer(std::move(envelope), session.binding, sequence);
     } else {
-        const std::array<wtp::InputView, 3> parts{wtp::InputView(prefix), body,
-                                                  wtp::InputView("}")};
+        const std::array<execution::InputView, 3> parts{execution::InputView(prefix), body,
+                                                  execution::InputView("}")};
         response = session.crypto->seal_parts(parts, session.binding, sequence);
     }
     if (password_saved) {
@@ -886,7 +886,7 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
         return http_error(403, "forbidden");
     if (request.path == "/api/consumer/v1/read" ||
         request.path.starts_with("/api/consumer/v1/read/")) {
-        if (!wtp::memory_admitted(4096))
+        if (!execution::memory_admitted(4096))
             return http_error(503, "resource_exhausted");
         if (request.method != "GET")
             return http_error(405, "method_not_allowed");
@@ -907,13 +907,13 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
             for (const auto resource : allowed) {
                 if (resources.size() > 1)
                     resources += ',';
-                resources += wtp::json::quote(resource);
+                resources += execution::json::quote(resource);
             }
             return {
                 200,
-                "{\"contract\":\"Wsprry-Control/1\",\"schema\":" + wtp::json::quote("public-read") +
+                "{\"contract\":\"Wsprry-Control/1\",\"schema\":" + execution::json::quote("public-read") +
                     ",\"target\":" + application::target(device_, boot_) + ",\"prefix\":" +
-                    wtp::json::quote(prefix) + ",\"resources\":" + resources + "]}",
+                    execution::json::quote(prefix) + ",\"resources\":" + resources + "]}",
                 "application/json",
                 {}};
         }
@@ -953,9 +953,9 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
     }
     if (request.path == "/api/consumer/v1/presentation" && request.method == "GET")
         return {200,
-                "{\"schema\":\"device-presentation/1\",\"device_id\":" + wtp::json::quote(device_) +
-                    ",\"boot_id\":" + wtp::json::quote(boot_) +
-                    ",\"hostname\":" + wtp::json::quote(hostname_) + "}",
+                "{\"schema\":\"device-presentation/1\",\"device_id\":" + execution::json::quote(device_) +
+                    ",\"boot_id\":" + execution::json::quote(boot_) +
+                    ",\"hostname\":" + execution::json::quote(hostname_) + "}",
                 "application/json",
                 {}};
     if (request.path == "/api/consumer/v1/recovery" && request.method == "GET")
@@ -963,10 +963,10 @@ HttpResponse ConsumerRadioApi::handle(const HttpRequest& request, std::uint64_t 
     if (request.path == "/api/consumer/v1/identity" && request.method == "GET" &&
         page_admitted(request, interface))
         return {200,
-                "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                    ",\"boot_id\":" + wtp::json::quote(boot_) + ",\"generation\":" +
-                    wtp::json::quote(std::to_string(store_.sequence())) + ",\"authentication\":" +
-                    wtp::json::quote(password_store_ && password_store_->record() &&
+                "{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+                    ",\"boot_id\":" + execution::json::quote(boot_) + ",\"generation\":" +
+                    execution::json::quote(std::to_string(store_.sequence())) + ",\"authentication\":" +
+                    execution::json::quote(password_store_ && password_store_->record() &&
                                              !password_store_->record()->radio_password.empty()
                                          ? "pico_password"
                                          : "saved_wifi_passphrase") +

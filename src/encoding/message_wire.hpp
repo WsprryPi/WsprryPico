@@ -1,10 +1,10 @@
 #pragma once
 #include "encoding/morse.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 namespace wsprrypico::encoding {
-inline std::optional<MorseMessage> decode_message(wtp::json::Value body, bool with_id = true) {
-    using namespace wtp;
+inline std::optional<MorseMessage> decode_message(execution::json::Value body, bool with_id = true) {
+    using namespace execution;
     if (!json::fields(body,
                       {"mode", "message", "frequency_nhz", "space_frequency_nhz", "timing",
                        "repeat_count", "repeat_gap_ns", "allow_frequency_adjustment"},
@@ -47,8 +47,8 @@ inline std::optional<MorseMessage> decode_message(wtp::json::Value body, bool wi
     return value;
 }
 inline std::string serialize_message(const MorseMessage& m) {
-    using wtp::json::quote;
-    const auto n = [](std::uint64_t value) { return wtp::json::quote(std::to_string(value)); };
+    using execution::json::quote;
+    const auto n = [](std::uint64_t value) { return execution::json::quote(std::to_string(value)); };
     return "{\"mode\":" + quote(m.mode) + ",\"message\":" + quote(m.text) +
            ",\"frequency_nhz\":" + n(m.mark_frequency_nhz) +
            ",\"space_frequency_nhz\":" + n(m.space_frequency_nhz) +

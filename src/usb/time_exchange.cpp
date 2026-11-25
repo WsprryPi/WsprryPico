@@ -1,11 +1,11 @@
 #include "usb/time_exchange.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 namespace wsprrypico::usb {
 network::HttpResponse TimeExchange::handle(const network::HttpRequest& request,
                                            std::uint64_t transaction) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (request.method == "GET" && request.path == "/api/usb/v1/time/sample") {
         sampled_ns_ = now_(context_);
         sample_ = std::to_string(transaction);
@@ -35,7 +35,7 @@ network::HttpResponse TimeExchange::handle(const network::HttpRequest& request,
         now - sampled > 2'000'000'000ULL)
         return network::http_error(409, "stale_or_invalid_time_observation");
     const auto accepted = arbiter_.observe(time::ObservationSource::Controller, utc, sampled,
-                                           uncertainty, wtp::LeapState::Normal, {}, "usb-physical");
+                                           uncertainty, execution::LeapState::Normal, {}, "usb-physical");
     const auto status = arbiter_.status();
     const bool sntp_selected = status.source == time::ActiveTimeSource::Sntp ||
                                status.source == time::ActiveTimeSource::Gps;

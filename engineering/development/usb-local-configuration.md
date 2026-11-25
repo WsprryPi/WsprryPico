@@ -30,7 +30,7 @@ A one-time migration copies the complete effective pre-migration configuration i
 
 For engineering profiles, journal version 2 permits explicitly absent Wi-Fi while preserving the exact deployment TLS material and credential-bound name. Its schema size is the same as version 1. Consumer version 3 removes the station snapshot, so its extra pending flag does not reduce existing usable profile capacity. Existing legacy consumer versions remain in use for Wi-Fi-only edits unless absent-network or standalone station authority requires migration.
 
-Old firmware that cannot parse these new profile versions fails closed; it is not a supported rollback vehicle after migration. It must not recover an older network profile or reopen superseded trust. Published firmware compatibility and source-pair records must distinguish retained WTP compatibility from new USB management/profile support.
+Firmware that cannot parse a stored profile version fails closed. Retain only settings-preserving rollback paths supported by the exact profile and installer versions. A rollback must preserve selected network authority and refuse superseded trust.
 
 ## Validation scope
 

@@ -8,8 +8,8 @@ int main() {
                   USB_ITF_MANAGEMENT == 4 && USB_ITF_LOGGING == 6);
     reset();
     open(USB_CDC_RESERVED);
-    // Former binary frames and arbitrary host traffic have no parser or reply.
-    const std::string frame("WTP1\0\0\0\x08ignored",15);
+    // Arbitrary binary input is discarded without a reply.
+    const std::string frame(15, '\xff');
     for(unsigned i=0;i<256;++i)
         ports[USB_CDC_RESERVED].rx.insert(ports[USB_CDC_RESERVED].rx.end(),frame.begin(),frame.end());
     const auto before=ports[USB_CDC_RESERVED].rx.size();

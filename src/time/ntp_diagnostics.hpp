@@ -1,8 +1,8 @@
 #pragma once
 
 #include "time/ntp_filter.hpp"
-#include "wtp/json.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "runtime/sha256.hpp"
 
 #include <charconv>
 #include <string_view>

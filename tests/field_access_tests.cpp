@@ -204,7 +204,7 @@ provisioning::RequestBinding binding(std::string operation = "access") {
     value.operation = std::move(operation);
     value.nonce = "nonce-a";
     const std::string parameters = "canonical-parameters";
-    value.parameters = wtp::sha256(
+    value.parameters = execution::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(parameters.data()), parameters.size()));
     return value;
 }
@@ -549,12 +549,12 @@ void access_policy() {
           provisioning::AccessCode::Capacity);
     CHECK(f.controller.bind_softap_session(tokens[0], std::string(65, 's'), 600'001) ==
           provisioning::AccessCode::Invalid);
-    CHECK(f.controller.bind_softap_session(tokens[0], "wtp-a", 600'001) ==
+    CHECK(f.controller.bind_softap_session(tokens[0], "execution-a", 600'001) ==
           provisioning::AccessCode::Ok);
-    CHECK(f.controller.bind_softap_session(tokens[0], "wtp-b", 600'002) ==
+    CHECK(f.controller.bind_softap_session(tokens[0], "execution-b", 600'002) ==
           provisioning::AccessCode::Conflict);
     auto ordinary = f.controller.softap_authorize(tokens[0], provisioning::SoftApOperation::Status,
-                                                  "wtp-a", "", {}, 600'003);
+                                                  "execution-a", "", {}, 600'003);
     CHECK(ordinary.code == provisioning::AccessCode::Ok && !ordinary.owner_only_grace);
     CHECK(f.controller
               .softap_authorize(tokens[1], provisioning::SoftApOperation::Status, "", "", {},
@@ -686,12 +686,6 @@ void ble_command_policy() {
                                               "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
     CHECK(session.handle(unauthorized_identify, 2).code ==
           provisioning::Code::AuthenticationRequired);
-    const std::string unauthorized_carrier =
-        "{\"version\":1,\"operation\":\"select_wtp_status_carrier\","
-        "\"request_id\":\"55555555555555555555555555555556\","
-        "\"session_id\":\"44444444444444444444444444444444\","
-        "\"device_id\":\"00112233445566778899aabbccddeeff\"}";
-    CHECK(session.handle(unauthorized_carrier, 2).code != provisioning::Code::Ok);
     const std::string authorize = "{\"version\":1,\"operation\":\"authorize\","
                                   "\"request_id\":\"33333333333333333333333333333333\","
                                   "\"session_id\":\"44444444444444444444444444444444\","
@@ -702,9 +696,6 @@ void ble_command_policy() {
     session.response_delivered(3);
     CHECK(session.authorized());
     CHECK(!session.principal().empty());
-    // Retired carrier selection never changes an authenticated commissioning session.
-    CHECK(session.handle(unauthorized_carrier, 3).code != provisioning::Code::Ok);
-    CHECK(session.authorized());
     const std::string identify = "{\"version\":1,\"operation\":\"identify\","
                                  "\"request_id\":\"66666666666666666666666666666666\","
                                  "\"session_id\":\"44444444444444444444444444444444\","
@@ -1490,7 +1481,7 @@ void ambiguous_reset_intent() {
         provisioning::ResetCoordinator reset(access, profiles, targets, identity);
         media.fail_commit_after_apply = !readback;
         media.fail_readback_after_commit = readback;
-        wtp::PayloadDigest digest{};
+        execution::PayloadDigest digest{};
         digest[0] = 1;
         CHECK(reset.begin(provisioning::ResetLevel::Provisioning,
                           provisioning::ProfileSource::Unprovisioned,
@@ -1529,7 +1520,7 @@ void reset_policy() {
     const auto preserved = targets.operational;
     provisioning::ResetCoordinator reset(access, profiles, targets, identity);
     const std::string request = "reset-request";
-    const auto digest = wtp::sha256(
+    const auto digest = execution::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(request.data()), request.size()));
     CHECK(reset.begin(provisioning::ResetLevel::Provisioning,
                       provisioning::ProfileSource::Unprovisioned,
@@ -1552,7 +1543,7 @@ void reset_policy() {
     CHECK(targets.operational == preserved);
 
     const std::string full_request = "full-reset-request";
-    const auto full_digest = wtp::sha256(
+    const auto full_digest = execution::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(full_request.data()), full_request.size()));
     targets.bond_done = false;
     const auto corruption_offset =
@@ -1627,7 +1618,7 @@ void controller_time_policy() {
 
     const auto sample = clock_now;
     CHECK(arbiter.observe(time::ObservationSource::Sntp, utc + 10'000'000ULL, sample, 10'000'000ULL,
-                          wtp::LeapState::Normal));
+                          execution::LeapState::Normal));
     CHECK(arbiter.status().source == time::ActiveTimeSource::Sntp);
     CHECK(arbiter.challenge("phone-a", "session-a", device, "nonce-c").code ==
           time::ControllerTimeCode::Ok);
@@ -1679,7 +1670,7 @@ void browser_time_hint_policy() {
     constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
     clock_now = 1'000'000'000ULL;
     CHECK(!arbiter.seed_browser_hint(utc / 1'000'000ULL, 0));
-    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(discipline.snapshot().state == execution::ClockState::Unsynchronized);
     const auto sample = [&](std::string_view principal, std::uint64_t value,
                             std::uint64_t latency = 50'000'000ULL) {
         CHECK(arbiter.challenge(principal, "session", device, "nonce").code ==
@@ -1689,28 +1680,28 @@ void browser_time_hint_policy() {
     };
     CHECK(sample("browser-one", utc) == time::ControllerTimeCode::Ok);
     CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
-    CHECK(discipline.snapshot().state == wtp::ClockState::Synchronized);
+    CHECK(discipline.snapshot().state == execution::ClockState::Synchronized);
     CHECK(discipline.snapshot().uncertainty_ns < time::standalone_max_uncertainty_ns);
     clock_now += 120'000'000'000ULL;
-    CHECK(discipline.snapshot().state == wtp::ClockState::Holdover);
+    CHECK(discipline.snapshot().state == execution::ClockState::Holdover);
     CHECK(sample("browser-two", utc + 120'050'000'000ULL) == time::ControllerTimeCode::SourceBusy);
     CHECK(sample("browser-one", utc + 120'100'000'000ULL) == time::ControllerTimeCode::Ok);
     CHECK(sample("browser-one", utc + 120'150'000'000ULL, time::browser_challenge_max_age_ns + 1) ==
           time::ControllerTimeCode::Timeout);
     CHECK(sample("browser-one", utc + 900'000'000'000ULL) ==
           time::ControllerTimeCode::Disagreement);
-    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(discipline.snapshot().state == execution::ClockState::Unsynchronized);
     CHECK(sample("browser-one", utc + 121'000'000'000ULL) ==
           time::ControllerTimeCode::Disagreement);
     CHECK(!arbiter.observe(time::ObservationSource::Browser, utc + 121'000'000'000ULL, clock_now,
-                           300'000'000ULL, wtp::LeapState::Normal, {}, "browser-one"));
+                           300'000'000ULL, execution::LeapState::Normal, {}, "browser-one"));
     CHECK(sample("browser-one", utc + 121'050'000'000ULL) == time::ControllerTimeCode::Ok);
     clock_now += time::browser_source_lifetime_ns + 1;
-    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(discipline.snapshot().state == execution::ClockState::Unsynchronized);
     CHECK(sample("browser-two", utc + 4'000'000'000'000ULL) == time::ControllerTimeCode::Ok);
     clock_now += 1;
     CHECK(!arbiter.observe(time::ObservationSource::Sntp, utc + 8'000'000'000'000ULL, clock_now,
-                           10'000'000ULL, wtp::LeapState::Normal));
+                           10'000'000ULL, execution::LeapState::Normal));
     CHECK(arbiter.status().disagreement);
 }
 
@@ -1725,10 +1716,10 @@ void browser_authority_expires_by_age() {
           time::ControllerTimeCode::Ok);
     clock_now += 1'200'000'000'000ULL;
     CHECK(discipline.snapshot().uncertainty_ns > 500'000'000ULL);
-    CHECK(discipline.snapshot().state == wtp::ClockState::Holdover);
+    CHECK(discipline.snapshot().state == execution::ClockState::Holdover);
     CHECK(arbiter.status().source == time::ActiveTimeSource::Browser);
     clock_now += 2'400'000'000'001ULL;
-    CHECK(discipline.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(discipline.snapshot().state == execution::ClockState::Unsynchronized);
     CHECK(arbiter.status().source == time::ActiveTimeSource::None);
     CHECK(arbiter.challenge("second", "two", device, "fresh").code == time::ControllerTimeCode::Ok);
     clock_now += 10'000'000ULL;
@@ -1743,7 +1734,7 @@ int main() {
     using provisioning::RfSetupAdmission;
     CHECK(!rf_setup_allowed({}));
     const RfSetupAdmission stopped_setup{true,  true,  true, true,  true,
-                                         true,  true,  true, false, wtp::State::Empty,
+                                         true,  true,  true, false, execution::State::Empty,
                                          false, false, false};
     CHECK(rf_setup_allowed(stopped_setup));
     for (const auto field :
@@ -1762,12 +1753,12 @@ int main() {
         CHECK(!rf_setup_allowed(refused));
     }
     for (const auto state :
-         {wtp::State::Loaded, wtp::State::Armed, wtp::State::Running, wtp::State::Failed}) {
+         {execution::State::Loaded, execution::State::Armed, execution::State::Running, execution::State::Failed}) {
         auto refused = stopped_setup;
         refused.state = state;
         CHECK(!rf_setup_allowed(refused));
     }
-    for (const auto state : {wtp::State::Complete, wtp::State::Aborted, wtp::State::Missed}) {
+    for (const auto state : {execution::State::Complete, execution::State::Aborted, execution::State::Missed}) {
         auto terminal = stopped_setup;
         terminal.state = state;
         terminal.job_present = true;

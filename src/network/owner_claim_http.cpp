@@ -4,7 +4,7 @@
 #include "network/identity.hpp"
 #include "network/owner_wire.hpp"
 #include "provisioning/runtime.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -18,7 +18,7 @@ bool hex16(std::string_view value) {
                return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
            });
 }
-std::optional<std::string> field(wtp::json::Value value, std::string_view key) {
+std::optional<std::string> field(execution::json::Value value, std::string_view key) {
     const auto child = value.get(key);
     return child && child->type() == '"' ? std::optional(child->string()) : std::nullopt;
 }
@@ -102,8 +102,8 @@ std::string owner_saved_station_json(const provisioning::ProfileStore& store,
         runtime.generation() != store.sequence() || !saved || saved->device_id != device_id ||
         saved->usb_managed)
         return "null";
-    return "{\"callsign\":" + wtp::json::quote(saved->callsign) +
-           ",\"locator\":" + wtp::json::quote(saved->locator) +
+    return "{\"callsign\":" + execution::json::quote(saved->callsign) +
+           ",\"locator\":" + execution::json::quote(saved->locator) +
            ",\"power_dbm\":" + std::to_string(saved->power_dbm) + "}";
 }
 
@@ -132,15 +132,15 @@ std::string owner_saved_network_json(const provisioning::ProfileStore& store,
     }
     if (ssid.empty())
         return "null";
-    return "{\"ssid\":" + wtp::json::quote(ssid) +
-           ",\"time_server\":" + wtp::json::quote(time_server) + "}";
+    return "{\"ssid\":" + execution::json::quote(ssid) +
+           ",\"time_server\":" + execution::json::quote(time_server) + "}";
 }
 
 std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& request) {
     if (!common(request, "/api/owner/v1/identify", true))
         return {};
-    const auto root = wtp::json::parse(request.body_view());
-    if (!root || !wtp::json::fields(*root, {"version", "device_id", "boot_id", "request_id"}) ||
+    const auto root = execution::json::parse(request.body_view());
+    if (!root || !execution::json::fields(*root, {"version", "device_id", "boot_id", "request_id"}) ||
         root->get("version")->raw != "1")
         return {};
     const auto device = field(*root, "device_id"), boot = field(*root, "boot_id"),
@@ -154,9 +154,9 @@ std::optional<OwnerIdentifyRequest> parse_owner_identify(const HttpRequest& requ
 std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest& request) {
     if (!common(request, "/api/owner/v1/claim/start", true))
         return {};
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root ||
-        !wtp::json::fields(*root, {"version", "device_id", "owner_public_key", "browser_public_key",
+        !execution::json::fields(*root, {"version", "device_id", "owner_public_key", "browser_public_key",
                                    "browser_nonce", "profile_source", "generation"}) ||
         root->get("version")->raw != "1")
         return {};
@@ -166,7 +166,7 @@ std::optional<OwnerClaimStartRequest> parse_owner_claim_start(const HttpRequest&
     std::uint64_t sequence = 0;
     if (!device || !network::valid_device_id(*device) || !owner || !b64(*owner, 65, 65, true) ||
         !browser || !b64(*browser, 32, 32) || !nonce || !hex16(*nonce) || !generation ||
-        !wtp::json::decimal(*generation, sequence, false) || !source)
+        !execution::json::decimal(*generation, sequence, false) || !source)
         return {};
     provisioning::ProfileSource selected;
     if (source->raw == "0" && sequence == 0)
@@ -187,9 +187,9 @@ static std::optional<OwnerClaimSubmitRequest> parse_submit(const HttpRequest& re
     if (!common(request, progress ? "/api/owner/v1/progress/submit" : "/api/owner/v1/claim/submit",
                 true))
         return {};
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root ||
-        !wtp::json::fields(*root, {"version", "device_id", "boot_id", "slot_id", "request_id",
+        !execution::json::fields(*root, {"version", "device_id", "boot_id", "slot_id", "request_id",
                                    "aead_nonce", "ciphertext", "tag"}) ||
         root->get("version")->raw != "1")
         return {};

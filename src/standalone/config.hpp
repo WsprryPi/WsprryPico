@@ -4,7 +4,7 @@
 #include "hardware/si5351_settings.hpp"
 #include "rf/amplifier_timing.hpp"
 #include "standalone/gray_line.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <array>
 #include <cstdint>
@@ -61,8 +61,8 @@ std::optional<Config> parse_config(std::string_view text);
 std::string serialize_config(const Config& config, bool amplifier_view = false);
 std::string validate_rf_configuration(const Config&, const hardware::FilterSettings& = {});
 bool valid_gpio_drive(unsigned ma);
-bool valid_gpio_drive_token(wtp::json::Value value);
-bool valid_ntp_timeout_token(wtp::json::Value value, bool unlimited = false);
+bool valid_gpio_drive_token(execution::json::Value value);
+bool valid_ntp_timeout_token(execution::json::Value value, bool unlimited = false);
 bool valid_time_server(std::string_view value);
 // Standalone USB dial to nominal RF targets. Calibration and NCO realization
 // belong to the engine, after these exact requested targets are constructed.
@@ -72,7 +72,7 @@ inline constexpr std::uint64_t center_to_tone0_nhz = 2'197'265'625ULL;
 inline constexpr std::uint32_t minimum_wspr_dial_hz = 6'503;
 inline constexpr std::uint32_t maximum_wspr_dial_hz = 159'998'496;
 std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz);
-bool valid_wspr_frequency_token(wtp::json::Value value);
+bool valid_wspr_frequency_token(execution::json::Value value);
 bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
                             std::uint64_t maximum_nhz);
 bool gray_line_frequency_update_allowed(const Config& candidate, const Config* current,

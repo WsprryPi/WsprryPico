@@ -3,7 +3,7 @@
 #include "network/assets.hpp"
 #include "network/control.hpp"
 #include "network/test_tone_query.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -58,8 +58,8 @@ std::string_view source_name(time::ActiveTimeSource source) {
     return "none";
 }
 
-bool exact_fields(const wtp::json::Value& root, std::initializer_list<std::string_view> fields) {
-    return wtp::json::fields(root, fields);
+bool exact_fields(const execution::json::Value& root, std::initializer_list<std::string_view> fields) {
+    return execution::json::fields(root, fields);
 }
 } // namespace
 
@@ -68,9 +68,9 @@ provisioning::Activity SoftApApi::activity() const {
     return {current.owned,
             true,
             current.output_active,
-            current.state == wtp::State::Armed,
-            current.state == wtp::State::Running,
-            current.state == wtp::State::Failed};
+            current.state == execution::State::Armed,
+            current.state == execution::State::Running,
+            current.state == execution::State::Failed};
 }
 
 std::string_view SoftApApi::surface_name(SoftApSurface surface) {
@@ -111,27 +111,27 @@ HttpResponse SoftApApi::access_error(AccessCode code) {
 HttpResponse SoftApApi::identity(SoftApSurface surface) const {
     const auto status = time_.status();
     return {200,
-            "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                ",\"firmware\":" + wtp::json::quote(firmware_) +
-                ",\"surface\":" + wtp::json::quote(surface_name(surface)) +
+            "{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+                ",\"firmware\":" + execution::json::quote(firmware_) +
+                ",\"surface\":" + execution::json::quote(surface_name(surface)) +
                 ",\"authenticated\":false,\"time_source\":" +
-                wtp::json::quote(source_name(status.source)) + "}",
+                execution::json::quote(source_name(status.source)) + "}",
             "application/json",
             {}};
 }
 
-HttpResponse SoftApApi::local_status(std::string_view principal, std::string_view wtp_session,
+HttpResponse SoftApApi::local_status(std::string_view principal, std::string_view execution_session,
                                      SoftApSurface surface) const {
     const auto status = time_.status();
     return {200,
-            "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                ",\"firmware\":" + wtp::json::quote(firmware_) +
-                ",\"surface\":" + wtp::json::quote(surface_name(surface)) +
-                ",\"principal\":" + wtp::json::quote(principal) + ",\"control_session\":" +
-                (wtp_session.empty() ? "null" : wtp::json::quote(wtp_session)) +
+            "{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+                ",\"firmware\":" + execution::json::quote(firmware_) +
+                ",\"surface\":" + execution::json::quote(surface_name(surface)) +
+                ",\"principal\":" + execution::json::quote(principal) + ",\"control_session\":" +
+                (execution_session.empty() ? "null" : execution::json::quote(execution_session)) +
                 ",\"default_password\":" +
                 std::string(access_.default_password_active() ? "true" : "false") +
-                ",\"time_source\":" + wtp::json::quote(source_name(status.source)) +
+                ",\"time_source\":" + execution::json::quote(source_name(status.source)) +
                 ",\"time_age_ns\":\"" + std::to_string(status.age_ns) +
                 "\",\"time_uncertainty_ns\":\"" + std::to_string(status.uncertainty_ns) +
                 "\",\"time_disagreement\":" + (status.disagreement ? "true}" : "false}"),
@@ -171,7 +171,7 @@ SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string&,
 
 HttpResponse SoftApApi::challenge(const HttpRequest& request, std::string_view principal,
                                   std::string_view session, std::uint64_t transaction) {
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root || !exact_fields(*root, {"version", "device_id", "session_id", "nonce"}))
         return http_error(400, "invalid_request");
     const auto version = root->get("version");
@@ -179,8 +179,8 @@ HttpResponse SoftApApi::challenge(const HttpRequest& request, std::string_view p
     const auto requested_session = root->get("session_id");
     const auto nonce = root->get("nonce");
     if (!version || version->type() != '1' || version->integer() != 1 || !requested_device ||
-        !wtp::json::identifier(*requested_device) || !requested_session ||
-        !wtp::json::identifier(*requested_session) || !nonce || nonce->type() != '"' ||
+        !execution::json::identifier(*requested_device) || !requested_session ||
+        !execution::json::identifier(*requested_session) || !nonce || nonce->type() != '"' ||
         requested_session->string() != session)
         return http_error(400, "invalid_request");
     auto result = time_.challenge(principal, session, requested_device->string(), nonce->string());
@@ -206,9 +206,9 @@ HttpResponse SoftApApi::challenge(const HttpRequest& request, std::string_view p
     }
     *slot = {transaction, std::string(principal), std::string(session), true};
     HttpResponse response{200,
-                          "{\"ok\":true,\"device_id\":" + wtp::json::quote(device_) +
-                              ",\"session_id\":" + wtp::json::quote(session) + ",\"nonce\":" +
-                              wtp::json::quote(result.nonce) + ",\"sampled_monotonic_ns\":\"" +
+                          "{\"ok\":true,\"device_id\":" + execution::json::quote(device_) +
+                              ",\"session_id\":" + execution::json::quote(session) + ",\"nonce\":" +
+                              execution::json::quote(result.nonce) + ",\"sampled_monotonic_ns\":\"" +
                               std::to_string(result.sampled_monotonic_ns) + "\"}",
                           "application/json",
                           {}};
@@ -218,7 +218,7 @@ HttpResponse SoftApApi::challenge(const HttpRequest& request, std::string_view p
 
 HttpResponse SoftApApi::submit_time(const HttpRequest& request, std::string_view principal,
                                     std::string_view session) {
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root || !exact_fields(*root, {"version", "device_id", "session_id", "nonce", "utc_ns"}))
         return http_error(400, "invalid_request");
     const auto version = root->get("version");
@@ -227,8 +227,8 @@ HttpResponse SoftApApi::submit_time(const HttpRequest& request, std::string_view
     const auto nonce = root->get("nonce");
     const auto utc = root->get("utc_ns");
     if (!version || version->type() != '1' || version->integer() != 1 || !requested_device ||
-        !wtp::json::identifier(*requested_device) || !requested_session ||
-        !wtp::json::identifier(*requested_session) || !nonce || nonce->type() != '"' || !utc ||
+        !execution::json::identifier(*requested_device) || !requested_session ||
+        !execution::json::identifier(*requested_session) || !nonce || nonce->type() != '"' || !utc ||
         utc->type() != '"' || requested_session->string() != session)
         return http_error(400, "invalid_request");
     std::uint64_t utc_ns = 0;
@@ -326,7 +326,7 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
     if (authorized.code != AccessCode::Ok)
         return access_error(authorized.code);
     if (request.path == "/local/v1/status")
-        return local_status(authorized.authorization.principal, authorized.wtp_session, surface);
+        return local_status(authorized.authorization.principal, authorized.execution_session, surface);
     if (request.path == "/local/v1/time/challenge")
         return challenge(request, authorized.authorization.principal, session, transaction);
     if (request.path == "/local/v1/time/submit")

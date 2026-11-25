@@ -2,8 +2,9 @@
 #include "network/local_usb_api.hpp"
 #include "network_support.hpp"
 #include "standalone/message_schedule.hpp"
-#include "wtp/codec.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "rf/observation.hpp"
+#include "runtime/sha256.hpp"
 
 #include <cassert>
 #include <iostream>
@@ -358,14 +359,14 @@ int main() {
         s.message.mode = "dfcw";
         s.message.space_frequency_nhz = s.message.mark_frequency_nhz + 5 * ns;
         const auto encoded = standalone::serialize_message_schedule(s);
-        assert(standalone::parse_message_schedule(*wtp::json::parse(encoded)));
+        assert(standalone::parse_message_schedule(*execution::json::parse(encoded)));
         s.message.text = "E\tE";
         const auto control = standalone::serialize_message_schedule(s);
-        assert(!standalone::parse_message_schedule(*wtp::json::parse(control)));
+        assert(!standalone::parse_message_schedule(*execution::json::parse(control)));
         s.message.text = "E";
         s.message.space_frequency_nhz = s.message.mark_frequency_nhz - 5 * ns;
         const auto negative = standalone::serialize_message_schedule(s);
-        assert(!standalone::parse_message_schedule(*wtp::json::parse(negative)));
+        assert(!standalone::parse_message_schedule(*execution::json::parse(negative)));
     }
     {
         network_test::Fixture f;
@@ -373,7 +374,7 @@ int main() {
         assert(f.store.save_message_schedule(s));
         f.flash.fail = true;
         advance(f, 56 * ns);
-        assert(f.service.status().state == wtp::State::Empty);
+        assert(f.service.status().state == execution::State::Empty);
         assert(!f.store.healthy() && f.scheduler.message_recovery_required());
     }
     struct SolarCase {
@@ -405,12 +406,12 @@ int main() {
         assert(f.scheduler.next_message_start().has_value() == allowed);
         const auto observed = call(f, "GET", "/api/control/v1/message-schedule");
         assert(observed.status == 200);
-        const auto body = wtp::json::parse(observed.body);
+        const auto body = execution::json::parse(observed.body);
         assert(body && body->get("state")->string() ==
                            (allowed ? "waiting" : "waiting_for_beacon_window"));
         assert((body->get("next_start_utc_ns")->raw != "null") == allowed);
         f.scheduler.poll();
-        assert(f.service.status().state == (allowed ? wtp::State::Armed : wtp::State::Empty));
+        assert(f.service.status().state == (allowed ? execution::State::Armed : execution::State::Empty));
         assert(f.store.message_in_flight() == allowed);
     }
     {
@@ -426,7 +427,7 @@ int main() {
         assert(f.store.save_message_schedule(message));
         const auto status = [&] {
             const auto text = f.scheduler.message_status();
-            const auto body = wtp::json::parse(text);
+            const auto body = execution::json::parse(text);
             assert(body && body->get("next_start_utc_ns")->raw == "null");
             return body->get("state")->string();
         };
@@ -441,26 +442,26 @@ int main() {
     {
         auto s = schedule(anchor);
         auto encoded = standalone::serialize_message_schedule(s);
-        assert(standalone::parse_message_schedule(*wtp::json::parse(encoded)));
+        assert(standalone::parse_message_schedule(*execution::json::parse(encoded)));
         s.message.text = std::string(33, 'E');
         assert(!standalone::parse_message_schedule(
-            *wtp::json::parse(standalone::serialize_message_schedule(s))));
+            *execution::json::parse(standalone::serialize_message_schedule(s))));
         s = schedule(anchor);
         s.message.dot_ns = 59 * ns; // Tail and preparation cannot fit a minute.
         assert(!standalone::parse_message_schedule(
-            *wtp::json::parse(standalone::serialize_message_schedule(s))));
+            *execution::json::parse(standalone::serialize_message_schedule(s))));
         s = schedule(anchor);
         s.period_s = 61;
         assert(!standalone::parse_message_schedule(
-            *wtp::json::parse(standalone::serialize_message_schedule(s))));
+            *execution::json::parse(standalone::serialize_message_schedule(s))));
         s = schedule(anchor);
         s.expires_utc_s = anchor / ns + 1;
         assert(!standalone::parse_message_schedule(
-            *wtp::json::parse(standalone::serialize_message_schedule(s))));
+            *execution::json::parse(standalone::serialize_message_schedule(s))));
         s = schedule(anchor);
         s.message.repeat_count = 512;
         assert(!standalone::parse_message_schedule(
-            *wtp::json::parse(standalone::serialize_message_schedule(s))));
+            *execution::json::parse(standalone::serialize_message_schedule(s))));
     }
     {
         network_test::Fixture f;
@@ -477,20 +478,20 @@ int main() {
         c->enabled = true;
         assert(!f.store.save(*c));
         f.scheduler.poll();
-        assert(f.service.status().state == wtp::State::Armed && f.store.message_in_flight());
+        assert(f.service.status().state == execution::State::Armed && f.store.message_in_flight());
         const auto first = f.store.watermark();
         network_test::Fixture reboot;
         reboot.flash.bytes = f.flash.bytes;
         assert(reboot.store.load());
         assert(reboot.scheduler.message_recovery_required());
         reboot.scheduler.poll();
-        assert(reboot.service.status().state == wtp::State::Empty);
+        assert(reboot.service.status().state == execution::State::Empty);
         assert(reboot.scheduler.pause_message());
         assert(!reboot.store.message_in_flight() && !reboot.store.message_schedule()->enabled);
         advance(f, 6 * ns);
-        assert(f.service.status().state == wtp::State::Running);
+        assert(f.service.status().state == execution::State::Running);
         assert(f.scheduler.pause_message() && f.scheduler.message_pause_pending());
-        assert(f.service.status().state == wtp::State::Running &&
+        assert(f.service.status().state == execution::State::Running &&
                f.store.message_schedule()->enabled);
         advance(f, 7 * ns + 1000);
         assert(!f.store.message_in_flight());
@@ -509,7 +510,7 @@ int main() {
         advance(f, 7 * ns + 1000);
         assert(!f.store.message_in_flight());
         advance(f, 61 * ns);
-        assert(f.service.status().state == wtp::State::Armed &&
+        assert(f.service.status().state == execution::State::Armed &&
                f.store.watermark() == first + 60 * ns);
         advance(f, 66 * ns);
         advance(f, 67 * ns + 1000);
@@ -571,19 +572,19 @@ int main() {
         const auto session = std::string(32, 'b');
         // Retained ownership safety is exercised through the internal core,
         // independently of the retired HTTP job wrapper.
-        const auto other = [&](std::string_view operation, wtp::RequestBody body, char id) {
-            wtp::Request request;
+        const auto other = [&](std::string_view operation, execution::RequestBody body, char id) {
+            execution::Request request;
             request.principal = "internal-owner-fixture";
             request.session_id = session;
             request.request_id = std::string(32, id);
             request.operation = operation;
             request.body = std::move(body);
-            request.payload_digest = wtp::sha256(std::span(
+            request.payload_digest = execution::sha256(std::span(
                 reinterpret_cast<const std::uint8_t*>(request.request_id.data()), request.request_id.size()));
             return f.service.handle_internal(std::move(request));
         };
-        assert(other("HELLO", wtp::HelloBody{{"WTP/1"}}, 'c').ok);
-        assert(other("CLAIM", wtp::ClaimBody{session, 60000}, 'd').ok);
+        assert(other("HELLO", execution::HelloBody{{"native-execution/1"}}, 'c').ok);
+        assert(other("CLAIM", execution::ClaimBody{session, 60000}, 'd').ok);
         assert(f.scheduler.stop_schedules().find("external_owner") != std::string::npos);
         assert(f.service.status().owner_id == session && f.store.message_schedule()->enabled);
         advance(f, 56 * ns);
@@ -639,7 +640,7 @@ int main() {
     {
         network_test::Fixture f;
         const auto bytes = f.flash.bytes;
-        const auto before = wtp::status_json(f.service.status());
+        const auto before = execution::status_json(f.service.status());
         for (const auto path : {"/api/control/v1/jobs", "/api/control/v1/jobs/",
                  "/api/control/v1/jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/abort",
                  "/api/control/v1/jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/arm"})
@@ -655,7 +656,7 @@ int main() {
                         const auto result = f.api.handle(request, principal, "", 0, carrier);
                         assert(result.status == 404);
                     }
-        assert(f.flash.bytes == bytes && wtp::status_json(f.service.status()) == before);
+        assert(f.flash.bytes == bytes && execution::status_json(f.service.status()) == before);
     }
     for (bool message : {false, true}) {
         network_test::Fixture f;
@@ -666,9 +667,9 @@ int main() {
         if (message)
             assert(f.store.save_message_schedule(schedule(f.clock.utc + 120 * ns)));
         advance(f, 118 * ns);
-        assert(f.service.activity().state == wtp::State::Armed);
+        assert(f.service.activity().state == execution::State::Armed);
         advance(f, (message ? 120 : 121) * ns);
-        assert(f.service.activity().state == wtp::State::Running);
+        assert(f.service.activity().state == execution::State::Running);
         const auto watermark = f.store.watermark();
         const auto read = call(f, "GET", "/api/control/v1/schedules/stop");
         const auto stop = "{\"schema\":\"schedule-stop\",\"target\":" +
@@ -682,10 +683,10 @@ int main() {
         auto extra = stop;
         extra.insert(1, "\"job_id\":\"arbitrary\",");
         assert(call(f, "POST", "/api/control/v1/schedules/stop", extra, read.etag).status == 400);
-        assert(f.flash.bytes == bytes && f.service.activity().state == wtp::State::Running);
+        assert(f.flash.bytes == bytes && f.service.activity().state == execution::State::Running);
         const auto stopped = call(f, "POST", "/api/control/v1/schedules/stop", stop, read.etag);
         assert(stopped.status == 200 && stopped.etag != read.etag);
-        const auto result = wtp::json::parse(stopped.body);
+        const auto result = execution::json::parse(stopped.body);
         assert(result && result->get("stopped")->raw == "true");
         assert(f.scheduler.idle() && !f.service.activity().owned && !f.service.activity().output_active);
         assert(!f.store.config()->enabled && f.store.watermark() == watermark);
@@ -714,7 +715,7 @@ int main() {
         assert(f.store.save_message_schedule(schedule(f.clock.utc + 5 * ns)));
         advance(f, ns);
         advance(f, 5 * ns);
-        assert(f.service.activity().state == wtp::State::Running);
+        assert(f.service.activity().state == execution::State::Running);
         const auto read = call(f, "GET", "/api/control/v1/schedules/stop");
         const auto stop = "{\"schema\":\"schedule-stop\",\"target\":" +
             application::target(std::string(32, 'a'), f.service.status().boot_id) + ",\"stop\":true}";
@@ -722,7 +723,7 @@ int main() {
         assert(call(f, "POST", "/api/control/v1/schedules/stop", stop, read.etag).status == 503);
         assert(!f.service.activity().owned && !f.service.activity().output_active && f.scheduler.suspended());
         const auto state = call(f, "GET", "/api/control/v1/schedules/stop");
-        assert(wtp::json::parse(state.body)->get("stopped")->raw == "false");
+        assert(execution::json::parse(state.body)->get("stopped")->raw == "false");
     }
     std::cout << "UTC recurrence, native schedule stop/restart/refusal, persistence, dispatch recovery, expiry, deferred pause and API "
                  "admission passed\n";

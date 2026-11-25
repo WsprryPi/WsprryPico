@@ -1,7 +1,7 @@
 #include "network/bootstrap_codec.hpp"
 #include "provisioning/consumer_claim_commit.hpp"
 #include "provisioning/network_profile.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <array>
@@ -231,7 +231,7 @@ int main() {
         populated.request_sha256 = std::string(64, 'd');
         std::array<std::uint8_t, 3> csr{0x30, 0x01, 0x00};
         populated.clients = {{"wspr5", network::bootstrap_b64url(csr),
-                              network::bootstrap_hex(wtp::sha256(csr)), std::string(64, 'b'), 1,
+                              network::bootstrap_hex(execution::sha256(csr)), std::string(64, 'b'), 1,
                               1'850'000'000}};
         if (invalid_case == 1)
             populated.tls.server_not_after_utc = 1'800'000'000;

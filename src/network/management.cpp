@@ -3,7 +3,7 @@
 
 #include "application/resources.hpp"
 #include "network/consumer_radio.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 namespace wsprrypico::network {
 static_assert(ConsumerRadioApi::session_capacity == 3 && ConsumerRadioApi::pending_capacity == 1);
@@ -18,18 +18,17 @@ std::string management_contract(const ManagementAvailability& state, ManagementC
     for (unsigned i = 0; i < 5U; ++i) {
         if (i)
             rows += ',';
-        rows += "{\"carrier\":" + wtp::json::quote(names[i]) +
+        rows += "{\"carrier\":" + execution::json::quote(names[i]) +
                 ",\"built_in\":true,\"available\":" + (available[i] ? "true}" : "false}");
     }
-    return std::string("{\"schema\":") + wtp::json::quote(management_schema(selected)) +
+    return std::string("{\"schema\":") + execution::json::quote(management_schema(selected)) +
            ",\"target\":" + application::target(device, boot) +
-           ",\"profile\":" + wtp::json::quote(profiles[static_cast<unsigned>(state.profile)]) +
+           ",\"profile\":" + execution::json::quote(profiles[static_cast<unsigned>(state.profile)]) +
            ",\"preclock\":" + (state.preclock ? "true" : "false") + ",\"profile_generation\":" +
-           (state.generation ? wtp::json::quote(std::to_string(state.generation)) : "null") +
-           ",\"selected\":" + wtp::json::quote(names[static_cast<unsigned>(selected)]) +
+           (state.generation ? execution::json::quote(std::to_string(state.generation)) : "null") +
+           ",\"selected\":" + execution::json::quote(names[static_cast<unsigned>(selected)]) +
            ",\"carriers\":[" + rows +
-           "],\"unsupported\":[\"plain_wtp_json\",\"tls_wtp_json\",\"ble_json\"]," +
-           "\"operations\":" + std::string(control_operations) +
+           "],\"operations\":" + std::string(control_operations) +
            ",\"limits\":{\"http_body\":32768,"
            "\"consumer_plaintext\":32724,\"config\":4096,\"update\":2048,\"login_ms\":" +
            std::to_string(ConsumerRadioApi::login_ms) +

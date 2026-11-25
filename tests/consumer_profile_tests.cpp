@@ -1,8 +1,8 @@
 #include "network/bootstrap_codec.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "provisioning/storage.hpp"
-#include "wtp/json.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "runtime/sha256.hpp"
 
 #include <array>
 #include <cassert>
@@ -57,7 +57,7 @@ int main() {
     auto value = profile();
     auto canonical = provisioning::serialize_consumer_profile(value);
     assert(!canonical.empty() && canonical.size() < provisioning::max_profile_bytes);
-    assert(canonical.find(wtp::json::quote(value.tls.ca_certificate)) != canonical.npos);
+    assert(canonical.find(execution::json::quote(value.tls.ca_certificate)) != canonical.npos);
     auto decoded = provisioning::parse_consumer_profile(canonical);
     assert(decoded && *decoded == value);
     provisioning::scrub(*decoded);
@@ -133,7 +133,7 @@ int main() {
     provisioning::ConsumerClient client;
     client.name = "wspr5";
     client.csr_der = network::bootstrap_b64url(csr);
-    client.csr_sha256 = network::bootstrap_hex(wtp::sha256(csr));
+    client.csr_sha256 = network::bootstrap_hex(execution::sha256(csr));
     client.public_key_sha256 = std::string(64, 'b');
     client.serial = 1;
     client.not_after_utc = 1'800'000'000;
@@ -175,7 +175,7 @@ int main() {
     for (unsigned i = 0; i < 4; ++i) {
         client.name = std::string(32, '"');
         client.csr_der = network::bootstrap_b64url(maximal_csr);
-        client.csr_sha256 = network::bootstrap_hex(wtp::sha256(maximal_csr));
+        client.csr_sha256 = network::bootstrap_hex(execution::sha256(maximal_csr));
         client.public_key_sha256 = std::string(64, static_cast<char>('a' + i));
         client.serial = std::numeric_limits<std::uint64_t>::max() - i;
         client.not_after_utc = value.tls.ca_not_after_utc - 1;

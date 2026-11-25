@@ -183,7 +183,7 @@ int main() {
                 standalone::Progress progress(draft_flash);
                 assert(progress.load());
                 target_store.progress(progress);
-                const auto draft = wtp::json::parse(
+                const auto draft = execution::json::parse(
                     R"({"callsign":"D1RAFT","wifi":{"ssid":"draftSSID","password":"draft-secret"}})");
                 assert(progress.save(*draft, std::string(64, 'a')));
                 auto config = standalone::Config{};
@@ -212,7 +212,7 @@ int main() {
                 provisioning::ResetCoordinator reset(access, target_profiles, target, identity);
                 reset.checkpoint_observer(cut);
                 cut_stage = static_cast<provisioning::ResetCheckpoint>(stage);
-                wtp::PayloadDigest digest{};
+                execution::PayloadDigest digest{};
                 digest[0] = 1;
                 bool fired = false;
                 try {
@@ -274,7 +274,7 @@ int main() {
                 assert(progress.load());
                 store.progress(progress);
                 const auto draft =
-                    wtp::json::parse(R"({"wifi":{"ssid":"draftSSID","password":"draft-secret"}})");
+                    execution::json::parse(R"({"wifi":{"ssid":"draftSSID","password":"draft-secret"}})");
                 assert(progress.save(*draft, std::string(64, 'a')));
                 provisioning::ProfileStore profiles(media);
                 assert(profiles.load());
@@ -289,7 +289,7 @@ int main() {
                 provisioning::ResetStorageTargets targets(store, operational, media, bonds, idle,
                                                           nullptr);
                 provisioning::ResetCoordinator reset(access, profiles, targets, identity);
-                wtp::PayloadDigest digest{};
+                execution::PayloadDigest digest{};
                 digest[0] = 1;
                 assert(reset.begin(level, provisioning::ProfileSource::Unprovisioned, digest) ==
                        provisioning::ResetResult::Pending);

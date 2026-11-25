@@ -2,7 +2,7 @@
 
 #include "application/frequency_policy.hpp"
 #include "rf/calibration.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <cmath>
 
@@ -117,11 +117,11 @@ FrequencyPolicyEngine::assess_si5351_tone(std::uint64_t frequency, unsigned driv
     }
     return result;
 }
-wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
+execution::PrepareResult FrequencyPolicyEngine::prepare(const execution::Job& job) {
     return prepare_job(job, false);
 }
 
-wtp::PrepareResult FrequencyPolicyEngine::prepare_native_test_tone(const wtp::Job& job) {
+execution::PrepareResult FrequencyPolicyEngine::prepare_native_test_tone(const execution::Job& job) {
     if (job.mode != "tone" || job.events.size() != 1)
         return prepare(job);
     const auto& event = job.events[0];
@@ -131,7 +131,7 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare_native_test_tone(const wtp::Jo
     return prepare_job(job, qualified);
 }
 
-wtp::PrepareResult FrequencyPolicyEngine::prepare_job(const wtp::Job& job,
+execution::PrepareResult FrequencyPolicyEngine::prepare_job(const execution::Job& job,
                                                        bool qualified_test_tone) {
     failure_ = nullptr;
     // Storage faults revoke all new execution, including qualified bands that
@@ -217,7 +217,7 @@ std::string FrequencyPolicyEngine::calibration_status(std::uint64_t) const {
     std::string prepared_input = "null";
     if (frozen_ && frozen_->automatic && frozen_->input) {
         const auto& input = *frozen_->input;
-        prepared_input = "{\"job_id\":" + wtp::json::quote(prepared_job_id_) +
+        prepared_input = "{\"job_id\":" + execution::json::quote(prepared_job_id_) +
             ",\"manual_correction_ppb\":" + std::to_string(frozen_->manual_ppb) +
             ",\"oscillator_error_ppb\":" + std::to_string(input.oscillator_error_ppb) +
             ",\"uncertainty_ppb\":" + std::to_string(input.uncertainty_ppb) +
@@ -235,13 +235,13 @@ std::string FrequencyPolicyEngine::calibration_status(std::uint64_t) const {
            "\"topology_supported\":false,\"independent_rf_verified\":false,"
            "\"ntp_rf_supported\":false,\"next_ppb\":" +
            std::to_string(next.ppb) + ",\"next_generation\":\"" + std::to_string(next.generation) +
-           "\"" + ",\"next_source\":" + wtp::json::quote(next.automatic ? "gps" : "manual") +
-           ",\"reason\":" + wtp::json::quote(!next.valid ? "gps_calibration_required" :
+           "\"" + ",\"next_source\":" + execution::json::quote(next.automatic ? "gps" : "manual") +
+           ",\"reason\":" + execution::json::quote(!next.valid ? "gps_calibration_required" :
                next.automatic ? "gps_calibrated" : "manual_mode") + ",\"prepared_ppb\":" +
            (frozen_ ? std::to_string(frozen_->ppb) : "null") +
-           ",\"prepared_source\":" + (frozen_ ? wtp::json::quote(frozen_->automatic ? "gps" : "manual") : "null") +
+           ",\"prepared_source\":" + (frozen_ ? execution::json::quote(frozen_->automatic ? "gps" : "manual") : "null") +
            ",\"prepared_generation\":" +
-           (frozen_ ? wtp::json::quote(std::to_string(frozen_->generation)) : "null") +
+           (frozen_ ? execution::json::quote(std::to_string(frozen_->generation)) : "null") +
            ",\"prepared_input\":" + prepared_input + "}";
 }
 } // namespace wsprrypico::standalone

@@ -2,7 +2,7 @@
 #include "application/test_tone.hpp"
 
 #include "hardware/si5351_qualification.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/memory_budget.hpp"
 
 namespace wsprrypico::application {
 namespace {
@@ -15,7 +15,7 @@ std::string id(std::uint64_t value) {
     return result;
 }
 } // namespace
-TestTone::TestTone(wtp::JobService& service, standalone::Store& store,
+TestTone::TestTone(execution::JobService& service, standalone::Store& store,
                    standalone::Scheduler& scheduler)
     : service_(service), store_(store), scheduler_(scheduler) {
     boot_ = service_.status(false).boot_id;
@@ -51,9 +51,9 @@ TestToneContext TestTone::context(bool pending) const {
     context.wspr_enabled = store_.config() && store_.config()->enabled;
     context.message_enabled = store_.message_schedule() && store_.message_schedule()->enabled;
     context.owned = activity.owned;
-    context.busy = activity.output_active || activity.state == wtp::State::Loaded ||
-                   activity.state == wtp::State::Armed || activity.state == wtp::State::Running;
-    context.faulted = activity.state == wtp::State::Failed ||
+    context.busy = activity.output_active || activity.state == execution::State::Loaded ||
+                   activity.state == execution::State::Armed || activity.state == execution::State::Running;
+    context.faulted = activity.state == execution::State::Failed ||
                       scheduler_.hardware_application_failed() ||
                       scheduler_.message_recovery_required() || scheduler_.message_pause_pending();
     context.maintenance = service_.maintenance() || pending;
@@ -75,26 +75,26 @@ TestToneContext TestTone::context(bool pending) const {
     context.start_resolution_ns = service_.start_resolution_ns();
     return context;
 }
-wtp::Response TestTone::command(std::string_view operation, wtp::RequestBody body) {
+execution::Response TestTone::command(std::string_view operation, execution::RequestBody body) {
     if (native_sequence_ == UINT64_MAX) {
-        wtp::Response result;
-        result.error = wtp::ErrorCode::DeviceFault;
+        execution::Response result;
+        result.error = execution::ErrorCode::DeviceFault;
         return result;
     }
-    wtp::Request request;
+    execution::Request request;
     request.session_id = session;
     request.principal = principal;
     request.request_id = id(++native_sequence_);
     request.operation = operation;
     request.payload_digest =
-        wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(request.request_id.data()),
+        execution::sha256(std::span(reinterpret_cast<const std::uint8_t*>(request.request_id.data()),
                               request.request_id.size()));
     request.body = std::move(body);
-    if (const auto* arm = std::get_if<wtp::ArmBody>(&request.body)) {
+    if (const auto* arm = std::get_if<execution::ArmBody>(&request.body)) {
         const auto* record = find(arm->job_id, true);
         return service_.handle_internal(
             std::move(request),
-            [](const wtp::PadObservation& pad, const wtp::SynthesisObservation& synthesis,
+            [](const execution::PadObservation& pad, const execution::SynthesisObservation& synthesis,
                const void* context) {
                 const auto* record = static_cast<const TestToneRecord*>(context);
                 if (!record)
@@ -121,7 +121,7 @@ TestToneRecord* TestTone::find(std::string_view value, bool job) {
             return &*item;
     return nullptr;
 }
-void TestTone::settle(TestToneRecord& record, wtp::State state, wtp::ErrorCode error, bool inactive,
+void TestTone::settle(TestToneRecord& record, execution::State state, execution::ErrorCode error, bool inactive,
                       std::uint64_t now) {
     if (record.terminal)
         return;
@@ -130,15 +130,15 @@ void TestTone::settle(TestToneRecord& record, wtp::State state, wtp::ErrorCode e
     record.ended_ns = now;
     record.terminal = true;
     record.output_inactive_confirmed = inactive;
-    record.recovery_required = !inactive || state == wtp::State::Failed;
+    record.recovery_required = !inactive || state == execution::State::Failed;
     record.control_revision[record.control_revision.size() - 2] = '2';
 }
-void TestTone::terminal(const wtp::TerminalRecord& terminal, void* context) {
+void TestTone::terminal(const execution::TerminalRecord& terminal, void* context) {
     auto& self = *static_cast<TestTone*>(context);
     if (auto* record = self.find(terminal.job_id, true)) {
         record->launch_ns = self.service_.execution_launch(terminal.job_id);
         self.settle(*record, terminal.state, terminal.error,
-                    !terminal.output_active && terminal.error != wtp::ErrorCode::OutputStateUnknown,
+                    !terminal.output_active && terminal.error != execution::ErrorCode::OutputStateUnknown,
                     terminal.ended_monotonic_ns);
     }
 }
@@ -184,7 +184,7 @@ void TestTone::poll() {
         if (item->terminal && !item->recovery_required && service_.owner_session_id() == session &&
             observed.job_id == item->job_id) {
             // RELEASE only this producer after native confirmed shutdown.
-            (void)command("HELLO", wtp::HelloBody{{"WTP/1"}});
+            (void)command("HELLO", execution::HelloBody{{execution::session_version}});
             (void)command("RELEASE");
         }
     }
@@ -238,14 +238,14 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
         std::find_if(records_.begin(), records_.end(), [](const auto& item) { return !item; });
     if (slot == records_.end())
         return {nullptr, "receipt_capacity"};
-    wtp::Job job;
+    execution::Job job;
     job.job_id = id(admission_sequence_ + 1);
     // Reserve a private namespace within this boot, independent of client IDs.
     job.job_id[0] = 'd';
     job.mode = "tone";
     job.allow_frequency_adjustment = true;
     job.total_duration_ns = proposal.duration_ms * 1'000'000;
-    if (!wtp::memory_admitted(service_.preparation_memory_bytes(job) + 16'384) ||
+    if (!execution::memory_admitted(service_.preparation_memory_bytes(job) + 16'384) ||
         !job.events.push_back({0, job.total_duration_ns, true, assessment.requested_nhz}))
         return {nullptr, "resource_exhausted"};
     // All receipt strings and the output response budget are allocated before CLAIM.
@@ -271,10 +271,10 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
     slot->emplace(std::move(record));
     auto& accepted = **slot;
     ++admission_sequence_; // Never reused, even after receipt eviction or partial admission.
-    auto result = command("HELLO", wtp::HelloBody{{"WTP/1"}});
+    auto result = command("HELLO", execution::HelloBody{{execution::session_version}});
     bool claimed = false;
     if (result.ok) {
-        result = command("CLAIM", wtp::ClaimBody{accepted.job_id, 60'000});
+        result = command("CLAIM", execution::ClaimBody{accepted.job_id, 60'000});
         claimed = result.ok;
     }
     if (result.ok) {
@@ -295,7 +295,7 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
                 result.error = launch.clock_error;
             } else {
                 accepted.assessment.launch_utc_ns = launch.launch_utc_ns;
-                result = command("ARM", wtp::ArmBody{accepted.job_id, *launch.launch_utc_ns,
+                result = command("ARM", execution::ArmBody{accepted.job_id, *launch.launch_utc_ns,
                                                      service_.config().maximum_arm_uncertainty_ns});
                 accepted.pad = service_.execution_pad(accepted.job_id);
                 accepted.synthesis = service_.execution_synthesis(accepted.job_id);
@@ -306,24 +306,24 @@ TestTone::Result TestTone::start(const TestToneAuthority& authority, std::string
     }
     if (!result.ok) {
         if (claimed && service_.status(false).job_id == accepted.job_id && !accepted.terminal)
-            (void)command("ABORT", wtp::AbortBody{accepted.job_id});
+            (void)command("ABORT", execution::AbortBody{accepted.job_id});
         if (!accepted.terminal) {
             const auto activity = service_.activity();
-            settle(accepted, wtp::State::Failed, result.error, !activity.output_active,
+            settle(accepted, execution::State::Failed, result.error, !activity.output_active,
                    service_.clock_snapshot().monotonic_now_ns);
             // A rejected LOAD/CLAIM with no native fault is an identified failed
             // admission, not an unresolved engine shutdown.
             accepted.recovery_required =
-                activity.state == wtp::State::Failed || activity.output_active;
-        } else if (accepted.state == wtp::State::Aborted) {
-            accepted.state = wtp::State::Failed;
+                activity.state == execution::State::Failed || activity.output_active;
+        } else if (accepted.state == execution::State::Aborted) {
+            accepted.state = execution::State::Failed;
             accepted.error = result.error;
         }
         if (claimed && service_.owner_session_id() == session && !service_.status(false).job_id &&
-            service_.activity().state != wtp::State::Failed)
+            service_.activity().state != execution::State::Failed)
             (void)command("RELEASE");
     } else
-        accepted.state = wtp::State::Armed;
+        accepted.state = execution::State::Armed;
     poll();
     return {&accepted, {}};
 }
@@ -345,10 +345,10 @@ TestTone::Result TestTone::stop(const TestToneAuthority& authority, std::string_
     const auto observed = service_.status(false);
     if (observed.job_id != job || service_.owner_session_id() != session)
         return {nullptr, "native_job_mismatch"};
-    (void)command("HELLO", wtp::HelloBody{{"WTP/1"}});
-    const auto stopped = command("ABORT", wtp::AbortBody{record.job_id});
+    (void)command("HELLO", execution::HelloBody{{execution::session_version}});
+    const auto stopped = command("ABORT", execution::AbortBody{record.job_id});
     if (!stopped.ok && !record.terminal) {
-        settle(record, wtp::State::Failed, stopped.error, false,
+        settle(record, execution::State::Failed, stopped.error, false,
                service_.clock_snapshot().monotonic_now_ns);
     }
     poll();

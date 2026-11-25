@@ -1,6 +1,6 @@
 # USB-Management/1
 
-Normal RF-capable, explicit inhibited, and compatibility StandaloneRF images expose Console CDC instance/control interface 0/0, Reserved 1/2, management 2/4, and Logging 3/6. Interfaces 2/3 remain allocated and neutrally labeled; application firmware drains at most 64 input bytes per foreground pass without parsing, replying, or entering execution. The optional RFBench image is the sole exception and retains its non-WTP Commands interface. Interface numbers, retained endpoint numbers, serial identity, and physical-parent bindings are unchanged. Management uses notification/OUT/IN endpoints `85/06/86`. The existing `cafe:4012` remains a development identity, not an allocated production VID/PID.
+Normal RF-capable, explicit inhibited, and compatibility StandaloneRF images expose Console CDC instance/control interface 0/0, Reserved 1/2, management 2/4, and Logging 3/6. Interfaces 2/3 remain allocated and neutrally labeled; application firmware drains at most 64 input bytes per foreground pass without parsing, replying, or entering execution. The optional RFBench image is the sole exception and retains its diagnostic Commands interface. Interface numbers, retained endpoint numbers, serial identity, and physical-parent bindings are unchanged. Management uses notification/OUT/IN endpoints `85/06/86`. The existing `cafe:4012` remains a development identity, not an allocated production VID/PID.
 
 Access to the selected physical device is local administrative authority. Linux permissions/exclusive opening and physical-parent/serial/role checks are host responsibilities. Every transaction binds the exact immutable device, boot, and connection session. Those identifiers are not cryptographic proof. No network request can select this internal principal. USB management grants no transmitter ownership. Native schedules retain the shared execution authority, clock, and cleanup checks; external job submission is unavailable.
 
@@ -48,7 +48,7 @@ The [USB uncertainty investigation](../development/usb-time-uncertainty.md) sepa
 
 ## Compatibility and evidence
 
-Old firmware without management interface 4 is explicitly unsupported for the new workflow; no Console probing or network fallback occurs. Former WTP CDC input is discarded with bounded servicing and never parsed or answered in application images. New profile versions require supporting firmware for rollback. Network authentication/discovery shapes remain unchanged on existing carriers; USB advertises its separately versioned management view.
+Old firmware without management interface 4 is explicitly unsupported for the new workflow; no Console probing or network fallback occurs. The Reserved interface discards input with bounded servicing. New profile versions require supporting firmware for rollback. Network authentication/discovery shapes remain unchanged on existing carriers; USB advertises its separately versioned management view.
 
 Portable endpoint/local-management/time tests, production Pi/Pico wire fixtures, and normal firmware builds qualify software behavior only. Physical USB enumeration, AP behavior, target UTC accuracy, and RF remain independent qualification boundaries.
 
@@ -58,7 +58,7 @@ Source: [UMP1 endpoint](../../src/usb/management_endpoint.cpp), [local dispatch]
 
 ## USB-local firmware maintenance
 
-Supporting normal images expose `GET /api/usb/v1/maintenance` with schema `usb-maintenance` and phase `idle`, `pending`, or `verification`. `POST /api/usb/v1/maintenance` requests an idle, unowned, revision/watermark-bound BOOTSEL transition; `POST /api/usb/v1/maintenance/finish` releases a FLASH_UPDATE boot verification hold. Both use a closed body with `schema`, exact member `target`, `confirmed: true`, and decimal-string `watermark_utc_ns`, plus If-Match. They are USB-local operations, not WTP firmware transfer or network endpoints. The management delivery ACK is required before either transition applies. Preflash admission is bounded to 15 seconds; the postboot hold lasts until explicit verified finish or a subsequent physical reboot. See [installer semantics](../development/usb-installer.md) for failure and power-loss limits. Older images without this resource refuse ordinary preserving upgrades.
+Supporting normal images expose `GET /api/usb/v1/maintenance` with schema `usb-maintenance` and phase `idle`, `pending`, or `verification`. `POST /api/usb/v1/maintenance` requests an idle, unowned, revision/watermark-bound BOOTSEL transition; `POST /api/usb/v1/maintenance/finish` releases a FLASH_UPDATE boot verification hold. Both use a closed body with `schema`, exact member `target`, `confirmed: true`, and decimal-string `watermark_utc_ns`, plus If-Match. They require USB-local authority. The management delivery ACK is required before either transition applies. Preflash admission is bounded to 15 seconds; the postboot hold lasts until explicit verified finish or a subsequent physical reboot. See [installer semantics](../development/usb-installer.md) for failure and power-loss limits. Older images without this resource refuse ordinary preserving upgrades.
 
 ## Native schedule stop
 

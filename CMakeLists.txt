@@ -72,7 +72,6 @@ set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     scripts/generate_web_assets.py docs/_static/favicon.ico)
 set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
     engineering/protocol/control-policy.json engineering/protocol/control-1.schema.json
-    engineering/protocol/wtp-1.schema.json
     scripts/check_control_policy.py scripts/generate_control_contract.py
     src/network/control_contract.hpp src/network/public_read.hpp
     src/network/web/control-contract.js src/hardware/si5351_qualification_profile.hpp)
@@ -161,18 +160,13 @@ add_library(wsprrypico_core
     src/time/usb_time_source.cpp
     src/usb/management_endpoint.cpp
     src/usb/time_exchange.cpp
-    src/wtp/json.cpp
-    src/wtp/observation.cpp
-    src/wtp/inhibited_rf_engine.cpp
-    src/wtp/job_service.cpp
-    src/wtp/arm_admission.cpp
-    src/wtp/sha256.cpp
+    src/runtime/json.cpp
+    src/rf/observation.cpp
+    src/rf/inhibited_rf_engine.cpp
+    src/rf/job_service.cpp
+    src/rf/arm_admission.cpp
+    src/runtime/sha256.cpp
 )
-# Offline host fixtures retain bounded decoder/ownership/memory regression
-# coverage. Neither decoder nor external execution endpoint enters firmware.
-if(WSPRRY_PICO_BUILD_TESTS)
-    target_sources(wsprrypico_core PRIVATE src/wtp/codec.cpp src/wtp/endpoint.cpp src/wtp/frame_parser.cpp tests/browser_load_response.cpp)
-endif()
 target_include_directories(wsprrypico_core PUBLIC src)
 target_compile_features(wsprrypico_core PUBLIC cxx_std_20)
 target_link_libraries(wsprrypico_core PUBLIC microchrony)
@@ -380,8 +374,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(refill_metrics_tests PRIVATE wsprrypico_rf)
     target_compile_options(refill_metrics_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME refill_metrics_tests COMMAND refill_metrics_tests)
-    add_test(NAME usb_inventory_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/usb_inventory_tests.py)
     add_test(NAME firmware_payload_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/firmware_payload_tests.py)
     add_test(NAME console_io_tests COMMAND ${Python3_EXECUTABLE}
@@ -422,9 +414,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(response_usb_pair_tests PRIVATE wsprrypico_rf)
     target_compile_options(response_usb_pair_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME response_usb_pair COMMAND response_usb_pair_tests)
-    add_executable(response_metrics tests/response_metrics.cpp)
-    target_link_libraries(response_metrics PRIVATE wsprrypico_core)
-    target_compile_options(response_metrics PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_executable(network_tests tests/network_tests.cpp)
     target_link_libraries(network_tests PRIVATE wsprrypico_core wsprrypico_rf)
     target_compile_options(network_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
@@ -819,8 +808,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
         ${CMAKE_SOURCE_DIR}/tests/inhibited_sync_image_checker_tests.py)
     add_test(NAME network_trace_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/network_trace_tests.py)
-    add_test(NAME inhibited_network_acceptance_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/inhibited_network_acceptance_tests.py)
     add_test(NAME standalone_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_image_tests.py)
     add_test(NAME rf_renderer_image_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_renderer_image_tests.py)
     add_test(NAME standalone_console_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/standalone_console_tests.py)
@@ -835,15 +822,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(wsprrypico_core_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     endif()
-    add_executable(endpoint_capacity_tests tests/endpoint_capacity_tests.cpp)
-    target_link_libraries(endpoint_capacity_tests PRIVATE wsprrypico_core)
-    target_compile_options(endpoint_capacity_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
-    add_test(NAME endpoint_capacity_tests COMMAND endpoint_capacity_tests)
-    add_executable(endpoint_driver tests/endpoint_driver.cpp)
-    add_executable(gatt_write_admission_tests tests/gatt_write_admission_tests.cpp)
-    target_link_libraries(gatt_write_admission_tests PRIVATE wsprrypico_core)
-    target_compile_options(gatt_write_admission_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    add_test(NAME gatt_write_admission_tests COMMAND gatt_write_admission_tests)
     set(WSPRRY_PICO_BTSTACK_TEST_ROOT "" CACHE PATH
         "Optional existing pinned BTstack root for hardware-free delayed ATT runtime checks")
     if(WSPRRY_PICO_BTSTACK_TEST_ROOT)
@@ -889,22 +867,9 @@ if(WSPRRY_PICO_BUILD_TESTS)
     target_link_libraries(event_storage_tests PRIVATE wsprrypico_core)
     target_compile_options(event_storage_tests PRIVATE -Wall -Wextra -Wpedantic -Werror)
     add_test(NAME event_storage_tests COMMAND event_storage_tests)
-    add_executable(load_reply_driver tests/load_reply_driver.cpp)
-    target_link_libraries(load_reply_driver PRIVATE wsprrypico_rf)
-    target_compile_options(load_reply_driver PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    add_test(NAME load_reply_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/load_reply_tests.py $<TARGET_FILE:load_reply_driver>)
-    target_link_libraries(endpoint_driver PRIVATE wsprrypico_core)
-    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-        target_compile_options(endpoint_driver PRIVATE -Wall -Wextra -Wpedantic -Werror)
-    endif()
     add_test(NAME rf_bench_capture_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_bench_capture_tests.py)
     add_test(NAME rf_bench_client_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_bench_client_tests.py)
     add_test(NAME rf_feasibility_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_feasibility_tests.py)
-    add_test(NAME retired_tools_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/retired_tools_tests.py)
-    add_test(NAME wtp_probe_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/wtp_probe_tests.py)
-    add_test(NAME rf_wtp_client_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/rf_wtp_client_tests.py)
-    add_test(NAME endpoint_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/endpoint_tests.py $<TARGET_FILE:endpoint_driver>)
     add_executable(usb_transport_tests tests/usb_inert_transport_tests.cpp src/usb/transport.cpp)
     target_include_directories(usb_transport_tests PRIVATE tests/usb_mock)
     target_link_libraries(usb_transport_tests PRIVATE wsprrypico_core)
@@ -951,10 +916,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
     endif()
     add_test(NAME pool_metrics_tests COMMAND pool_metrics_tests)
     add_test(NAME btstack_pool_hook_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/btstack_pool_hook_tests.py)
-    add_test(NAME wtp_capacity_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/wtp_capacity_tests.py)
-    set_tests_properties(wtp_capacity_tests PROPERTIES
-        ENVIRONMENT "WTP_ENDPOINT_DRIVER=$<TARGET_FILE:endpoint_driver>")
     add_test(NAME console_info_format_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/console_info_format_tests.py)
     add_test(NAME firmware_fixture_options_tests COMMAND ${Python3_EXECUTABLE}
@@ -975,7 +936,6 @@ if(WSPRRY_PICO_BUILD_TESTS)
             ${CMAKE_SOURCE_DIR}/tests/rf_drive_comparison_tests.py)
     endif()
     add_test(NAME wsprrypico_core_tests COMMAND wsprrypico_core_tests)
-    add_test(NAME wtp_monitor_tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/wtp_monitor_tests.py)
 endif()
 
 if(WSPRRY_PICO_BUILD_FIRMWARE)

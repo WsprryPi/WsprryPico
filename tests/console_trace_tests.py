@@ -10,8 +10,7 @@ from console_trace import TraceReader
 class TraceTests(unittest.TestCase):
     def reader(self, cost=0.001, latest=40):
         self.now, self.requests, self.rows = 0.0, [], []
-        def transfer(fd, command, deadline, emit, framed):
-            self.assertFalse(framed)
+        def transfer(fd, command, deadline, emit):
             self.assertEqual(fd, 7)
             self.assertAlmostEqual(deadline, self.now+5)
             self.requests.append(command)

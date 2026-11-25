@@ -91,7 +91,7 @@ Assignments may change only while the member is idle, unowned, RF-inactive, and 
 
 ## Implementation and validation boundary
 
-The [boot pin guide](development/pin-allocation.md) defines saved configuration, restart latching, and active-plan observations. GPIO drive, amplifier timing, and filter policy use their independent management resources. These settings are not WTP/1 fields. Si5351 uses an exclusive atomic I²C allocation with separate engine settings and a qualified-profile or explicit engineering execution gate; see the [Si5351 contract](development/si5351.md).
+The [boot pin guide](development/pin-allocation.md) defines saved configuration, restart latching, and active-plan observations. GPIO drive, amplifier timing, and filter policy use their independent management resources. Si5351 uses an exclusive atomic I²C allocation with separate engine settings and a qualified-profile or explicit engineering execution gate; see the [Si5351 contract](development/si5351.md).
 
 Deterministic checks cover valid choices, overlap classes, engine exclusivity, pair completeness, atomic replacement, saved-config rejection, and indicator selection. Physical validation requires the exact board, firmware, engine, clock, pins, and setup. It does not follow from a successful host check.
 

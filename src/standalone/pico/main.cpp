@@ -99,14 +99,14 @@ extern "C" [[gnu::used]] const char wsprrypico_control_schema[] =
 #include "standalone/ntp_retention.hpp"
 #include "standalone/pico/adapters.hpp"
 #include "standalone/scheduler.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 #include "time/controller_time.hpp"
 #include "tusb.h"
 #include "usb/reply_priority.hpp"
 #include "usb/transport.hpp"
-#include "wtp/observation.hpp"
-#include "wtp/json.hpp"
-#include "wtp/memory_budget.hpp"
+#include "rf/observation.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 
 
 #include <malloc.h>
@@ -291,14 +291,14 @@ bool station_interface(const tcp_pcb* pcb, void*) {
            ip4_addr_cmp(ip_2_ip4(&pcb->local_ip), netif_ip4_addr(station));
 }
 wsprrypico::provisioning::Activity provisioning_activity(void* context) {
-    const auto* service = static_cast<wsprrypico::wtp::JobService*>(context);
+    const auto* service = static_cast<wsprrypico::execution::JobService*>(context);
     const auto current = service->activity();
     return {current.owned,
             !service->maintenance(),
             current.output_active,
-            current.state == wsprrypico::wtp::State::Armed,
-            current.state == wsprrypico::wtp::State::Running,
-            current.state == wsprrypico::wtp::State::Failed};
+            current.state == wsprrypico::execution::State::Armed,
+            current.state == wsprrypico::execution::State::Running,
+            current.state == wsprrypico::execution::State::Failed};
 }
 std::string_view access_code_name(wsprrypico::provisioning::AccessCode code) {
     using wsprrypico::provisioning::AccessCode;
@@ -333,7 +333,7 @@ std::string access_reply(wsprrypico::provisioning::AccessCode code) {
            (code == wsprrypico::provisioning::AccessCode::Ok ? "true" : "false") +
            (code == wsprrypico::provisioning::AccessCode::Ok
                 ? "}\n"
-                : ",\"error\":" + wsprrypico::wtp::json::quote(access_code_name(code)) + "}\n");
+                : ",\"error\":" + wsprrypico::execution::json::quote(access_code_name(code)) + "}\n");
 }
 } // namespace
 int main() {
@@ -343,8 +343,8 @@ int main() {
     asm volatile("" : : "r"(wsprrypico_control_schema) : "memory");
     paint_stack();
     const bool usb_update_boot = rom_get_last_boot_type() == BOOT_TYPE_FLASH_UPDATE;
-    wsprrypico::wtp::allocate_input = wsprry_heap_try_input;
-    wsprrypico::wtp::available_memory = []() -> std::size_t {
+    wsprrypico::execution::allocate_input = wsprry_heap_try_input;
+    wsprrypico::execution::available_memory = []() -> std::size_t {
         const auto capacity = reinterpret_cast<std::uintptr_t>(&__HeapLimit) -
                               reinterpret_cast<std::uintptr_t>(&__end__);
         const auto used = static_cast<std::size_t>(mallinfo().uordblks);
@@ -510,12 +510,12 @@ int main() {
         store.config() && store.config()->si5351 &&
         wsprrypico::hardware::si5351_ordinary_qualified(
             boot_pins, *store.config()->si5351, clock_get_hz(clk_sys), filter_selector.settings());
-    auto config = wsprrypico::standalone::wtp_profile(
+    auto config = wsprrypico::standalone::execution_profile(
         true, ntp_timeout_s, boot_pins.engine, WSPRRY_PICO_SI5351_ENGINEERING,
         boot_ordinary_si5351);
 #else
     constexpr bool boot_ordinary_si5351 = false;
-    auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s, boot_pins.engine);
+    auto config = wsprrypico::standalone::execution_profile(false, ntp_timeout_s, boot_pins.engine);
 #endif
     if (store.config() && store.config()->gps && store.config()->gps->enabled)
         config.maximum_holdover_age_ns = std::max<std::uint64_t>(config.maximum_holdover_age_ns,
@@ -523,7 +523,7 @@ int main() {
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
         engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz,
         boot_ordinary_si5351);
-    static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
+    static wsprrypico::execution::JobService service(clock, policy_engine, identities, config);
     if (usb_update_boot)
         service.hold_update_verification();
     if (!amplifier_boot_safe || !filters_boot_safe)
@@ -790,8 +790,8 @@ int main() {
         wsprrypico::standalone::FrequencyPolicyEngine* engine;
     };
     static TransmissionContext transmission_context{&logger, &time_arbiter, &scheduler, &policy_engine};
-    service.arm_observer([](const wsprrypico::wtp::Job& job, const wsprrypico::wtp::ArmBody& arm,
-        const wsprrypico::wtp::ClockSnapshot& clock, std::string_view principal, void* p) {
+    service.arm_observer([](const wsprrypico::execution::Job& job, const wsprrypico::execution::ArmBody& arm,
+        const wsprrypico::execution::ClockSnapshot& clock, std::string_view principal, void* p) {
         const auto& c = *static_cast<TransmissionContext*>(p);
         const auto source = c.time->status().source;
         constexpr std::array<std::string_view, 6> names{"none", "sntp", "controller", "browser", "gps", "disagreement"};
@@ -930,7 +930,7 @@ int main() {
 #endif
     struct RestartContext {
         wsprrypico::standalone::Scheduler* scheduler;
-        wsprrypico::wtp::RfEngine* output_engine;
+        wsprrypico::execution::RfEngine* output_engine;
         std::uint64_t* at;
         bool* browser;
     } restart_context{&scheduler, &engine, &reboot_at, &browser_reboot};
@@ -1005,7 +1005,7 @@ int main() {
                 auto response = network::local_usb_ap_request(request, identities.device_id(),
                     service.status().boot_id, browser_api.revision(),
                     scheduler.idle() && !activity.owned && !activity.output_active &&
-                        activity.state != wtp::State::Failed && radio_identity_ok);
+                        activity.state != execution::State::Failed && radio_identity_ok);
                 if (response.status == 202)
                     usb_ap_transaction = transaction;
                 return response;
@@ -1025,8 +1025,8 @@ int main() {
         });
     std::array<std::uint8_t, 64> management_input{};
     std::size_t management_size = 0, management_offset = 0;
-    wsprrypico::wtp::reclaim_optional_memory = [] {
-        // Serialized WTP admission owns priority over optional paged buffers.
+    wsprrypico::execution::reclaim_optional_memory = [] {
+        // Serialized native admission owns priority over optional paged buffers.
         // Cancels this transaction's undelivered effects; durable settings and
         // accepted UTC stay authoritative and require normal readback.
         usb_management.disconnect();
@@ -1040,14 +1040,14 @@ int main() {
         std::uint64_t* at;
         wsprrypico::provisioning::AccessStore* access;
         const wsprrypico::provisioning::LocalIdentity* identity;
-        wsprrypico::wtp::JobService* service;
+        wsprrypico::execution::JobService* service;
         wsprrypico::network::PicoServer* server;
     } recovery_reset_context{
         &reset_coordinator, &scheduler, &recovery_reset_at, &access_store, &local_identity,
         &service,           &server};
     bootstrap.reset_control(
         +[](wsprrypico::provisioning::ResetLevel level,
-            const wsprrypico::wtp::PayloadDigest& digest, void* context) {
+            const wsprrypico::execution::PayloadDigest& digest, void* context) {
             auto& state = *static_cast<RecoveryResetContext*>(context);
             if (!state.scheduler->idle() ||
                 !wsprrypico::provisioning::idle_for_access(provisioning_activity(state.service)))
@@ -1127,14 +1127,14 @@ int main() {
             if (response.status != 200)
                 return response.body + "\n";
             response.body.pop_back();
-            return response.body + ",\"revision\":" + wsprrypico::wtp::json::quote(response.etag) +
+            return response.body + ",\"revision\":" + wsprrypico::execution::json::quote(response.etag) +
                    "}\n";
         }
         if (text.starts_with("SYSLOG SAVE ")) {
             if (!local_usb_ready())
                 return "{\"error\":\"usb_control_unavailable\"}\n";
-            const auto root = wsprrypico::wtp::json::parse(text.substr(12));
-            if (!root || !wsprrypico::wtp::json::fields(*root, {"revision", "resource"}) ||
+            const auto root = wsprrypico::execution::json::parse(text.substr(12));
+            if (!root || !wsprrypico::execution::json::fields(*root, {"revision", "resource"}) ||
                 root->get("revision")->type() != '"')
                 return "{\"error\":\"invalid_logging_save\"}\n";
             wsprrypico::network::HttpRequest request;
@@ -1149,9 +1149,9 @@ int main() {
             auto& trace = wsprrypico::runtime::activity_trace();
             const auto identity_reply = [&]() {
                 return "{\"ok\":true,\"schema\":\"wsprrypico-activity-trace/1\",\"device_id\":" +
-                       wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
-                       wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
-                       ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id);
+                       wsprrypico::execution::json::quote(identities.device_id()) + ",\"revision\":" +
+                       wsprrypico::execution::json::quote(wsprrypico::firmware::kBuildRevision) +
+                       ",\"boot_id\":" + wsprrypico::execution::json::quote(service.status().boot_id);
             };
             const auto safety_guard = [&]() {
 #ifdef WSPRRY_PICO_STANDALONE_RF
@@ -1161,7 +1161,7 @@ int main() {
                 return !recovery && !reboot_at && !bootstrap.setup_pending() && store.healthy() &&
                        profile_store.healthy() && access_store.healthy() &&
                        runtime_profile_ready() &&
-                       service.status().state == wsprrypico::wtp::State::Empty && !activity.owned &&
+                       service.status().state == wsprrypico::execution::State::Empty && !activity.owned &&
                        !activity.output_active && scheduler.idle() &&
                        (!store.config() || !store.config()->enabled) && !engine.output_active();
 #endif
@@ -1210,7 +1210,7 @@ int main() {
                     std::to_string(record.sequence) + "\",\"span\":\"" +
                     std::to_string(record.span) + "\",\"monotonic_ns\":\"" +
                     std::to_string(record.monotonic_ns) + "\",\"kind\":" +
-                    wsprrypico::wtp::json::quote(
+                    wsprrypico::execution::json::quote(
                         wsprrypico::runtime::activity_kind_name(record.kind)) +
                     ",\"phase\":\"" +
                     (record.phase == wsprrypico::runtime::ActivityPhase::Begin ? "begin" : "end") +
@@ -1263,10 +1263,10 @@ int main() {
             auto result = wsprrypico::usb::ConsoleResponse::paged();
             result +=
                 "{\"ok\":true,\"device_id\":" +
-                wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
-                wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
+                wsprrypico::execution::json::quote(identities.device_id()) + ",\"revision\":" +
+                wsprrypico::execution::json::quote(wsprrypico::firmware::kBuildRevision) +
                 ",\"firmware\":" +
-                wsprrypico::wtp::json::quote(wsprrypico::firmware::kFirmwareVersion) +
+                wsprrypico::execution::json::quote(wsprrypico::firmware::kFirmwareVersion) +
                 ",\"deployment_identity_matches\":" + (deployment_matches ? "true" : "false") +
                 ",\"recovery_boot\":" + (recovery ? "true" : "false");
             result += ",\"provisioning_source\":";
@@ -1293,7 +1293,7 @@ int main() {
             result += runtime_profile.consumer_readback_json();
             result += ",\"radio_identity_valid\":";
             result += derived_identity ? "true" : "false";
-            result += ",\"local_suffix\":" + wsprrypico::wtp::json::quote(local_identity.suffix);
+            result += ",\"local_suffix\":" + wsprrypico::execution::json::quote(local_identity.suffix);
             result += ",\"access_state\":";
             switch (access_store.state()) {
             case wsprrypico::provisioning::AccessStoreState::Unloaded:
@@ -1537,7 +1537,7 @@ int main() {
             for (std::size_t i = 0; i < bt_pools.size(); ++i) {
                 if (i)
                     result += ',';
-                result += wsprrypico::wtp::json::quote(bt_names[i]) +
+                result += wsprrypico::execution::json::quote(bt_names[i]) +
                           ":{\"used\":" + std::to_string(bt_pools[i].used);
                 number_field(result, "capacity", bt_pools[i].capacity);
                 number_field(result, "peak", bt_pools[i].peak);
@@ -1677,7 +1677,7 @@ int main() {
             number_field(result, "max_loop_us", max_loop_us);
             number_field(result, "max_authority_poll_us", max_refill_us);
             number_field(result, "max_usb_us", max_usb_us);
-            result += ",\"engine_diagnostic\":" + wsprrypico::wtp::json::quote(engine.diagnostic());
+            result += ",\"engine_diagnostic\":" + wsprrypico::execution::json::quote(engine.diagnostic());
 #endif
             auto status = scheduler.status();
             if (!status.empty() && status.back() == '\n')
@@ -1724,9 +1724,9 @@ int main() {
             if (requested != identities.device_id() || recovery || reboot_at ||
                 gp14_button.fault() || engine.safety_inhibited() || !network.initialized() ||
                 indicator.status(time_us_64() / 1000ULL).output_fault ||
-                (probe ? activity.state != wsprrypico::wtp::State::Empty
-                       : activity.state != wsprrypico::wtp::State::Armed &&
-                             activity.state != wsprrypico::wtp::State::Running) ||
+                (probe ? activity.state != wsprrypico::execution::State::Empty
+                       : activity.state != wsprrypico::execution::State::Armed &&
+                             activity.state != wsprrypico::execution::State::Running) ||
                 (!probe && (nonce.size() != 32 ||
                             nonce.find_first_not_of("0123456789abcdef") != std::string_view::npos)))
                 return "{\"ok\":false,\"error\":\"rf_cue_refused\"}\n";
@@ -1742,8 +1742,8 @@ int main() {
             const auto activity = service.activity();
             if (text.substr(13) != identities.device_id() || gp14_rf_busy_used || recovery ||
                 reboot_at || gp14_button.fault() || engine.safety_inhibited() ||
-                (activity.state != wsprrypico::wtp::State::Armed &&
-                 activity.state != wsprrypico::wtp::State::Running))
+                (activity.state != wsprrypico::execution::State::Armed &&
+                 activity.state != wsprrypico::execution::State::Running))
                 return "{\"ok\":false,\"error\":\"rf_busy_refused\"}\n";
             gp14_rf_busy_used = true;
             watchdog_update();
@@ -1865,10 +1865,10 @@ int main() {
             else if (access_store.state() == wsprrypico::provisioning::AccessStoreState::Fault)
                 state = "fault";
             return "{\"ok\":true,\"device_id\":" +
-                   wsprrypico::wtp::json::quote(identities.device_id()) +
-                   ",\"station_mac\":" + wsprrypico::wtp::json::quote(network.station_mac()) +
-                   ",\"suffix\":" + wsprrypico::wtp::json::quote(local_identity.suffix) +
-                   ",\"state\":" + wsprrypico::wtp::json::quote(state) +
+                   wsprrypico::execution::json::quote(identities.device_id()) +
+                   ",\"station_mac\":" + wsprrypico::execution::json::quote(network.station_mac()) +
+                   ",\"suffix\":" + wsprrypico::execution::json::quote(local_identity.suffix) +
+                   ",\"state\":" + wsprrypico::execution::json::quote(state) +
                    ",\"generation\":" + std::to_string(access_store.sequence()) +
                    ",\"default_password\":" +
                    (access_store.record() && access_store.record()->default_password ? "true"
@@ -1934,7 +1934,7 @@ int main() {
             binding.nonce = std::to_string(time_us_64());
             binding.current_generation = access_store.sequence();
             binding.target_generation = access_store.sequence() + 1;
-            binding.parameters = wsprrypico::wtp::sha256(
+            binding.parameters = wsprrypico::execution::sha256(
                 std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
             const auto now = time_us_64() / 1000ULL;
             auto code = local_access.confirm_local(binding, now);
@@ -1969,7 +1969,7 @@ int main() {
             const auto result = service.local_abort();
             return result.ok
                        ? scheduler.status()
-                       : "{\"ok\":false,\"error\":" + wsprrypico::wtp::error_json(result.error) +
+                       : "{\"ok\":false,\"error\":" + wsprrypico::execution::error_json(result.error) +
                              "}\n";
         }
         if (text == "REBOOT" || text == "BOOTSEL") {
@@ -2005,9 +2005,9 @@ int main() {
 #ifndef WSPRRY_PICO_STANDALONE_RF
         if (text == "NETLINK") {
             return "{\"ok\":true,\"device_id\":" +
-                   wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
-                   wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
-                   ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id) +
+                   wsprrypico::execution::json::quote(identities.device_id()) + ",\"revision\":" +
+                   wsprrypico::execution::json::quote(wsprrypico::firmware::kBuildRevision) +
+                   ",\"boot_id\":" + wsprrypico::execution::json::quote(service.status().boot_id) +
                    ",\"association\":" + network.association() + "}\n";
         }
         if (text.starts_with("NETTRACE ")) {
@@ -2018,9 +2018,9 @@ int main() {
             if (parsed.ec != std::errc{} || parsed.ptr != cursor.data() + cursor.size())
                 return "{\"ok\":false,\"error\":\"trace_cursor\"}\n";
             return "{\"ok\":true,\"device_id\":" +
-                   wsprrypico::wtp::json::quote(identities.device_id()) + ",\"revision\":" +
-                   wsprrypico::wtp::json::quote(wsprrypico::firmware::kBuildRevision) +
-                   ",\"boot_id\":" + wsprrypico::wtp::json::quote(service.status().boot_id) +
+                   wsprrypico::execution::json::quote(identities.device_id()) + ",\"revision\":" +
+                   wsprrypico::execution::json::quote(wsprrypico::firmware::kBuildRevision) +
+                   ",\"boot_id\":" + wsprrypico::execution::json::quote(service.status().boot_id) +
                    ",\"trace\":" + network.trace_page(after) + "}\n";
         }
 #endif
@@ -2106,7 +2106,7 @@ int main() {
                 !bootstrap.setup_pending() && !bootstrap.owner_claim_pending() &&
                 !reset_coordinator.pending() && !browser_api.mutation_pending() &&
                 !update_activity.owned && !update_activity.output_active &&
-                update_activity.state == wsprrypico::wtp::State::Empty
+                update_activity.state == wsprrypico::execution::State::Empty
 #ifdef WSPRRY_PICO_STANDALONE_RF
                 && !engine.safety_inhibited()
 #endif
@@ -2153,7 +2153,7 @@ int main() {
         watchdog_update();
         watchdog_hw->scratch[1] = 3;
 #ifdef WSPRRY_PICO_STANDALONE_RF
-        const bool measuring = service.activity().state == wsprrypico::wtp::State::Running;
+        const bool measuring = service.activity().state == wsprrypico::execution::State::Running;
         const auto loop_us = time_us_64();
         if (measuring && last_loop_us)
             maximum(max_loop_us, last_loop_us);
@@ -2210,8 +2210,8 @@ int main() {
             server.set_admission(runtime_profile_ready() && !bootstrap.setup_pending() &&
                                  !reboot_at);
         if (consumer_browser_selected() || server.listening() ||
-            (network_state != wsprrypico::wtp::State::Armed &&
-             network_state != wsprrypico::wtp::State::Running))
+            (network_state != wsprrypico::execution::State::Armed &&
+             network_state != wsprrypico::execution::State::Running))
             network.poll();
 #ifdef WSPRRY_PICO_STANDALONE_RF
         if (boot_pins.engine == wsprrypico::hardware::PinPlan::Engine::I2c &&
@@ -2339,7 +2339,7 @@ int main() {
         softap_coordinator.reply_active(server.softap_active() || bootstrap.reply_active());
         const bool request_softap = softap_coordinator.poll(field_now_ms);
         const auto surface = softap_coordinator.surface(
-            service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized);
+            service.clock_snapshot().state != wsprrypico::execution::ClockState::Unsynchronized);
         const auto access_activity = provisioning_activity(&service);
         const bool consumer_ap = bootstrap_started && consumer_browser_selected();
         const bool deliberate_recovery =
@@ -2353,7 +2353,7 @@ int main() {
                                  : access_store.record()
                                      ? std::string_view(access_store.record()->password)
                                      : std::string_view{};
-        const auto next_ap_digest = wsprrypico::wtp::sha256(std::span(
+        const auto next_ap_digest = wsprrypico::execution::sha256(std::span(
             reinterpret_cast<const std::uint8_t*>(ap_password.data()), ap_password.size()));
         const bool ap_transition_safe =
             wsprrypico::network::consumer_radio_network_idle(access_activity);
@@ -2401,11 +2401,11 @@ int main() {
              : consumer_browser_selected() ? wsprrypico::network::ManagementProfile::Consumer
                                            : wsprrypico::network::ManagementProfile::Engineering,
              runtime_profile_ready() ? runtime_profile.generation() : 0,
-             (service.clock_snapshot().state == wsprrypico::wtp::ClockState::Unsynchronized ||
+             (service.clock_snapshot().state == wsprrypico::execution::ClockState::Unsynchronized ||
               !service.clock_snapshot().utc_now_ns),
              !consumer_browser_selected() && station_ready && server.listening() &&
                  server.engineering_management_admitted() &&
-                 service.clock_snapshot().state != wsprrypico::wtp::ClockState::Unsynchronized &&
+                 service.clock_snapshot().state != wsprrypico::execution::ClockState::Unsynchronized &&
                  service.clock_snapshot().utc_now_ns != 0,
              !consumer_browser_selected() && softap.ready() && server.listening() &&
                  server.engineering_management_admitted() &&
@@ -2465,7 +2465,7 @@ int main() {
             (station_ready &&
              ((network.accepted_sntp() && time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Sntp) ||
                time_arbiter.status().source == wsprrypico::time::ActiveTimeSource::Gps) &&
-             clock_now.state == wsprrypico::wtp::ClockState::Synchronized &&
+             clock_now.state == wsprrypico::execution::ClockState::Synchronized &&
              clock_now.utc_now_ns != 0);
         // Offline station saves retain a TLS-pending journal. Mint only after
         // fresh accepted SNTP, while idle, then restart into the durable profile.
@@ -2488,8 +2488,8 @@ int main() {
         const bool server_attempt_due = network_hostname_ready && !server_start_attempted;
         if (server_attempt_due && deployment_matches && network.initialized() &&
             (!consumer_local_profile || consumer_tls_time_ready) &&
-            network_state != wsprrypico::wtp::State::Armed &&
-            network_state != wsprrypico::wtp::State::Running) {
+            network_state != wsprrypico::execution::State::Armed &&
+            network_state != wsprrypico::execution::State::Running) {
             server_start_attempted = true;
             (void)server.start();
         }
@@ -2555,14 +2555,14 @@ int main() {
         const auto log_activity = service.activity();
         const auto log_clock = service.clock_snapshot();
         const auto log_mono = time_us_64() * 1000ULL;
-        const auto log_utc = log_clock.state == wsprrypico::wtp::ClockState::Unsynchronized
+        const auto log_utc = log_clock.state == wsprrypico::execution::ClockState::Unsynchronized
                                  ? 0
                                  : log_clock.utc_now_ns;
         if (log_activity.state != logged_activity.state ||
             log_activity.owned != logged_activity.owned ||
             log_activity.output_active != logged_activity.output_active) {
-            logger.event(log_activity.state == wsprrypico::wtp::State::Failed ? 3 : 6, "JOB_STATE",
-                         wsprrypico::wtp::state_name(log_activity.state), log_mono, log_utc);
+            logger.event(log_activity.state == wsprrypico::execution::State::Failed ? 3 : 6, "JOB_STATE",
+                         wsprrypico::execution::state_name(log_activity.state), log_mono, log_utc);
             logged_activity = log_activity;
         }
         clock_logger.observe(logger, log_clock, log_mono);

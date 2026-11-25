@@ -2,7 +2,7 @@
 
 #include "provisioning/activation.hpp"
 #include "provisioning/storage.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 #include <array>
 #include <cstdint>
@@ -32,7 +32,7 @@ struct ResetIntent {
     ResetLevel level = ResetLevel::None;
     ResetPhase phase = ResetPhase::None;
     ProfileSource target_source = ProfileSource::Unprovisioned;
-    wtp::PayloadDigest request_digest{};
+    execution::PayloadDigest request_digest{};
     bool pending() const {
         return level != ResetLevel::None;
     }

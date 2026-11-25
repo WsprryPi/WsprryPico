@@ -208,7 +208,7 @@ int main(int argc, char** argv) {
             check(hex.size() == 64 && std::all_of(hex.begin(), hex.end(), [](char c) {
                       return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
                   }));
-            wtp::PayloadDigest digest{};
+            execution::PayloadDigest digest{};
             for (std::size_t i = 0; i < digest.size(); ++i) {
                 unsigned byte = 0;
                 const auto parsed =

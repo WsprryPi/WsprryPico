@@ -1,7 +1,7 @@
 #include "network/bootstrap_codec.hpp"
 #include "network/http.hpp"
 #include "network/owner_claim_http.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <array>
 #include <cassert>
@@ -92,8 +92,8 @@ int main() {
     const auto cipher_key = network::bootstrap_b64url(ciphertext);
     const auto tag_key = network::bootstrap_b64url(tag);
     const auto start_body = std::string("{\"version\":1,\"device_id\":\"") + device +
-                            "\",\"owner_public_key\":" + wtp::json::quote(owner_key) +
-                            ",\"browser_public_key\":" + wtp::json::quote(browser_key) +
+                            "\",\"owner_public_key\":" + execution::json::quote(owner_key) +
+                            ",\"browser_public_key\":" + execution::json::quote(browser_key) +
                             ",\"browser_nonce\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"," +
                             "\"profile_source\":4,\"generation\":\"1\"}";
     auto start = post("/api/owner/v1/claim/start", start_body);
@@ -155,9 +155,9 @@ int main() {
     const auto submit_body = std::string("{\"version\":1,\"device_id\":\"") + device +
                              "\",\"boot_id\":\"" + boot + "\",\"slot_id\":\"" + slot +
                              "\",\"request_id\":\"" + request_id +
-                             "\",\"aead_nonce\":" + wtp::json::quote(nonce_key) +
-                             ",\"ciphertext\":" + wtp::json::quote(cipher_key) +
-                             ",\"tag\":" + wtp::json::quote(tag_key) + "}";
+                             "\",\"aead_nonce\":" + execution::json::quote(nonce_key) +
+                             ",\"ciphertext\":" + execution::json::quote(cipher_key) +
+                             ",\"tag\":" + execution::json::quote(tag_key) + "}";
     auto submit = post("/api/owner/v1/claim/submit", submit_body);
     assert(parsed(submit));
     assert(network::parse_owner_claim_submit(submit));

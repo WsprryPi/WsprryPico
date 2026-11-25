@@ -2,7 +2,7 @@
 #pragma once
 #include "hardware/si5351_qualification.hpp"
 #include "rf/si5351_engine.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 
 namespace synthesis_tone_test {
 using namespace wsprrypico;
@@ -86,7 +86,7 @@ struct Fixture {
     rf::si5351::Engine raw;
     standalone::FrequencyPolicyEngine policy;
     network_test::Identity identity;
-    wtp::JobService service;
+    execution::JobService service;
     standalone::Scheduler scheduler;
     network_test::Network network;
     network::BrowserApi api;
@@ -116,7 +116,7 @@ struct Fixture {
               nullptr, ordinary_profile),
           policy(raw, store, 8'000'000'000'000ULL, 160'000'000'000'000'000ULL, ordinary_profile),
           service(clock, policy, identity,
-                  standalone::wtp_profile(true, standalone::default_ntp_timeout_s,
+                  standalone::execution_profile(true, standalone::default_ntp_timeout_s,
                                           hardware::PinPlan::Engine::I2c, settings.engineering,
                                           ordinary_profile)),
           scheduler(store, service),
@@ -163,16 +163,16 @@ struct Fixture {
 };
 inline std::string job_field(const network::HttpResponse& response, std::string_view field) {
     const auto text = response.body_text();
-    const auto document = wtp::json::parse(text);
+    const auto document = execution::json::parse(text);
     REQUIRE(document);
     return document->get("job")->get(field)->string();
 }
 inline std::uint64_t launch(const network::HttpResponse& response) {
     std::uint64_t at = 0;
     const auto text = response.body_text();
-    const auto document = wtp::json::parse(text);
+    const auto document = execution::json::parse(text);
     REQUIRE(document);
-    REQUIRE(wtp::json::decimal(*document->get("job")->get("scheduled_monotonic_ns"), at));
+    REQUIRE(execution::json::decimal(*document->get("job")->get("scheduled_monotonic_ns"), at));
     return at;
 }
 inline std::vector<std::string> exercise() {

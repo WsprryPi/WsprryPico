@@ -1,0 +1,1115 @@
+#include "rf/job_service.hpp"
+
+#include "runtime/activity_trace.hpp"
+#include "time/mapping.hpp"
+#include "rf/arm_admission.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
+
+#include <algorithm>
+#include <array>
+#include <limits>
+
+namespace wsprrypico::execution {
+namespace {
+
+constexpr std::uint64_t kNanosecondsPerMillisecond = 1'000'000ULL;
+constexpr std::uint64_t kLeapExclusionNs = 1'000'000'000ULL;
+constexpr std::uint64_t kMaximumOutputDisableTimeoutNs = 5'000'000'000ULL;
+constexpr std::uint64_t kMaximumArmAheadNs = 604'800'000'000'000ULL;
+constexpr std::size_t kMaximumSessions = 16;
+
+std::uint64_t saturating_add(std::uint64_t left, std::uint64_t right) {
+    if (right > std::numeric_limits<std::uint64_t>::max() - left) {
+        return std::numeric_limits<std::uint64_t>::max();
+    }
+    return left + right;
+}
+
+bool contains(const std::vector<std::string>& values, std::string_view expected) {
+    return std::find(values.begin(), values.end(), expected) != values.end();
+}
+
+bool unique(const std::vector<std::string>& values) {
+    for (auto current = values.begin(); current != values.end(); ++current) {
+        if (std::find(values.begin(), current, *current) != current) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool capability_text(std::string_view text) {
+    return !text.empty() && std::all_of(text.begin(), text.end(), [](char character) {
+        return (character >= 'a' && character <= 'z') || (character >= '0' && character <= '9') ||
+               character == '-';
+    });
+}
+
+} // namespace
+
+// Hash typed job values, independent of JSON member ordering/escaping. Retain
+// this compact identity instead of keeping eight complete 512-event jobs.
+void JobDigestBuilder::number(std::uint64_t n) {
+    std::array<std::uint8_t, 8> bytes{};
+    for (unsigned i = 0; i < 8; ++i)
+        bytes[i] = static_cast<std::uint8_t>(n >> (i * 8));
+    digest_.update(bytes);
+}
+void JobDigestBuilder::text(std::string_view value) {
+    number(value.size());
+    digest_.update({reinterpret_cast<const std::uint8_t*>(value.data()), value.size()});
+}
+JobDigestBuilder::JobDigestBuilder(const Job& job, std::size_t count) {
+    text(job.job_id);
+    text(job.profile);
+    text(job.mode);
+    number(job.total_duration_ns);
+    number(job.allow_frequency_adjustment);
+    number(count);
+}
+void JobDigestBuilder::append(const RfEvent& event) {
+    number(event.offset_ns);
+    number(event.duration_ns);
+    number(event.rf_on);
+    number(event.frequency_nhz.has_value());
+    number(event.frequency_nhz.value_or(0));
+}
+PayloadDigest job_digest(const Job& job) {
+    JobDigestBuilder digest(job, job.events.size());
+    for (const auto& event : job.events)
+        digest.append(event);
+    return digest.finish();
+}
+
+JobService::JobService(Clock& clock, RfEngine& engine, IdentitySource& identities,
+                       ServiceConfig config)
+    : clock_(clock), engine_(engine), identities_(identities), config_(config),
+      boot_id_(identities_.new_boot_id()) {
+    // CAPS and admission share the same immutable boot-local preparation bound.
+    // Report the boot-time bound through the native execution descriptor.
+    if (const auto lead = engine_.amplifier_lead_ns())
+        config_.minimum_arm_lead_ns =
+            std::max(config_.minimum_arm_lead_ns, saturating_add(lead, 2'000'000));
+    if (const auto filters = engine_.filter_preparation_ns())
+        config_.minimum_arm_lead_ns = std::max(
+            config_.minimum_arm_lead_ns,
+            saturating_add(saturating_add(filters, engine_.amplifier_lead_ns()), 3'000'000));
+    const bool configuration_valid =
+        capability_text(config_.capability_engine) && !config_.supported_modes.empty() &&
+        unique(config_.supported_modes) &&
+        std::all_of(config_.supported_modes.begin(), config_.supported_modes.end(),
+                    capability_text) &&
+        config_.minimum_frequency_nhz > 0 &&
+        config_.minimum_frequency_nhz <= config_.maximum_frequency_nhz && config_.max_events > 0 &&
+        config_.max_events <= 512 && config_.max_job_duration_ns > 0 &&
+        config_.max_job_duration_ns <= 86'400'000'000'000ULL && config_.maximum_arm_ahead_ns > 0 &&
+        config_.maximum_arm_ahead_ns <= kMaximumArmAheadNs &&
+        config_.minimum_arm_lead_ns <= config_.maximum_arm_ahead_ns &&
+        config_.output_disable_timeout_ns > 0 &&
+        config_.output_disable_timeout_ns <= kMaximumOutputDisableTimeoutNs &&
+        config_.response_cache_entries >= 8 &&
+        config_.response_cache_ttl_ns >= 300'000'000'000ULL &&
+        config_.terminal_record_entries >= 8 &&
+        config_.terminal_record_ttl_ns >= 3'600'000'000'000ULL;
+    const auto now = clock_.snapshot().monotonic_now_ns;
+    const auto shutdown_timeout =
+        config_.output_disable_timeout_ns > 0 &&
+                config_.output_disable_timeout_ns <= kMaximumOutputDisableTimeoutNs
+            ? config_.output_disable_timeout_ns
+            : ServiceConfig{}.output_disable_timeout_ns;
+    ready_ = engine_.disable(saturating_add(now, shutdown_timeout)) && !engine_.output_active() &&
+             configuration_valid && valid_id(boot_id_);
+    if (!ready_) {
+        state_ = State::Failed;
+    }
+}
+
+Response JobService::handle(const Request& request) {
+    Request copy = request;
+    return handle_owned(copy);
+}
+
+Response JobService::handle(Request&& request) {
+    return handle_owned(request);
+}
+
+Response JobService::handle_internal(Request&& request, ExecutionVerifier verify,
+                                     const void* context) {
+    struct Clear {
+        ExecutionVerifier& verifier;
+        const void*& context;
+        ~Clear() {
+            verifier = nullptr;
+            context = nullptr;
+        }
+    } clear{arm_verifier_, arm_verifier_context_};
+    arm_verifier_ = verify;
+    arm_verifier_context_ = context;
+    return handle_owned(request, false);
+}
+
+Response JobService::handle_internal_test_tone_load(Request&& request) {
+    return handle_owned(request, false, LoadPurpose::NativeTestTone);
+}
+
+Response JobService::handle_owned(Request& request, bool retain_response, LoadPurpose purpose) {
+    const auto now = clock_.snapshot();
+    runtime::ActivitySpan status_span(
+        runtime::activity_trace(), runtime::ActivityKind::Status,
+        [this] { return clock_.snapshot().monotonic_now_ns; }, request.operation == "STATUS");
+    expire_resources(now.monotonic_now_ns);
+    prune_replay(now.monotonic_now_ns);
+    prune_terminals(now.monotonic_now_ns);
+    prune_sessions(now.monotonic_now_ns);
+
+    if (!ready_) {
+        return reject(ErrorCode::DeviceFault);
+    }
+
+    if (!valid_id(request.session_id) || !valid_id(request.request_id) ||
+        std::all_of(request.payload_digest.begin(), request.payload_digest.end(),
+                    [](std::uint8_t byte) { return byte == 0; })) {
+        return reject(ErrorCode::InvalidMessage);
+    }
+    if (request.principal.empty()) {
+        return reject(ErrorCode::AuthenticationRequired);
+    }
+    if (request.protocol != session_version) {
+        auto response = reject(ErrorCode::UnsupportedVersion);
+        response.close_connection = true;
+        return response;
+    }
+    // Check before replay as well as dispatch. An earlier successful ARM must
+    // never be acknowledged as a live permission after a physical stop.
+    if ((output_inhibited_ || maintenance()) &&
+        (request.operation == "CLAIM" || request.operation == "RENEW" ||
+         request.operation == "LOAD" || request.operation == "ARM"))
+        return reject(ErrorCode::Busy);
+
+    auto session = std::find_if(sessions_.begin(), sessions_.end(), [&](const Session& candidate) {
+        return candidate.session_id == request.session_id;
+    });
+    if (request.operation == "HELLO") {
+        const auto* body = std::get_if<HelloBody>(&request.body);
+        if (body == nullptr || body->versions.empty() || body->versions.size() > 16 ||
+            !std::all_of(body->versions.begin(), body->versions.end(), [](std::string_view version) {
+                constexpr std::string_view prefix = "native-execution/";
+                if (!version.starts_with(prefix)) return false;
+                const auto major = version.substr(prefix.size());
+                return !major.empty() && major.front() != '0' && std::all_of(major.begin(), major.end(),
+                    [](char digit) { return digit >= '0' && digit <= '9'; });
+            }) ||
+            !unique(body->versions)) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        if (!contains(body->versions, session_version)) {
+            auto response = reject(ErrorCode::UnsupportedVersion);
+            response.close_connection = true;
+            return response;
+        }
+        if (session != sessions_.end() && session->principal != request.principal) {
+            return reject(ErrorCode::AuthenticationRequired);
+        }
+        if (session == sessions_.end()) {
+            if (!request.body_valid)
+                return reject(ErrorCode::InvalidMessage);
+            if (sessions_.size() >= kMaximumSessions) {
+                return reject(ErrorCode::Busy);
+            }
+            sessions_.push_back({request.session_id, request.principal, now.monotonic_now_ns});
+        } else {
+            session->last_seen_monotonic_ns = now.monotonic_now_ns;
+        }
+    } else {
+        if (session == sessions_.end()) {
+            return reject(ErrorCode::HelloRequired);
+        }
+        if (session->principal != request.principal) {
+            return reject(ErrorCode::AuthenticationRequired);
+        }
+        session->last_seen_monotonic_ns = now.monotonic_now_ns;
+    }
+
+    bool replay_conflict = false;
+    if (auto cached = replay(request, now.monotonic_now_ns, replay_conflict)) {
+        return *cached;
+    }
+    if (replay_conflict) {
+        auto response = reject(ErrorCode::RequestIdReuse);
+        response.close_connection = true;
+        return response;
+    }
+
+    auto response = dispatch(request, purpose);
+    if (retain_response)
+        remember(request, response, now.monotonic_now_ns);
+    return response;
+}
+
+Response JobService::dispatch(Request& request, LoadPurpose purpose) {
+    const auto now = clock_.snapshot();
+    constexpr std::array<std::string_view, 11> operations{"HELLO",   "CAPS",      "CLAIM", "RENEW",
+                                                          "RELEASE", "LOAD",      "ARM",   "ABORT",
+                                                          "STATUS",  "GET_CLOCK", "PING"};
+    if (std::find(operations.begin(), operations.end(), request.operation) == operations.end())
+        return reject(ErrorCode::UnknownOperation);
+    if (!request.body_valid)
+        return reject(ErrorCode::InvalidMessage);
+    if (request.operation == "HELLO" || request.operation == "CAPS" ||
+        request.operation == "STATUS" || request.operation == "GET_CLOCK" ||
+        request.operation == "PING") {
+        const auto* ping = std::get_if<PingBody>(&request.body);
+        const bool empty_body = std::holds_alternative<std::monostate>(request.body);
+        const bool valid_ping =
+            request.operation == "PING" &&
+            (empty_body || (ping != nullptr && (!ping->token || ping->token->size() <= 64)));
+        if (request.operation != "HELLO" && request.operation != "PING" && !empty_body) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        if (request.operation == "PING" && !valid_ping) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        auto response = success();
+        response.boot_id = boot_id_;
+        if (request.operation == "STATUS")
+            response.status_snapshot = status();
+        if (request.operation == "GET_CLOCK")
+            response.clock_snapshot = now;
+        if (ping != nullptr) {
+            response.ping_token = ping->token;
+        }
+        return response;
+    }
+    if (request.operation == "CLAIM") {
+        const auto* body = std::get_if<ClaimBody>(&request.body);
+        if (body == nullptr || !valid_id(body->owner_id) || body->lease_ms < 5000 ||
+            body->lease_ms > 60000) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        if (owner_) {
+            return reject(ErrorCode::Busy);
+        }
+        engine_.calibration_boundary();
+        owner_ =
+            Owner{body->owner_id, request.session_id, request.principal,
+                  saturating_add(now.monotonic_now_ns, static_cast<std::uint64_t>(body->lease_ms) *
+                                                           kNanosecondsPerMillisecond),
+                  false};
+        auto response = success();
+        response.owner_id = owner_->owner_id;
+        response.granted_lease_ms = body->lease_ms;
+        response.expires_monotonic_ns = owner_->expires_monotonic_ns;
+        return response;
+    }
+
+    constexpr std::array<std::string_view, 5> owner_operations{"RENEW", "RELEASE", "LOAD", "ARM",
+                                                               "ABORT"};
+    if (std::find(owner_operations.begin(), owner_operations.end(), request.operation) ==
+        owner_operations.end()) {
+        return reject(ErrorCode::UnknownOperation);
+    }
+    if ((request.operation == "RENEW" && std::get_if<RenewBody>(&request.body) == nullptr) ||
+        (request.operation == "RELEASE" && !std::holds_alternative<std::monostate>(request.body)) ||
+        (request.operation == "LOAD" && std::get_if<Job>(&request.body) == nullptr) ||
+        (request.operation == "ARM" && std::get_if<ArmBody>(&request.body) == nullptr) ||
+        (request.operation == "ABORT" && std::get_if<AbortBody>(&request.body) == nullptr)) {
+        return reject(ErrorCode::InvalidMessage);
+    }
+    if (!owner_) {
+        return reject(ErrorCode::LeaseExpired);
+    }
+    if (!owns(request)) {
+        return reject(ErrorCode::NotOwner);
+    }
+
+    if (request.operation == "RENEW") {
+        const auto* body = std::get_if<RenewBody>(&request.body);
+        if (body == nullptr || !valid_id(body->owner_id) || body->lease_ms < 5000 ||
+            body->lease_ms > 60000) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        if (body->owner_id != owner_->owner_id) {
+            return reject(ErrorCode::NotOwner);
+        }
+        if (owner_->release_after_terminal) {
+            return reject(ErrorCode::LeaseExpired);
+        }
+        owner_->expires_monotonic_ns =
+            saturating_add(now.monotonic_now_ns,
+                           static_cast<std::uint64_t>(body->lease_ms) * kNanosecondsPerMillisecond);
+        auto response = success();
+        response.owner_id = owner_->owner_id;
+        response.granted_lease_ms = body->lease_ms;
+        response.expires_monotonic_ns = owner_->expires_monotonic_ns;
+        return response;
+    }
+    if (request.operation == "RELEASE") {
+        if (!std::holds_alternative<std::monostate>(request.body)) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        if (state_ == State::Armed || state_ == State::Running || state_ == State::Failed) {
+            return reject(ErrorCode::InvalidState);
+        }
+        clear_job();
+        owner_.reset();
+        engine_.calibration_boundary();
+        return success();
+    }
+    if (request.operation == "LOAD") {
+        auto* body = std::get_if<Job>(&request.body);
+        if (body == nullptr) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        if (engine_.output_active()) {
+            return reject(ErrorCode::InvalidState);
+        }
+        if (state_ == State::Failed) {
+            return reject(ErrorCode::InvalidState);
+        }
+        const auto retained =
+            std::find_if(retained_jobs_.begin(), retained_jobs_.end(),
+                         [&](const RetainedJob& item) { return item.job_id == body->job_id; });
+        if (retained != retained_jobs_.end()) {
+            if (retained->digest != job_digest(*body))
+                return reject(ErrorCode::JobIdConflict);
+            auto response = retained_load_response(*retained);
+            touch_terminal(body->job_id);
+            return response;
+        }
+        if (job_ && job_->job_id == body->job_id) {
+            if (job_digest_ == job_digest(*body)) {
+                auto response = success();
+                response.state = State::Loaded;
+                response.job_id = body->job_id;
+                response.adjustments = adjustments_;
+                return response;
+            }
+            return reject(ErrorCode::JobIdConflict);
+        }
+        if (state_ == State::Armed || state_ == State::Running) {
+            return reject(ErrorCode::InvalidState);
+        }
+        if (const auto error = validate_job(*body); error != ErrorCode::None) {
+            return reject(error);
+        }
+        // The production adapters transfer the already decoded event pages.
+        // Decoded pages are already resident. Reserve the selected engine's
+        // additional preparation/adjustment work rather than charging every
+        // small job for a maximum plan. Serialization has its own paged gate;
+        // memory_admitted still keeps the separate 32 KiB authority/RF reserve.
+        if (!memory_admitted(preparation_memory_bytes(*body)))
+            return reject(ErrorCode::InternalError);
+        const auto accepted_digest = job_digest(*body);
+        Job accepted = std::move(*body);
+        if (!accepted.events.valid())
+            return reject(ErrorCode::InternalError);
+        const auto preparation_failure = [&](ErrorCode error) {
+            // Preparation can allocate/initialize before a later policy or
+            // adjustment refusal. Never orphan that state or hide shutdown failure.
+            if (!engine_.disable(
+                    saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+                engine_.output_active()) {
+                record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+                return reject(ErrorCode::OutputStateUnknown);
+            }
+            return reject(error);
+        };
+        auto preparation = purpose == LoadPurpose::NativeTestTone
+                               ? engine_.prepare_native_test_tone(accepted)
+                               : engine_.prepare(accepted);
+        if (!preparation.accepted)
+            return preparation_failure(ErrorCode::FrequencyRejected);
+        if (!accepted.allow_frequency_adjustment && !preparation.adjustments.empty()) {
+            return preparation_failure(ErrorCode::FrequencyRejected);
+        }
+        for (auto current = preparation.adjustments.begin();
+             current != preparation.adjustments.end(); ++current) {
+            const auto& adjustment = *current;
+            const bool duplicate = std::any_of(
+                preparation.adjustments.begin(), current, [&](const FrequencyAdjustment& prior) {
+                    return prior.event_index == adjustment.event_index;
+                });
+            if (adjustment.event_index >= accepted.events.size() ||
+                !accepted.events[adjustment.event_index].frequency_nhz ||
+                *accepted.events[adjustment.event_index].frequency_nhz !=
+                    adjustment.requested_frequency_nhz ||
+                adjustment.realized_frequency_nhz == 0 || duplicate) {
+                return preparation_failure(ErrorCode::DeviceFault);
+            }
+        }
+        observed_event_count_ = accepted.events.size();
+        observed_frequency_count_ = 0;
+        observed_frequencies_truncated_ = false;
+        for (const auto& event : accepted.events) {
+            if (!event.rf_on || !event.frequency_nhz)
+                continue;
+            const auto end = observed_frequencies_.begin() + observed_frequency_count_;
+            if (std::find(observed_frequencies_.begin(), end, *event.frequency_nhz) != end)
+                continue;
+            if (observed_frequency_count_ < observed_frequencies_.size())
+                observed_frequencies_[observed_frequency_count_++] = *event.frequency_nhz;
+            else
+                observed_frequencies_truncated_ = true;
+        }
+        job_ = std::move(accepted);
+        job_digest_ = accepted_digest;
+        // Different jobs often have the same complete adjustment sequence.
+        // Retain their identities/digests independently while sharing exactly
+        // equal immutable values; eight histories must not multiply this list.
+        const auto identical = std::find_if(
+            retained_jobs_.begin(), retained_jobs_.end(), [&](const RetainedJob& retained) {
+                const auto& values = retained.adjustments;
+                return values.size() == preparation.adjustments.size() &&
+                       (values.empty() ||
+                        std::equal(values.begin(), values.end(), preparation.adjustments.begin()));
+            });
+        adjustments_ = identical == retained_jobs_.end()
+                           ? AdjustmentList(std::move(preparation.adjustments))
+                           : identical->adjustments;
+        arm_.reset();
+        state_ = State::Loaded;
+        auto response = success();
+        response.state = state_;
+        response.job_id = job_->job_id;
+        response.adjustments = adjustments_;
+        return response;
+    }
+    if (request.operation == "ARM") {
+        const auto* body = std::get_if<ArmBody>(&request.body);
+        if (body == nullptr || !valid_id(body->job_id)) {
+            return reject(ErrorCode::InvalidMessage);
+        }
+        const auto retained =
+            std::find_if(retained_jobs_.begin(), retained_jobs_.end(),
+                         [&](const RetainedJob& item) { return item.job_id == body->job_id; });
+        if (retained != retained_jobs_.end()) {
+            if (!retained->arm || retained->arm->start_utc_ns != body->start_utc_ns ||
+                retained->arm->max_uncertainty_ns != body->max_start_uncertainty_ns)
+                return reject(ErrorCode::InvalidState);
+            auto response = arm_response(retained->job_id, *retained->arm);
+            touch_terminal(body->job_id);
+            return response;
+        }
+        if (arm_ && job_ && job_->job_id == body->job_id) {
+            if (arm_->start_utc_ns == body->start_utc_ns &&
+                arm_->max_uncertainty_ns == body->max_start_uncertainty_ns) {
+                return arm_response(job_->job_id, *arm_);
+            }
+            if (state_ == State::Armed || state_ == State::Running) {
+                return reject(ErrorCode::ArmConflict);
+            }
+        }
+        if (!job_ || job_->job_id != body->job_id) {
+            return reject(ErrorCode::JobNotFound);
+        }
+        if (state_ != State::Loaded) {
+            return reject(ErrorCode::InvalidState);
+        }
+        if (engine_.output_active()) {
+            return reject(ErrorCode::InvalidState);
+        }
+        std::uint64_t start_monotonic_ns = 0;
+        if (const auto error = validate_arm(*body, now, start_monotonic_ns);
+            error != ErrorCode::None) {
+            return reject(error);
+        }
+        state_ = State::Armed;
+        arm_ = ArmRecord{body->start_utc_ns, body->max_start_uncertainty_ns, start_monotonic_ns,
+                         now, engine_.schedules_locally()};
+        auto response = arm_response(job_->job_id, *arm_);
+        const auto previous_pad = engine_.pad_observation();
+        const auto previous_synthesis = engine_.synthesis_observation();
+        pad_job_ = job_->job_id;
+        accepted_pad_ = {};
+        accepted_synthesis_ = {};
+        const bool scheduled = !arm_->scheduled_locally ||
+                               engine_.schedule(*job_, start_monotonic_ns,
+                                                {&clock_, body->start_utc_ns,
+                                                 std::min(body->max_start_uncertainty_ns,
+                                                          config_.maximum_arm_uncertainty_ns),
+                                                 config_.maximum_holdover_age_ns});
+        accepted_pad_ = engine_.pad_observation();
+        if (!accepted_pad_.epoch || accepted_pad_.epoch == previous_pad.epoch)
+            accepted_pad_ = {};
+        accepted_synthesis_ = engine_.synthesis_observation();
+        if (!accepted_synthesis_.epoch || accepted_synthesis_.epoch == previous_synthesis.epoch)
+            accepted_synthesis_ = {};
+        const bool pad_valid = !arm_verifier_ || arm_verifier_(accepted_pad_, accepted_synthesis_,
+                                                               arm_verifier_context_);
+        if (!scheduled || !pad_valid || (arm_->scheduled_locally && engine_.output_active())) {
+            arm_.reset();
+            const auto stopped = engine_.disable(
+                saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns));
+            const auto error = stopped && !engine_.output_active() ? ErrorCode::DeviceFault
+                                                                   : ErrorCode::OutputStateUnknown;
+            record_terminal(State::Failed, error, now.monotonic_now_ns);
+            return reject(error);
+        }
+        if (arm_observer_) arm_observer_(*job_, *body, now, request.principal, arm_observer_context_);
+        if (arm_->scheduled_locally)
+            release_execution_input();
+        return response;
+    }
+
+    const auto* body = std::get_if<AbortBody>(&request.body);
+    if (body == nullptr || !valid_id(body->job_id)) {
+        return reject(ErrorCode::InvalidMessage);
+    }
+    return abort_job(body->job_id);
+}
+Response JobService::abort_job(std::string_view job_id) {
+    const auto now = clock_.snapshot();
+    if (!job_ || job_->job_id != job_id) {
+        return reject(ErrorCode::JobNotFound);
+    }
+    if (state_ == State::Aborted) {
+        auto response = success();
+        response.state = State::Aborted;
+        response.job_id = std::string(job_id);
+        return response;
+    }
+    if (state_ == State::Complete || state_ == State::Missed) {
+        return reject(ErrorCode::InvalidState);
+    }
+    if (state_ == State::Failed) {
+        return reject(ErrorCode::OutputStateUnknown);
+    }
+    const auto deadline = saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns);
+    if (!engine_.disable(deadline) || engine_.output_active()) {
+        record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+        return reject(ErrorCode::OutputStateUnknown);
+    }
+    record_terminal(State::Aborted, ErrorCode::None, now.monotonic_now_ns);
+    auto response = success();
+    response.state = State::Aborted;
+    response.job_id = std::string(job_id);
+    return response;
+}
+
+bool JobService::begin_maintenance() {
+    const auto now = clock_.snapshot().monotonic_now_ns;
+    if (!ready_ || output_inhibited_ || maintenance() || owner_ || state_ != State::Empty ||
+        engine_.output_active() || now > UINT64_MAX - 15'000'000'000ULL)
+        return false;
+    maintenance_deadline_ns_ = now + 15'000'000'000ULL;
+    return true;
+}
+
+Response JobService::local_abort() {
+    poll();
+    if (state_ == State::Failed || !ready_)
+        return reject(ErrorCode::OutputStateUnknown);
+    Response response;
+    if (job_ && state_ != State::Complete && state_ != State::Missed)
+        response = abort_job(job_->job_id);
+    else if (engine_.output_active())
+        response = reject(ErrorCode::OutputStateUnknown);
+    else
+        response = success();
+    if (response.ok) {
+        owner_.reset();
+        engine_.calibration_boundary();
+    }
+    return response;
+}
+
+bool JobService::local_inhibit_output() {
+    output_inhibited_ = true;
+    engine_.inhibit_output();
+    const auto aborted = local_abort().ok;
+    const auto now = clock_.snapshot().monotonic_now_ns;
+    const auto disabled = engine_.disable(saturating_add(now, config_.output_disable_timeout_ns));
+    const auto activity = this->activity();
+    return aborted && disabled && !activity.output_active && !activity.owned &&
+           activity.state != State::Armed && activity.state != State::Running &&
+           activity.state != State::Failed;
+}
+
+void JobService::poll() {
+    const auto now = clock_.snapshot();
+    expire_resources(now.monotonic_now_ns);
+    prune_replay(now.monotonic_now_ns);
+    prune_terminals(now.monotonic_now_ns);
+    prune_sessions(now.monotonic_now_ns);
+    std::optional<EngineReport> local_report;
+    if (state_ == State::Armed && arm_ && job_ && arm_->scheduled_locally) {
+        const auto report = engine_.poll(now.monotonic_now_ns);
+        local_report = report;
+        if (report.state == EngineState::Armed &&
+            (!report.output_active || report.chain_phase == ChainPhase::Lead ||
+             report.chain_phase == ChainPhase::Selecting)) {
+            return;
+        }
+        // The local engine has launched, missed, or failed. Process its terminal
+        // report below; foreground polling is not the launch trigger.
+        state_ = State::Running;
+    }
+    if (state_ == State::Armed && arm_ && job_) {
+        if (now.monotonic_now_ns < arm_->start_monotonic_ns) {
+            return;
+        }
+        const bool clock_state_ok =
+            now.state == ClockState::Synchronized ||
+            (now.state == ClockState::Holdover && config_.maximum_holdover_age_ns > 0 &&
+             now.sync_age_ns <= config_.maximum_holdover_age_ns);
+        const bool pending_leap =
+            now.leap == LeapState::InsertPending || now.leap == LeapState::DeletePending;
+        bool leap_ok = now.leap != LeapState::Unknown &&
+                       (pending_leap == now.leap_transition_utc_ns.has_value());
+        std::uint64_t horizon_duration{};
+        const auto horizon_latest = arm_->start_utc_ns + start_window_ns(arm_->start_utc_ns) - 1;
+        leap_ok = leap_ok && time::duration_utc_bound(job_->total_duration_ns, now, horizon_duration) &&
+            horizon_latest < now.valid_until_utc_ns &&
+            horizon_duration < now.valid_until_utc_ns - horizon_latest;
+        if (now.leap_transition_utc_ns) {
+            const auto transition = *now.leap_transition_utc_ns;
+            const auto exclusion_start =
+                transition > kLeapExclusionNs ? transition - kLeapExclusionNs : 0;
+            const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
+            std::uint64_t duration{};
+            const auto latest = arm_->start_utc_ns + start_window_ns(arm_->start_utc_ns) - 1;
+            leap_ok = leap_ok && time::duration_utc_bound(job_->total_duration_ns, now, duration) &&
+                      duration <= std::numeric_limits<std::uint64_t>::max() - latest &&
+                      (arm_->start_utc_ns > exclusion_end || latest + duration < exclusion_start);
+        }
+        const auto delay = now.monotonic_now_ns - arm_->start_monotonic_ns;
+        std::uint64_t mapped{}, utc_delay{};
+        const bool mapping_valid = time::project(now, arm_->start_monotonic_ns, mapped) &&
+                                   time::elapsed_utc(delay, now.rate_ppb, utc_delay, true);
+        const auto utc_error =
+            mapped > arm_->start_utc_ns ? mapped - arm_->start_utc_ns : arm_->start_utc_ns - mapped;
+        const bool clock_ok = mapping_valid && clock_state_ok &&
+                              now.uncertainty_ns <= arm_->max_uncertainty_ns &&
+                              now.uncertainty_ns <= config_.maximum_arm_uncertainty_ns &&
+                              utc_error <= now.uncertainty_ns && leap_ok;
+        if (utc_delay >= start_window_ns(arm_->start_utc_ns) || !clock_ok) {
+            if (!engine_.disable(
+                    saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+                engine_.output_active()) {
+                record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+            } else {
+                record_terminal(State::Missed, ErrorCode::MissedStart, now.monotonic_now_ns);
+            }
+            return;
+        }
+        if (!engine_.begin(*job_, now.monotonic_now_ns)) {
+            if (!engine_.disable(
+                    saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+                engine_.output_active()) {
+                record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+            } else {
+                record_terminal(State::Failed, ErrorCode::DeviceFault, now.monotonic_now_ns);
+            }
+            return;
+        }
+        arm_->launch_monotonic_ns = now.monotonic_now_ns;
+        release_execution_input();
+        state_ = State::Running;
+    }
+    if (state_ != State::Running) {
+        return;
+    }
+    const auto report = local_report ? *local_report : engine_.poll(now.monotonic_now_ns);
+    if (arm_ && report.launch_monotonic_ns)
+        arm_->launch_monotonic_ns = report.launch_monotonic_ns;
+    if (report.state == EngineState::Missed) {
+        if (!engine_.disable(
+                saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+            engine_.output_active()) {
+            record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+        } else {
+            record_terminal(State::Missed, ErrorCode::MissedStart, now.monotonic_now_ns);
+        }
+    } else if (report.state == EngineState::Failed) {
+        if (!engine_.disable(
+                saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+            engine_.output_active()) {
+            record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+        } else {
+            record_terminal(State::Failed, ErrorCode::DeviceFault, now.monotonic_now_ns);
+        }
+    } else if (report.state == EngineState::Complete) {
+        if (!engine_.disable(
+                saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+            engine_.output_active()) {
+            record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+        } else {
+            record_terminal(State::Complete, ErrorCode::None, now.monotonic_now_ns);
+        }
+    } else if (arm_ && job_ &&
+               now.monotonic_now_ns >=
+                   saturating_add(arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns),
+                                  job_->total_duration_ns)) {
+        const auto nominal_end = saturating_add(
+            arm_->launch_monotonic_ns.value_or(arm_->start_monotonic_ns), job_->total_duration_ns);
+        const auto acknowledgement_ns =
+            arm_->scheduled_locally
+                ? std::min(engine_.completion_acknowledgement_ns(),
+                           engine_.externally_controlled_completion()
+                               ? config_.output_disable_timeout_ns
+                               : RfEngine::maximum_completion_acknowledgement_ns)
+                : 0;
+        if (arm_->scheduled_locally && report.state == EngineState::Running &&
+            report.chain_phase == ChainPhase::Tail && report.tail_deadline_monotonic_ns &&
+            engine_.amplifier_tail_ns()) {
+            const auto deadline = *report.tail_deadline_monotonic_ns;
+            const auto observed_now = clock_.snapshot().monotonic_now_ns;
+            if (deadline >= nominal_end &&
+                deadline <= saturating_add(observed_now, engine_.amplifier_tail_ns()) &&
+                now.monotonic_now_ns <= saturating_add(deadline, acknowledgement_ns))
+                return; // RF is verified off; bound tail from that observation.
+        }
+        if (report.state == EngineState::Running && acknowledgement_ns &&
+            now.monotonic_now_ns <= saturating_add(nominal_end, acknowledgement_ns)) {
+            return; // Keep authority/state until the bounded final acknowledgement.
+        }
+        if (!engine_.disable(
+                saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+            engine_.output_active()) {
+            record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+        } else {
+            record_terminal(State::Failed, ErrorCode::DeviceFault, now.monotonic_now_ns);
+        }
+    }
+}
+
+void JobService::reset() {
+    end_maintenance();
+    finish_update_verification();
+    const auto now = clock_.snapshot();
+    const auto stopped =
+        engine_.disable(saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) &&
+        !engine_.output_active();
+    sessions_.clear();
+    owner_.reset();
+    engine_.calibration_boundary();
+    job_.reset();
+    job_digest_ = {};
+    adjustments_.clear();
+    arm_.reset();
+    replay_cache_.clear();
+    terminal_records_.clear();
+    retained_jobs_.clear();
+    state_ = State::Empty;
+    const auto previous_boot_id = boot_id_;
+    boot_id_ = identities_.new_boot_id();
+    ready_ = valid_id(boot_id_) && boot_id_ != previous_boot_id && stopped;
+    if (!ready_) {
+        state_ = State::Failed;
+    }
+}
+
+ServiceActivity JobService::activity() const {
+    ServiceActivity result{state_, engine_.output_active(), owner_.has_value()};
+    // A local timer may launch after poll() captured an armed/inactive report.
+    // The live output observation then establishes that this locally scheduled
+    // job has started. Do not combine it with the stale foreground armed state.
+    // Unexpected output in other states/engines remains visible as a fault;
+    // terminal transitions still require poll() and verified engine shutdown.
+    if (result.state == State::Armed && result.output_active && job_ && arm_ &&
+        arm_->scheduled_locally)
+        if (engine_.execution_started())
+            result.state = State::Running;
+    return result;
+}
+
+ServiceStatus JobService::status(bool history) const {
+    const auto current = activity();
+    ServiceStatus result{boot_id_,     current.state, current.output_active,
+                         std::nullopt, std::nullopt,  {}};
+    if (owner_) {
+        result.owner_id = owner_->owner_id;
+    }
+    if (job_) {
+        result.job_id = job_->job_id;
+    }
+    if (history)
+        result.terminal_records.assign(terminal_records_.begin(), terminal_records_.end());
+    return result;
+}
+
+Response JobService::reject(ErrorCode code) const {
+    Response response;
+    response.error = code;
+    response.state = state_;
+    response.output_active = engine_.output_active();
+    response.boot_id = boot_id_;
+    return response;
+}
+
+Response JobService::success() const {
+    Response response;
+    response.ok = true;
+    response.state = state_;
+    response.output_active = engine_.output_active();
+    response.boot_id = boot_id_;
+    return response;
+}
+
+Response JobService::retained_load_response(const RetainedJob& retained) const {
+    Response response;
+    response.ok = true;
+    response.state = State::Loaded;
+    response.boot_id = boot_id_;
+    response.job_id = retained.job_id;
+    response.output_active = retained.load_output_active;
+    response.adjustments = retained.adjustments;
+    return response;
+}
+
+Response JobService::arm_response(std::string_view job_id, const ArmRecord& arm) const {
+    Response response;
+    response.ok = true;
+    response.state = State::Armed;
+    response.boot_id = boot_id_;
+    response.job_id = std::string(job_id);
+    response.start_monotonic_ns = arm.start_monotonic_ns;
+    response.start_utc_ns = arm.start_utc_ns;
+    response.clock_snapshot = arm.clock_snapshot;
+    return response;
+}
+
+bool JobService::valid_id(std::string_view value) const {
+    return value.size() == 32 && std::all_of(value.begin(), value.end(), [](char character) {
+               return (character >= '0' && character <= '9') ||
+                      (character >= 'a' && character <= 'f');
+           });
+}
+
+bool JobService::owns(const Request& request) const {
+    return owner_ && owner_->session_id == request.session_id &&
+           owner_->principal == request.principal;
+}
+
+ErrorCode JobService::validate_job(const Job& job) const {
+    if (!job.events.valid()) {
+        return job.events.failure() == EventList::Failure::LimitExceeded
+                   ? ErrorCode::JobLimitExceeded
+                   : ErrorCode::InternalError;
+    }
+    if (!valid_id(job.job_id) || job.events.empty()) {
+        return ErrorCode::InvalidMessage;
+    }
+    if (job.profile != "rf-events/1") {
+        return ErrorCode::UnsupportedProfile;
+    }
+    if (!contains(config_.supported_modes, job.mode)) {
+        return ErrorCode::UnsupportedMode;
+    }
+    if (job.events.size() > config_.max_events ||
+        job.total_duration_ns > config_.max_job_duration_ns) {
+        return ErrorCode::JobLimitExceeded;
+    }
+    std::uint64_t expected_offset = 0;
+    for (const auto& event : job.events) {
+        if (event.offset_ns != expected_offset || event.duration_ns == 0 ||
+            event.duration_ns > std::numeric_limits<std::uint64_t>::max() - expected_offset) {
+            return ErrorCode::InvalidMessage;
+        }
+        if (event.rf_on != event.frequency_nhz.has_value() ||
+            (event.frequency_nhz && *event.frequency_nhz == 0)) {
+            return ErrorCode::InvalidMessage;
+        }
+        if (event.frequency_nhz && (*event.frequency_nhz < config_.minimum_frequency_nhz ||
+                                    *event.frequency_nhz > config_.maximum_frequency_nhz))
+            return ErrorCode::FrequencyRejected;
+        expected_offset += event.duration_ns;
+    }
+    return expected_offset == job.total_duration_ns ? ErrorCode::None : ErrorCode::InvalidMessage;
+}
+
+ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
+                                   std::uint64_t& start_monotonic_ns) const {
+    if (!job_)
+        return ErrorCode::InvalidState;
+    return assess_arm(job_->total_duration_ns, arm, now, config_, engine_.start_resolution_ns(),
+                      start_monotonic_ns);
+}
+
+void JobService::expire_resources(std::uint64_t monotonic_now_ns) {
+    if (!owner_ || monotonic_now_ns < owner_->expires_monotonic_ns) {
+        return;
+    }
+    if (state_ == State::Armed || state_ == State::Running) {
+        owner_->release_after_terminal = true;
+        return;
+    }
+    if (state_ == State::Loaded) {
+        if (!engine_.disable(saturating_add(monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+            engine_.output_active()) {
+            record_terminal(State::Failed, ErrorCode::OutputStateUnknown, monotonic_now_ns);
+            owner_.reset();
+            engine_.calibration_boundary();
+            return;
+        }
+        record_terminal(State::Aborted, ErrorCode::None, monotonic_now_ns);
+        clear_job();
+    }
+    owner_.reset();
+    engine_.calibration_boundary();
+}
+
+void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now_ns) {
+    state_ = state;
+    terminal_records_.push_front(TerminalRecord{job_ ? job_->job_id : std::string{}, state, now_ns,
+                                                engine_.output_active(), error});
+    if (terminal_observer_)
+        terminal_observer_(terminal_records_.front(), terminal_context_);
+    if (job_) {
+        // Reconstruct the fixed LOAD reply fields on replay instead of keeping
+        // a full Response (including unused clock/status storage) per job.
+        retained_jobs_.push_front(
+            {job_->job_id, job_digest_, adjustments_, engine_.output_active(), arm_});
+        if (state == State::Complete) {
+            // Completion has authoritatively stopped the engine. Status needs
+            // the identity and duration; retained replay uses the digest above.
+            // Keeping a maximum event list here blocks the next decoded job's
+            // admission while ordinary TLS management remains connected.
+            job_->events.clear();
+        }
+    }
+    while (terminal_records_.size() > config_.terminal_record_entries) {
+        const auto id = terminal_records_.back().job_id;
+        std::erase_if(retained_jobs_, [&](const RetainedJob& item) { return item.job_id == id; });
+        terminal_records_.pop_back();
+    }
+    if (owner_ && owner_->release_after_terminal) {
+        owner_.reset();
+        engine_.calibration_boundary();
+    }
+}
+
+void JobService::touch_terminal(std::string_view id) {
+    const auto record = std::find_if(terminal_records_.begin(), terminal_records_.end(),
+                                     [&](const TerminalRecord& item) { return item.job_id == id; });
+    if (record != terminal_records_.end())
+        std::rotate(terminal_records_.begin(), record, record + 1);
+    const auto job = std::find_if(retained_jobs_.begin(), retained_jobs_.end(),
+                                  [&](const RetainedJob& item) { return item.job_id == id; });
+    if (job != retained_jobs_.end())
+        std::rotate(retained_jobs_.begin(), job, job + 1);
+}
+
+void JobService::release_execution_input() {
+    if (job_ && engine_.owns_execution_plan()) {
+        // The engine has acknowledged its independent plan. Keep identity,
+        // duration and the original digest for authority and replay; the event
+        // storage is no longer consulted by this execution path.
+        job_->events.clear();
+    }
+}
+
+std::string JobService::presentation_json() const {
+    if (!job_)
+        return "null";
+    const auto n = [](std::uint64_t value) { return json::quote(std::to_string(value)); };
+    std::string frequencies = "[";
+    for (std::size_t i = 0; i < observed_frequency_count_; ++i) {
+        if (i)
+            frequencies += ',';
+        frequencies += n(observed_frequencies_[i]);
+    }
+    frequencies += ']';
+    std::string message = "null";
+    if (job_->message) {
+        const auto& m = *job_->message;
+        message = "{\"text\":" + json::quote(m.text) + ",\"frequency_nhz\":" + n(m.frequency_nhz) +
+                  ",\"space_frequency_nhz\":" + n(m.space_frequency_nhz) +
+                  ",\"dot_ns\":" + n(m.dot_ns) + ",\"dash_ns\":" + n(m.dash_ns) +
+                  ",\"repeat_gap_ns\":" + n(m.repeat_gap_ns) +
+                  ",\"repeat_count\":" + std::to_string(m.repeat_count) + "}";
+    }
+    return "{\"mode\":" + json::quote(job_->mode) +
+           ",\"duration_ns\":" + n(job_->total_duration_ns) +
+           ",\"start_utc_ns\":" + (arm_ ? n(arm_->start_utc_ns) : "null") +
+           ",\"event_count\":" + std::to_string(observed_event_count_) +
+           ",\"frequencies_nhz\":" + frequencies +
+           ",\"frequencies_truncated\":" + (observed_frequencies_truncated_ ? "true" : "false") +
+           ",\"message\":" + message + "}";
+}
+
+void JobService::clear_job() {
+    job_.reset();
+    job_digest_ = {};
+    adjustments_.clear();
+    arm_.reset();
+    state_ = State::Empty;
+}
+
+void JobService::prune_replay(std::uint64_t now_ns) {
+    std::erase_if(replay_cache_, [&](const ReplayEntry& entry) {
+        return now_ns >= entry.completed_monotonic_ns &&
+               now_ns - entry.completed_monotonic_ns >= config_.response_cache_ttl_ns;
+    });
+}
+
+void JobService::prune_terminals(std::uint64_t now_ns) {
+    bool current_record_expired = false;
+    std::erase_if(terminal_records_, [&](const TerminalRecord& record) {
+        const bool expired = now_ns >= record.ended_monotonic_ns &&
+                             now_ns - record.ended_monotonic_ns >= config_.terminal_record_ttl_ns;
+        if (expired && job_ && record.job_id == job_->job_id) {
+            current_record_expired = true;
+        }
+        return expired;
+    });
+    std::erase_if(retained_jobs_, [&](const RetainedJob& item) {
+        return std::none_of(
+            terminal_records_.begin(), terminal_records_.end(),
+            [&](const TerminalRecord& record) { return record.job_id == item.job_id; });
+    });
+    if (current_record_expired &&
+        (state_ == State::Complete || state_ == State::Aborted || state_ == State::Missed)) {
+        clear_job();
+    }
+}
+
+void JobService::prune_sessions(std::uint64_t now_ns) {
+    std::erase_if(sessions_, [&](const Session& session) {
+        const bool owns_transmitter = owner_ && owner_->session_id == session.session_id;
+        return !owns_transmitter && now_ns >= session.last_seen_monotonic_ns &&
+               now_ns - session.last_seen_monotonic_ns >= config_.response_cache_ttl_ns;
+    });
+}
+
+std::optional<Response> JobService::replay(const Request& request, std::uint64_t, bool& conflict) {
+    auto entry =
+        std::find_if(replay_cache_.begin(), replay_cache_.end(), [&](const ReplayEntry& item) {
+            return item.session_id == request.session_id && item.request_id == request.request_id;
+        });
+    if (entry == replay_cache_.end()) {
+        return std::nullopt;
+    }
+    if (entry->payload_digest != request.payload_digest) {
+        conflict = true;
+        return std::nullopt;
+    }
+    entry->lru = ++lru_sequence_;
+    return entry->response;
+}
+
+void JobService::remember(const Request& request, const Response& response, std::uint64_t now_ns) {
+    const auto session_entries = static_cast<std::size_t>(
+        std::count_if(replay_cache_.begin(), replay_cache_.end(), [&](const ReplayEntry& entry) {
+            return entry.session_id == request.session_id;
+        }));
+    if (session_entries >= config_.response_cache_entries) {
+        const auto victim =
+            std::min_element(replay_cache_.begin(), replay_cache_.end(),
+                             [&](const ReplayEntry& left, const ReplayEntry& right) {
+                                 if (left.session_id != request.session_id) {
+                                     return false;
+                                 }
+                                 if (right.session_id != request.session_id) {
+                                     return true;
+                                 }
+                                 return left.lru < right.lru;
+                             });
+        replay_cache_.erase(victim);
+    }
+    replay_cache_.push_back({request.session_id, request.request_id, request.payload_digest,
+                             response, now_ns, ++lru_sequence_});
+}
+
+} // namespace wsprrypico::execution

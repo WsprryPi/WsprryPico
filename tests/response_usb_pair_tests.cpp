@@ -85,27 +85,26 @@ int main() {
     unsigned id = 1;
     const auto common = [&](std::string_view op) {
         return "{\"schema\":\"usb-management/1\",\"id\":" + std::to_string(id) +
-               ",\"operation\":" + wtp::json::quote(op) +
-               ",\"session\":" + wtp::json::quote(usb_session) + ",\"target\":" + target;
+               ",\"operation\":" + execution::json::quote(op) +
+               ",\"session\":" + execution::json::quote(usb_session) + ",\"target\":" + target;
     };
     const auto request = [&](std::string_view method,std::string_view path,int expected) {
         ++id;
-        send(common("request") + ",\"method\":"+wtp::json::quote(method)+
-            ",\"path\":"+wtp::json::quote(path)+",\"body\":\"\",\"if_match\":\"\"}");
-        const auto response=drain();const auto root=wtp::json::parse(response);
+        send(common("request") + ",\"method\":"+execution::json::quote(method)+
+            ",\"path\":"+execution::json::quote(path)+",\"body\":\"\",\"if_match\":\"\"}");
+        const auto response=drain();const auto root=execution::json::parse(response);
         assert(root&&root->get("status")->integer()==expected);
         const auto logical=root->get("body")->string();
-        assert(wtp::json::parse(logical));
+        assert(execution::json::parse(logical));
         const auto before=finishes;send(common("ack")+"}");(void)drain();
         assert(finishes==before+1);return logical;
     };
     const auto capabilities=request("GET","/api/control/v1/capabilities",200);
     assert(capabilities.size()>4096);
     assert(capabilities.find("\"execution\"")!=std::string::npos);
-    assert(capabilities.find("\"wtp\"")==std::string::npos);
     request("POST","/api/control/v1/jobs",404);
     request("GET","/api/control/v1/jobs",404);
-    assert(f.service.status().state==wtp::State::Empty);
+    assert(f.service.status().state==execution::State::Empty);
     assert(!f.service.status().owner_id&&!f.service.status().output_active);
     (void)generated; // Streaming behavior is covered by response_stream_tests.
 }

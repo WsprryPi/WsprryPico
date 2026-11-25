@@ -1,7 +1,7 @@
 #pragma once
-#include "wtp/frame_buffer.hpp"
-#include "wtp/output_buffer.hpp"
-#include "wtp/response_source.hpp"
+#include "runtime/frame_buffer.hpp"
+#include "runtime/output_buffer.hpp"
+#include "runtime/response_source.hpp"
 
 #include <cstdint>
 #include <map>
@@ -11,10 +11,10 @@
 #include <string>
 #include <string_view>
 
-namespace wsprrypico::wtp {
+namespace wsprrypico::execution {
 struct Request;
 struct Response;
-} // namespace wsprrypico::wtp
+} // namespace wsprrypico::execution
 namespace wsprrypico::network {
 inline constexpr std::size_t max_http_headers = 2048, max_http_body = 32768;
 struct HttpRequest {
@@ -22,19 +22,19 @@ struct HttpRequest {
     std::map<std::string, std::string> headers;
     // Parsed bodies retain paged storage when requests are copied. Direct host
     // API callers may still supply body; a parsed body takes precedence.
-    std::shared_ptr<wtp::FrameBuffer> buffered_body{};
+    std::shared_ptr<execution::FrameBuffer> buffered_body{};
     // An authenticated transport envelope may lend its inner JSON body while
     // buffered_body keeps the complete decrypted input alive.
-    std::optional<wtp::InputView> selected_body{};
+    std::optional<execution::InputView> selected_body{};
     // Trusted control adapter only: original logical bytes for exact save receipts.
     // No HTTP header or client field populates this view. The adapter owns the
     // view on its stack; this request and any copies are consumed synchronously
     // before that scope returns. Never retain this borrowed pointer.
-    const wtp::InputView* control_wire_body = nullptr;
-    wtp::InputView body_view() const {
+    const execution::InputView* control_wire_body = nullptr;
+    execution::InputView body_view() const {
         if (selected_body)
             return *selected_body;
-        return buffered_body ? buffered_body->view() : wtp::InputView(body);
+        return buffered_body ? buffered_body->view() : execution::InputView(body);
     }
     std::string body_text() const {
         return std::string(body_view());
@@ -46,7 +46,7 @@ struct HttpResponse {
     std::string body;
     std::string type = "application/json";
     std::string etag;
-    wtp::OutputBuffer buffered_body{};
+    execution::OutputBuffer buffered_body{};
     // Generated browser assets have static storage duration. Borrowing those
     // bytes lets the target stream them from flash without a same-size heap
     // copy while another authenticated connection remains active.
@@ -64,7 +64,7 @@ struct HttpResponse {
     // An empty override retains the main browser policy.
     std::string_view content_security_policy{};
     std::string_view location{};
-    wtp::ResponseSourcePtr generated_body{};
+    execution::ResponseSourcePtr generated_body{};
     bool control_wrapped = false;
     void reset() {
         // Empty-string assignment can retain the preceding response's heap
@@ -109,10 +109,10 @@ struct HttpResponse {
     }
     // Borrow materialized JSON without flattening it. Generated sources are
     // consumed through body_at(), never exposed as a dangling InputView.
-    wtp::InputView body_view() const {
+    execution::InputView body_view() const {
         if (!buffered_body.empty())
             return buffered_body.view();
-        return static_body.empty() ? wtp::InputView(body) : wtp::InputView(static_body);
+        return static_body.empty() ? execution::InputView(body) : execution::InputView(static_body);
     }
     // Convenience for host consumers. Target transport streams body_at pages.
     std::string body_text() const;
@@ -154,6 +154,6 @@ class HttpParser {
 };
 // Preserve the materialized path for small LOAD replies; large immutable
 // adjustment lists use a bounded generator instead of a complete JSON body.
-wtp::ResponseSourcePtr response_source(HttpResponse response);
+execution::ResponseSourcePtr response_source(HttpResponse response);
 HttpResponse http_error(unsigned status, std::string_view code);
 } // namespace wsprrypico::network

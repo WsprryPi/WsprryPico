@@ -31,10 +31,10 @@ template <typename T> bool nonzero(const T& bytes) {
     return std::any_of(bytes.begin(), bytes.end(), [](std::uint8_t byte) { return byte != 0; });
 }
 
-void update(wtp::Sha256& hash, const void* data, std::size_t size) {
+void update(execution::Sha256& hash, const void* data, std::size_t size) {
     hash.update({static_cast<const std::uint8_t*>(data), size});
 }
-void update_u64(wtp::Sha256& hash, std::uint64_t value) {
+void update_u64(execution::Sha256& hash, std::uint64_t value) {
     std::array<std::uint8_t, 8> bytes{};
     for (int i = 7; i >= 0; --i) {
         bytes[static_cast<std::size_t>(i)] = static_cast<std::uint8_t>(value);
@@ -42,7 +42,7 @@ void update_u64(wtp::Sha256& hash, std::uint64_t value) {
     }
     hash.update(bytes);
 }
-void update_text(wtp::Sha256& hash, std::string_view text) {
+void update_text(execution::Sha256& hash, std::string_view text) {
     update(hash, text.data(), text.size());
 }
 
@@ -58,7 +58,7 @@ bool valid_session(const OwnerSessionFields& fields) {
            fields.expiry_monotonic_ms;
 }
 
-void update_session(wtp::Sha256& hash, const OwnerSessionFields& fields) {
+void update_session(execution::Sha256& hash, const OwnerSessionFields& fields) {
     update(hash, session_prefix, sizeof(session_prefix));
     hash.update(fields.device_id);
     hash.update(fields.boot_id);
@@ -82,7 +82,7 @@ std::optional<OwnerRoute> owner_route(OwnerOperation operation) {
     return std::nullopt;
 }
 
-std::optional<wtp::PayloadDigest> owner_signing_digest(const OwnerSigningFields& fields) {
+std::optional<execution::PayloadDigest> owner_signing_digest(const OwnerSigningFields& fields) {
     const auto route = owner_route(fields.operation);
     const std::size_t maximum_body = fields.operation == OwnerOperation::ClientEnroll ? 2048 : 1024;
     if (!route || fields.method != route->method || fields.path != route->path ||
@@ -94,7 +94,7 @@ std::optional<wtp::PayloadDigest> owner_signing_digest(const OwnerSigningFields&
 
     // Body digest is over exact decoded ciphertext || tag. A caller cannot
     // substitute JSON whitespace, property order, or a claimed body hash.
-    wtp::Sha256 body;
+    execution::Sha256 body;
     update_text(body, fields.method);
     const std::uint8_t zero = 0;
     body.update({&zero, 1});
@@ -103,7 +103,7 @@ std::optional<wtp::PayloadDigest> owner_signing_digest(const OwnerSigningFields&
     body.update(fields.sealed_body);
     const auto body_digest = body.finish();
 
-    wtp::Sha256 signing;
+    execution::Sha256 signing;
     update(signing, prefix, sizeof(prefix)); // Includes the required NUL.
     const auto operation = static_cast<std::uint8_t>(fields.operation);
     signing.update({&operation, 1});
@@ -118,10 +118,10 @@ std::optional<wtp::PayloadDigest> owner_signing_digest(const OwnerSigningFields&
     return signing.finish();
 }
 
-std::optional<wtp::PayloadDigest> owner_session_start_digest(const OwnerSessionFields& fields) {
+std::optional<execution::PayloadDigest> owner_session_start_digest(const OwnerSessionFields& fields) {
     if (!valid_session_start(fields))
         return std::nullopt;
-    wtp::Sha256 hash;
+    execution::Sha256 hash;
     update(hash, session_start_prefix, sizeof(session_start_prefix));
     hash.update(fields.device_id);
     hash.update(fields.owner_key_sha256);
@@ -130,23 +130,23 @@ std::optional<wtp::PayloadDigest> owner_session_start_digest(const OwnerSessionF
     return hash.finish();
 }
 
-std::optional<wtp::PayloadDigest> owner_session_finish_digest(const OwnerSessionFields& fields) {
+std::optional<execution::PayloadDigest> owner_session_finish_digest(const OwnerSessionFields& fields) {
     if (!valid_session(fields))
         return std::nullopt;
     const auto start = owner_session_start_digest(fields);
     if (!start)
         return std::nullopt;
-    wtp::Sha256 hash;
+    execution::Sha256 hash;
     update(hash, session_finish_prefix, sizeof(session_finish_prefix));
     update_session(hash, fields);
     hash.update(*start);
     return hash.finish();
 }
 
-std::optional<wtp::PayloadDigest> owner_session_salt(const OwnerSessionFields& fields) {
+std::optional<execution::PayloadDigest> owner_session_salt(const OwnerSessionFields& fields) {
     if (!valid_session(fields))
         return std::nullopt;
-    wtp::Sha256 hash;
+    execution::Sha256 hash;
     update_session(hash, fields);
     return hash.finish();
 }

@@ -5,8 +5,8 @@
 #include "provisioning/storage.hpp"
 #include "standalone/pico/flash_layout.hpp"
 #include "standalone/storage.hpp"
-#include "wtp/json.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <fstream>
@@ -92,12 +92,12 @@ int main(int argc, char** argv) {
                         : std::nullopt;
     std::string station = "null";
     if (cp)
-        station = "{\"callsign\":" + wtp::json::quote(cp->callsign) +
-                  ",\"locator\":" + wtp::json::quote(cp->locator) +
+        station = "{\"callsign\":" + execution::json::quote(cp->callsign) +
+                  ",\"locator\":" + execution::json::quote(cp->locator) +
                   ",\"power_dbm\":" + std::to_string(cp->power_dbm) + "}";
     else if (store.config())
-        station = "{\"callsign\":" + wtp::json::quote(store.config()->callsign) +
-                  ",\"locator\":" + wtp::json::quote(store.config()->locator) +
+        station = "{\"callsign\":" + execution::json::quote(store.config()->callsign) +
+                  ",\"locator\":" + execution::json::quote(store.config()->locator) +
                   ",\"power_dbm\":" + std::to_string(store.config()->power_dbm) + "}";
     const auto config =
         store.config() ? standalone::serialize_config(*store.config()) : std::string{};
@@ -105,8 +105,8 @@ int main(int argc, char** argv) {
     std::cout << "{\"profile_healthy\":" << (ph ? "true" : "false")
               << ",\"profile_source\":" << static_cast<unsigned>(profile.source())
               << ",\"profile_sequence\":" << profile.sequence()
-              << ",\"profile_sha256\":" << wtp::json::quote(digest(profile.data()))
-              << ",\"profile_payload\":" << wtp::json::quote(profile.data())
+              << ",\"profile_sha256\":" << execution::json::quote(digest(profile.data()))
+              << ",\"profile_payload\":" << execution::json::quote(profile.data())
               << ",\"access_loaded\":" << (ah ? "true" : "false")
               << ",\"access_state\":" << static_cast<unsigned>(access.state())
               << ",\"access_sequence\":" << access.sequence() << ",\"epoch\":" << (a ? a->epoch : 0)

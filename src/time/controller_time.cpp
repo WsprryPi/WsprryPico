@@ -158,7 +158,7 @@ ControllerTimeCode ControllerTimeArbiter::submit(std::string_view principal,
         return ControllerTimeCode::Uncertainty;
     const bool accepted =
         observe(browser ? ObservationSource::Browser : ObservationSource::Controller, utc_ns, now,
-                uncertainty, wtp::LeapState::Normal, {}, principal);
+                uncertainty, execution::LeapState::Normal, {}, principal);
     if (accepted)
         return ControllerTimeCode::Ok;
     if (source_ == ActiveTimeSource::Disagreement)
@@ -174,11 +174,11 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
         const auto model = clock_.snapshot();
         estimate = model.utc_now_ns;
         uncertainty = model.uncertainty_ns;
-        return model.state != wtp::ClockState::Unsynchronized &&
+        return model.state != execution::ClockState::Unsynchronized &&
                model.sync_age_ns <= browser_source_lifetime_ns;
     }
     const auto age = now - observation.monotonic_ns;
-    wtp::ClockSnapshot anchor;
+    execution::ClockSnapshot anchor;
     anchor.utc_now_ns = observation.utc_ns;
     anchor.monotonic_now_ns = observation.monotonic_ns;
     anchor.rate_ppb = observation.rate_ppb;
@@ -195,7 +195,7 @@ bool ControllerTimeArbiter::interval(const Observation& observation, std::uint64
 bool ControllerTimeArbiter::current_valid(std::uint64_t now) const {
     if (imported_ntp_) {
         const auto snapshot = clock_.snapshot();
-        return snapshot.state != wtp::ClockState::Unsynchronized &&
+        return snapshot.state != execution::ClockState::Unsynchronized &&
                (current_.source == ObservationSource::Gps ||
                 snapshot.sync_age_ns <= controller_source_lifetime_ns);
     }
@@ -222,7 +222,7 @@ bool ControllerTimeArbiter::accept(const Observation& observation) {
                                   observation.uncertainty_ns, observation.rate_ppb,
                                   observation.rate_uncertainty_ppb, observation.generation)
             : clock_.observe(observation.source, observation.utc_ns, observation.monotonic_ns,
-                             observation.uncertainty_ns, wtp::LeapState::Normal, {},
+                             observation.uncertainty_ns, execution::LeapState::Normal, {},
                              observation.principal);
     if (!accepted)
         return false;
@@ -251,19 +251,19 @@ void ControllerTimeArbiter::disagreement(const Observation& observation) {
 bool ControllerTimeArbiter::observe_rate(std::uint64_t utc, std::uint64_t raw,
                                          std::uint64_t uncertainty, std::int32_t rate,
                                          std::uint32_t rate_uncertainty, std::uint64_t generation) {
-    return observe_model(ObservationSource::Sntp, utc, raw, uncertainty, wtp::LeapState::Normal, {},
+    return observe_model(ObservationSource::Sntp, utc, raw, uncertainty, execution::LeapState::Normal, {},
                          {}, rate, rate_uncertainty, generation);
 }
 bool ControllerTimeArbiter::observe_ntp_model(const RateObservation& source,
-    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    const execution::ClockSnapshot& model, std::uint32_t maximum_error) {
     return import_model(ObservationSource::Sntp, source, model, maximum_error);
 }
 bool ControllerTimeArbiter::observe_reference_model(const RateObservation& source,
-    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    const execution::ClockSnapshot& model, std::uint32_t maximum_error) {
     return import_model(ObservationSource::Gps, source, model, maximum_error);
 }
 bool ControllerTimeArbiter::import_model(ObservationSource kind, const RateObservation& source,
-    const wtp::ClockSnapshot& model, std::uint32_t max_clock_error_ppb) {
+    const execution::ClockSnapshot& model, std::uint32_t max_clock_error_ppb) {
     if (frequency_conflict_)
         return false;
     if (!now_ || !consistent_import(source, model) || source.utc_ns < sntp_min_utc_ns ||
@@ -316,14 +316,14 @@ bool ControllerTimeArbiter::import_model(ObservationSource kind, const RateObser
     return true;
 }
 bool ControllerTimeArbiter::observe(ObservationSource source, std::uint64_t utc, std::uint64_t raw,
-                                    std::uint64_t uncertainty, wtp::LeapState leap,
+                                    std::uint64_t uncertainty, execution::LeapState leap,
                                     std::optional<std::uint64_t> transition,
                                     std::string_view principal) {
     return observe_model(source, utc, raw, uncertainty, leap, transition, principal);
 }
 bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_t utc_ns,
                                           std::uint64_t sampled_monotonic_ns,
-                                          std::uint64_t uncertainty_ns, wtp::LeapState leap,
+                                          std::uint64_t uncertainty_ns, execution::LeapState leap,
                                           std::optional<std::uint64_t> leap_transition_utc_ns,
                                           std::string_view principal, std::int32_t rate,
                                           std::uint32_t rate_uncertainty,
@@ -332,7 +332,7 @@ bool ControllerTimeArbiter::observe_model(ObservationSource source, std::uint64_
         return false;
     if (rate < -100'000 || rate > 100'000 || rate_uncertainty > 200'000)
         return false;
-    if (!now_ || leap != wtp::LeapState::Normal || leap_transition_utc_ns ||
+    if (!now_ || leap != execution::LeapState::Normal || leap_transition_utc_ns ||
         uncertainty_ns > (source == ObservationSource::Browser
                               ? browser_clock_uncertainty_ns + browser_challenge_max_age_ns
                               : standalone_max_uncertainty_ns) ||
@@ -463,7 +463,7 @@ ControllerTimeArbiter::browser_frequency_reference_status(std::uint64_t now) con
         return "disagreement";
     if (local_reference_->valid_until_raw_ns <= now)
         return "expired";
-    if (clock_.snapshot().state == wtp::ClockState::Unsynchronized)
+    if (clock_.snapshot().state == execution::ClockState::Unsynchronized)
         return "awaiting_utc";
     return browser_reference_selected_ ? "selected" : "quality";
 }
@@ -492,7 +492,7 @@ ControllerTimeStatus ControllerTimeArbiter::status() const {
         const auto clock = clock_.snapshot();
         result.age_ns = clock.sync_age_ns;
         result.uncertainty_ns = clock.uncertainty_ns;
-        if (clock.state == wtp::ClockState::Unsynchronized && !result.disagreement)
+        if (clock.state == execution::ClockState::Unsynchronized && !result.disagreement)
             result.source = ActiveTimeSource::None;
         return result;
     }

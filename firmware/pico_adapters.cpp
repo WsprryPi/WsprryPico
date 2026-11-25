@@ -3,14 +3,14 @@
 #include "pico/rand.h"
 #include "pico/time.h"
 #include "pico/unique_id.h"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <array>
 #include <limits>
 #include <span>
 
-#if !defined(WSPRRY_PICO_RF_OUTPUT_DISABLED) && !defined(WSPRRY_PICO_RF_WTP) &&                    \
+#if !defined(WSPRRY_PICO_RF_OUTPUT_DISABLED) &&                    \
     !defined(WSPRRY_PICO_STANDALONE_RF)
 #error "Pico adapters may only be linked by an explicitly classified firmware image"
 #endif
@@ -34,13 +34,13 @@ template <typename Bytes> std::string hex_id(const Bytes& bytes) {
 
 } // namespace
 
-wtp::ClockSnapshot PicoClock::snapshot() const {
-    return {wtp::ClockState::Unsynchronized,
+execution::ClockSnapshot PicoClock::snapshot() const {
+    return {execution::ClockState::Unsynchronized,
             0,
             time_us_64() * 1000ULL,
             std::numeric_limits<std::uint64_t>::max(),
             std::numeric_limits<std::uint64_t>::max(),
-            wtp::LeapState::Unknown,
+            execution::LeapState::Unknown,
             std::nullopt};
 }
 
@@ -52,7 +52,7 @@ PicoIdentitySource::PicoIdentitySource() {
     std::array<std::uint8_t, name.size() + PICO_UNIQUE_BOARD_ID_SIZE_BYTES> input{};
     std::copy(name.begin(), name.end(), input.begin());
     std::copy(std::begin(board_id.id), std::end(board_id.id), input.begin() + name.size());
-    const auto digest = wtp::sha256(input);
+    const auto digest = execution::sha256(input);
     device_id_ = hex_id(std::span(digest).first<16>());
 }
 

@@ -5,7 +5,7 @@
 #include <cmath>
 
 namespace wsprrypico::rf::si5351 {
-JobResult plan_job(const Configuration& configuration, const wtp::Job& job, std::int32_t correction,
+JobResult plan_job(const Configuration& configuration, const execution::Job& job, std::int32_t correction,
                    std::uint64_t minimum_transition, long double maximum_error) {
     if (job.job_id.size() != 32 ||
         !std::all_of(job.job_id.begin(), job.job_id.end(),
@@ -68,7 +68,7 @@ JobResult plan_job(const Configuration& configuration, const wtp::Job& job, std:
             if (std::fabs(tone.achieved_hz - tone.requested_nhz / 1'000'000'000.L) >= 0.5e-9L)
                 return {{}, "frequency_adjustment_required"};
     result.synthesis = *synthesis.plan;
-    result.digest = wtp::job_digest(job);
+    result.digest = execution::job_digest(job);
     return {std::move(result), {}};
 }
 } // namespace wsprrypico::rf::si5351

@@ -5,15 +5,15 @@
 #include "network/control_contract.hpp"
 #include "network/test_tone_query.hpp"
 #include "rf/waveform.hpp"
-#include "wtp/memory_budget.hpp"
-#include "wtp/observation.hpp"
+#include "runtime/memory_budget.hpp"
+#include "rf/observation.hpp"
 
 #include <charconv>
 #include <climits>
 
 namespace wsprrypico::network {
 namespace {
-using wtp::json::quote;
+using execution::json::quote;
 std::string number(std::uint64_t value) {
     return quote(std::to_string(value));
 }
@@ -34,7 +34,7 @@ std::string synthesis_identity(const std::optional<rf::si5351::Configuration>& c
            ",\"reference_hz\":" +
            (synthesis ? std::to_string(configuration->reference_hz) : "null");
 }
-bool integer(wtp::json::Value value, std::uint64_t& out) {
+bool integer(execution::json::Value value, std::uint64_t& out) {
     if (value.raw.empty() || value.raw.size() > 20)
         return false;
     std::string raw(value.raw);
@@ -64,11 +64,11 @@ std::string realization(const application::TestToneReview& r, bool synthesis) {
 }
 std::string record_json(const application::TestToneRecord& r) {
     const char* phase = r.terminal                       ? "terminal"
-                        : r.state == wtp::State::Running ? "running"
+                        : r.state == execution::State::Running ? "running"
                                                          : "accepted";
-    const char* outcome = r.state == wtp::State::Complete  ? "completed"
-                          : r.state == wtp::State::Aborted ? "stopped"
-                          : r.state == wtp::State::Missed  ? "missed"
+    const char* outcome = r.state == execution::State::Complete  ? "completed"
+                          : r.state == execution::State::Aborted ? "stopped"
+                          : r.state == execution::State::Missed  ? "missed"
                                                            : "failed";
     const auto& pad = r.pad;
     const bool verified_pad = r.rf_pin && pad.epoch && pad.rf_pin == int(*r.rf_pin) &&
@@ -99,7 +99,7 @@ std::string record_json(const application::TestToneRecord& r) {
                                             : "unavailable") +
                   "}";
     return "{\"request_id\":" + quote(r.request_id) + ",\"job_id\":" + quote(r.job_id) +
-           ",\"phase\":" + quote(phase) + ",\"native_state\":" + quote(wtp::state_name(r.state)) +
+           ",\"phase\":" + quote(phase) + ",\"native_state\":" + quote(execution::state_name(r.state)) +
            ",\"outcome\":" + (r.terminal ? quote(outcome) : "null") +
            ",\"carrier_hz\":" + std::to_string(r.proposal.carrier_hz) +
            ",\"duration_ms\":" + std::to_string(r.proposal.duration_ms) +
@@ -132,7 +132,7 @@ std::string record_json(const application::TestToneRecord& r) {
            quote(synthesis ? "si5351_register_shutdown" : "native_gpio_shutdown") +
            ",\"output_inactive_confirmed\":" + boolean(r.output_inactive_confirmed) +
            ",\"recovery_required\":" + boolean(r.recovery_required) + ",\"native_error\":" +
-           (r.error == wtp::ErrorCode::None ? "null" : wtp::error_json(r.error)) + "}";
+           (r.error == execution::ErrorCode::None ? "null" : execution::error_json(r.error)) + "}";
 }
 } // namespace
 std::string BrowserApi::test_tone_capability() const {
@@ -177,7 +177,7 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
         synthesis && boot_si ? std::optional(boot_si->synthesis) : std::nullopt;
     if (!test_tone_.supported())
         return http_error(409, "test_tone_unavailable");
-    if (!wtp::memory_admitted(16'384))
+    if (!execution::memory_admitted(16'384))
         return http_error(503, "resource_exhausted");
     HttpResponse response;
     response.body.reserve(4096); // reserve the bounded reply before Start/Stop effects
@@ -190,9 +190,9 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
                 : result.error == "resource_exhausted" || result.error == "receipt_capacity" ? 503
                                                                                              : 409;
             auto failure = http_error(status, result.error);
-            if (result.native_error != wtp::ErrorCode::None)
+            if (result.native_error != execution::ErrorCode::None)
                 failure.body = "{\"error\":" + quote(result.error) +
-                               ",\"native_error\":" + wtp::error_json(result.native_error) + "}";
+                               ",\"native_error\":" + execution::error_json(result.native_error) + "}";
             return failure;
         }
         const auto current = service_.activity();
@@ -207,7 +207,7 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
             ",\"boot_drive_ma\":" + std::to_string(boot_drive) +
             ",\"output_active\":" + boolean(current.output_active) +
             ",\"owned\":" + boolean(current.owned) +
-            ",\"native_state\":" + quote(wtp::state_name(current.state)) + "}}";
+            ",\"native_state\":" + quote(execution::state_name(current.state)) + "}}";
         if (result.record)
             response.etag = result.record->control_revision;
         return std::move(response);
@@ -222,10 +222,10 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
             return http_error(409, "target_mismatch");
         return status_response(test_tone_.status(authority, query->selector, query->by_job), 200);
     }
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root || root->type() != '{')
         return http_error(400, "invalid_test_tone_request");
-    using wtp::json::fields;
+    using execution::json::fields;
     const bool review = operation == "review", start = operation == "start",
                stop = operation == "stop";
     if (request.method != "POST" || (!review && !start && !stop))
@@ -245,7 +245,7 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
         target.get("boot_id")->string() != boot)
         return http_error(409, "target_mismatch");
     if (stop) {
-        if (!wtp::json::identifier(*root->get("job_id")))
+        if (!execution::json::identifier(*root->get("job_id")))
             return http_error(400, "invalid_job_id");
         return status_response(
             test_tone_.stop(authority, root->get("job_id")->string(), request.header("if-match")),
@@ -269,7 +269,7 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
                                                              : hardware::PinPlan::Engine::Direct;
     proposal.proposed_drive_ma = static_cast<unsigned>(drive);
     if (start) {
-        if (!wtp::json::identifier(*root->get("request_id")))
+        if (!execution::json::identifier(*root->get("request_id")))
             return http_error(400, "invalid_request_id");
         return status_response(test_tone_.start(authority, root->get("request_id")->string(),
                                                 proposal, request.header("if-match"), revision(),
@@ -305,16 +305,16 @@ HttpResponse BrowserApi::test_tone_resource(const HttpRequest& request,
         ",\"profile_id\":" + (matched_profile ? quote(hardware::si5351_support::id) : "null") +
         ",\"realization\":" + realization(assessed, synthesis) +
         ",\"clock_assumptions\":{\"state\":" +
-        quote(clock.state == wtp::ClockState::Synchronized ? "synchronized"
-              : clock.state == wtp::ClockState::Holdover   ? "holdover"
+        quote(clock.state == execution::ClockState::Synchronized ? "synchronized"
+              : clock.state == execution::ClockState::Holdover   ? "holdover"
                                                            : "unsynchronized") +
         ",\"observed_monotonic_ns\":" + number(clock.monotonic_now_ns) +
         ",\"uncertainty_ns\":" + number(clock.uncertainty_ns) +
         ",\"maximum_uncertainty_ns\":" + number(service_.config().maximum_arm_uncertainty_ns) +
         "}" + ",\"prospective_utc_ns\":" + optional_number(assessed.launch_utc_ns) +
         ",\"clock_error\":" +
-        (assessed.clock_error == wtp::ErrorCode::None ? "null"
-                                                      : wtp::error_json(assessed.clock_error)) +
+        (assessed.clock_error == execution::ErrorCode::None ? "null"
+                                                      : execution::error_json(assessed.clock_error)) +
         "}";
     response.etag = revision();
     return response;

@@ -1,6 +1,6 @@
 # WsprryPico Field-GATT/1 protocol and super-user guide
 
-Status: current Field-GATT/1 commissioning source contract; the independently framed WTP carrier is retired. This document defines the custom Bluetooth Low Energy interface implemented in `devel`. The checked-in [conformance vectors](Field-GATT-v1-vectors.json) bind its UUIDs, limits, profile-apply sequence, and provisional-bond expiry policy across firmware and the native Raspberry Pi client. An incompatible wire change requires a new Field-GATT protocol version. Source/host conformance does not establish physical interoperability or end-user acceptance.
+Status: current Field-GATT/1 commissioning source contract. This document defines the custom Bluetooth Low Energy interface implemented in `devel`. The checked-in [conformance vectors](Field-GATT-v1-vectors.json) bind its UUIDs, limits, profile-apply sequence, and provisional-bond expiry policy across firmware and the native Raspberry Pi client. An incompatible wire change requires a new Field-GATT protocol version. Source/host conformance does not establish physical interoperability or end-user acceptance.
 
 This document is written for technically experienced operators, client authors, and maintainers. It explains how to identify the correct Pico, establish the two layers of authorization, exchange field commands, provision a complete profile, and manage the provisioning profile. Use the supported Raspberry Pi/Linux client to exchange GATT values.
 
@@ -8,13 +8,13 @@ The words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, and 
 
 ## 1. Safety and scope
 
-The field GATT service provides local provisioning and management. It does not create a second scheduler, transmitter owner, or RF authority. The independent WTP carrier is retired. Execution remains device-owned and local to the RP2350.
+The field GATT service provides local provisioning and management. It does not create a second scheduler, transmitter owner, or RF authority. Execution remains device-owned and local to the RP2350.
 
 Merely connecting, pairing, authorizing, reading status, or synchronizing time does not authorize RF output. The normal firmware is RF-capable; `WsprryPico-Inhibited` is an explicit diagnostic selection. RF and general reliability qualification remain separate.
 
 The bounded field command/status stream carries authorization, controller time, Identify, provisioning, and field status using the framing in section 6.
 
-Provisioning is outside WTP/1. The field-access security and recovery policy is defined separately by the [engineering field-access contract](../development/field-access.md).
+The field-access security and recovery policy is defined separately by the [engineering field-access contract](../development/field-access.md).
 
 ## 2. Supported clients
 
@@ -150,7 +150,7 @@ There are two session identifiers:
 - the **field session** is selected by `authorize` and binds Identify, status, time, carrier selection, and profile step-up; and
 - the **profile session** is selected by `open` and binds `write`, `apply`, and `cancel` for one staged profile.
 
-They MUST NOT be confused. WTP has its own independent `session_id` inside the WTP/1 envelope.
+These two identifiers serve separate purposes.
 
 ### Response families
 
@@ -375,7 +375,7 @@ The target rechecks authorization, exact staged content, generation, and idle/ou
 
 ## 10. Retired execution carrier
 
-The independent WTP command/status characteristics `7d6b0005` and `7d6b0006` are absent. Those UUIDs remain reserved and are never repurposed. The field command/status characteristics remain framed commissioning and time interfaces; `select_wtp_status_carrier` is unsupported. Raw WTP values cannot select an execution path or mutate native job state. The current Field-GATT/1 provisioning, authorization, profile, and time message formats remain unchanged.
+UUIDs `7d6b0005` and `7d6b0006` remain reserved. The field command and status characteristics carry framed commissioning and time messages.
 
 ## 11. Errors
 

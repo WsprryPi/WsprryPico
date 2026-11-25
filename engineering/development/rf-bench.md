@@ -1,6 +1,6 @@
 # Pico RF bench
 
-The separately built `WsprryPico-RFBench` image provides CPU benchmarks and finite GP2 tones. It boots idle, uses USB CDC Commands, and reports `monotonic-relative-only` with `utc_synchronized=false`. It has no WTP endpoint; these commands neither change WTP nor establish UTC timing conformance. The standard `WsprryPico` application executes device-owned schedules; `WsprryPico-Inhibited` supplies inhibited execution for software tests. The operator chooses transmissions and measurements.
+The separately built `WsprryPico-RFBench` image provides CPU benchmarks and finite GP2 tones. It boots idle, uses USB CDC Commands, and reports `monotonic-relative-only` with `utc_synchronized=false`. Its commands use relative time. The standard `WsprryPico` application executes device-owned schedules; `WsprryPico-Inhibited` supplies inhibited execution for software tests. The operator chooses transmissions and measurements.
 
 The subsequent [stream completion contract](rf-stream.md#completion-and-local-state-observations) adds `FRAME`, intentional abort/rearm, higher-resolution analysis, and simultaneous GPSDO comparison. Reference ratios remain tied to their identified source and setup.
 
@@ -96,7 +96,7 @@ Analysis validates the raw capture, finds energy increases near the requested to
 
 ## Validation boundary
 
-The bench is an opt-in experimental tool. Use installed dependencies and the [development checks](README.md#deterministic-validation) for generator, sink, controller failure/STOP, and offline capture-analysis behavior. Neither a cross-link nor a fake peripheral proves IRQ timing or electrical output. The [clock policy](clock-support.md) defines build-selected rates; the [band support guide](band-support.md) bounds conducted applicability. Bench relative time is unsynchronized and does not establish WTP UTC conformance.
+The bench is an opt-in experimental tool. Use installed dependencies and the [development checks](README.md#deterministic-validation) for generator, sink, controller failure/STOP, and offline capture-analysis behavior. Neither a cross-link nor a fake peripheral proves IRQ timing or electrical output. The [clock policy](clock-support.md) defines build-selected rates; the [band support guide](band-support.md) bounds conducted applicability. Bench relative time is unsynchronized and does not establish UTC accuracy.
 
 ## Conducted reference benchmark
 

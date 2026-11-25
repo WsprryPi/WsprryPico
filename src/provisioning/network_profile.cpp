@@ -2,7 +2,7 @@
 
 #include "network/identity.hpp"
 #include "provisioning/consumer_profile.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 
@@ -36,14 +36,14 @@ bool valid_network_profile(const NetworkProfile& profile) {
 std::optional<NetworkProfile> parse_network_profile(std::string_view text) {
     if (text.empty() || text.size() > 768)
         return {};
-    auto root = wtp::json::parse(text);
+    auto root = execution::json::parse(text);
     if (!root || !root->get("version"))
         return {};
     const bool named = root->get("version")->raw == "4";
     const bool old = root->get("version")->raw == "1";
     const bool durable = root->get("version")->raw == "3";
     if ((!old && !durable && !named && root->get("version")->raw != "2") ||
-        !wtp::json::fields(
+        !execution::json::fields(
             *root, named ? std::initializer_list<std::string_view>{"version", "device_id", "ssid",
                                                                    "password", "time_server",
                                                                    "request_sha256", "hostname"}
@@ -84,15 +84,15 @@ std::string serialize_network_profile(const NetworkProfile& profile) {
            std::string(!profile.hostname.empty()        ? "4"
                        : profile.request_sha256.empty() ? "2"
                                                         : "3") +
-           ",\"device_id\":" + wtp::json::quote(profile.device_id) +
-           ",\"ssid\":" + wtp::json::quote(profile.ssid) +
-           ",\"password\":" + wtp::json::quote(profile.password) +
-           ",\"time_server\":" + wtp::json::quote(profile.time_server) +
+           ",\"device_id\":" + execution::json::quote(profile.device_id) +
+           ",\"ssid\":" + execution::json::quote(profile.ssid) +
+           ",\"password\":" + execution::json::quote(profile.password) +
+           ",\"time_server\":" + execution::json::quote(profile.time_server) +
            (profile.request_sha256.empty() && profile.hostname.empty()
                 ? std::string{}
-                : ",\"request_sha256\":" + wtp::json::quote(profile.request_sha256)) +
+                : ",\"request_sha256\":" + execution::json::quote(profile.request_sha256)) +
            (profile.hostname.empty() ? std::string{}
-                                     : ",\"hostname\":" + wtp::json::quote(profile.hostname)) +
+                                     : ",\"hostname\":" + execution::json::quote(profile.hostname)) +
            "}";
 }
 

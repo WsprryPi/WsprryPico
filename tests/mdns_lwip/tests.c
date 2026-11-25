@@ -94,7 +94,6 @@ static err_t output(struct netif* interface, struct pbuf* p, const ip4_addr_t* d
         type = read16(dns_packet + end);
         length = read16(dns_packet + end + 8);
         assert(end + 10 + length <= dns_size);
-        assert(!domain_is(&domain, "_wtp._tcp.local") && !domain_is(&domain, "pico-a._wtp._tcp.local"));
         if (expected_management && domain_is(&domain, "_http._tcp.local") && type == 12) {
             struct mdns_domain instance = {0};
             assert(mdns_readname(dns, end + 10, &instance) != MDNS_READNAME_ERROR);

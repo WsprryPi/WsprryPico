@@ -35,9 +35,9 @@ Activity PicoActivationPlatform::activity() const {
     return {current.owned,
             true,
             current.output_active,
-            current.state == wtp::State::Armed,
-            current.state == wtp::State::Running,
-            current.state == wtp::State::Failed};
+            current.state == execution::State::Armed,
+            current.state == execution::State::Running,
+            current.state == execution::State::Failed};
 }
 
 bool PicoActivationPlatform::quiesce() {

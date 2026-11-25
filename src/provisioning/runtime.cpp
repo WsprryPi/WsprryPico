@@ -1,7 +1,7 @@
 #include "provisioning/runtime.hpp"
 
 #include "network/identity.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <utility>
 
@@ -165,23 +165,23 @@ std::string RuntimeProfile::consumer_readback_json() const {
     std::string result;
     result.reserve(768);
     result += "{\"station\":{\"callsign\":";
-    result += wtp::json::quote(profile.callsign);
+    result += execution::json::quote(profile.callsign);
     result += ",\"locator\":";
-    result += wtp::json::quote(profile.locator);
+    result += execution::json::quote(profile.locator);
     result += ",\"power_dbm\":";
     result += std::to_string(profile.power_dbm);
     result += "},\"network\":{\"ssid\":";
-    result += wtp::json::quote(profile.ssid);
+    result += execution::json::quote(profile.ssid);
     result += ",\"time_server\":";
-    result += wtp::json::quote(profile.time_server);
+    result += execution::json::quote(profile.time_server);
     result += "},\"owner_count\":";
     result += std::to_string(profile.owners.size());
     result += ",\"owner_epoch\":";
-    result += wtp::json::quote(std::to_string(profile.owner_epoch));
+    result += execution::json::quote(std::to_string(profile.owner_epoch));
     result += ",\"tls_pending\":";
     result += profile.tls_pending ? "true" : "false";
     result += ",\"request_sha256\":";
-    result += wtp::json::quote(profile.request_sha256);
+    result += execution::json::quote(profile.request_sha256);
     result += "}";
     return result;
 }

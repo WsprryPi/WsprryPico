@@ -4,13 +4,13 @@
 #include "standalone/frequency_policy_engine.hpp"
 #include "standalone/heap_probe.hpp"
 #include "standalone/scheduler.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 #include "time/mapping.hpp"
 #include "time/server_lookup.hpp"
 #include "time/sntp.hpp"
-#include "wtp/inhibited_rf_engine.hpp"
-#include "wtp/json.hpp"
-#include "wtp/memory_budget.hpp"
+#include "rf/inhibited_rf_engine.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <algorithm>
 #include <array>
@@ -288,15 +288,15 @@ void storage_tests() {
     standalone::Store unreadable(flash);
     CHECK(!unreadable.load());
 }
-struct Clock : wtp::Clock {
-    wtp::ClockSnapshot value{wtp::ClockState::Synchronized,
+struct Clock : execution::Clock {
+    execution::ClockSnapshot value{execution::ClockState::Synchronized,
                              time::sntp_min_utc_ns,
                              0,
                              1'000'000,
                              0,
-                             wtp::LeapState::Normal,
+                             execution::LeapState::Normal,
                              {}};
-    wtp::ClockSnapshot snapshot() const override {
+    execution::ClockSnapshot snapshot() const override {
         return value;
     }
     void advance(std::uint64_t ns) {
@@ -306,30 +306,30 @@ struct Clock : wtp::Clock {
         value.monotonic_now_ns += ns;
     }
 };
-struct Identity : wtp::IdentitySource {
+struct Identity : execution::IdentitySource {
     std::string new_boot_id() override {
         return std::string(32, 'a');
     }
 };
-struct Engine : wtp::RfEngine {
-    wtp::InhibitedRfEngine backing;
+struct Engine : execution::RfEngine {
+    execution::InhibitedRfEngine backing;
     unsigned prepared = 0, began = 0;
     std::size_t preparation_bytes = 32768;
-    std::size_t preparation_memory_bytes(const wtp::Job&) const override {
+    std::size_t preparation_memory_bytes(const execution::Job&) const override {
         return preparation_bytes;
     }
     bool reject = false, active = false, disable_allowed = true;
-    wtp::Job job;
-    wtp::PrepareResult prepare(const wtp::Job& j) override {
+    execution::Job job;
+    execution::PrepareResult prepare(const execution::Job& j) override {
         ++prepared;
         job = j;
         return {!reject, {}};
     }
-    bool begin(const wtp::Job& j, std::uint64_t start) override {
+    bool begin(const execution::Job& j, std::uint64_t start) override {
         ++began;
         return backing.begin(j, start);
     }
-    wtp::EngineReport poll(std::uint64_t now) override {
+    execution::EngineReport poll(std::uint64_t now) override {
         return backing.poll(now);
     }
     bool disable(std::uint64_t deadline) override {
@@ -352,7 +352,7 @@ void live_config_tests() {
     Clock clock;
     Engine engine;
     Identity identities;
-    wtp::JobService service(clock, engine, identities);
+    execution::JobService service(clock, engine, identities);
     standalone::Scheduler scheduler(store, service);
     const auto storage = scheduler.command("STORAGE");
     CHECK(storage.find("\"config\":{\"sequence\":\"1\",\"latest_offset\":0,") != std::string::npos);
@@ -394,17 +394,17 @@ void reset_guard_tests() {
     Clock clock;
     Engine engine;
     Identity identity;
-    wtp::JobService service(clock, engine, identity);
+    execution::JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
     CHECK(scheduler.reset_permitted());
     engine.active = true;
     service.reset();
-    CHECK(service.status().state == wtp::State::Failed);
+    CHECK(service.status().state == execution::State::Failed);
     CHECK(!scheduler.reset_permitted());
     engine.active = false;
     CHECK(!scheduler.idle() && scheduler.reset_permitted());
-    // Merely querying eligibility must leave the WTP fault latched.
-    CHECK(service.status().state == wtp::State::Failed);
+    // Merely querying eligibility must leave the output fault latched.
+    CHECK(service.status().state == execution::State::Failed);
     config.enabled = true;
     CHECK(store.save(config));
     CHECK(!scheduler.reset_permitted());
@@ -419,13 +419,13 @@ void configuration_fault_reset_tests() {
     Clock clock;
     Engine engine;
     Identity identity;
-    wtp::JobService service(clock, engine, identity);
+    execution::JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
     config.pins.rf = 28;
     engine.disable_allowed = false;
     CHECK(scheduler.command("CONFIG " + standalone::serialize_config(config))
               .find("output_disable_failed") != std::string::npos);
-    CHECK(service.status().state == wtp::State::Empty);
+    CHECK(service.status().state == execution::State::Empty);
     CHECK(scheduler.hardware_application_failed() && scheduler.hardware_restart_required());
     CHECK(!scheduler.idle() && scheduler.reset_permitted());
     // Eligibility alone is not output confirmation. Both Console reset checks
@@ -462,10 +462,10 @@ void scheduler_tests() {
     const auto start = clock.value.utc_now_ns + 5 * ns;
     Engine engine;
     Identity identity;
-    wtp::JobService service(clock, engine, identity);
+    execution::JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Armed && store.watermark() == start);
+    CHECK(service.status().state == execution::State::Armed && store.watermark() == start);
     CHECK(engine.prepared == 1 && engine.job.events.size() == 162);
     CHECK(engine.job.total_duration_ns == 110'592'000'000ULL);
     CHECK(engine.job.events[0].frequency_nhz == 3'570'099'267'578'125ULL);
@@ -481,14 +481,14 @@ void scheduler_tests() {
     CHECK(engine.began == 1);
     clock.advance(110'592'000'000ULL);
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Complete && !service.status().owner_id);
+    CHECK(service.status().state == execution::State::Complete && !service.status().owner_id);
     // After a reboot and a backwards time step, an already reserved occurrence
     // remains suppressed even though it would otherwise be in the arm window.
     standalone::Store recovered(flash);
     CHECK(recovered.load());
     clock.value.utc_now_ns = start - 5 * ns;
     Engine other;
-    wtp::JobService fresh(clock, other, identity);
+    execution::JobService fresh(clock, other, identity);
     standalone::Scheduler reboot(recovered, fresh);
     reboot.poll();
     CHECK(other.prepared == 0);
@@ -500,7 +500,7 @@ void scheduler_tests() {
     CHECK(other.began == 1);
     clock.advance(111 * ns);
     reboot.poll();
-    auto json = wtp::json::parse(reboot.status());
+    auto json = execution::json::parse(reboot.status());
     CHECK(json);
     CHECK(reboot.status().find("test-password") == std::string::npos);
     CHECK(reboot.command("CONFIG " + example).find("\"reboot_required\":false") !=
@@ -520,7 +520,7 @@ void scheduler_tests() {
         Clock clk;
         clk.advance(116 * ns);
         Engine e;
-        wtp::JobService jobs(clk, e, identity);
+        execution::JobService jobs(clk, e, identity);
         standalone::Scheduler unsupported(s, jobs);
         unsupported.poll();
         CHECK(e.prepared == 0 && s.watermark() == 0 && f.erases == erases);
@@ -534,17 +534,17 @@ void scheduler_tests() {
         Clock clk;
         clk.advance(116 * ns);
         if (fault == 0)
-            clk.value.state = wtp::ClockState::Unsynchronized;
+            clk.value.state = execution::ClockState::Unsynchronized;
         if (fault == 1)
             clk.value.uncertainty_ns = 2'000'000;
         if (fault == 2)
-            clk.value.leap = wtp::LeapState::Unknown;
+            clk.value.leap = execution::LeapState::Unknown;
         if (fault == 3)
             clk.value.utc_now_ns = std::numeric_limits<std::uint64_t>::max();
         if (fault == 4)
             clk.advance(4 * ns); // Too late: never catch up.
         Engine e;
-        wtp::JobService svc(clk, e, identity);
+        execution::JobService svc(clk, e, identity);
         standalone::Scheduler sched(s, svc);
         sched.poll();
         CHECK(e.prepared == 0 && s.watermark() == 0);
@@ -559,7 +559,7 @@ void scheduler_tests() {
         clk.advance(116 * ns);
         Engine e;
         e.reject = !storage_fault;
-        wtp::JobService svc(clk, e, identity);
+        execution::JobService svc(clk, e, identity);
         standalone::Scheduler sched(s, svc);
         if (storage_fault)
             f.budget = 20;
@@ -575,19 +575,19 @@ void scheduler_tests() {
     Clock clk;
     clk.advance(116 * ns);
     Engine e;
-    wtp::JobService svc(clk, e, identity);
+    execution::JobService svc(clk, e, identity);
     standalone::Scheduler sched(s, svc);
-    wtp::Request req;
+    execution::Request req;
     req.principal = "usb-physical";
     req.payload_digest.fill(1);
     req.session_id = std::string(32, 'c');
     req.request_id = std::string(32, '1');
     req.operation = "HELLO";
-    req.body = wtp::HelloBody{{"WTP/1"}};
+    req.body = execution::HelloBody{{"native-execution/1"}};
     CHECK(svc.handle(req).ok);
     req.request_id = std::string(32, '2');
     req.operation = "CLAIM";
-    req.body = wtp::ClaimBody{std::string(32, 'b'), 60000};
+    req.body = execution::ClaimBody{std::string(32, 'b'), 60000};
     CHECK(svc.handle(req).ok);
     sched.poll();
     CHECK(e.prepared == 0 && s.watermark() == 0);
@@ -628,17 +628,17 @@ void sntp_tests() {
         mono += 2'000'000;
         const auto response = reply(i + 1, 1'800'000'000 + i * 2);
         CHECK(source.receive(response, mono));
-        CHECK((clock.snapshot().state == wtp::ClockState::Synchronized) == (i >= 2));
+        CHECK((clock.snapshot().state == execution::ClockState::Synchronized) == (i >= 2));
         CHECK(!source.receive(response, mono));
     }
     CHECK(clock.snapshot().utc_now_ns / ns == 1'800'000'004);
     mono += 181 * ns;
-    CHECK(clock.snapshot().state == wtp::ClockState::Holdover);
+    CHECK(clock.snapshot().state == execution::ClockState::Holdover);
     source.remove(0, mono);
     CHECK(!source.apply(mono));
-    CHECK(clock.snapshot().state == wtp::ClockState::Holdover);
+    CHECK(clock.snapshot().state == execution::ClockState::Holdover);
     mono += 3420 * ns;
-    CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(clock.snapshot().state == execution::ClockState::Unsynchronized);
 }
 void sntp_poll_schedule_test() {
     // The production profile uses the engine's bounded initial burst and a
@@ -668,14 +668,14 @@ void campaign_controls_test() {
     clock.advance(116 * ns);
     Engine engine;
     Identity identity;
-    wtp::JobService service(clock, engine, identity);
+    execution::JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();
     CHECK(engine.prepared == 0 && store.watermark() == 0);
     config.expires_utc_s += 1;
     CHECK(store.save(config));
     scheduler.poll();
-    CHECK(engine.prepared == 1 && service.status().state == wtp::State::Armed);
+    CHECK(engine.prepared == 1 && service.status().state == execution::State::Armed);
     CHECK(scheduler.command("STOP").find("\"ok\":true") != std::string::npos);
     CHECK(scheduler.idle());
     clock.advance(120 * ns);
@@ -699,7 +699,7 @@ void consumer_led_schedule_test() {
         clock.advance(116 * ns);
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler ordinary(store, service);
         if (initially_suspended)
             CHECK(ordinary.command("STOP").find("\"ok\":true") != std::string::npos);
@@ -708,7 +708,7 @@ void consumer_led_schedule_test() {
         ordinary.poll();
         CHECK(engine.prepared == 0);
         fixture.poll();
-        CHECK(engine.prepared == 1 && service.status().state == wtp::State::Armed);
+        CHECK(engine.prepared == 1 && service.status().state == execution::State::Armed);
         CHECK(ordinary.status().find("\"suspended\":true") != std::string::npos);
         CHECK(fixture.stop()->find("\"ok\":true") != std::string::npos);
         CHECK(!service.status().owner_id && !engine.output_active());
@@ -728,18 +728,18 @@ void consumer_led_schedule_test() {
     clock.advance(119 * ns);
     Engine engine;
     Identity identity;
-    wtp::JobService service(clock, engine, identity);
+    execution::JobService service(clock, engine, identity);
     standalone::Scheduler ordinary(store, service);
     provisioning::LedScheduleFixture fixture;
-    clock.value.state = wtp::ClockState::Unsynchronized;
+    clock.value.state = execution::ClockState::Unsynchronized;
     CHECK(!fixture.begin(store, service, ordinary) && !store.config()->enabled);
-    clock.value.state = wtp::ClockState::Synchronized;
+    clock.value.state = execution::ClockState::Synchronized;
     CHECK(fixture.begin(store, service, ordinary));
     fixture.poll();
     CHECK(engine.prepared == 0); // Skip the boundary too close to arm safely.
     clock.advance(117 * ns);
     fixture.poll();
-    CHECK(engine.prepared == 1 && service.status().state == wtp::State::Armed);
+    CHECK(engine.prepared == 1 && service.status().state == execution::State::Armed);
     CHECK(fixture.stop()->find("\"ok\":true") != std::string::npos);
 }
 void autonomous_test() {
@@ -756,11 +756,11 @@ void autonomous_test() {
     CHECK(store.load() && store.save(timed_config));
     standalone::DryRunEngine engine;
     Identity identity;
-    const auto capabilities = standalone::wtp_profile(false, 180);
-    wtp::JobService service(clock, engine, identity, capabilities);
+    const auto capabilities = standalone::execution_profile(false, 180);
+    execution::JobService service(clock, engine, identity, capabilities);
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Empty);
+    CHECK(service.status().state == execution::State::Empty);
     for (unsigned i = 0; i < 3; ++i) {
         mono = i * ns;
         (void)sntp.request(mono, 51 + i);
@@ -775,58 +775,58 @@ void autonomous_test() {
     const auto start_mono = sample.monotonic_now_ns + start_utc - sample.utc_now_ns;
     CHECK(start_mono % 1000 == 0); // Real PIO alarm must accept this mapping.
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Armed);
+    CHECK(service.status().state == execution::State::Armed);
     mono = start_mono + 1000; // Inhibited lifecycle simulation permits a late poll.
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Running);
+    CHECK(service.status().state == execution::State::Running);
     mono = start_mono + 1000 + 110'592'000'000ULL;
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Armed && !engine.output_active());
-    CHECK(clock.snapshot().state == wtp::ClockState::Holdover);
+    CHECK(service.status().state == execution::State::Armed && !engine.output_active());
+    CHECK(clock.snapshot().state == execution::ClockState::Holdover);
     // A second frame can launch inside the configured three-minute grace.
     std::uint64_t second_start = 0;
     CHECK(time::inverse(clock.snapshot(), start_utc + 120 * ns, second_start));
     mono = second_start + 1000;
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Running);
+    CHECK(service.status().state == execution::State::Running);
     mono = second_start + 1000 + 110'592'000'000ULL;
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Complete && !engine.output_active());
+    CHECK(service.status().state == execution::State::Complete && !engine.output_active());
     // Accepted frames finish; after the grace expires, no further job starts.
     mono += 120 * ns;
     scheduler.poll();
-    CHECK(service.status().state == wtp::State::Complete);
+    CHECK(service.status().state == execution::State::Complete);
     CHECK(store.watermark() == start_utc + 120 * ns);
-    CHECK(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    CHECK(clock.snapshot().state == execution::ClockState::Unsynchronized);
     // UTC uncertainty continues growing across admission and launch, but
     // it is informational for first-party standalone schedules.
     {
         std::uint64_t tick = 0;
         time::UtcDiscipline aged(now, &tick, config);
         CHECK(aged.observe(time::sntp_min_utc_ns + 116 * ns, tick, 499'900'000,
-                           wtp::LeapState::Normal));
+                           execution::LeapState::Normal));
         MemoryFlash memory;
         standalone::Store persisted(memory);
         CHECK(persisted.load() && persisted.save(scheduled_config()));
         standalone::DryRunEngine guarded;
-        wtp::JobService guarded_service(aged, guarded, identity, capabilities);
+        execution::JobService guarded_service(aged, guarded, identity, capabilities);
         standalone::Scheduler local(persisted, guarded_service);
         local.poll();
-        CHECK(guarded_service.status().state == wtp::State::Armed);
+        CHECK(guarded_service.status().state == execution::State::Armed);
         tick = 5 * ns;
         local.poll();
         CHECK(aged.snapshot().uncertainty_ns > 500'000'000ULL);
-        CHECK(guarded_service.status().state == wtp::State::Running);
+        CHECK(guarded_service.status().state == execution::State::Running);
         CHECK(!guarded.output_active()); // Inhibited simulation never asserts RF.
     }
     // Before-launch source loss must suppress even the simulated execution.
     Clock fake;
     standalone::DryRunEngine dry;
-    const wtp::Job short_job{std::string(32, 'd'), "rf-events/1", "tone", ns, {}, false};
+    const execution::Job short_job{std::string(32, 'd'), "rf-events/1", "tone", ns, {}, false};
     CHECK(dry.schedule(short_job, ns, {&fake, fake.value.utc_now_ns + ns, 1'000'000, 0}));
     fake.advance(ns);
-    fake.value.state = wtp::ClockState::Unsynchronized;
-    CHECK(dry.poll(ns).state == wtp::EngineState::Missed && !dry.output_active());
+    fake.value.state = execution::ClockState::Unsynchronized;
+    CHECK(dry.poll(ns).state == execution::EngineState::Missed && !dry.output_active());
 }
 void standalone_memory_admission_test() {
     static bool reclaimed;
@@ -841,22 +841,22 @@ void standalone_memory_admission_test() {
         clock.advance(116 * 1'000'000'000ULL);
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
-        wtp::available_memory = []() -> std::size_t { return reclaimed ? 81920 : 64000; };
-        wtp::reclaim_optional_memory = [] { ++reclaim_calls; };
+        execution::available_memory = []() -> std::size_t { return reclaimed ? 81920 : 64000; };
+        execution::reclaim_optional_memory = [] { ++reclaim_calls; };
         if (sufficient_after_reclaim)
-            wtp::reclaim_optional_memory = [] {
+            execution::reclaim_optional_memory = [] {
                 ++reclaim_calls;
                 reclaimed = true;
             };
         scheduler.poll();
-        wtp::available_memory = nullptr;
-        wtp::reclaim_optional_memory = nullptr;
+        execution::available_memory = nullptr;
+        execution::reclaim_optional_memory = nullptr;
         CHECK(reclaim_calls == 1);
         CHECK(engine.prepared == (sufficient_after_reclaim ? 1U : 0U));
         CHECK(service.status().state ==
-              (sufficient_after_reclaim ? wtp::State::Armed : wtp::State::Empty));
+              (sufficient_after_reclaim ? execution::State::Armed : execution::State::Empty));
         if (!sufficient_after_reclaim) {
             CHECK(!service.status().owner_id && !engine.output_active());
             CHECK(scheduler.status().find("INTERNAL_ERROR") != std::string::npos);
@@ -885,7 +885,7 @@ struct AdmissionSink : rf::BlockSink {
         return true;
     }
     rf::SinkReport poll(std::uint64_t) override {
-        return {arms ? wtp::EngineState::Armed : wtp::EngineState::Idle, epoch};
+        return {arms ? execution::EngineState::Armed : execution::EngineState::Idle, epoch};
     }
     bool output_active() const override {
         return false;
@@ -896,7 +896,7 @@ void standalone_production_memory_admission_test() {
     static unsigned reclaims;
     AdmissionSink sizing_sink;
     rf::StreamEngine sizing_engine(sizing_sink);
-    wtp::Job shape;
+    execution::Job shape;
     for (unsigned i = 0; i < 162; ++i)
         CHECK(shape.events.push_back({0, 1, true, rf::base_nhz}));
     const auto required = 32768 + sizing_engine.preparation_memory_bytes(shape);
@@ -913,28 +913,28 @@ void standalone_production_memory_admission_test() {
             standalone::FrequencyPolicyEngine policy(engine, store, rf::minimum_frequency_nhz,
                                                      rf::maximum_frequency_nhz);
             Identity identity;
-            wtp::JobService service(clock, policy, identity);
+            execution::JobService service(clock, policy, identity);
             standalone::Scheduler scheduler(store, service);
             CHECK(service.preparation_memory_bytes(shape) ==
                   engine.preparation_memory_bytes(shape));
             free_bytes = initial;
             reclaimed_bytes = reclaim ? required : initial;
             reclaims = 0;
-            wtp::available_memory = [] { return free_bytes; };
-            wtp::reclaim_optional_memory = [] {
+            execution::available_memory = [] { return free_bytes; };
+            execution::reclaim_optional_memory = [] {
                 ++reclaims;
                 free_bytes = reclaimed_bytes;
             };
             scheduler.poll();
-            wtp::available_memory = nullptr;
-            wtp::reclaim_optional_memory = nullptr;
+            execution::available_memory = nullptr;
+            execution::reclaim_optional_memory = nullptr;
             const bool accepted = initial >= required || reclaim;
             CHECK(scheduler.last_load_stage() == (accepted ? 4U : 2U));
             CHECK(sink.arms == (accepted ? 1U : 0U));
             CHECK(sink.submissions == (accepted ? 2U : 0U));
             CHECK(!sink.output_active());
             CHECK(reclaims == (initial < required ? 1U : 0U));
-            CHECK(service.status().state == (accepted ? wtp::State::Armed : wtp::State::Empty));
+            CHECK(service.status().state == (accepted ? execution::State::Armed : execution::State::Empty));
             if (!accepted) {
                 CHECK(!service.status().owner_id);
                 const auto watermark = store.watermark();
@@ -954,13 +954,13 @@ void standalone_production_memory_admission_test() {
     Engine engine;
     engine.preparation_bytes = SIZE_MAX;
     Identity identity;
-    wtp::JobService service(clock, engine, identity);
+    execution::JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
-    wtp::available_memory = [] { return SIZE_MAX; };
+    execution::available_memory = [] { return SIZE_MAX; };
     scheduler.poll();
-    wtp::available_memory = nullptr;
+    execution::available_memory = nullptr;
     CHECK(scheduler.last_load_stage() == 2 && engine.prepared == 0);
-    CHECK(service.status().state == wtp::State::Empty && !service.status().owner_id);
+    CHECK(service.status().state == execution::State::Empty && !service.status().owner_id);
 }
 void gray_line_solar_reference_tests() {
     // Independently evaluated NOAA Meeus/J2000 calculator, retrieved 2026-11-11:
@@ -1044,7 +1044,7 @@ void gray_line_scheduler_tests() {
         clock.value.monotonic_now_ns = 116 * ns;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(restored, service);
         if (scenario == 2)
             scheduler.gps_position(time::gps::Position{0, 0, 80 * ns});
@@ -1089,7 +1089,7 @@ void gray_line_scheduler_tests() {
         clock.value.monotonic_now_ns = 116 * ns;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         CHECK(!scheduler.next_wspr_start());
         scheduler.poll();
@@ -1130,7 +1130,7 @@ void gray_line_scheduler_tests() {
             CHECK(store.save_message_schedule(message));
             Engine engine;
             Identity identity;
-            wtp::JobService service(clock, engine, identity);
+            execution::JobService service(clock, engine, identity);
             standalone::Scheduler scheduler(store, service);
             CHECK(scheduler.next_message_start().has_value() == (fault == 0));
             scheduler.poll();
@@ -1183,11 +1183,11 @@ void gray_line_scheduler_tests() {
         clock.value.monotonic_now_ns = 116 * ns;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         scheduler.gps_position(time::gps::Position{test.latitude, 0, 116 * ns});
         const auto status_text = scheduler.gray_line_status();
-        const auto status = *wtp::json::parse(status_text);
+        const auto status = *execution::json::parse(status_text);
         if (status.get("selection")->string() != test.selection)
             std::cerr << "UTC " << test.utc << ": expected " << test.selection << ", got "
                       << status_text << '\n';
@@ -1197,19 +1197,19 @@ void gray_line_scheduler_tests() {
     }
     standalone::GrayLine settings;
     auto encoded = standalone::serialize_gray_line(settings);
-    CHECK(standalone::parse_gray_line(*wtp::json::parse(encoded)) == settings);
+    CHECK(standalone::parse_gray_line(*execution::json::parse(encoded)) == settings);
     for (const auto invalid : {"null", "[]", "{}"})
-        CHECK(!standalone::parse_gray_line(wtp::json::Value{invalid}));
+        CHECK(!standalone::parse_gray_line(execution::json::Value{invalid}));
     for (const auto replacement : {"true", "-6000.0", "-6e3", "-90001", "6000"}) {
         auto bad = encoded;
         const auto offset = bad.find("-6000");
         bad.replace(offset, 5, replacement);
-        const auto parsed_bad = wtp::json::parse(bad);
+        const auto parsed_bad = execution::json::parse(bad);
         CHECK(!parsed_bad || !standalone::parse_gray_line(*parsed_bad));
     }
     auto bad = encoded;
     bad.insert(1, "\"extra\":true,");
-    CHECK(!standalone::parse_gray_line(*wtp::json::parse(bad)));
+    CHECK(!standalone::parse_gray_line(*execution::json::parse(bad)));
 }
 void gps_daylight_scheduler_tests() {
     constexpr std::uint64_t ns = 1'000'000'000ULL;
@@ -1235,7 +1235,7 @@ void gps_daylight_scheduler_tests() {
                 clock.value.monotonic_now_ns = 116 * ns;
                 Engine engine;
                 Identity identity;
-                wtp::JobService service(clock, engine, identity);
+                execution::JobService service(clock, engine, identity);
                 standalone::Scheduler scheduler(store, service);
                 if (fix > 0 && fix < 4)
                     scheduler.gps_position(time::gps::Position{
@@ -1272,7 +1272,7 @@ void paired_scheduler_tests() {
         clock.value.utc_now_ns = first - 5 * ns;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         CHECK(scheduler.next_wspr_start().has_value() == !crosses_sunrise);
         scheduler.poll();
@@ -1299,15 +1299,15 @@ void paired_scheduler_tests() {
         const auto first = clock.value.utc_now_ns + 5 * ns, second = first + 120 * ns;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         std::vector<standalone::Scheduler::TransmissionStation> recorded_stations;
         struct RecordContext {
             standalone::Scheduler* scheduler;
             std::vector<standalone::Scheduler::TransmissionStation>* records;
         } record_context{&scheduler, &recorded_stations};
-        service.arm_observer([](const wtp::Job& job, const wtp::ArmBody&,
-                               const wtp::ClockSnapshot&, std::string_view, void* p) {
+        service.arm_observer([](const execution::Job& job, const execution::ArmBody&,
+                               const execution::ClockSnapshot&, std::string_view, void* p) {
             auto& c = *static_cast<RecordContext*>(p);
             if (const auto station = c.scheduler->transmission_station(job.job_id))
                 c.records->push_back(*station);
@@ -1340,7 +1340,7 @@ void paired_scheduler_tests() {
         if (fault == 1)
             CHECK(scheduler.command("STOP").find("\"suspended\":true") != std::string::npos);
         if (fault == 2)
-            clock.value.state = wtp::ClockState::Unsynchronized;
+            clock.value.state = execution::ClockState::Unsynchronized;
         if (fault == 3)
             CHECK(service.local_abort().ok);
         if (fault == 4) {
@@ -1361,7 +1361,7 @@ void paired_scheduler_tests() {
         scheduler.poll();
         if (fault == 9) {
             CHECK(engine.prepared == 2 && engine.began == 1);
-            clock.value.state = wtp::ClockState::Unsynchronized;
+            clock.value.state = execution::ClockState::Unsynchronized;
             scheduler.poll();
         }
         if (fault == 0 || fault == 11) {
@@ -1397,9 +1397,9 @@ void paired_scheduler_tests() {
         standalone::Store reboot_store(flash);
         CHECK(reboot_store.load());
         clock.value.utc_now_ns = second - 5 * ns;
-        clock.value.state = wtp::ClockState::Synchronized;
+        clock.value.state = execution::ClockState::Synchronized;
         Engine next_engine;
-        wtp::JobService next_service(clock, next_engine, identity);
+        execution::JobService next_service(clock, next_engine, identity);
         standalone::Scheduler reboot(reboot_store, next_service);
         reboot.poll();
         CHECK(next_engine.prepared == 0 && reboot_store.watermark() == second);
@@ -1418,7 +1418,7 @@ void paired_scheduler_tests() {
         clock.value.uncertainty_ns = 1000;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         scheduler.poll();
         CHECK(engine.prepared == 1);
@@ -1445,7 +1445,7 @@ void paired_scheduler_tests() {
             clock.value.monotonic_now_ns = std::numeric_limits<std::uint64_t>::max() - 115 * ns;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         scheduler.poll();
         CHECK(engine.prepared == 0 && store.watermark() == 0 && !service.status().owner_id);
@@ -1465,7 +1465,7 @@ void paired_scheduler_tests() {
         clock.value.rate_ppb = -100000;
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         scheduler.poll();
         CHECK(engine.prepared == 0 && store.watermark() == 0 && !service.status().owner_id);
@@ -1483,7 +1483,7 @@ void paired_scheduler_tests() {
         clock.advance(86276 * ns);
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         scheduler.poll();
         CHECK(engine.prepared == 1 && store.watermark() == time::sntp_min_utc_ns + 86401 * ns);
@@ -1502,15 +1502,15 @@ void paired_scheduler_tests() {
         clock.advance(116 * ns);
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         scheduler.poll();
         clock.advance(5 * ns);
         scheduler.poll();
         engine.disable_allowed = false;
-        clock.value.state = wtp::ClockState::Unsynchronized;
+        clock.value.state = execution::ClockState::Unsynchronized;
         scheduler.poll();
-        CHECK(service.status().state == wtp::State::Failed && !scheduler.idle());
+        CHECK(service.status().state == execution::State::Failed && !scheduler.idle());
         CHECK(scheduler.status().find("OUTPUT_STATE_UNKNOWN") != std::string::npos);
         clock.advance(300 * ns);
         scheduler.poll();
@@ -1529,7 +1529,7 @@ void paired_scheduler_tests() {
         clock.advance(116 * ns);
         Engine engine;
         Identity identity;
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         standalone::Scheduler scheduler(store, service);
         scheduler.poll();
         CHECK(engine.prepared == (extra == 232 ? 1U : 0U));

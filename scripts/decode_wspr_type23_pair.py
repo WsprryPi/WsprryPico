@@ -100,7 +100,7 @@ def validate_order(physical):
                 original_workflow_errors=physical['errors'], controller_termination_corrected=corrected,
                 explanation='Scheduler sees the second Complete, cancel_pair(None) RELEASEs it, and JobService clear_job changes state to Empty.',
                 terminal_host_utc_ns=terminal[0]['host_utc_ns'],
-                source='src/standalone/scheduler.cpp poll_pair/cancel_pair; src/wtp/job_service.cpp RELEASE/clear_job')
+                source='src/standalone/scheduler.cpp poll_pair/cancel_pair; src/rf/job_service.cpp RELEASE/clear_job')
 
 
 def table_state(directory):

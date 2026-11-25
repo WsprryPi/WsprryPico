@@ -20,7 +20,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from check_application_image import validate as validate_engine
 from check_standalone_image import validate_uf2
 from firmware_payload import verify_payload
-from usb_installer import MAX_VERSION, SEMVER, firmware_channel, release_asset_url, version_kind, firmware_schema, validation_ref
+from usb_installer import MAX_VERSION, SEMVER, firmware_channel, release_asset_url, version_kind, validation_ref
 
 PROFILES = {
     'consumer': {'target': 'WsprryPico', 'engine': 'pio-dma', 'role': 'uninhibited'},
@@ -191,11 +191,12 @@ def validate_execution_policy(value):
     require(isinstance(value, dict) and value.get('schema') in ('ci-execution-policy/1', 'ci-execution-policy/2'),
             'Invalid frozen execution policy')
     fields = {'schema', 'contexts'} | ({'completion_policy'} if value['schema'].endswith('/2') else set())
+    current_contexts = set(execution.HOST_CONTEXTS)
     require(set(value) == fields and isinstance(value['contexts'], list) and value['contexts'] and
-            all(isinstance(x, str) and x in execution.HOST_CONTEXTS for x in value['contexts']) and
+            all(isinstance(x, str) and x in current_contexts for x in value['contexts']) and
             len(value['contexts']) == len(set(value['contexts'])), 'Invalid frozen execution policy')
     if value['schema'].endswith('/2'):
-        require(set(value['contexts']) == set(execution.HOST_CONTEXTS) and
+        require(set(value['contexts']) == current_contexts and
                 value['completion_policy'] == 'scripts/ci/ctest-completion-policy.json',
                 'Incomplete current execution policy')
     return value
@@ -294,12 +295,6 @@ def inspect_profile(directory, identifier, version, source, picotool='picotool',
             'Private build data in image')
     symbols = capture('arm-none-eabi-nm', '-C', elf)
     validate_engine(symbols, 'rf' if identifier == 'consumer' else 'inhibited')
-    for retired in ('wsprrypico::wtp::Endpoint::', 'wsprrypico::wtp::FrameParser::',
-                    'wsprrypico::wtp::decode_request(', 'wsprrypico::wtp::encode_response(',
-                    'wsprrypico::network::browser_load_response(', 'PicoServer::start_plain(',
-                    'PicoGattTransport::ensure_wtp_endpoint(', 'wsprry_mdns_add_wtp_service'):
-        require(retired not in symbols, 'Retired external execution entry linked: ' + retired)
-
     map_text = (directory / (target + '.elf.map')).read_text()
     require(re.search(rf'^FLASH\s+0x10000000\s+0x{application_end-0x10000000:08x}\s+xr$', map_text, re.M), 'Wrong current flash reservation')
     commands = read_json(directory / 'compile_commands.json', limit=MAX_FILE)
@@ -311,12 +306,11 @@ def inspect_profile(directory, identifier, version, source, picotool='picotool',
                 'Band-specific build input is forbidden')
         linked_owned = item in selected or re.search(r'CMakeFiles/wsprrypico_(?:core|rf|pico_rf)\.dir/', command)
         if linked_owned:
-            require(not re.search(r'-DWSPRRY_PICO_\w*(?:FIXTURE|FAULT|RF_BENCH|RF_WTP|ACCEPTANCE|DIAGNOSTIC|PROVISIONED)\w*(?:=1|\s)', command),
+            require(not re.search(r'-DWSPRRY_PICO_\w*(?:FIXTURE|FAULT|RF_BENCH|ACCEPTANCE|DIAGNOSTIC|PROVISIONED)\w*(?:=1|\s)', command),
                     'Fixture or provisioned compile input')
     for item in selected:
         flags = set(shlex.split(item['command']))
         require('-DWSPRRY_PICO_RF_SAMPLE_RATE_HZ=138000000' in flags, 'Wrong application clock')
-        require(not any(flag.startswith('-DWSPRRY_PICO_CONSUMER_LAN_MODE') for flag in flags), 'Retired WTP LAN profile input')
         require('-DCYW43_ENABLE_BLUETOOTH=1' in flags, 'Wrong linked CYW43 firmware selection')
         if identifier == 'consumer':
             require('-DWSPRRY_PICO_STANDALONE_RF=1' in flags and
@@ -390,7 +384,7 @@ def verify(deployment, audit, source, version, inspect=True):
     from jsonschema import Draft202012Validator
     deployment, audit = deployment.resolve(), audit.resolve()
     manifest = read_json(deployment / 'release-manifest.json')
-    schema = firmware_schema(manifest.get("schema_version"), read_json(SCHEMA))
+    schema = read_json(SCHEMA)
     Draft202012Validator.check_schema(schema)
     Draft202012Validator(schema).validate(manifest)
     require(re.fullmatch(r'[0-9a-f]{40}', source) and manifest['source']['revision'] == source,
@@ -417,9 +411,10 @@ def verify(deployment, audit, source, version, inspect=True):
     checks = manifest['checks']
     require(checks['registered'] == checks['passed'] == len(checks['test_names']) and
             len(set(checks['test_names'])) == len(checks['test_names']), 'Incomplete test inventory')
-    for name in ('wtp_contract', 'browser_npm', 'packaging_failure_tests', 'consumer_ui',
+    contexts = required_execution_contexts(source)
+    for name in ('control_policy', 'browser_npm', 'packaging_failure_tests', 'consumer_ui',
                  'compatibility_rf', 'inhibited_regression'):
-        require(checks[name] == 'passed', 'Required check did not pass: ' + name)
+        require(checks.get(name) == 'passed', 'Required check did not pass: ' + name)
     require(checks['failed'] == checks['skipped'] == 0 and checks['reproducibility'] == 'identical',
             'Failed, skipped or nonreproducible build')
     pins = read_json(Path(__file__).with_name('inputs.json'))
@@ -443,7 +438,6 @@ def verify(deployment, audit, source, version, inspect=True):
                 for case in cases), 'Audit report contains failed or skipped required tests')
     # New execution evidence is required by its frozen producer, without
     # changing the independently versioned deployment manifest or older bundles.
-    contexts = required_execution_contexts(source)
     if contexts is not None:
         report = read_json(audit / 'execution.json')
         execution.verify(report, source, manifest['workflow']['run_id'], manifest['workflow']['attempt'], contexts)

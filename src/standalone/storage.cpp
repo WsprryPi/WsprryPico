@@ -136,7 +136,7 @@ std::string stored_config(const Config& config) {
         return serialize_config(config);
     const auto default_text = hardware::serialize_gps({});
     const auto supplied_text = hardware::serialize_gps(*config.gps);
-    const auto defaults = *wtp::json::parse(default_text), supplied = *wtp::json::parse(supplied_text);
+    const auto defaults = *execution::json::parse(default_text), supplied = *execution::json::parse(supplied_text);
     std::string sparse = "{";
     for (const auto name : gps_fields) {
         const auto value = supplied.get(name)->raw;
@@ -144,7 +144,7 @@ std::string stored_config(const Config& config) {
             continue;
         if (sparse.size() > 1)
             sparse += ',';
-        sparse += wtp::json::quote(name) + ":" + std::string(value);
+        sparse += execution::json::quote(name) + ":" + std::string(value);
     }
     sparse += '}';
     auto base = config;
@@ -160,29 +160,29 @@ std::string stored_config(const Config& config) {
 }
 
 std::optional<Config> parse_stored_config(std::string text) {
-    const auto root = wtp::json::parse(text);
+    const auto root = execution::json::parse(text);
     const auto gps = root ? root->get("gps") : std::nullopt;
     const auto version = root ? root->get("version") : std::nullopt;
     if (const auto beacon = root ? root->get("beacon") : std::nullopt) {
         if (version || !text.starts_with("{\"beacon\":") || beacon->raw.size() != 1 ||
             beacon->type() < '0' || beacon->type() > '4' ||
-            (gps && !wtp::json::fields(*gps, {}, {
+            (gps && !execution::json::fields(*gps, {}, {
                 "enabled", "receiver", "rx_gp", "pps_gp", "tx_gp", "baud", "pps_active_high",
                 "pairing_qualified", "utc_second_offset", "pps_offset_ns", "minimum_message_delay_ms",
                 "maximum_message_delay_ms", "receiver_uncertainty_us", "capture_uncertainty_us",
                 "location", "position_maximum_age_s", "automatic_rf_calibration", "calibration_maximum_age_s"})))
             return {};
         const auto default_text = hardware::serialize_gps({});
-        const auto defaults = *wtp::json::parse(default_text);
+        const auto defaults = *execution::json::parse(default_text);
         std::string expanded = "{";
         for (const auto name : gps_fields) {
             if (expanded.size() > 1)
                 expanded += ',';
             const auto selected = gps ? gps->get(name) : std::nullopt;
-            expanded += wtp::json::quote(name) + ":" +
+            expanded += execution::json::quote(name) + ":" +
                         std::string(selected ? selected->raw : defaults.get(name)->raw);
         }
-        expanded += ",\"daylight\":" + wtp::json::quote(beacon_policies[beacon->type() - '0']) + "}";
+        expanded += ",\"daylight\":" + execution::json::quote(beacon_policies[beacon->type() - '0']) + "}";
         const auto timeout = root->get("ntp_timeout_s");
         const bool unlimited = timeout && timeout->raw == "0";
         if (gps)
@@ -256,14 +256,14 @@ bool Store::load(bool reset_recovery) {
     if (!config_.load(reset_recovery) || !cursor_.load())
         return false;
     if (!config_.data().empty()) {
-        const auto root = wtp::json::parse(config_.data());
+        const auto root = execution::json::parse(config_.data());
         if (!root)
             return false;
         if (root->get("schema")) {
             const bool filters = root->get("filter_selector").has_value();
             const bool logs = root->get("schema")->string() == "standalone-state/4";
             if (logs) {
-                if (!wtp::json::fields(*root, {"schema", "config", "message_schedule", "logging"},
+                if (!execution::json::fields(*root, {"schema", "config", "message_schedule", "logging"},
                                        {"filter_selector"}))
                     return false;
                 if (filters) {
@@ -275,7 +275,7 @@ bool Store::load(bool reset_recovery) {
                 }
                 const auto settings = *root->get("logging");
                 const auto severity = settings.get("maximum_severity");
-                if (!wtp::json::fields(settings, {"enabled", "maximum_severity"}) ||
+                if (!execution::json::fields(settings, {"enabled", "maximum_severity"}) ||
                     (settings.get("enabled")->raw != "true" &&
                      settings.get("enabled")->raw != "false") ||
                     !severity || severity->raw.size() != 1 || severity->integer() < 0 ||
@@ -283,7 +283,7 @@ bool Store::load(bool reset_recovery) {
                     return false;
                 logging_ = {settings.get("enabled")->raw == "true",
                             static_cast<unsigned>(severity->integer())};
-            } else if (!wtp::json::fields(*root, {"schema", "config", "message_schedule"}) ||
+            } else if (!execution::json::fields(*root, {"schema", "config", "message_schedule"}) ||
                        root->get("schema")->string() != "standalone-state/3")
                 return false;
             if (root->get("config")->raw != "null") {
@@ -310,14 +310,14 @@ bool Store::load(bool reset_recovery) {
     if (!cursor_.data().empty()) {
         const auto& value = cursor_.data();
         if (value.starts_with('{')) {
-            const auto cursor = wtp::json::parse(value);
+            const auto cursor = execution::json::parse(value);
             if (!cursor ||
-                !wtp::json::fields(*cursor, {"schema", "watermark_ns", "message_in_flight",
+                !execution::json::fields(*cursor, {"schema", "watermark_ns", "message_in_flight",
                                              "last_message_start_ns"}) ||
                 cursor->get("schema")->string() != "standalone-cursor/2" ||
-                !wtp::json::decimal(*cursor->get("watermark_ns"), watermark_, true))
+                !execution::json::decimal(*cursor->get("watermark_ns"), watermark_, true))
                 return false;
-            if (!wtp::json::decimal(*cursor->get("last_message_start_ns"), last_message_start_) ||
+            if (!execution::json::decimal(*cursor->get("last_message_start_ns"), last_message_start_) ||
                 last_message_start_ > watermark_)
                 return false;
             const auto flight = cursor->get("message_in_flight")->raw;
@@ -397,7 +397,7 @@ bool Store::save_message_schedule(const std::optional<MessageSchedule>& schedule
         return false;
     if (schedule) {
         const auto encoded = serialize_message_schedule(*schedule);
-        const auto parsed = wtp::json::parse(encoded);
+        const auto parsed = execution::json::parse(encoded);
         if (!parsed || !parse_message_schedule(*parsed))
             return false;
     }
@@ -430,9 +430,9 @@ bool Store::reserve_cursor(std::uint64_t utc_ns, bool flight) {
     const auto data =
         message_ || flight || message_start
             ? "{\"schema\":\"standalone-cursor/2\",\"watermark_ns\":" +
-                  wtp::json::quote(std::to_string(utc_ns)) +
+                  execution::json::quote(std::to_string(utc_ns)) +
                   ",\"message_in_flight\":" + (flight ? "true" : "false") +
-                  ",\"last_message_start_ns\":" + wtp::json::quote(std::to_string(message_start)) +
+                  ",\"last_message_start_ns\":" + execution::json::quote(std::to_string(message_start)) +
                   "}"
             : std::to_string(utc_ns);
     if (!cursor_.append(data)) {

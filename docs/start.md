@@ -1,6 +1,6 @@
 # Prepare your Pico
 
-Use a **Pico 2 W / RP2350**. The original Pico, Pico W, and non-wireless Pico 2 are not supported. You need a USB data cable, a reliable USB supply, and a macOS or Linux computer for the USB installer. Windows and WSL USB installation are unsupported.
+Use a **Pico 2 W / RP2350**. You need a USB data cable, a reliable USB supply, and a macOS or native Linux computer for the USB installer. Windows supports [manual UF2 copying](install.md#windows-manual-uf2-installation).
 
 For browser control, have the name and password of a compatible **2.4 GHz Wi-Fi network** available. The consumer setup supports password-protected personal networks. Enterprise and WPA3-only provisioning are unavailable. Use a trusted network where your computer or phone can reach the Pico.
 

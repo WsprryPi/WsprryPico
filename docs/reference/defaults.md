@@ -74,4 +74,4 @@ These are browser draft values, not an enabled or saved message schedule. An exi
 | First start | Next ten-minute UTC boundary |
 | End date | None |
 
-The suggested message follows the applied callsign until the message is manually edited. `N0CALL` is refused before transmission. WSPR dial settings do not fill the CW frequency field. See [Send QRSS, FSKCW, or DFCW](../operate.md#send-qrss-fskcw-or-dfcw) and [Repeat a message on a schedule](../operate.md#repeat-a-message-on-a-schedule) for saving and starting a job or schedule.
+The suggested message follows the applied callsign until you edit it. Replace `N0CALL` before transmitting. WSPR dial settings do not fill the CW frequency field. See [Send QRSS, FSKCW, or DFCW](../operate.md#send-qrss-fskcw-or-dfcw) for creating and starting a schedule.

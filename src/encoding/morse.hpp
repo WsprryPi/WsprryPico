@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <algorithm>
 #include <array>
@@ -47,7 +47,7 @@ struct MorseMessage {
     bool allow_frequency_adjustment = false;
 };
 struct MorseResult {
-    std::optional<wtp::Job> job;
+    std::optional<execution::Job> job;
     std::string_view error;
     std::uint64_t calculated_duration_ns = 0;
     std::size_t calculated_events = 0;
@@ -144,12 +144,12 @@ inline MorseResult compile_message(const MorseMessage& input, std::size_t event_
         result.error = reason;
         return result;
     };
-    wtp::Job job;
+    execution::Job job;
     job.job_id = input.job_id;
     job.mode = input.mode;
     job.allow_frequency_adjustment = input.allow_frequency_adjustment;
     job.total_duration_ns = result.calculated_duration_ns;
-    job.message = wtp::MessagePresentation{input.text,
+    job.message = execution::MessagePresentation{input.text,
                                            input.mark_frequency_nhz,
                                            input.space_frequency_nhz,
                                            input.dot_ns,

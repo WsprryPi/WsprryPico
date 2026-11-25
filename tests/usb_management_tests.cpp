@@ -1,8 +1,8 @@
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 #include "usb/management_endpoint.hpp"
 #include "usb/time_exchange.hpp"
-#include "wtp/codec.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -26,12 +26,12 @@ std::string frame(std::string body) {
 }
 std::string common(unsigned id, std::string_view operation) {
     return "{\"schema\":\"usb-management/1\",\"id\":" + std::to_string(id) +
-           ",\"operation\":" + wtp::json::quote(operation);
+           ",\"operation\":" + execution::json::quote(operation);
 }
 std::string bound(unsigned id, std::string_view operation) {
-    return common(id, operation) + ",\"session\":" + wtp::json::quote(session) +
-           ",\"target\":{\"scope\":\"member\",\"device_id\":" + wtp::json::quote(device) +
-           ",\"boot_id\":" + wtp::json::quote(boot) + "}";
+    return common(id, operation) + ",\"session\":" + execution::json::quote(session) +
+           ",\"target\":{\"scope\":\"member\",\"device_id\":" + execution::json::quote(device) +
+           ",\"boot_id\":" + execution::json::quote(boot) + "}";
 }
 void send(usb::ManagementEndpoint& endpoint, std::string body, std::uint64_t now = 1) {
     const auto wire = frame(std::move(body));
@@ -58,7 +58,7 @@ std::string drain(usb::ManagementEndpoint& endpoint) {
     for (unsigned i = 4; i < 8; ++i)
         length = length * 256 + static_cast<unsigned char>(result[i]);
     CHECK(length == payload.size());
-    CHECK(wtp::json::parse(payload));
+    CHECK(execution::json::parse(payload));
     return payload;
 }
 std::uint64_t now_ns = 0;
@@ -77,7 +77,7 @@ std::size_t priority_memory() {
 void reclaim_management() {
     ++priority_reclaims;
     // A cleanup callback cannot recursively spend or reclaim the same reserve.
-    CHECK(!wtp::authoritative_memory_admitted(65536));
+    CHECK(!execution::authoritative_memory_admitted(65536));
     reclaim_endpoint->disconnect();
     priority_free = 128824;
 }
@@ -96,7 +96,7 @@ void escaped_frame_limits() {
         device, boot, "test",
         [&](const network::HttpRequest&, std::uint64_t) {
             network::HttpResponse response{200, {}, "application/json", {}};
-            response.generated_body = wtp::make_response_source<wtp::TextResponseSource>(payload);
+            response.generated_body = execution::make_response_source<execution::TextResponseSource>(payload);
             return response;
         },
         [&](std::uint64_t, bool success) {
@@ -132,7 +132,7 @@ void escaped_frame_limits() {
             CHECK(!endpoint.closed());
             const auto wire = drain(endpoint);
             CHECK(wire.size() == length);
-            CHECK(wtp::json::parse(wire)->get("body")->string() == payload);
+            CHECK(execution::json::parse(wire)->get("body")->string() == payload);
             CHECK(finishes == before);
             send(endpoint, bound(2, "ack") + "}");
             (void)drain(endpoint);
@@ -144,24 +144,15 @@ void escaped_frame_limits() {
     }
 }
 void generated_frames() {
-    wtp::Request request;
-    request.operation = "LOAD";
-    request.request_id = std::string(32, '1');
-    wtp::Response response;
-    response.ok = true;
-    response.job_id = std::string(32, '2');
-    std::vector<wtp::FrequencyAdjustment> adjustments;
-    for (unsigned i = 0; i < 256; ++i)
-        adjustments.push_back({i, 14097100000000000ULL, 14097100000000001ULL});
-    response.adjustments = std::move(adjustments);
-    const auto expected = wtp::encode_load_response_buffer(request, response, true);
+    const auto expected = "{\"data\":" + execution::json::quote(std::string(12'000, '"')) + "}";
+
     unsigned finishes = 0;
     bool delivered = false;
     usb::ManagementEndpoint endpoint(
         device, boot, "test",
         [&](const network::HttpRequest&, std::uint64_t) {
             network::HttpResponse result{200, {}, "application/json", {}};
-            result.generated_body = wtp::load_response_source(request, response);
+            result.generated_body = execution::make_response_source<execution::TextResponseSource>(expected);
             return result;
         },
         [&](std::uint64_t, bool success) {
@@ -176,16 +167,16 @@ void generated_frames() {
         ",\"method\":\"GET\",\"path\":\"/api/control/v1/config\",\"body\":\"\",\"if_match\":\"\"}";
     send(endpoint, command);
     CHECK(endpoint.busy() && endpoint.output().empty());
-    const auto allocator = wtp::allocate_input;
-    wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
+    const auto allocator = execution::allocate_input;
+    execution::allocate_input = [](std::size_t) -> void* { return nullptr; };
     unsigned steps = 0;
     while (endpoint.output().empty() && steps++ < 64)
         endpoint.poll(1);
     CHECK(steps > 1 && steps <= 64 && !endpoint.closed());
     const auto wire = drain(endpoint);
-    wtp::allocate_input = allocator;
-    const auto value = wtp::json::parse(wire);
-    CHECK(value && value->get("body")->string() == std::string(expected.view()));
+    execution::allocate_input = allocator;
+    const auto value = execution::json::parse(wire);
+    CHECK(value && value->get("body")->string() == expected);
     CHECK(finishes == 0); // Sending the last byte still does not supply USB ACK authority.
     send(endpoint, bound(2, "ack") + "}");
     (void)drain(endpoint);
@@ -233,10 +224,10 @@ int main() {
     request(2);
     CHECK(handled == 1 && delivered == 0);
     const auto response = drain(endpoint);
-    const auto parsed = wtp::json::parse(response);
+    const auto parsed = execution::json::parse(response);
     CHECK(parsed->get("delivery_required")->boolean());
     CHECK(parsed->get("etag")->string() == "revision");
-    CHECK(wtp::json::parse(parsed->get("body")->string()));
+    CHECK(execution::json::parse(parsed->get("body")->string()));
     send(endpoint, bound(2, "ack") + "}");
     CHECK(delivered == 1);
     (void)drain(endpoint);
@@ -260,13 +251,13 @@ int main() {
     send(endpoint, common(2, "hello") + ",\"id\":3}");
     CHECK(endpoint.closed()); // Duplicate member never reaches dispatch.
     hello();
-    wtp::available_memory = free_memory;
+    execution::available_memory = free_memory;
     request(2);
-    CHECK(endpoint.closed()); // Management cannot spend the WTP reserve.
-    wtp::available_memory = nullptr;
+    CHECK(endpoint.closed()); // Management cannot spend the native execution reserve.
+    execution::available_memory = nullptr;
 
     // Optional input, queued response and undelivered ACK state yield to the
-    // original WTP budgets. Generic JSON admission never frees its own input.
+    // native execution budget. Generic JSON admission never frees its own input.
     reclaim_endpoint = &endpoint;
     for (unsigned stage = 0; stage != 3; ++stage) {
         hello();
@@ -281,16 +272,16 @@ int main() {
         }
         const auto before_reclaims = priority_reclaims;
         priority_free = 32768;
-        wtp::available_memory = priority_memory;
-        wtp::reclaim_optional_memory = reclaim_management;
-        CHECK(!wtp::memory_admitted(65536));
+        execution::available_memory = priority_memory;
+        execution::reclaim_optional_memory = reclaim_management;
+        CHECK(!execution::memory_admitted(65536));
         CHECK(priority_reclaims == before_reclaims && !endpoint.closed());
-        CHECK(wtp::authoritative_input_memory_admitted(65536));
+        CHECK(execution::authoritative_memory_admitted(65536));
         CHECK(priority_reclaims == before_reclaims + 1 && endpoint.closed());
         CHECK(cancelled == before_cancelled + (stage ? 1 : 0));
         CHECK(delivered == 1);
-        wtp::reclaim_optional_memory = nullptr;
-        wtp::available_memory = nullptr;
+        execution::reclaim_optional_memory = nullptr;
+        execution::available_memory = nullptr;
     }
 
     time::UtcDiscipline clock(clock_now, nullptr, standalone::clock_profile());
@@ -300,9 +291,9 @@ int main() {
     auto sample = time.handle(time_request("GET", "/api/usb/v1/time/sample"), 20);
     CHECK(sample.status == 200);
     const auto body = [&](std::string token, std::uint64_t uncertainty = 1'000'000) {
-        return "{\"sample\":" + wtp::json::quote(token) +
-               ",\"utc_ns\":" + wtp::json::quote(std::to_string(utc + now_ns)) +
-               ",\"uncertainty_ns\":" + wtp::json::quote(std::to_string(uncertainty)) +
+        return "{\"sample\":" + execution::json::quote(token) +
+               ",\"utc_ns\":" + execution::json::quote(std::to_string(utc + now_ns)) +
+               ",\"uncertainty_ns\":" + execution::json::quote(std::to_string(uncertainty)) +
                ",\"leap\":\"normal\"}";
     };
     CHECK(time.handle(time_request("POST", "/api/usb/v1/time/submit", body("wrong")), 21).status ==
@@ -313,13 +304,13 @@ int main() {
     CHECK(time.handle(time_request("POST", "/api/usb/v1/time/submit", body("23")), 24).status ==
           200);
     CHECK(arbiter.status().principal == "usb-physical");
-    CHECK(clock.snapshot().state == wtp::ClockState::Synchronized);
+    CHECK(clock.snapshot().state == execution::ClockState::Synchronized);
     (void)time.handle(time_request("GET", "/api/usb/v1/time/sample"), 25);
     now_ns += 2'000'000'001ULL;
     CHECK(time.handle(time_request("POST", "/api/usb/v1/time/submit", body("25")), 26).status ==
           409);
     CHECK(arbiter.observe(time::ObservationSource::Sntp, utc + now_ns, now_ns, 1'000'000,
-                          wtp::LeapState::Normal, {}));
+                          execution::LeapState::Normal, {}));
     (void)time.handle(time_request("GET", "/api/usb/v1/time/sample"), 27);
     const auto preferred =
         time.handle(time_request("POST", "/api/usb/v1/time/submit", body("27")), 28);
@@ -327,9 +318,9 @@ int main() {
           preferred.body.find("\"selected\":false") != std::string::npos);
     time.reset();
     CHECK(arbiter.status().source == time::ActiveTimeSource::Sntp);
-    CHECK(standalone::wtp_profile(true).max_events == 512);
-    CHECK(standalone::wtp_profile(true).max_job_duration_ns == 3'600'000'000'000ULL);
-    CHECK(standalone::wtp_profile(true).maximum_arm_uncertainty_ns == UINT64_MAX);
-    CHECK(standalone::wtp_profile(true).maximum_holdover_age_ns == 3'600'000'000'000ULL);
+    CHECK(standalone::execution_profile(true).max_events == 512);
+    CHECK(standalone::execution_profile(true).max_job_duration_ns == 3'600'000'000'000ULL);
+    CHECK(standalone::execution_profile(true).maximum_arm_uncertainty_ns == UINT64_MAX);
+    CHECK(standalone::execution_profile(true).maximum_holdover_age_ns == 3'600'000'000'000ULL);
     std::cout << "USB framing, ACK ownership, memory refusal and time lifecycle passed\n";
 }

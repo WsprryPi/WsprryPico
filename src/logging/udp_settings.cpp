@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 #include "logging/udp_settings.hpp"
 namespace wsprrypico::logging {
-std::optional<UdpSettings> parse_udp_settings(wtp::json::Value value) {
-    using namespace wtp::json;
+std::optional<UdpSettings> parse_udp_settings(execution::json::Value value) {
+    using namespace execution::json;
     if (!fields(value, {"enabled", "destination_ipv4", "destination_port", "maximum_severity",
                         "event_codes", "rate", "burst"}))
         return {};
@@ -41,7 +41,7 @@ std::optional<UdpSettings> parse_udp_settings(wtp::json::Value value) {
     return valid_udp_settings(s) ? std::optional<UdpSettings>{s} : std::nullopt;
 }
 std::string udp_settings_json(const UdpSettings& s) {
-    using wtp::json::quote;
+    using execution::json::quote;
     std::string codes = "[";
     for (std::size_t i = 0; i < s.event_count; ++i) {
         if (i)
@@ -63,7 +63,7 @@ std::string udp_active_json(const UdpSender& sender, std::string_view revision) 
     const auto field = [&](std::string_view key, std::uint64_t n) {
         if (counters.size() > 1)
             counters += ',';
-        counters += wtp::json::quote(key) + ":" + wtp::json::quote(std::to_string(n));
+        counters += execution::json::quote(key) + ":" + execution::json::quote(std::to_string(n));
     };
     field("generated", c.generated);
     field("filtered", c.filtered);
@@ -76,8 +76,8 @@ std::string udp_active_json(const UdpSender& sender, std::string_view revision) 
     field("attempted", c.attempted);
     field("locally_submitted", c.locally_submitted);
     field("locally_failed", c.locally_failed);
-    return "{\"state\":" + wtp::json::quote(states[static_cast<unsigned>(sender.state())]) +
-           ",\"applied_revision\":" + wtp::json::quote(revision) +
+    return "{\"state\":" + execution::json::quote(states[static_cast<unsigned>(sender.state())]) +
+           ",\"applied_revision\":" + execution::json::quote(revision) +
            ",\"receipt\":\"unknown\",\"queued\":" + std::to_string(sender.queued()) +
            ",\"counters\":" + counters + "}}";
 }
@@ -87,8 +87,8 @@ bool UdpStore::load() {
     if (!journal_.load())
         return false;
     if (!journal_.data().empty()) {
-        const auto root = wtp::json::parse(journal_.data(), 8);
-        if (!root || !wtp::json::fields(*root, {"schema", "settings"}) ||
+        const auto root = execution::json::parse(journal_.data(), 8);
+        if (!root || !execution::json::fields(*root, {"schema", "settings"}) ||
             root->get("schema")->type() != '"' ||
             root->get("schema")->string() != "udp-logging-state/1")
             return false;

@@ -5,9 +5,10 @@
 #include "network_support.hpp"
 #include "pico/time.h"
 #include "provisioning/pico/credential_validator.hpp"
+#include "rf/observation.hpp"
 #include "rf/worker.hpp"
-#include "wtp/codec.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <atomic>
 #include <charconv>
@@ -43,20 +44,20 @@ mbedtls_time_t unset_tls_time(mbedtls_time_t* output) {
 // device job independently of the application thread. No host wakeup-latency
 // assertion is treated as a physical alarm deadline. Driver deadline tests live
 // in pio_dma_tests; target measurements remain separately required.
-class LocalTimerEngine final : public wsprrypico::wtp::RfEngine {
-    using State = wsprrypico::wtp::EngineState;
+class LocalTimerEngine final : public wsprrypico::execution::RfEngine {
+    using State = wsprrypico::execution::EngineState;
     State state_ = State::Idle;
     std::uint64_t start_ = 0, duration_ = 0, epoch_ = 0;
-    wsprrypico::wtp::PadObservation pad_;
-    wsprrypico::wtp::LocalStartConditions conditions_;
+    wsprrypico::execution::PadObservation pad_;
+    wsprrypico::execution::LocalStartConditions conditions_;
     const bool assess_tone_;
 
   public:
     explicit LocalTimerEngine(bool assess_tone) : assess_tone_(assess_tone) {}
-    wsprrypico::wtp::PadObservation pad_observation() const override {
+    wsprrypico::execution::PadObservation pad_observation() const override {
         return pad_;
     }
-    wsprrypico::wtp::PrepareResult prepare(const wsprrypico::wtp::Job& job) override {
+    wsprrypico::execution::PrepareResult prepare(const wsprrypico::execution::Job& job) override {
         if (assess_tone_ && job.mode == "tone" && job.events.size() == 1) {
             const auto frequency = *job.events[0].frequency_nhz;
             const auto increment = wsprrypico::rf::frequency_increment(frequency);
@@ -69,8 +70,8 @@ class LocalTimerEngine final : public wsprrypico::wtp::RfEngine {
     bool schedules_locally() const override {
         return true;
     }
-    bool schedule(const wsprrypico::wtp::Job& job, std::uint64_t start,
-                  const wsprrypico::wtp::LocalStartConditions& conditions) override {
+    bool schedule(const wsprrypico::execution::Job& job, std::uint64_t start,
+                  const wsprrypico::execution::LocalStartConditions& conditions) override {
         if (state_ != State::Idle)
             return false;
         pad_ = {++epoch_, now(), 2, 12};
@@ -80,13 +81,13 @@ class LocalTimerEngine final : public wsprrypico::wtp::RfEngine {
         state_ = State::Armed;
         return true;
     }
-    bool begin(const wsprrypico::wtp::Job&, std::uint64_t) override {
+    bool begin(const wsprrypico::execution::Job&, std::uint64_t) override {
         return false;
     }
-    wsprrypico::wtp::EngineReport poll(std::uint64_t time) override {
+    wsprrypico::execution::EngineReport poll(std::uint64_t time) override {
         if (state_ == State::Armed && time >= start_) {
             state_ =
-                conditions_.clock->snapshot().state == wsprrypico::wtp::ClockState::Unsynchronized
+                conditions_.clock->snapshot().state == wsprrypico::execution::ClockState::Unsynchronized
                     ? State::Missed
                     : State::Running;
         }
@@ -109,7 +110,7 @@ void restore(std::uint32_t) {}
 } // namespace
 int main(int argc, char** argv) {
     using namespace wsprrypico;
-    if(argc>3){std::cerr<<"Retired WTP carrier selection\n";return 2;}
+    if(argc>3){std::cerr<<"Unrecognized fixture arguments\n";return 2;}
     std::signal(SIGPIPE, SIG_IGN);
     std::signal(SIGTERM, stop);
     const auto* selected_address = std::getenv("WSPRRY_TEST_LISTEN_ADDRESS");
@@ -133,7 +134,7 @@ int main(int argc, char** argv) {
         static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                        std::chrono::system_clock::now().time_since_epoch())
                                        .count());
-    if (!clock.observe(utc, now(), 1000, wtp::LeapState::Normal))
+    if (!clock.observe(utc, now(), 1000, execution::LeapState::Normal))
         return 1;
     const bool tone_fixture = std::getenv("WSPRRY_NETWORK_TEST_TONE") &&
                               std::string_view(std::getenv("WSPRRY_NETWORK_TEST_TONE")) == "1";
@@ -151,7 +152,7 @@ int main(int argc, char** argv) {
         service_limits.capability_engine = "pio-dma-gp2";
         tone_policy.emplace(engine, store, rf::minimum_frequency_nhz, rf::maximum_frequency_nhz);
     }
-    wtp::JobService service(clock, tone_policy ? static_cast<wtp::RfEngine&>(*tone_policy) : engine,
+    execution::JobService service(clock, tone_policy ? static_cast<execution::RfEngine&>(*tone_policy) : engine,
                             identities, service_limits);
     standalone::Scheduler scheduler(store, service);
     network_test::Network network;
@@ -192,7 +193,7 @@ int main(int argc, char** argv) {
     clock.invalidate();
     if (startup_validator.validate(credentials) || network::PsaCryptoOwner::owners())
         std::abort();
-    if (!clock.observe(utc + now(), now(), 1000, wtp::LeapState::Normal) ||
+    if (!clock.observe(utc + now(), now(), 1000, execution::LeapState::Normal) ||
         !startup_validator.validate(credentials) || network::PsaCryptoOwner::owners())
         std::abort();
     auto invalid_credentials = credentials;
@@ -224,13 +225,13 @@ int main(int argc, char** argv) {
     }
     if (network::PsaCryptoOwner::owners() || server.tls_allocated())
         std::abort();
-    wtp::available_memory = []() -> std::size_t { return 0; };
+    execution::available_memory = []() -> std::size_t { return 0; };
     if (server.start())
         std::abort();
     server.stop();
     if (network::PsaCryptoOwner::owners())
         std::abort();
-    wtp::available_memory = nullptr;
+    execution::available_memory = nullptr;
     if (server.tls_allocated() || !server.start() || network::PsaCryptoOwner::owners() != 1)
         std::abort();
     fcntl(STDIN_FILENO, F_SETFL, fcntl(STDIN_FILENO, F_GETFL) | O_NONBLOCK);
@@ -303,7 +304,7 @@ int main(int argc, char** argv) {
                           << ' ' << resources.pending_tcp_bytes << ' ' << server.metrics().timeouts
                           << ' ' << server.metrics().admitted << ' ' << server.metrics().closed
                           << ' ' << allow_http_steps << ' ' << time_us_64() << ' '
-                          << wtp::state_name(service.status().state) << std::endl;
+                          << execution::state_name(service.status().state) << std::endl;
             } else if (command == "BARRIER") {
                 // SYNC observes the following normal foreground iteration.
             } else if (command == "RESTART COUNT")
@@ -324,17 +325,17 @@ int main(int argc, char** argv) {
                           << (allocated == server.tls_allocated()) << std::endl;
             } else if(command.starts_with("NATIVE ")) {
                 const auto op=command.substr(7);const std::string session(32,'d'),job_id(32,'e');
-                const auto invoke=[&](std::string operation,wtp::RequestBody body={}){
+                const auto invoke=[&](std::string operation,execution::RequestBody body={}){
                     return network_test::internal_command(service,std::move(operation),std::move(body),"native-fixture",session).ok;
                 };
                 bool ok=false;
-                if(op=="CLAIM")ok=invoke("HELLO",wtp::HelloBody{{"WTP/1"}})&&invoke("CLAIM",wtp::ClaimBody{session,60000});
+                if(op=="CLAIM")ok=invoke("HELLO",execution::HelloBody{{"native-execution/1"}})&&invoke("CLAIM",execution::ClaimBody{session,60000});
                 else if(op=="LOAD"){
-                    wtp::Job job;job.job_id=job_id;job.mode="tone";job.total_duration_ns=1'000'000'000;
+                    execution::Job job;job.job_id=job_id;job.mode="tone";job.total_duration_ns=1'000'000'000;
                     job.events.push_back({0,job.total_duration_ns,true,3'570'100'000'000'000});
                     ok=invoke("LOAD",std::move(job));
-                }else if(op=="ARM")ok=invoke("ARM",wtp::ArmBody{job_id,clock.snapshot().utc_now_ns+2'000'000'000,1000000});
-                else if(op=="ABORT")ok=invoke("ABORT",wtp::AbortBody{job_id});
+                }else if(op=="ARM")ok=invoke("ARM",execution::ArmBody{job_id,clock.snapshot().utc_now_ns+2'000'000'000,1000000});
+                else if(op=="ABORT")ok=invoke("ABORT",execution::AbortBody{job_id});
                 else if(op=="RELEASE")ok=invoke("RELEASE");
                 std::cout<<"NATIVE "<<op<<' '<<ok<<std::endl;
             }
@@ -370,7 +371,7 @@ int main(int argc, char** argv) {
             } else if (command == "CLOCK OFF")
                 clock.invalidate();
             else if (command == "CLOCK ON")
-                (void)clock.observe(utc + now(), now(), 1000, wtp::LeapState::Normal);
+                (void)clock.observe(utc + now(), now(), 1000, execution::LeapState::Normal);
             else if (command == "LINK OFF")
                 link = false;
             else if (command == "LINK ON")

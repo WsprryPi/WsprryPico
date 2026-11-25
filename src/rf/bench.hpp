@@ -5,9 +5,9 @@
 namespace wsprrypico::rf {
 
 // Deterministic 162-symbol 0,1,2,3 cycling workload; not an encoded WSPR message.
-[[nodiscard]] wtp::Job diagnostic_frame();
+[[nodiscard]] execution::Job diagnostic_frame();
 
-// Diagnostic interface only. RUN uses a local relative epoch, never claimed UTC/WTP.
+// Diagnostic interface only. RUN uses a local relative epoch, without claiming UTC.
 class BenchClock {
   public:
     virtual ~BenchClock() = default;
@@ -16,7 +16,7 @@ class BenchClock {
 
 class Bench {
   public:
-    Bench(wtp::RfEngine& engine, const BenchClock& clock) : engine_(engine), clock_(clock) {}
+    Bench(execution::RfEngine& engine, const BenchClock& clock) : engine_(engine), clock_(clock) {}
     std::string command(std::string_view line);
     void poll();
     [[nodiscard]] bool busy() const {
@@ -25,7 +25,7 @@ class Bench {
     [[nodiscard]] std::string status() const;
 
   private:
-    wtp::RfEngine& engine_;
+    execution::RfEngine& engine_;
     const BenchClock& clock_;
     bool running_ = false, benchmarking_ = false;
     std::int32_t correction_ppb_ = 0;

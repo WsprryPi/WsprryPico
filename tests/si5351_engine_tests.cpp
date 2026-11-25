@@ -104,8 +104,8 @@ struct TimedBus : Bus {
 Configuration configuration() {
     return {25'000'000, Reference::ExternalXa, {}, Output::Clk0, Output::Clk2, 2};
 }
-wtp::Job job(bool keyed = false) {
-    wtp::Job result;
+execution::Job job(bool keyed = false) {
+    execution::Job result;
     result.job_id = std::string(32, 'a');
     result.mode = keyed ? "qrss" : "fskcw";
     result.allow_frequency_adjustment = true;
@@ -118,35 +118,35 @@ wtp::Job job(bool keyed = false) {
     result.total_duration_ns = 300'000'001;
     return result;
 }
-struct Clock : wtp::Clock {
+struct Clock : execution::Clock {
     Platform& platform;
     explicit Clock(Platform& value) : platform(value) {}
     bool valid = true;
     std::uint64_t uncertainty = 1000, read_delay = 0;
-    wtp::ClockSnapshot snapshot() const override {
+    execution::ClockSnapshot snapshot() const override {
         platform.now += read_delay;
-        wtp::ClockSnapshot value;
+        execution::ClockSnapshot value;
         value.monotonic_now_ns = platform.now;
         value.utc_now_ns = 1'000'000'000'000ULL + platform.now;
         value.uncertainty_ns = uncertainty;
-        value.state = valid ? wtp::ClockState::Synchronized : wtp::ClockState::Unsynchronized;
-        value.leap = wtp::LeapState::Normal;
+        value.state = valid ? execution::ClockState::Synchronized : execution::ClockState::Unsynchronized;
+        value.leap = execution::LeapState::Normal;
         return value;
     }
 };
-struct Identity : wtp::IdentitySource {
+struct Identity : execution::IdentitySource {
     std::string new_boot_id() override {
         return std::string(32, 'd');
     }
 };
-wtp::Request request(std::string op, wtp::RequestBody body, char digit) {
+execution::Request request(std::string op, execution::RequestBody body, char digit) {
     const auto text = std::string(1, digit);
-    return {"WTP/1",
+    return {"native-execution/1",
             std::string(32, '1'),
             std::string(32, digit),
             "local",
             std::move(op),
-            wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size())),
+            execution::sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size())),
             std::move(body)};
 }
 struct Enable : rf::EnableOutput {
@@ -176,12 +176,12 @@ struct Fixture {
     Fixture() {
         assert(engine.disable(platform.now + 10'000'000));
     }
-    std::uint64_t start(wtp::Job value = job()) {
+    std::uint64_t start(execution::Job value = job()) {
         assert(engine.prepare(value).accepted);
         const auto start = platform.now + 10'000'000;
         assert(engine.begin(value, start));
         platform.now = start;
-        assert(engine.poll(start).state == wtp::EngineState::Running);
+        assert(engine.poll(start).state == execution::EngineState::Running);
         const auto observed = engine.observation().enable_command_completed_ns;
         assert(observed == start + 270'000);
         return observed;
@@ -265,16 +265,16 @@ void finite_execution(bool keyed) {
     std::array<std::uint8_t, 8> before{};
     std::copy(reference.begin(), reference.end(), before.begin());
     f.platform.now = start + 100'000'000;
-    assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Running);
+    assert(f.engine.poll(f.platform.now).state == execution::EngineState::Running);
     assert(f.device.transmit_state() ==
            (keyed ? ClockOutputState::RegisterDisabled : ClockOutputState::RegisterEnabled));
     f.platform.now = start + 200'000'000;
-    assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Running);
+    assert(f.engine.poll(f.platform.now).state == execution::EngineState::Running);
     assert(f.device.transmit_state() == ClockOutputState::RegisterEnabled);
     assert(std::equal(before.begin(), before.end(), reference.begin()));
     f.platform.now = start + 300'001'000;
     const auto report = f.engine.poll(f.platform.now);
-    assert(report.state == wtp::EngineState::Complete);
+    assert(report.state == execution::EngineState::Complete);
     assert(f.engine.output_active()); // ACK is deliberately unconfirmed.
     assert(f.engine.observation().disable_command_completed_ns <= start + 308'001'000);
     assert(f.engine.disable(f.platform.now + 10'000'000));
@@ -359,11 +359,11 @@ int main() {
         const auto start = f.start(high);
         const auto reference = f.bus.registers;
         f.platform.now = start + 100'000'000;
-        assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Running);
+        assert(f.engine.poll(f.platform.now).state == execution::EngineState::Running);
         assert(std::equal(reference.begin() + 34, reference.begin() + 42,
                           f.bus.registers.begin() + 34));
         f.platform.now = start + 300'001'000;
-        assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Complete);
+        assert(f.engine.poll(f.platform.now).state == execution::EngineState::Complete);
         assert(f.engine.disable(f.platform.now + 10'000'000));
         assert(!f.engine.output_active());
     }
@@ -406,7 +406,7 @@ int main() {
         assert(f.engine.begin(value, start)); // The prepared immutable plan survives a pause.
         assert(!f.engine.suspend_background(f.platform.now + 10'000'000)); // Armed.
         f.platform.now = start;
-        assert(f.engine.poll(start).state == wtp::EngineState::Running);
+        assert(f.engine.poll(start).state == execution::EngineState::Running);
         assert(!f.engine.suspend_background(f.platform.now + 10'000'000)); // Running.
         assert(f.engine.disable(f.platform.now + 10'000'000));
         f.engine.poll(f.platform.now);
@@ -442,7 +442,7 @@ int main() {
         Fixture f;
         const auto start = f.start();
         f.platform.now = start + 109'000'000;
-        assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Failed);
+        assert(f.engine.poll(f.platform.now).state == execution::EngineState::Failed);
         assert(!f.engine.output_active());
     }
     {
@@ -450,7 +450,7 @@ int main() {
         const auto start = f.start();
         f.bus.extra_write_delay = 9'000'000;
         f.platform.now = start + 300'001'000;
-        assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Failed);
+        assert(f.engine.poll(f.platform.now).state == execution::EngineState::Failed);
         assert(!f.engine.output_active()); // Best-effort verified fault cleanup.
     }
     {
@@ -475,16 +475,16 @@ int main() {
         Fixture f;
         Clock clock(f.platform);
         Identity identity;
-        wtp::JobService service(clock, f.engine, identity);
-        assert(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        execution::JobService service(clock, f.engine, identity);
+        assert(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
         assert(
-            service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 10'000}, 'b')).ok);
+            service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 10'000}, 'b')).ok);
         auto value = job(true);
         assert(service.handle(request("LOAD", value, 'c')).ok);
         const auto start = f.platform.now + 200'000'000;
         assert(service
                    .handle(request(
-                       "ARM", wtp::ArmBody{value.job_id, 1'000'000'000'000ULL + start, 1'000'000},
+                       "ARM", execution::ArmBody{value.job_id, 1'000'000'000'000ULL + start, 1'000'000},
                        'd'))
                    .ok);
         const auto evidence = service.execution_synthesis(value.job_id);
@@ -492,7 +492,7 @@ int main() {
         assert(!service.execution_synthesis(std::string(32, 'f')).epoch);
         f.platform.now = start;
         service.poll();
-        assert(service.activity().state == wtp::State::Running);
+        assert(service.activity().state == execution::State::Running);
         const auto launched = f.engine.observation().enable_command_completed_ns;
         f.platform.now = launched + 100'000'000;
         service.poll();
@@ -500,7 +500,7 @@ int main() {
         service.poll();
         f.platform.now = launched + 300'001'000;
         service.poll();
-        assert(service.activity().state == wtp::State::Complete);
+        assert(service.activity().state == execution::State::Complete);
         assert(!service.activity().output_active);
         assert(service.local_inhibit_output());
         const auto services = f.platform.services;
@@ -521,13 +521,13 @@ int main() {
         const auto value = job();
         assert(engine.prepare(value).accepted);
         const auto start = p.now + 100'000'000;
-        wtp::LocalStartConditions conditions{&clock, 1'000'000'000'000ULL + start, 1'000'000};
+        execution::LocalStartConditions conditions{&clock, 1'000'000'000'000ULL + start, 1'000'000};
         assert(engine.schedule(value, start, conditions));
         p.now = start - 21'000'000;
-        assert(engine.poll(p.now).state == wtp::EngineState::Armed);
+        assert(engine.poll(p.now).state == execution::EngineState::Armed);
         assert(output.active);
         p.now = start;
-        assert(engine.poll(p.now).state == wtp::EngineState::Running);
+        assert(engine.poll(p.now).state == execution::EngineState::Running);
         const auto launched = engine.observation().enable_command_completed_ns;
         assert(launched - output.on >= 20'000'000);
         p.now = launched + 100'000'000;
@@ -536,12 +536,12 @@ int main() {
         engine.poll(p.now);
         p.now = launched + 300'001'000;
         auto report = engine.poll(p.now);
-        assert(report.state == wtp::EngineState::Running &&
-               report.chain_phase == wtp::ChainPhase::Tail);
+        assert(report.state == execution::EngineState::Running &&
+               report.chain_phase == execution::ChainPhase::Tail);
         assert(report.tail_deadline_monotonic_ns && output.active);
         assert(device.transmit_state() == ClockOutputState::RegisterDisabled);
         p.now = *report.tail_deadline_monotonic_ns;
-        assert(engine.poll(p.now).state == wtp::EngineState::Complete);
+        assert(engine.poll(p.now).state == execution::EngineState::Complete);
         assert(!output.active);
         assert(engine.disable(p.now + 10'000'000));
         assert(engine.observation().amplifier.normal_rf_completion);
@@ -554,7 +554,7 @@ int main() {
         assert(f.engine.schedule(job(), start, {&clock, 1'000'000'000'000ULL + start, 1'000'000}));
         clock.valid = false;
         f.platform.now = start;
-        assert(f.engine.poll(f.platform.now).state == wtp::EngineState::Missed);
+        assert(f.engine.poll(f.platform.now).state == execution::EngineState::Missed);
         assert(!f.engine.output_active());
     }
     {
@@ -568,7 +568,7 @@ int main() {
         clock.read_delay = 1000;
         f.platform.now = start;
         const auto report = f.engine.poll(f.platform.now);
-        assert(report.state == wtp::EngineState::Running);
+        assert(report.state == execution::EngineState::Running);
         assert(report.launch_monotonic_ns && *report.launch_monotonic_ns >= start);
         assert(f.engine.disable(f.platform.now + 10'000'000));
     }

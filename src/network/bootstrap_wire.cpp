@@ -1,6 +1,6 @@
 #include "network/bootstrap_wire.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 
@@ -34,13 +34,13 @@ bool lowercase_hex(std::string_view value, std::size_t size) {
                return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
            });
 }
-std::optional<std::string> field(wtp::json::Value root, std::string_view name) {
+std::optional<std::string> field(execution::json::Value root, std::string_view name) {
     const auto value = root.get(name);
     if (!value || value->type() != '"')
         return {};
     return value->string();
 }
-bool version_one(wtp::json::Value root) {
+bool version_one(execution::json::Value root) {
     const auto version = root.get("version");
     return version && version->raw == "1";
 }
@@ -59,9 +59,9 @@ bool bootstrap_mutation_admitted(const HttpRequest& request, std::string_view ro
 std::optional<BootstrapStartRequest> parse_bootstrap_start(const HttpRequest& request) {
     if (!bootstrap_mutation_admitted(request, "/api/bootstrap/v1/start"))
         return {};
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root || !version_one(*root) ||
-        !wtp::json::fields(*root, {"version", "device_id", "browser_public_key", "request_nonce"}))
+        !execution::json::fields(*root, {"version", "device_id", "browser_public_key", "request_nonce"}))
         return {};
     const auto device = field(*root, "device_id"), key = field(*root, "browser_public_key"),
                nonce = field(*root, "request_nonce");
@@ -76,9 +76,9 @@ std::optional<BootstrapSubmitRequest> parse_bootstrap_submit(const HttpRequest& 
                                                              std::size_t maximum_ciphertext) {
     if (!bootstrap_mutation_admitted(request, "/api/bootstrap/v1/submit"))
         return {};
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root || !version_one(*root) ||
-        !wtp::json::fields(*root, {"version", "device_id", "boot_id", "slot_id", "request_id",
+        !execution::json::fields(*root, {"version", "device_id", "boot_id", "slot_id", "request_id",
                                    "aead_nonce", "ciphertext", "tag"}))
         return {};
     const auto device = field(*root, "device_id"), boot = field(*root, "boot_id"),
@@ -112,9 +112,9 @@ std::optional<BootstrapSubmitRequest> parse_recovery_submit(const HttpRequest& r
 std::optional<BootstrapAckRequest> parse_bootstrap_ack(const HttpRequest& request) {
     if (!bootstrap_mutation_admitted(request, "/api/bootstrap/v1/ack"))
         return {};
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root || !version_one(*root) ||
-        !wtp::json::fields(*root,
+        !execution::json::fields(*root,
                            {"version", "device_id", "boot_id", "slot_id", "request_id", "ack_tag"}))
         return {};
     const auto device = field(*root, "device_id"), boot = field(*root, "boot_id"),
@@ -130,17 +130,17 @@ std::optional<BootstrapAckRequest> parse_bootstrap_ack(const HttpRequest& reques
 std::optional<BootstrapTimeRequest> parse_bootstrap_time(const HttpRequest& request) {
     if (!bootstrap_mutation_admitted(request, "/api/bootstrap/v1/time"))
         return {};
-    const auto root = wtp::json::parse(request.body_view());
+    const auto root = execution::json::parse(request.body_view());
     if (!root || !version_one(*root) ||
-        !wtp::json::fields(*root, {"version", "device_id", "utc_ms", "challenge_ns"}))
+        !execution::json::fields(*root, {"version", "device_id", "utc_ms", "challenge_ns"}))
         return {};
     const auto device = field(*root, "device_id");
     const auto utc = root->get("utc_ms");
     const auto challenge = root->get("challenge_ns");
     std::uint64_t utc_ms = 0, challenge_ns = 0;
     if (!device || !utc || !challenge || !lowercase_hex(*device, 16) ||
-        !wtp::json::decimal(*utc, utc_ms, true) ||
-        !wtp::json::decimal(*challenge, challenge_ns, true) || !challenge_ns)
+        !execution::json::decimal(*utc, utc_ms, true) ||
+        !execution::json::decimal(*challenge, challenge_ns, true) || !challenge_ns)
         return {};
     return BootstrapTimeRequest{*device, utc_ms, challenge_ns};
 }

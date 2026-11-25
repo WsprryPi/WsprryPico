@@ -861,7 +861,7 @@ class InstallerTests(unittest.TestCase):
 
     def test_manifest_canonical_schema_and_storage_versions(self):
         files, manifest, _ = fixture()
-        for change in (lambda m: m.update(schema_version=2),
+        for change in (lambda m: m.update(schema_version=1),
                        lambda m: m['firmware'].update(board='pico_w'),
                        lambda m: m['firmware'].update(role='inhibited'),
                        lambda m: m['update'].update(application_end='10400000'),
@@ -1343,10 +1343,10 @@ class InstalledBundleHandoffTests(unittest.TestCase):
         data = bytes(data)
         asset = {'path': 'WsprryPico-0.0.0-devel-pico2_w.uf2', 'bytes': len(data), 'sha256': installer.sha(data)}
         source = manifest['source']['revision']
-        meta = {'schema': 'wsprrypico-local-build/1', 'board': 'pico2_w', 'variant': 'normal',
+        meta = {'schema': 'wsprrypico-local-build/2', 'board': 'pico2_w', 'variant': 'normal',
                 'version': '0.0.0-devel', 'source': {'revision': source, 'identity': source[:12],
-                'dirty': False, 'inputs_sha256': 'b'*64}, 'usb_update_contract': 1,
-                'application_end': '103ee000', 'uf2': asset}
+                'dirty': False, 'inputs_sha256': 'b'*64}, 'usb_update_contract': 2,
+                'application_end': '103ec000', 'uf2': asset}
         local_files = {'local-build.json': encoded(meta), asset['path']: data}
         _, old_image = installer.verify_local(local_files)
         new_image = b'A'*256 + b'B'*256

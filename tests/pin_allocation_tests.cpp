@@ -155,25 +155,25 @@ int main() {
     save.headers["if-match"] = api.revision();
     CHECK(api.handle(network_test::control_request(save), "test", "127.0.0.1:8443").status == 200);
     CHECK(scheduler.reboot_required());
-    wtp::Request hello;
+    execution::Request hello;
     hello.operation = "HELLO";
     hello.principal = "test";
     hello.session_id = std::string(32, 'a');
     hello.request_id = std::string(32, 'd');
     hello.payload_digest[0] = 1;
-    hello.body = wtp::HelloBody{{"WTP/1"}};
+    hello.body = execution::HelloBody{{"native-execution/1"}};
     CHECK(f.service.handle(hello).ok);
-    wtp::Request claim;
+    execution::Request claim;
     claim.operation = "CLAIM";
     claim.principal = "test";
     claim.session_id = std::string(32, 'a');
     claim.request_id = std::string(32, 'b');
     claim.payload_digest[0] = 2;
-    claim.body = wtp::ClaimBody{std::string(32, 'c'), 1000};
+    claim.body = execution::ClaimBody{std::string(32, 'c'), 1000};
     const auto inhibited_claim = f.service.handle(claim);
     CHECK(!inhibited_claim.ok &&
           inhibited_claim.error ==
-              wtp::ErrorCode::Busy); // Old physical assignment cannot transmit before restart.
+              execution::ErrorCode::Busy); // Old physical assignment cannot transmit before restart.
     // Unsupported persisted assignment is rejected even when its CRC is valid.
     network_test::Flash media;
     standalone::Journal journal(media, 0, 2048);

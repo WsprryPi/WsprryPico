@@ -1,8 +1,7 @@
 // Production LOAD decoding and service copying under bounded input allocations.
 #include "encoding/morse.hpp"
 #include "standalone/scheduler.hpp"
-#include "wtp/codec.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <array>
 #include <cassert>
@@ -13,7 +12,7 @@
 #include <new>
 #include <string>
 
-using namespace wsprrypico::wtp;
+using namespace wsprrypico::execution;
 namespace standalone = wsprrypico::standalone;
 namespace {
 struct alignas(std::max_align_t) Allocation {
@@ -76,29 +75,6 @@ void reset(std::size_t fail = 0) {
     largest_request = 0;
 }
 
-std::string maximum_load() {
-    std::string text =
-        R"({"type":"request","protocol":"WTP/1","session_id":")" + std::string(32, '1') +
-        R"(","request_id":")" + std::string(32, '2') + R"(","op":"LOAD","body":{"job_id":")" +
-        std::string(32, '3') +
-        R"(","profile":"rf-events/1","mode":"fskcw","total_duration_ns":"512","allow_frequency_adjustment":true,"events":[)";
-    for (unsigned i = 0; i < 512; ++i) {
-        if (i)
-            text += ',';
-        text += R"({"offset_ns":")" + std::to_string(i) +
-                R"(","duration_ns":"1","rf_on":true,"frequency_nhz":"135500000000000"})";
-    }
-    return text + "]}}";
-}
-Request decode(const std::string& text) {
-    const auto root = json::parse(text);
-    assert(root);
-    auto request = decode_request(
-        *root, "test", std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
-    assert(request && request->body_valid);
-    return std::move(*request);
-}
-
 class TestClock final : public Clock {
   public:
     std::uint64_t monotonic_ns = 10'000'000'000ULL;
@@ -143,8 +119,16 @@ Request request(std::string operation, RequestBody body, char id) {
     value.payload_digest[0] = static_cast<std::uint8_t>(id);
     return value;
 }
+Request maximum_load() {
+    Job job{std::string(32, '3'), "rf-events/1", "fskcw", 512, {}, true};
+    if (job.events.resize(512)) {
+        for (unsigned i = 0; i < 512; ++i)
+            job.events[i] = {i, 1, true, 135'500'000'000'000ULL};
+    }
+    return request("LOAD", std::move(job), '2');
+}
 void admit(JobService& service) {
-    const auto hello = service.handle(request("HELLO", HelloBody{{"WTP/1"}}, '4'));
+    const auto hello = service.handle(request("HELLO", HelloBody{{"native-execution/1"}}, '4'));
     if (!hello.ok)
         std::cerr << "HELLO error " << static_cast<unsigned>(hello.error) << '\n';
     assert(hello.ok);
@@ -160,7 +144,7 @@ void internal_control_memory() {
     TestEngine engine;
     TestIdentity identity;
     JobService service(clock, engine, identity);
-    assert(service.handle_internal(request("HELLO", HelloBody{{"WTP/1"}}, '9')).ok);
+    assert(service.handle_internal(request("HELLO", HelloBody{{"native-execution/1"}}, '9')).ok);
     const auto baseline = heap_live_bytes;
     constexpr char hex[] = "0123456789abcdef";
     for (unsigned i = 0; i != 64; ++i) {
@@ -240,7 +224,7 @@ void standalone_request_lifetime_admission(bool retained_history = false) {
             return true;
         }
     } flash;
-    struct Clock final : wsprrypico::wtp::Clock {
+    struct Clock final : wsprrypico::execution::Clock {
         std::uint64_t now = 116'000'000'000ULL;
         ClockSnapshot snapshot() const override {
             return {ClockState::Synchronized,
@@ -365,7 +349,7 @@ int main() {
         JobService quiet_service(quiet_clock, quiet_engine, quiet_identity);
         const auto admitted_at = quiet_clock.monotonic_ns;
         {
-            auto hello = request("HELLO", HelloBody{{"WTP/1"}}, '9');
+            auto hello = request("HELLO", HelloBody{{"native-execution/1"}}, '9');
             hello.principal = expired_principal;
             assert(quiet_service.handle(hello).ok);
         }
@@ -389,11 +373,10 @@ int main() {
     }
     allocate_input = bounded_allocate;
     deallocate_input = bounded_free;
-    const auto text = maximum_load();
 
     reset();
-    auto decoded = decode(text);
-    const auto& maximum = std::get<Job>(decoded.body);
+    auto prepared = maximum_load();
+    const auto& maximum = std::get<Job>(prepared.body);
     assert(maximum.events.valid() && maximum.events.size() == 512);
     assert(calls == 8 && largest_request == 64 * sizeof(RfEvent));
     const auto digest = job_digest(maximum);
@@ -405,7 +388,7 @@ int main() {
 
     for (std::size_t page = 1; page <= 8; ++page) {
         reset(page);
-        auto rejected = decode(text);
+        auto rejected = maximum_load();
         const auto& job = std::get<Job>(rejected.body);
         assert(!job.events.valid() && job.events.size() == 0 &&
                job.events.failure() == EventList::Failure::AllocationFailed);
@@ -418,7 +401,7 @@ int main() {
         JobService service(clock, engine, identity);
         admit(service);
         reset();
-        auto load = decoded;
+        auto load = prepared;
         reset(page);
         load.request_id = std::string(31, '6') + static_cast<char>('0' + page);
         const auto response = service.handle(load);
@@ -433,15 +416,15 @@ int main() {
     TestEngine engine;
     JobService service(clock, engine, identity);
     admit(service);
-    auto accepted = service.handle(decoded);
+    auto accepted = service.handle(prepared);
     assert(accepted.ok && accepted.state == State::Loaded &&
            service.status().job_id == std::string(32, '3'));
 
-    // Production adapters transfer decoded requests. Prove that a maximum
+    // Native producers transfer prepared requests. Prove that a maximum
     // LOAD can cross the service boundary even when the first event-page copy
     // would fail; no second event list is allocated by the service.
     reset();
-    auto transferred = decode(text);
+    auto transferred = maximum_load();
     TestEngine transfer_engine;
     JobService transfer_service(clock, transfer_engine, identity);
     admit(transfer_service);
@@ -470,7 +453,7 @@ int main() {
 
     service.reset();
     transfer_service.reset();
-    decoded.body = std::monostate{};
+    prepared.body = std::monostate{};
     moved.events.clear();
     accepted.adjustments.clear();
     allocate_input = std::malloc;

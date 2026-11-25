@@ -191,7 +191,7 @@
         "failed",
         "skipped",
         "test_names",
-        "wtp_contract",
+        "control_policy",
         "browser_npm",
         "packaging_failure_tests",
         "consumer_ui",
@@ -225,7 +225,7 @@
             "pattern": "^[A-Za-z0-9_]+$"
           }
         },
-        "wtp_contract": {
+        "control_policy": {
           "const": "passed"
         },
         "browser_npm": {

@@ -148,8 +148,8 @@ try {
   if(await cdp.evaluate('snapshot.standalone.reboot_required || snapshot.standalone.suspended'))await restart();
   // Wait for the device's own admissible clock, never infer it from login.
   const clockDeadline=Date.now()+240000;
-  while(Date.now()<clockDeadline){await click('refresh');if(await cdp.evaluate(`snapshot.standalone.clock_state==='synchronized' && BigInt(snapshot.standalone.uncertainty_ns)<=BigInt(capabilities.wtp.maximum_arm_uncertainty_ns)`))break;await pause(3000);}
-  assert.equal(await cdp.evaluate(`snapshot.standalone.clock_state==='synchronized' && BigInt(snapshot.standalone.uncertainty_ns)<=BigInt(capabilities.wtp.maximum_arm_uncertainty_ns)`),true,'real clock must permit ARM');
+  while(Date.now()<clockDeadline){await click('refresh');if(await cdp.evaluate(`snapshot.standalone.clock_state==='synchronized'`))break;await pause(3000);}
+  assert.equal(await cdp.evaluate(`snapshot.standalone.clock_state==='synchronized'`),true,'Pico clock must be synchronized');
   assert.equal(await cdp.evaluate('snapshot.standalone.reboot_required'),false);
   const phase=args.includes('--phase') ? Number(option('--phase')) : 0;
   const periodSeconds=args.includes('--period') ? Number(option('--period')) : 240;

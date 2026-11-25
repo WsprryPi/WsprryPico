@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 from console_io import loads_console, exchange
-from validate_wtp_contract import frame
 
 
 class InventoryTests(unittest.TestCase):
@@ -25,20 +24,6 @@ class InventoryTests(unittest.TestCase):
             with self.subTest(source=source), self.assertRaises(ValueError):
                 loads_console(source)
 
-    def test_exchange_separates_console_and_wtp_integer_rules(self):
-        # Exact unsigned hash that stopped N1w before its production load began.
-        payload = b'{"hash":2844794185}'
-        def receive(framed):
-            wire = frame(payload) if framed else payload+b'\n'
-            with patch('console_io.select.select', return_value=([7], [7], [])), \
-                 patch('console_io.os.write', side_effect=lambda fd, data: len(data)), \
-                 patch('console_io.os.read', return_value=wire), \
-                 patch('console_io.time.monotonic', return_value=0):
-                return exchange(7, b'request', 1, lambda *args: None, framed)
-        self.assertEqual(receive(False), {'hash':2844794185})
-        with self.assertRaisesRegex(ValueError, 'Console-only exchange'):
-            receive(True)
-
     def test_exchange_preserves_stale_console_reply_and_uses_latest(self):
         wire = b'{"value":1}\n{"value":2}\n'
         events = []
@@ -47,14 +32,8 @@ class InventoryTests(unittest.TestCase):
              patch('console_io.os.read', return_value=wire), \
              patch('console_io.time.monotonic', return_value=0):
             value = exchange(7, b'INFO\n', 1,
-                             lambda kind, body: events.append((kind, body)), False)
+                             lambda kind, body: events.append((kind, body)))
         self.assertEqual(value, {'value': 2})
         self.assertEqual(events[-1][0], 'stale_console_reply')
-
-    def test_retired_framing_refused_before_io(self):
-        with patch('console_io.os.write') as write, patch('console_io.select.select') as select:
-            with self.assertRaisesRegex(ValueError,'Console-only exchange'):
-                exchange(7,b'WTPF',1,lambda *args:None,True)
-            write.assert_not_called();select.assert_not_called()
 
 if __name__=='__main__':unittest.main()

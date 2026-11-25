@@ -14,7 +14,7 @@ An already-running consumer AP retains browser status and operation-specific con
 
 ## Control/1 routes
 
-The optional exact `field_access` capabilities descriptor advertises policy and paths. The resources are consumer-session operations; their advertisement does not grant USB or engineering callers consumer-session authority. Shared control major and namespace remain 1; Radio/1, WTP/1, transport, and journal versions remain independent.
+The optional exact `field_access` capabilities descriptor advertises policy and paths. The resources are consumer-session operations; their advertisement does not grant USB or engineering callers consumer-session authority. Shared control major and namespace remain 1; Radio/1, transport, and journal versions remain independent.
 
 Every response carries `contract: Wsprry-Control/1` and a member target with the current device and boot IDs. Mutation bodies carry that contract and exact target. Document shapes are closed.
 
@@ -46,7 +46,7 @@ NTP age/uncertainty configuration remains independent. Its explicit zero option 
 
 ## Launch and UI behavior
 
-Preparation and launch retain source age, leap, ownership, frequency, hardware, and output checks. First-party producers request the advertised WTP ceiling; explicit external per-job uncertainty limits retain their independent protocol meaning. Invalid time blocks new starts; an armed job failing its launch gate is missed, and a running job continues on its selected monotonic schedule. Refresh does not arm jobs, resume STOP, replay missed occurrences, or transfer ownership.
+Preparation and launch retain source age, leap, ownership, frequency, hardware, and output checks. Native launch reports UTC uncertainty as an observation. Invalid time blocks new starts. An armed job that fails its launch gate is missed, and a running job continues on its selected monotonic schedule. Refresh only reads status.
 
 The UI says **Using browser time**, with **Time supplied by this device’s clock.** It reports clock state, sample age, estimated uncertainty, and failed refresh or disagreement. Browser sleep/background throttling and connection loss are normal reasons for holdover. The page does not equate an open tab with fresh accepted observations.
 

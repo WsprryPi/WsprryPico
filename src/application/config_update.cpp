@@ -4,9 +4,9 @@
 
 namespace wsprrypico::application {
 namespace {
-using wtp::json::fields;
-using wtp::json::quote;
-using wtp::json::Value;
+using execution::json::fields;
+using execution::json::quote;
+using execution::json::Value;
 
 bool config_fields(Value value, bool partial, bool drive) {
     if (!drive && value.get("gpio_drive_ma"))
@@ -68,7 +68,7 @@ std::optional<std::string> config_candidate(Value supplied,
         return {};
     const auto previous_text =
         standalone::serialize_config((current ? *current : standalone::factory_config()));
-    const auto previous = wtp::json::parse(previous_text);
+    const auto previous = execution::json::parse(previous_text);
     if (!previous)
         return {};
     const bool preserve = mode != ConfigWrite::Replace && current.has_value();

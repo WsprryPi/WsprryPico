@@ -1,7 +1,7 @@
 #include "network/bootstrap_http.hpp"
 
 #include "network/assets.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 namespace wsprrypico::network {
 HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_view device,
@@ -18,8 +18,8 @@ HttpResponse bootstrap_http_response(const HttpRequest& request, std::string_vie
     }
     if (request.path == "/local/v1/identity")
         return HttpResponse{200,
-                            "{\"version\":1,\"device_id\":" + wtp::json::quote(device) +
-                                ",\"firmware\":" + wtp::json::quote(firmware) +
+                            "{\"version\":1,\"device_id\":" + execution::json::quote(device) +
+                                ",\"firmware\":" + execution::json::quote(firmware) +
                                 ",\"surface\":\"blank_read_only\",\"authenticated\":false}",
                             "application/json",
                             {}};

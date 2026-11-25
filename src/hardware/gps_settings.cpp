@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "hardware/gps_settings.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <charconv>
 
@@ -36,7 +36,7 @@ std::optional<unsigned> tx_uart(unsigned tx) {
         return {};
     }
 }
-template <class T> bool integer(wtp::json::Value value, T& out) {
+template <class T> bool integer(execution::json::Value value, T& out) {
     if (value.raw.empty() || value.raw.size() > 11)
         return false;
     const std::string text(value.raw);
@@ -104,7 +104,7 @@ std::string validate_gps(const PinPlan& pins, const std::optional<Si5351Settings
     return {};
 }
 std::optional<GpsSettings> parse_gps(std::string_view text) {
-    using namespace wtp::json;
+    using namespace execution::json;
     const auto root = text.size() <= 1024 ? parse(text) : std::nullopt;
     if (!root ||
         !fields(*root,

@@ -29,7 +29,7 @@ bool OwnerChallengeSlot::issue(const OwnerChallengeBinding& binding, std::uint64
     return true;
 }
 
-std::optional<wtp::PayloadDigest> OwnerChallengeSlot::take(
+std::optional<execution::PayloadDigest> OwnerChallengeSlot::take(
     const OwnerSigningFields& signed_fields, const std::array<std::uint8_t, 16>& session_id,
     const std::array<std::uint8_t, 32>& owner_key_sha256, std::uint64_t now_ms) {
     if (!pending_)

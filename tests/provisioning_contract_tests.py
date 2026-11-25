@@ -103,9 +103,6 @@ for operation in ("identify", "field_status", "time_challenge", "time_submit"):
     assert f'name == "{operation}"' in ble_session
     assert f'"{operation}"' in linux_client
 
-assert "select_wtp_status_carrier" not in web
-assert "select_wtp_status_carrier" not in ble_session
-assert '"select_wtp_status_carrier"' not in linux_client
 
 for field in (
     "version",
@@ -137,7 +134,6 @@ assert "INDICATE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
 assert "WRITE | WRITE_WITHOUT_RESPONSE | ENCRYPTION_KEY_SIZE_16 | DYNAMIC" in gatt_profile
 assert "7D6B0005" not in gatt_profile and "7D6B0006" not in gatt_profile
 assert "endpoint_" not in gatt
-assert "select_wtp_status_carrier" not in ble_session
 assert "CLIENT_CONFIGURATION_HANDLE" in gatt
 assert "att_read_callback_handle_little_endian_16" in gatt
 assert "outbound_index_ + 1 == outbound_.size()" in gatt
@@ -171,7 +167,7 @@ for required in (
     assert required in security_lost
 
 assert "current Field-GATT/1 commissioning source contract" in contract
-assert "Those UUIDs remain reserved and are never repurposed" in contract
+assert "UUIDs `7d6b0005` and `7d6b0006` remain reserved" in contract
 assert "Field-GATT-v1-vectors.json" in contract
 
 print("Field-GATT/1 firmware, Bluefy, native-Pi, documentation, and vectors are synchronized")

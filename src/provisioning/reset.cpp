@@ -5,7 +5,7 @@
 
 namespace wsprrypico::provisioning {
 namespace {
-bool zero(const wtp::PayloadDigest& digest) {
+bool zero(const execution::PayloadDigest& digest) {
     return std::all_of(digest.begin(), digest.end(), [](std::uint8_t value) { return value == 0; });
 }
 } // namespace
@@ -40,7 +40,7 @@ bool ResetCoordinator::save(AccessRecord& record, ResetPhase phase) {
 }
 
 ResetResult ResetCoordinator::begin(ResetLevel level, ProfileSource target_source,
-                                    const wtp::PayloadDigest& request_digest) {
+                                    const execution::PayloadDigest& request_digest) {
     if (!access_.healthy() || (level != ResetLevel::Full && !profiles_.healthy()))
         return ResetResult::StorageFault;
     if (pending())

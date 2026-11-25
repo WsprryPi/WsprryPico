@@ -8,7 +8,7 @@
 #include <string>
 
 using namespace wsprrypico;
-using Clock = wtp::ClockState;
+using Clock = execution::ClockState;
 
 int main() {
     {
@@ -20,7 +20,7 @@ int main() {
         logger.settings({true, 6});
         logger.connected(true);
         assert(logger.start(device, boot));
-        wtp::ClockSnapshot clock;
+        execution::ClockSnapshot clock;
         clock.state = Clock::Holdover;
         clock.utc_now_ns = 1'800'000'000'000'000'000ULL;
         clock.monotonic_now_ns = 100'000'000'000ULL;
@@ -93,7 +93,7 @@ int main() {
         logger.connected(true);
         assert(logger.start(std::string(32, 'a'), std::string(32, 'b')));
         logging::ClockStateLogger observer;
-        wtp::ClockSnapshot clock;
+        execution::ClockSnapshot clock;
         observer.observe(logger, clock, 0);
         observer.observe(logger, clock, 1);
         assert(logger.queued() == 0 && udp.queued() == 0);

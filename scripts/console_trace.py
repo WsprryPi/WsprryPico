@@ -23,7 +23,7 @@ class TraceReader:
             if now >= deadline:
                 return
             reply = self.transfer(fd, ('NETTRACE '+str(self.cursor)+'\n').encode(),
-                                  now+5, self.emit, False)
+                                  now+5, self.emit)
             self.emit('NETTRACE', reply)
             require(reply.get('ok') is True and reply.get('device_id') == self.device and
                     reply.get('boot_id') == self.boot and reply.get('revision') == self.revision,

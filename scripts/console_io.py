@@ -90,15 +90,14 @@ def read_line(fd, deadline):
 
 
 
-def exchange(fd, data, deadline, emit, framed, expected=None, receive_buffer=None):
+def exchange(fd, data, deadline, emit):
     emit('tx', {'hex': data.hex()})
     pending = data
-    received = bytearray() if receive_buffer is None else receive_buffer
-    require(not framed and expected is None and receive_buffer is None, "Console-only exchange")
+    received = bytearray()
     while True:
         left = deadline - time.monotonic()
         if left <= 0:
-            raise TimeoutError('Inventory exchange deadline')
+            raise TimeoutError('Console exchange deadline')
         read, write, _ = select.select([fd], [fd] if pending else [], [], left)
         if write:
             try:

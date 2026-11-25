@@ -2,8 +2,8 @@
 
 #include "network/assets.hpp"
 #include "network/test_tone_query.hpp"
-#include "wtp/json.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -23,7 +23,7 @@ std::string_view HttpRequest::header(std::string_view name) const {
     return it == headers.end() ? std::string_view{} : it->second;
 }
 namespace {
-class OwnedHttpSource final : public wtp::ResponseSource {
+class OwnedHttpSource final : public execution::ResponseSource {
   public:
     explicit OwnedHttpSource(HttpResponse response) : response_(std::move(response)) {}
     ~OwnedHttpSource() override {
@@ -52,14 +52,14 @@ class OwnedHttpSource final : public wtp::ResponseSource {
     HttpResponse response_;
 };
 } // namespace
-wtp::ResponseSourcePtr response_source(HttpResponse response) {
+execution::ResponseSourcePtr response_source(HttpResponse response) {
     if (response.generated_body)
         return std::move(response.generated_body);
-    return wtp::make_response_source<OwnedHttpSource>(std::move(response));
+    return execution::make_response_source<OwnedHttpSource>(std::move(response));
 }
 HttpResponse http_error(unsigned status, std::string_view code) {
     return {
-        status, "{\"error\":{\"code\":" + wtp::json::quote(code) + "}}", "application/json", {}};
+        status, "{\"error\":{\"code\":" + execution::json::quote(code) + "}}", "application/json", {}};
 }
 std::string HttpResponse::wire_headers() const {
     const bool safe_cookie =
@@ -108,7 +108,7 @@ void HttpParser::parse_headers() {
     // browser headers and adversarial prefixes containing many tiny fields.
     constexpr auto field_workspace =
         sizeof(decltype(request_.headers)::value_type) + 8 * sizeof(void*) + 128;
-    if (!wtp::memory_admitted(6 * headers_.size() + fields * field_workspace + 1024)) {
+    if (!execution::memory_admitted(6 * headers_.size() + fields * field_workspace + 1024)) {
         exhausted_ = true;
         failed_ = true;
         return;
@@ -185,12 +185,12 @@ void HttpParser::parse_headers() {
         failed_ = true;
         return;
     }
-    if (!wtp::memory_admitted(content_length_ + (content_length_ ? 1024 : 0))) {
+    if (!execution::memory_admitted(content_length_ + (content_length_ ? 1024 : 0))) {
         exhausted_ = failed_ = true;
         return;
     }
     if (content_length_) {
-        request_.buffered_body = std::make_shared<wtp::FrameBuffer>();
+        request_.buffered_body = std::make_shared<execution::FrameBuffer>();
         if (!request_.buffered_body->reserve(content_length_)) {
             request_.buffered_body.reset();
             exhausted_ = failed_ = true;
@@ -215,7 +215,7 @@ std::size_t HttpParser::receive(std::span<const std::uint8_t> bytes) {
                 break;
             }
             if (headers_.size() == headers_.capacity() &&
-                !wtp::memory_admitted(header_prefix_workspace)) {
+                !execution::memory_admitted(header_prefix_workspace)) {
                 exhausted_ = true;
                 failed_ = true;
                 break;

@@ -14,7 +14,7 @@ import threading
 
 # Distinct command contexts, not logical test-case counts. Keep both carriers.
 HOST_CONTEXTS = (
-    'ctest', 'wtp-contract', 'npm', 'packaging', 'browser-lifecycle',
+    'ctest', 'control-policy', 'npm', 'packaging', 'browser-lifecycle',
     'frequency', 'first-use', 'session-timeout', 'progress', 'recovery',
     'submission', 'hostname', 'organization', 'wspr', 'message-frequency',
     'operator', 'sections-consumer', 'sections-engineering',
@@ -192,10 +192,10 @@ def evidence(context, output, audit):
         totals = re.findall(r'^100% tests passed, 0 tests failed out of (\d+)\s*$', output, re.M)
         require(len(totals) == 1 and int(totals[0]) > 0, 'Missing or incomplete CTest execution summary')
         return {'kind': 'ctest', 'count': int(totals[0])}
-    if context == 'wtp-contract':
-        totals = re.findall(r'^WTP/1 contract valid: (\d+) schema cases, (\d+) raw JSON cases, (\d+) framing case, and (\d+) transition cases\s*$', output, re.M)
-        require(len(totals) == 1 and all(int(x) > 0 for x in totals[0]), 'Missing or empty WTP contract completion')
-        return {'kind': 'wtp-contract', 'count': sum(map(int, totals[0]))}
+    if context == 'control-policy':
+        require(len(re.findall(r'^Control lifecycle policy valid: (?:prerelease|released)\s*$', output, re.M)) == 1,
+                'Missing control lifecycle policy result')
+        return {'kind': 'control-policy', 'count': 1}
     if context in ('npm', 'browser-lifecycle'):
         return framework_evidence('node-test', output)
     if context == 'packaging':
@@ -403,8 +403,8 @@ def verify(report, source, run_id, attempt, contexts=HOST_CONTEXTS):
                 isinstance(record['sha256'], str) and re.fullmatch('[0-9a-f]{64}', record['sha256']), 'Invalid command log binding')
         e = record['evidence']
         require(isinstance(e, dict) and set(e) == {'kind', 'count'} and type(e['count']) is int and e['count'] > 0 and
-                e['kind'] in ('exit', 'node-test', 'unittest', 'native-browser', 'ctest', 'wtp-contract'), 'Invalid completion evidence')
-        required_kind = record['context'] if record['context'] in ('ctest', 'wtp-contract') else 'node-test' if record['context'] in ('npm', 'browser-lifecycle') else 'unittest' if record['context'] == 'packaging' else 'native-browser' if record['context'] in NATIVE else 'exit'
+                e['kind'] in ('exit', 'node-test', 'unittest', 'native-browser', 'ctest', 'control-policy'), 'Invalid completion evidence')
+        required_kind = record['context'] if record['context'] in ('ctest', 'control-policy') else 'node-test' if record['context'] in ('npm', 'browser-lifecycle') else 'unittest' if record['context'] == 'packaging' else 'native-browser' if record['context'] in NATIVE else 'exit'
         require(e['kind'] == required_kind, 'Execution evidence kind mismatch')
         names.append(record['context'])
     require(len(names) == len(set(names)) and set(contexts) <= set(names), 'Missing or duplicate required execution context')

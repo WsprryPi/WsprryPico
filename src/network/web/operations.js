@@ -106,7 +106,7 @@
       else {state='Waiting for next occurrence';explanation='The saved schedule is enabled. The Pico prepares and checks each future job locally.';}
     } else if (['complete','aborted','missed'].includes(j.state)) {state='Job '+j.state;explanation='The Pico confirmed this job’s terminal state. Future schedules are shown separately.';}
     else if (j.owner_id) {state='Transmitter reserved';explanation='A controller holds the transmitter. Reading this page grants no ownership.';}
-    else {state=s.configured?'Schedules disabled':'Standalone not configured';explanation='No standalone schedule is enabled. External controllers can submit complete jobs through their own authority.';}
+    else {state=s.configured?'Schedules disabled':'Standalone not configured';explanation='No standalone schedule is enabled.';}
     let next='';
     const future=(start,expiry)=>start!==null && BigInt(start)>BigInt(s.utc_now_ns) &&
       (!expiry || BigInt(start)<BigInt(expiry)*1000000000n);
@@ -137,7 +137,7 @@
       if(s.enabled && !m.saved?.enabled && !s.schedules.length) blockers.push('WSPR has no start times; save a schedule.');
       if(m.state==='expired' && m.saved?.enabled || s.enabled && !m.saved?.enabled && s.expires_utc_s && BigInt(s.utc_now_ns)>=BigInt(s.expires_utc_s)*1000000000n)
         blockers.push('Schedule expired; review its UTC end time.');
-      if(!occupied && j.state!=='failed' && !j.output_active && j.owner_id) blockers.push(j.owner_id===session?'This browser holds the transmitter; choose Release control for standalone schedules.':'Another controller holds the transmitter; release it through that controller.');
+      if(!occupied && j.state!=='failed' && !j.output_active && j.owner_id) blockers.push(j.owner_id===session?'This browser holds the transmitter. Refresh status before starting a schedule.':'The transmitter is reserved. Check the Owner field before starting a schedule.');
       if(m.saved?.enabled && m.state==='unavailable') blockers.push('Message schedule unavailable; review its settings.');
       if(m.saved?.enabled && Object.hasOwn(root.WsprryMessageSchedule.blocked,m.state))
         blockers.push(root.WsprryMessageSchedule.blocked[m.state]);
@@ -170,7 +170,7 @@
       message:a?.mode==='wspr'?'Encoded WSPR frame':a?.message?a.message.text:a?(a.mode==='tone'&&a.frequencies_nhz.length===1&&!a.frequencies_truncated?'—':'Text unavailable'):'—',
       progress,next,warning,correction:ppm(correction?.next_ppb),
       reset:v.reset_allowed&&!occupied&&!j.owner_id&&j.output_active===false,
-      actions:j.owner_id===session?'This browser owns the job; its eligible Abort and Release controls are below.':j.owner_id?'Another controller or the Pico scheduler owns the transmitter. This browser cannot abort or take over.':'No job owner. Reset requires a current authenticated idle observation.'};
+      actions:j.owner_id?'The transmitter is reserved. Check the Owner field and follow the stop instructions for the active operation.':'No job owner. Reset requires a current authenticated idle observation.'};
   }
   root.WsprryOperations={supported,valid,basicValid,model,formatFrequency,formatFrequencies,utc,validError};
   if(typeof module!=='undefined')module.exports=root.WsprryOperations;

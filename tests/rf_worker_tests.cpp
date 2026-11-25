@@ -32,11 +32,11 @@ std::uint32_t mask() {
     return 0;
 }
 void restore(std::uint32_t) {}
-struct Engine : wtp::RfEngine {
+struct Engine : execution::RfEngine {
     std::atomic<unsigned> polls{0}, launches{0}, completions{0};
-    wtp::EngineState state = wtp::EngineState::Idle;
+    execution::EngineState state = execution::EngineState::Idle;
     std::uint64_t start = 0;
-    wtp::LocalStartConditions conditions;
+    execution::LocalStartConditions conditions;
     bool fail_disable = false, unsafe_disable = false;
     bool* inhibit_on_prepare = nullptr;
     bool* inhibit_on_schedule = nullptr;
@@ -46,42 +46,42 @@ struct Engine : wtp::RfEngine {
     bool owns_execution_plan() const override {
         return independent_plan;
     }
-    wtp::PrepareResult prepare(const wtp::Job&) override {
+    execution::PrepareResult prepare(const execution::Job&) override {
         ++prepares;
         if (inhibit_on_prepare)
             *inhibit_on_prepare = true;
         return {true, {}};
     }
-    wtp::SynthesisObservation synthesis_observation() const override {
+    execution::SynthesisObservation synthesis_observation() const override {
         return {schedules, start, 1, 6, 25'000'000};
     }
     bool schedules_locally() const override {
         return true;
     }
-    bool schedule(const wtp::Job&, std::uint64_t when,
-                  const wtp::LocalStartConditions& c) override {
+    bool schedule(const execution::Job&, std::uint64_t when,
+                  const execution::LocalStartConditions& c) override {
         ++schedules;
         start = when;
         conditions = c;
-        state = wtp::EngineState::Armed;
+        state = execution::EngineState::Armed;
         if (inhibit_on_schedule)
             *inhibit_on_schedule = true;
         return true;
     }
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t t) override {
+    execution::EngineReport poll(std::uint64_t t) override {
         ++polls;
-        if (state == wtp::EngineState::Armed && t >= start) {
+        if (state == execution::EngineState::Armed && t >= start) {
             const auto clock = conditions.clock->snapshot();
-            state = clock.state == wtp::ClockState::Unsynchronized ? wtp::EngineState::Missed
-                                                                   : wtp::EngineState::Running;
-            if (state == wtp::EngineState::Running)
+            state = clock.state == execution::ClockState::Unsynchronized ? execution::EngineState::Missed
+                                                                   : execution::EngineState::Running;
+            if (state == execution::EngineState::Running)
                 ++launches;
         }
-        if (state == wtp::EngineState::Running && t >= start + duration_ns) {
-            state = wtp::EngineState::Complete;
+        if (state == execution::EngineState::Running && t >= start + duration_ns) {
+            state = execution::EngineState::Complete;
             ++completions;
         }
         return {state, output_active()};
@@ -90,11 +90,11 @@ struct Engine : wtp::RfEngine {
         if (fail_disable)
             return false;
         if (!unsafe_disable)
-            state = wtp::EngineState::Idle;
+            state = execution::EngineState::Idle;
         return true;
     }
     bool output_active() const override {
-        return state == wtp::EngineState::Running;
+        return state == execution::EngineState::Running;
     }
 };
 } // namespace
@@ -117,7 +117,7 @@ void background_rendezvous() {
     manual_ns = 1'000'000;
     Engine engine;
     time::UtcDiscipline clock(manual_clock, nullptr);
-    CHECK(clock.observe(1'800'000'000'000'000'000ULL, manual_ns, 1000, wtp::LeapState::Normal));
+    CHECK(clock.observe(1'800'000'000'000'000'000ULL, manual_ns, 1000, execution::LeapState::Normal));
     rf::WorkerEngine proxy(engine, clock, manual_now, manual_wait, failure, mask, restore);
     manual_worker = &proxy;
     struct Control {
@@ -142,7 +142,7 @@ void background_rendezvous() {
     CHECK(proxy.suspend_background(manual_ns + 100'000'000));
     CHECK(control.held && control.pauses == 1);
     CHECK(!proxy.suspend_background(manual_ns + 100'000'000));
-    wtp::Job value;
+    execution::Job value;
     CHECK(!proxy.prepare(value).accepted && engine.prepares == 0);
     CHECK(!proxy.schedule(value, manual_ns + 100'000'000, {&clock}));
     CHECK(engine.schedules == 0 && control.held);
@@ -155,11 +155,11 @@ void background_rendezvous() {
     CHECK(synthesis.epoch == 1 && synthesis.observed_monotonic_ns == target);
     CHECK(synthesis.transmit_output == 1 && synthesis.drive_ma == 6);
     CHECK(synthesis.reference_hz == 25'000'000);
-    engine.state = wtp::EngineState::Armed;
+    engine.state = execution::EngineState::Armed;
     engine.start = manual_ns + 1'000'000'000;
     CHECK(!proxy.suspend_background(manual_ns + 100'000'000));
     CHECK(control.pauses == 1); // No background callback while a launch is armed.
-    engine.state = wtp::EngineState::Idle;
+    engine.state = execution::EngineState::Idle;
     control.accept = false;
     CHECK(!proxy.suspend_background(manual_ns + 100'000'000));
     CHECK(!control.held && control.pauses == 2 && control.resumes == 1);
@@ -169,14 +169,14 @@ void independent_worker_safety(bool armed) {
     manual_ns = 1'000'000;
     Engine engine;
     time::UtcDiscipline clock(manual_clock, nullptr);
-    CHECK(clock.observe(1'800'000'000'000'000'000ULL, manual_ns, 1000, wtp::LeapState::Normal));
+    CHECK(clock.observe(1'800'000'000'000'000'000ULL, manual_ns, 1000, execution::LeapState::Normal));
     rf::WorkerEngine proxy(engine, clock, manual_now, manual_wait, failure, mask, restore);
     manual_worker = &proxy;
     bool request = false;
     proxy.set_safety(safety_requested, &request);
-    wtp::Job job;
+    execution::Job job;
     CHECK(proxy.prepare(job).accepted);
-    wtp::LocalStartConditions conditions{&clock, clock.snapshot().utc_now_ns + 100'000'000, 1000000,
+    execution::LocalStartConditions conditions{&clock, clock.snapshot().utc_now_ns + 100'000'000, 1000000,
                                          0, 0};
     CHECK(proxy.schedule(job, 101'000'000, conditions));
     if (!armed) {
@@ -189,7 +189,7 @@ void independent_worker_safety(bool armed) {
     manual_ns += 1'000;
     proxy.step();
     CHECK(proxy.safety_inhibited() && !engine.output_active());
-    CHECK(engine.state == wtp::EngineState::Idle);
+    CHECK(engine.state == execution::EngineState::Idle);
     request = false;
     manual_ns = 200'000'000;
     proxy.step();
@@ -225,7 +225,7 @@ void safety_during_schedule() {
     manual_worker = &proxy;
     proxy.set_safety(safety_requested, &request);
     CHECK(proxy.prepare({}).accepted);
-    wtp::LocalStartConditions conditions{&clock, 200'000'000, 1000000, 0, 0};
+    execution::LocalStartConditions conditions{&clock, 200'000'000, 1000000, 0, 0};
     CHECK(!proxy.schedule({}, 101'000'000, conditions));
     manual_ns = 102'000'000;
     proxy.step();
@@ -235,7 +235,7 @@ void threaded_safety_with_busy_producer() {
     Engine engine;
     engine.duration_ns = 500'000'000;
     time::UtcDiscipline clock(clock_now, nullptr);
-    CHECK(clock.observe(1'800'000'000'000'000'000ULL, now(), 1000, wtp::LeapState::Normal));
+    CHECK(clock.observe(1'800'000'000'000'000'000ULL, now(), 1000, execution::LeapState::Normal));
     rf::WorkerEngine proxy(engine, clock, now, wait, failure, mask, restore);
     std::atomic<bool> request{false}, finish{false};
     proxy.set_safety([](void* value) { return static_cast<std::atomic<bool>*>(value)->load(); },
@@ -245,7 +245,7 @@ void threaded_safety_with_busy_producer() {
             proxy.step();
     });
     CHECK(proxy.prepare({}).accepted);
-    wtp::LocalStartConditions conditions{&clock, clock.snapshot().utc_now_ns + 5'000'000, 1000000,
+    execution::LocalStartConditions conditions{&clock, clock.snapshot().utc_now_ns + 5'000'000, 1000000,
                                          0, 0};
     CHECK(proxy.schedule({}, now() + 5'000'000, conditions));
     const auto deadline = now() + 200'000'000;
@@ -273,17 +273,17 @@ void inspection_wait() {
     std::this_thread::yield();
 }
 struct CompletionRaceEngine : Engine {
-    wtp::EngineReport poll(std::uint64_t) override {
+    execution::EngineReport poll(std::uint64_t) override {
         if (polls.fetch_add(1) == 0) {
             // Capture Running before the producer requests its inspection,
             // then let that request arrive before step() checks the rendezvous.
-            const wtp::EngineReport stale{wtp::EngineState::Running, true};
+            const execution::EngineReport stale{execution::EngineState::Running, true};
             inspection_observed.store(true);
             while (!inspection_requested.load())
                 std::this_thread::yield();
             return stale;
         }
-        return {wtp::EngineState::Complete, false};
+        return {execution::EngineState::Complete, false};
     }
 };
 void inspection_after_completion_race(bool output_query) {
@@ -299,7 +299,7 @@ void inspection_after_completion_race(bool output_query) {
         CHECK(!proxy.output_active());
     } else {
         const auto report = proxy.poll(inspection_now());
-        CHECK(report.state == wtp::EngineState::Complete && !report.output_active);
+        CHECK(report.state == execution::EngineState::Complete && !report.output_active);
     }
     owner.join();
 }
@@ -311,7 +311,7 @@ void reentrant_wait() {
 int main(int argc, char** argv) {
     Engine physical;
     time::UtcDiscipline clock(clock_now, nullptr);
-    CHECK(clock.observe(1'800'000'000'000'000'000ULL, now(), 1000, wtp::LeapState::Normal));
+    CHECK(clock.observe(1'800'000'000'000'000'000ULL, now(), 1000, execution::LeapState::Normal));
     rf::WorkerEngine proxy(physical, clock, now, wait, failure, mask, restore);
     CHECK(!proxy.owns_execution_plan());
     Engine owned;
@@ -321,12 +321,12 @@ int main(int argc, char** argv) {
     owned.independent_plan = false;
     // Capability is frozen before worker startup, never a cross-core query.
     CHECK(owned_proxy.owns_execution_plan());
-    wtp::Job job;
+    execution::Job job;
     if (argc > 1) {
         if (std::string_view(argv[1]) == "--safety-failure" ||
             std::string_view(argv[1]) == "--safety-unsafe-success") {
             bool request = true;
-            physical.state = wtp::EngineState::Running;
+            physical.state = execution::EngineState::Running;
             physical.start = now();
             physical.fail_disable = std::string_view(argv[1]) == "--safety-failure";
             physical.unsafe_disable = !physical.fail_disable;
@@ -361,12 +361,12 @@ int main(int argc, char** argv) {
             proxy.step();
     });
     CHECK(proxy.prepare(job).accepted);
-    wtp::LocalStartConditions c{&clock, clock.snapshot().utc_now_ns + 10'000'000, 1000000, 0, 0};
+    execution::LocalStartConditions c{&clock, clock.snapshot().utc_now_ns + 10'000'000, 1000000, 0, 0};
     CHECK(proxy.schedule(job, now() + 10'000'000, c));
     // Simulate arbitrarily busy TLS/JSON owner: no RPC or authority polling.
     std::this_thread::sleep_for(std::chrono::milliseconds(40));
     CHECK(physical.launches == 1 && physical.completions == 1);
-    CHECK(proxy.poll(now()).state == wtp::EngineState::Complete);
+    CHECK(proxy.poll(now()).state == execution::EngineState::Complete);
     CHECK(proxy.disable(now() + 100000000));
     // Coherent clock invalidation reaches the independently aging launch clock.
     CHECK(proxy.prepare(job).accepted);
@@ -374,7 +374,7 @@ int main(int argc, char** argv) {
     clock.invalidate();
     (void)proxy.poll(now());
     std::this_thread::sleep_for(std::chrono::milliseconds(30));
-    CHECK(proxy.poll(now()).state == wtp::EngineState::Missed);
+    CHECK(proxy.poll(now()).state == execution::EngineState::Missed);
     CHECK(physical.launches == 1);
     CHECK(proxy.disable(now() + 100000000));
     physical.fail_disable = true;

@@ -30,7 +30,7 @@ struct ProgressFixture : Fixture {
     network::HttpResponse apply(std::string domain = "all") {
         auto r = request("/api/control/v1/progress/apply", "{\"schema\":\"progress\",\"target\":" +
             application::target("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", service.status().boot_id) +
-            ",\"application\":{\"draft_revision\":" + wtp::json::quote(std::to_string(progress.sequence())) + ",\"domain\":" + wtp::json::quote(domain) + "}}");
+            ",\"application\":{\"draft_revision\":" + execution::json::quote(std::to_string(progress.sequence())) + ",\"domain\":" + execution::json::quote(domain) + "}}");
         r.headers["if-match"] = api.revision();
         return api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     }
@@ -61,7 +61,7 @@ void independent() {
 void mixed_and_revisions() {
     ProgressFixture f;
     const auto before = f.api.revision();
-    const auto value=wtp::json::parse(R"({"callsign":"AA0NT"})");
+    const auto value=execution::json::parse(R"({"callsign":"AA0NT"})");
     REQUIRE(!f.progress.save(*value,std::string(64,'g')));
     REQUIRE(f.progress.sequence()==0);
     const auto r = f.save(R"({"callsign":"AA0NT/09","locator":"bad","power_dbm":""})");
@@ -184,10 +184,10 @@ void torn_progress() {
     for (int initial : {1,2}) for (int cut=0;cut<8;++cut) {
         TornFlash flash; standalone::Progress p(flash); REQUIRE(p.load());
         const std::string receipt(64,'a');
-        const auto value=wtp::json::parse(R"({"callsign":"AA0NT"})");
+        const auto value=execution::json::parse(R"({"callsign":"AA0NT"})");
         for (int i=0;i<initial;++i) REQUIRE(p.save(*value,receipt));
         flash.pages=cut;
-        const auto changed=wtp::json::parse(R"({"callsign":"BB1BB"})");
+        const auto changed=execution::json::parse(R"({"callsign":"BB1BB"})");
         REQUIRE(!p.save(*changed,receipt)); REQUIRE(!p.healthy());
         standalone::Progress reboot(flash);REQUIRE(!reboot.load());
         flash.pages=-1; REQUIRE(reboot.erase()); REQUIRE(reboot.sequence()==0);

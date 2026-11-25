@@ -31,10 +31,10 @@ std::uint64_t Engine::filter_preparation_ns() const {
     return (filters_ && filters_->required() ? filters_->preparation_ns() : 0) +
            chain_service_margin_ns;
 }
-std::size_t Engine::preparation_memory_bytes(const wtp::Job& job) const {
+std::size_t Engine::preparation_memory_bytes(const execution::Job& job) const {
     const auto marks = std::count_if(job.events.begin(), job.events.end(),
                                      [](const auto& event) { return event.rf_on; });
-    return 4096 + marks * (sizeof(wtp::FrequencyAdjustment) + sizeof(std::uint16_t));
+    return 4096 + marks * (sizeof(execution::FrequencyAdjustment) + sizeof(std::uint16_t));
 }
 bool Engine::initialize() {
     // Idempotent initialization can reopen a failed controller for shutdown;
@@ -42,20 +42,20 @@ bool Engine::initialize() {
     initialized_ = platform_.initialize();
     if (!initialized_) {
         failure_ = "si5351_platform_unavailable";
-        state_ = wtp::EngineState::Failed;
+        state_ = execution::EngineState::Failed;
     }
     return initialized_;
 }
 bool Engine::set_frequency_correction_ppb(std::int32_t value) {
-    if (state_ != wtp::EngineState::Idle || plan_ || inhibited_ || value < -correction_limit_ppb ||
+    if (state_ != execution::EngineState::Idle || plan_ || inhibited_ || value < -correction_limit_ppb ||
         value > correction_limit_ppb)
         return false;
     correction_ppb_ = value;
     return true;
 }
-wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
+execution::PrepareResult Engine::prepare(const execution::Job& job) {
     if (!(engineering_allowed_ || ordinary_qualified_) || inhibited_ || background_suspended_ ||
-        state_ != wtp::EngineState::Idle) {
+        state_ != execution::EngineState::Idle) {
         failure_ = !(engineering_allowed_ || ordinary_qualified_) ? "si5351_engineering_gate"
                                                                   : "si5351_not_idle";
         return {};
@@ -67,7 +67,7 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
         failure_ = candidate.error;
         return {};
     }
-    std::array<wtp::FrequencyAdjustment, Plan::maximum_tones * 2> coverage{};
+    std::array<execution::FrequencyAdjustment, Plan::maximum_tones * 2> coverage{};
     unsigned coverage_count = 0;
     for (const auto& tone : candidate.plan->synthesis.tones()) {
         const auto realized = tone.realized_nhz();
@@ -80,7 +80,7 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
         failure_ = "filter_coverage_required";
         return {};
     }
-    wtp::PrepareResult result{true, {}};
+    execution::PrepareResult result{true, {}};
     result.adjustments.reserve(std::count_if(job.events.begin(), job.events.end(),
                                              [](const auto& event) { return event.rf_on; }));
     for (std::size_t i = 0; i < job.events.size(); ++i) {
@@ -131,14 +131,14 @@ wtp::PrepareResult Engine::prepare(const wtp::Job& job) {
     failure_ = {};
     return result;
 }
-bool Engine::schedule(const wtp::Job& job, std::uint64_t start,
-                      const wtp::LocalStartConditions& conditions) {
-    if (!conditions.clock || !plan_ || background_suspended_ || state_ != wtp::EngineState::Idle ||
-        start > UINT64_MAX - wtp::start_window_ns(conditions.start_utc_ns))
+bool Engine::schedule(const execution::Job& job, std::uint64_t start,
+                      const execution::LocalStartConditions& conditions) {
+    if (!conditions.clock || !plan_ || background_suspended_ || state_ != execution::EngineState::Idle ||
+        start > UINT64_MAX - execution::start_window_ns(conditions.start_utc_ns))
         return false;
     conditions_ = conditions;
     conditions_.start_adjustment_ns = (1000 - start % 1000) % 1000;
-    const auto window = wtp::start_window_ns(conditions.start_utc_ns);
+    const auto window = execution::start_window_ns(conditions.start_utc_ns);
     if (conditions.start_utc_ns > UINT64_MAX - window ||
         !time::inverse(conditions.clock->snapshot(), conditions.start_utc_ns + window,
                        deadline_ns_))
@@ -148,9 +148,9 @@ bool Engine::schedule(const wtp::Job& job, std::uint64_t start,
         return false;
     return begin(job, start + conditions_.start_adjustment_ns);
 }
-bool Engine::begin(const wtp::Job& job, std::uint64_t start) {
+bool Engine::begin(const execution::Job& job, std::uint64_t start) {
     if (!plan_ || !primed_ || inhibited_ || background_suspended_ ||
-        state_ != wtp::EngineState::Idle || plan_->digest != wtp::job_digest(job) ||
+        state_ != execution::EngineState::Idle || plan_->digest != execution::job_digest(job) ||
         epoch_ == UINT64_MAX ||
         start > UINT64_MAX - plan_->requested_duration_ns - amplifier_tail_ns() - 1'000'000 ||
         output_active())
@@ -185,8 +185,8 @@ bool Engine::begin(const wtp::Job& job, std::uint64_t start) {
     amplifier_observation_.configured = amplifier_ && amplifier_->enabled();
     amplifier_observation_.lead_ms = unsigned(amplifier_lead_ns() / 1'000'000);
     amplifier_observation_.tail_ms = unsigned(amplifier_tail_ns() / 1'000'000);
-    state_ = wtp::EngineState::Armed;
-    phase_ = wtp::ChainPhase::Waiting;
+    state_ = execution::EngineState::Armed;
+    phase_ = execution::ChainPhase::Waiting;
     return true;
 }
 bool Engine::project_start(std::uint64_t& target) const {
@@ -195,11 +195,11 @@ bool Engine::project_start(std::uint64_t& target) const {
         return platform_.now_ns() < add(start_ns_, 1'000'000'000);
     }
     const auto now = conditions_.clock->snapshot();
-    const auto window = wtp::start_window_ns(conditions_.start_utc_ns);
+    const auto window = execution::start_window_ns(conditions_.start_utc_ns);
     if (now.monotonic_now_ns >= deadline_ns_ ||
         now.uncertainty_ns > conditions_.maximum_uncertainty_ns ||
-        !(now.state == wtp::ClockState::Synchronized ||
-          (now.state == wtp::ClockState::Holdover && conditions_.maximum_holdover_age_ns &&
+        !(now.state == execution::ClockState::Synchronized ||
+          (now.state == execution::ClockState::Holdover && conditions_.maximum_holdover_age_ns &&
            now.sync_age_ns <= conditions_.maximum_holdover_age_ns)) ||
         now.utc_now_ns >= conditions_.start_utc_ns + window)
         return false;
@@ -213,9 +213,9 @@ bool Engine::project_start(std::uint64_t& target) const {
     target += rounding;
     std::uint64_t mapped{}, rounding_utc{}, growth{};
     const bool pending =
-        now.leap == wtp::LeapState::InsertPending || now.leap == wtp::LeapState::DeletePending;
+        now.leap == execution::LeapState::InsertPending || now.leap == execution::LeapState::DeletePending;
     if (!time::project(now, target, mapped) || mapped >= conditions_.start_utc_ns + window ||
-        target >= deadline_ns_ || now.leap == wtp::LeapState::Unknown ||
+        target >= deadline_ns_ || now.leap == execution::LeapState::Unknown ||
         pending != now.leap_transition_utc_ns.has_value() ||
         !time::growth(target - now.monotonic_now_ns, now.rate_uncertainty_ppb, growth) ||
         !time::elapsed_utc(rounding + (now.rate_ppb != 0), now.rate_ppb, rounding_utc, true) ||
@@ -262,8 +262,8 @@ bool Engine::launch() {
     if (!platform_.arm_cutoff(end_ns_))
         return fail("si5351_cutoff_rejected");
     amplifier_observation_.rf_start_ns = enable_command_ns_;
-    state_ = wtp::EngineState::Running;
-    phase_ = wtp::ChainPhase::Rf;
+    state_ = execution::EngineState::Running;
+    phase_ = execution::ChainPhase::Rf;
     if (plan_->tone[0] != JobPlan::off &&
         !device_.verify_transmit(add(completed, transition_budget_ns)))
         return fail("si5351_launch_unconfirmed");
@@ -321,10 +321,10 @@ bool Engine::finish_rf() {
     if (disable_command_ns_ > add(end_ns_, transition_budget_ns))
         return fail("si5351_final_shutdown_late");
     // With no amplifier tail, JobService invokes bounded verified disable
-    // before terminal success under the WTP shutdown-confirmation deadline.
+    // before terminal success under the output-shutdown deadline.
     // ACK is not misreported as physical RF readback.
     if (!amplifier_tail_ns()) {
-        state_ = wtp::EngineState::Complete;
+        state_ = execution::EngineState::Complete;
         return true;
     }
     if (!device_.verify_transmit(add(platform_.now_ns(), transition_budget_ns)))
@@ -332,11 +332,11 @@ bool Engine::finish_rf() {
     amplifier_observation_.rf_off_ns = platform_.now_ns();
     amplifier_observation_.normal_rf_completion = true;
     tail_ns_ = add(amplifier_observation_.rf_off_ns, amplifier_tail_ns());
-    phase_ = wtp::ChainPhase::Tail;
+    phase_ = execution::ChainPhase::Tail;
     return true;
 }
-wtp::EngineReport Engine::poll(std::uint64_t) {
-    if (state_ == wtp::EngineState::Idle) {
+execution::EngineReport Engine::poll(std::uint64_t) {
+    if (state_ == execution::EngineState::Idle) {
         // A prepared job still reports Idle until ARM. Keep its primed
         // register state and capture pause intact throughout that interval.
         platform_.service_reference(initialized_ && !plan_ &&
@@ -345,10 +345,10 @@ wtp::EngineReport Engine::poll(std::uint64_t) {
         return report();
     }
     auto now = platform_.now_ns();
-    if (state_ == wtp::EngineState::Armed) {
+    if (state_ == execution::EngineState::Armed) {
         std::uint64_t projected{};
         if (!project_start(projected)) {
-            fail("si5351_launch_clock_rejected", wtp::EngineState::Missed);
+            fail("si5351_launch_clock_rejected", execution::EngineState::Missed);
             return report();
         }
         start_ns_ = projected;
@@ -364,7 +364,7 @@ wtp::EngineReport Engine::poll(std::uint64_t) {
                     return report();
                 }
                 release_ns_ = platform_.now_ns();
-                phase_ = wtp::ChainPhase::Selecting;
+                phase_ = execution::ChainPhase::Selecting;
             }
             if (release_ns_ && !selection_ns_ && now >= add(*release_ns_, filters_->release_ns())) {
                 if (!filters_->activate()) {
@@ -386,26 +386,26 @@ wtp::EngineReport Engine::poll(std::uint64_t) {
                 }
                 enable_ns_ = platform_.now_ns();
                 amplifier_observation_.enable_ns = *enable_ns_;
-                phase_ = wtp::ChainPhase::Lead;
+                phase_ = execution::ChainPhase::Lead;
             }
             if (!enable_ns_ || add(*enable_ns_, amplifier_lead_ns()) > start_ns_) {
                 if (now >= start_ns_)
-                    fail("shortened_amplifier_lead", wtp::EngineState::Missed);
+                    fail("shortened_amplifier_lead", execution::EngineState::Missed);
                 return report();
             }
         }
         if (now >= start_ns_)
             (void)launch();
-    } else if (state_ == wtp::EngineState::Running && phase_ == wtp::ChainPhase::Tail) {
+    } else if (state_ == execution::EngineState::Running && phase_ == execution::ChainPhase::Tail) {
         if (tail_ns_ && now >= *tail_ns_) {
             if ((amplifier_ && !amplifier_->deactivate()) || (filters_ && !filters_->deactivate()))
                 fail("si5351_tail_cleanup_failed");
             else {
                 amplifier_observation_.disable_ns = platform_.now_ns();
-                state_ = wtp::EngineState::Complete;
+                state_ = execution::EngineState::Complete;
             }
         }
-    } else if (state_ == wtp::EngineState::Running) {
+    } else if (state_ == execution::EngineState::Running) {
         if (now >= end_ns_)
             (void)finish_rf();
         else if (now >= add(start_ns_, static_cast<std::uint64_t>(plan_->end_us[event_]) * 1000)) {
@@ -420,7 +420,7 @@ wtp::EngineReport Engine::poll(std::uint64_t) {
     return report();
 }
 bool Engine::disable(std::uint64_t deadline) {
-    const bool normal_completion = state_ == wtp::EngineState::Complete;
+    const bool normal_completion = state_ == execution::EngineState::Complete;
     const bool opened = initialize();
     platform_.cancel_cutoff();
     const bool gate = platform_.set_gate(false);
@@ -439,8 +439,8 @@ bool Engine::disable(std::uint64_t deadline) {
     }
     const bool filters = !filters_ || (clocks && filters_->deactivate());
     if (!opened || !gate || !amplifier || !reference || !clocks || !filters || output_active()) {
-        state_ = wtp::EngineState::Failed;
-        phase_ = wtp::ChainPhase::Fault;
+        state_ = execution::EngineState::Failed;
+        phase_ = execution::ChainPhase::Fault;
         failure_ = "si5351_shutdown_unconfirmed";
         return false;
     }
@@ -453,8 +453,8 @@ bool Engine::disable(std::uint64_t deadline) {
         if (!amplifier_observation_.disable_ns)
             amplifier_observation_.disable_ns = platform_.now_ns();
     }
-    state_ = wtp::EngineState::Idle;
-    phase_ = wtp::ChainPhase::Inactive;
+    state_ = execution::EngineState::Idle;
+    phase_ = execution::ChainPhase::Inactive;
     plan_.reset();
     primed_ = false;
     launch_ns_.reset();
@@ -463,11 +463,11 @@ bool Engine::disable(std::uint64_t deadline) {
     failure_ = {};
     return true;
 }
-bool Engine::fail(std::string_view reason, wtp::EngineState outcome) {
+bool Engine::fail(std::string_view reason, execution::EngineState outcome) {
     const bool stopped = disable(add(platform_.now_ns(), 10'000'000));
     failure_ = reason;
-    state_ = stopped ? outcome : wtp::EngineState::Failed;
-    phase_ = wtp::ChainPhase::Fault;
+    state_ = stopped ? outcome : execution::EngineState::Failed;
+    phase_ = execution::ChainPhase::Fault;
     return false;
 }
 bool Engine::output_active() const {
@@ -476,7 +476,7 @@ bool Engine::output_active() const {
            (amplifier_ && amplifier_->output_active_or_unknown()) ||
            (filters_ && filters_->output_active_or_unknown());
 }
-wtp::EngineReport Engine::report() const {
+execution::EngineReport Engine::report() const {
     return {state_, output_active(), launch_ns_,
             phase_, tail_ns_,        filters_ ? filters_->observation() : -1};
 }
@@ -485,11 +485,11 @@ void Engine::inhibit_output() {
     platform_.inhibit_reference();
 }
 bool Engine::background_work_allowed() const {
-    return !background_suspended_ && state_ != wtp::EngineState::Armed &&
-           state_ != wtp::EngineState::Running;
+    return !background_suspended_ && state_ != execution::EngineState::Armed &&
+           state_ != execution::EngineState::Running;
 }
 bool Engine::suspend_background(std::uint64_t deadline) {
-    if (background_suspended_ || state_ != wtp::EngineState::Idle || output_active())
+    if (background_suspended_ || state_ != execution::EngineState::Idle || output_active())
         return false;
     background_suspended_ = true;
     if (platform_.pause_reference(deadline) && !output_active())

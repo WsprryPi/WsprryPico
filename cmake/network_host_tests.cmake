@@ -62,8 +62,6 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     add_test(NAME network_clock_tests COMMAND network_clock_tests)
     add_test(NAME network_socket_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/network_socket_tests.py)
-    add_test(NAME network_replies_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/network_replies_tests.py)
     add_test(NAME network_control_tests COMMAND ${Python3_EXECUTABLE}
         ${CMAKE_SOURCE_DIR}/tests/network_control_tests.py)
     add_executable(network_tls_driver
@@ -87,10 +85,6 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
         ${CMAKE_SOURCE_DIR}/tests/network_tls_nagle_tests.py
         $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
     set_tests_properties(network_tls_nagle_tests PROPERTIES TIMEOUT 15 RUN_SERIAL TRUE)
-    add_test(NAME network_retirement_tests COMMAND ${Python3_EXECUTABLE}
-        ${CMAKE_SOURCE_DIR}/tests/network_retirement_tests.py
-        $<TARGET_FILE:network_tls_driver> ${WSPRRY_PICO_TEST_CREDENTIAL_DIR})
-    set_tests_properties(network_retirement_tests PROPERTIES TIMEOUT 30 RUN_SERIAL TRUE)
     add_executable(bootstrap_crypto_tests tests/bootstrap_crypto_tests.cpp
         src/network/pico/bootstrap_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(bootstrap_crypto_tests PRIVATE
@@ -99,12 +93,6 @@ if(WSPRRY_PICO_TEST_MBEDTLS_PATH)
     target_compile_options(bootstrap_crypto_tests PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_test(NAME bootstrap_crypto_tests COMMAND bootstrap_crypto_tests
         ${CMAKE_SOURCE_DIR}/engineering/protocol/WiFi-Bootstrap-v1-vectors.json)
-    add_executable(response_crypto_metrics tests/response_crypto_metrics.cpp
-        src/network/pico/consumer_radio_crypto.cpp src/network/pico/psa_lifetime.cpp)
-    target_compile_definitions(response_crypto_metrics PRIVATE
-        MBEDTLS_CONFIG_FILE="${MBEDTLS_CONFIG_FILE}" WSPRRY_PICO_CONSUMER_RADIO_CRYPTO_TEST=1)
-    target_link_libraries(response_crypto_metrics PRIVATE wsprrypico_core mbedcrypto)
-    target_compile_options(response_crypto_metrics PRIVATE -Wall -Wextra -Wpedantic -Werror -UNDEBUG)
     add_executable(consumer_radio_crypto_tests tests/consumer_radio_crypto_tests.cpp
         src/network/pico/consumer_radio_crypto.cpp src/network/pico/psa_lifetime.cpp)
     target_compile_definitions(consumer_radio_crypto_tests PRIVATE

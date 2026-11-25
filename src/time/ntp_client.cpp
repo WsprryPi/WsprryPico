@@ -1,8 +1,8 @@
 #include "time/ntp_client.hpp"
 
 #include "time/mapping.hpp"
-#include "wtp/json.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -158,13 +158,13 @@ bool NtpClient::apply(std::uint64_t now) {
         // configured timeout and growing uncertainty decide its usability.
         return false;
     }
-    wtp::ClockSnapshot model;
-    model.state = wtp::ClockState::Synchronized;
+    execution::ClockSnapshot model;
+    model.state = execution::ClockState::Synchronized;
     model.utc_now_ns = tracking.utc_ns;
     model.monotonic_now_ns = now;
     model.sync_age_ns = now - tracking.source_raw_ns;
     model.uncertainty_ns = tracking.uncertainty_ns;
-    model.leap = wtp::LeapState::Normal;
+    model.leap = execution::LeapState::Normal;
     if (tracking.leap != microchrony::Leap::Normal) {
         using namespace std::chrono;
         const year_month_day date{sys_days{days{tracking.utc_ns / (86'400 * microchrony::second)}}};
@@ -174,8 +174,8 @@ bool NtpClient::apply(std::uint64_t now) {
         model.leap_transition_utc_ns =
             std::uint64_t(duration_cast<seconds>(transition.time_since_epoch()).count()) *
             microchrony::second;
-        model.leap = tracking.leap == microchrony::Leap::Insert ? wtp::LeapState::InsertPending
-                                                                : wtp::LeapState::DeletePending;
+        model.leap = tracking.leap == microchrony::Leap::Insert ? execution::LeapState::InsertPending
+                                                                : execution::LeapState::DeletePending;
     }
     model.rate_ppb = tracking.rate_ppb;
     model.rate_uncertainty_ppb = tracking.rate_error_bound_ppb;
@@ -331,7 +331,7 @@ std::string NtpClient::observations_json() const {
 std::string NtpClient::history_page(NtpDiagnosticBinding binding, std::string_view request,
                                     std::uint64_t now) const {
     const auto error = [](std::string_view text) {
-        return "{\"ok\":false,\"error\":" + wtp::json::quote(text) + "}\n";
+        return "{\"ok\":false,\"error\":" + execution::json::quote(text) + "}\n";
     };
     auto slot = selected_slot(now);
     if (request.starts_with("@")) {
@@ -354,11 +354,11 @@ std::string NtpClient::history_page(NtpDiagnosticBinding binding, std::string_vi
     const auto status = core_.status(slot, now);
     const auto identity =
         "{\"schema\":\"microchrony-history-page/1\",\"device_id\":" +
-        wtp::json::quote(binding.device) + ",\"boot_id\":" + wtp::json::quote(binding.boot) +
-        ",\"firmware\":" + wtp::json::quote(binding.firmware) +
-        ",\"revision\":" + wtp::json::quote(binding.revision) +
+        execution::json::quote(binding.device) + ",\"boot_id\":" + execution::json::quote(binding.boot) +
+        ",\"firmware\":" + execution::json::quote(binding.firmware) +
+        ",\"revision\":" + execution::json::quote(binding.revision) +
         ",\"slot\":" + std::to_string(slot) +
-        ",\"endpoint\":" + wtp::json::quote(binding.endpoint) + ",\"clock_epoch\":\"" +
+        ",\"endpoint\":" + execution::json::quote(binding.endpoint) + ",\"clock_epoch\":\"" +
         std::to_string(epochs_[slot]) + "\",\"generation\":\"" + std::to_string(status.generation) +
         "\",\"count\":" + std::to_string(samples.size()) +
         ",\"frequency_ppb\":" + std::to_string(std::llround(status.estimate.rate * 1e9)) +
@@ -367,7 +367,7 @@ std::string NtpClient::history_page(NtpDiagnosticBinding binding, std::string_vi
     if (identity.size() > 1500)
         return error("ntp_history_identity_bound");
     const auto hash =
-        wtp::sha256({reinterpret_cast<const std::uint8_t*>(identity.data()), identity.size()});
+        execution::sha256({reinterpret_cast<const std::uint8_t*>(identity.data()), identity.size()});
     std::string token;
     constexpr char hex[] = "0123456789abcdef";
     for (auto byte : hash) {
@@ -397,7 +397,7 @@ std::string NtpClient::history_page(NtpDiagnosticBinding binding, std::string_vi
 std::string NtpClient::packet_page(NtpDiagnosticBinding binding, std::string_view text,
                                    std::uint64_t now) const {
     const auto error = [](const char* code) {
-        return "{\"ok\":false,\"error\":" + wtp::json::quote(code) + "}\n";
+        return "{\"ok\":false,\"error\":" + execution::json::quote(code) + "}\n";
     };
     std::uint64_t cursor = 0;
     const auto parsed = std::from_chars(text.data(), text.data() + text.size(), cursor);
@@ -406,10 +406,10 @@ std::string NtpClient::packet_page(NtpDiagnosticBinding binding, std::string_vie
         cursor > packet_sequence_)
         return error("ntp_packet_cursor");
     auto result = "{\"ok\":true,\"schema\":\"microchrony-packet-page/1\",\"device_id\":" +
-                  wtp::json::quote(binding.device) +
-                  ",\"boot_id\":" + wtp::json::quote(binding.boot) +
-                  ",\"firmware\":" + wtp::json::quote(binding.firmware) +
-                  ",\"revision\":" + wtp::json::quote(binding.revision);
+                  execution::json::quote(binding.device) +
+                  ",\"boot_id\":" + execution::json::quote(binding.boot) +
+                  ",\"firmware\":" + execution::json::quote(binding.firmware) +
+                  ",\"revision\":" + execution::json::quote(binding.revision);
     if (result.size() > 1500)
         return error("ntp_packet_identity_bound");
     const auto count = std::min<std::uint64_t>(packet_sequence_, packets_.size());
@@ -437,7 +437,7 @@ std::string NtpClient::packet_page(NtpDiagnosticBinding binding, std::string_vie
                   "\",\"length\":" + std::to_string(r.length) + ",\"prefix_hex\":\"" + hex +
                   "\",\"truncated\":" + (r.length > r.prefix.size() ? "true" : "false") +
                   ",\"accepted\":" + (r.accepted ? "true" : "false") +
-                  ",\"reason\":" + wtp::json::quote(microchrony::name(r.rejection)) + '}';
+                  ",\"reason\":" + execution::json::quote(microchrony::name(r.rejection)) + '}';
         next = id;
     }
     result += "],\"next_cursor\":\"" + std::to_string(next) +

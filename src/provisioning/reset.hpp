@@ -45,7 +45,7 @@ class ResetCoordinator {
         observer_ = observer;
     }
     ResetResult begin(ResetLevel level, ProfileSource target_source,
-                      const wtp::PayloadDigest& request_digest);
+                      const execution::PayloadDigest& request_digest);
     ResetResult resume();
     bool blocks_admission() const {
         return uncertain_intent_ || pending();

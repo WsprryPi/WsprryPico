@@ -35,7 +35,7 @@ class OwnerChallengeSlot {
     OwnerChallengeSlot& operator=(const OwnerChallengeSlot&) = delete;
 
     bool issue(const OwnerChallengeBinding& binding, std::uint64_t now_ms);
-    std::optional<wtp::PayloadDigest> take(const OwnerSigningFields& signed_fields,
+    std::optional<execution::PayloadDigest> take(const OwnerSigningFields& signed_fields,
                                            const std::array<std::uint8_t, 16>& session_id,
                                            const std::array<std::uint8_t, 32>& owner_key_sha256,
                                            std::uint64_t now_ms);

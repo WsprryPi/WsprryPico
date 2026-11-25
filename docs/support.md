@@ -17,7 +17,7 @@ Summary:
 Firmware version and channel (or source revision for a custom build):
 Board model:
 Connection (home Wi-Fi, Pico setup/field Wi-Fi, or USB):
-Standalone or WsprryPi-controlled (include WsprryPi version if used):
+Management interface (Pico browser or WsprryPi, with version if used):
 Browser and operating system, including versions:
 
 Steps to reproduce:
@@ -41,7 +41,7 @@ Include what you can obtain. If a page or connection is unavailable, say so and 
 | Firmware version and source revision | Follow [Open the Console in a browser](usb.md#open-the-console-in-a-browser), or [use a terminal on macOS or Linux](usb.md#find-and-open-the-console-on-macos-or-linux). Send `INFO` and copy `firmware` and `revision` from the [diagnostic reply](usb.md#read-the-address-and-web-service-status). The installer's final result also records the installed version and revision; see [Preserve settings during an update](install.md#preserve-settings-during-an-update). State whether you installed a Beta release, published devel firmware, or a custom build. |
 | Pico identity | Open **About this Pico / Diagnostics** and copy the full stable device ID and observed boot ID; see [Support information](maintain.md#support-information). If the browser is unavailable, `INFO` supplies `device_id` over [USB Console](usb.md#read-the-address-and-web-service-status). |
 | Board model and RF connections | Check the board's printed model and describe your wiring, filtering, amplifier, and load, if used. Compare with [Hardware connections](start.md#hardware-connections). |
-| Connection and control method | State whether you joined home Wi-Fi, the Pico's own Wi-Fi, or connected over USB. See [Connect to your Pico](connect.md) and [Use with WsprryPi](wsprrypi.md) to identify the route. Say whether the Pico's browser/saved schedule or WsprryPi was controlling the transmission. If WsprryPi was used, include its version. |
+| Connection and management interface | State whether you joined home Wi-Fi, the Pico's own Wi-Fi, or connected over USB. See [Connect to your Pico](connect.md) and [Use with WsprryPi](wsprrypi.md). Include the Pico schedule or operation involved and describe whether you used the Pico browser or WsprryPi to manage it. If you used WsprryPi, include its version. |
 | Browser and operating system | Copy the browser's version from its **About** page in its menu or settings. Copy the operating system's name and version from **About This Mac** on macOS, **Settings → System → About** on Windows, or your Linux distribution's **About** panel. |
 | Mode, frequency, job state, and RF output | Choose **Transmitter status → Refresh** and copy the relevant fields, including frequency units. [Status, stop, and connection loss](operate.md#status-stop-and-connection-loss) explains each field. |
 | Clock state and uncertainty | Copy **Clock** from the refreshed transmitter status, including the uncertainty after `±`. See [Read the clock status](reference/time.md#read-the-clock-status). |

@@ -9,13 +9,13 @@ namespace wsprrypico::provisioning {
 // scheduler retains its boot suspension; this one admits one finite occurrence.
 class LedScheduleFixture {
   public:
-    bool begin(standalone::Store& store, wtp::JobService& service,
+    bool begin(standalone::Store& store, execution::JobService& service,
                standalone::Scheduler& ordinary) {
         const auto activity = service.activity();
         const auto clock = service.clock_snapshot();
         if (scheduler_ || !ordinary.idle() || !store.healthy() || !store.config() ||
             store.config()->enabled || activity.owned || activity.output_active ||
-            clock.state != wtp::ClockState::Synchronized || clock.leap != wtp::LeapState::Normal ||
+            clock.state != execution::ClockState::Synchronized || clock.leap != execution::LeapState::Normal ||
             clock.uncertainty_ns > 500'000'000)
             return false;
         auto one = *store.config();

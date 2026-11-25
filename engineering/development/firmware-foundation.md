@@ -42,7 +42,7 @@ bash scripts/build_pico.sh WsprryPico-StandaloneRF build/local-compat-rf
 
 With no arguments the helper selects `WsprryPico` and `build/pico2-w-local`. Target-only inhibited and compatibility selections default to `build/pico2-w-local-inhibited` and `build/pico2-w-local-standalone-rf`. It accepts at most a supported target and build directory, uses Ninja/Release, disables host tests, selects `pico2_w`, and builds that target with four jobs. Its local picotool source defaults to `build/pico2-w/_deps/picotool-src` if the environment override is absent; missing SDK/source inputs refuse before build. Outputs are under `<build-directory>/firmware/<target>.*`. Preserve retained evidence directories rather than reconfiguring them for another variant.
 
-`WsprryPico-RFBench` remains an explicit diagnostic target with non-WTP Commands on CDC instance 1. The RFWTP target is retired. Diagnostic images do not select the normal application or establish physical qualification.
+`WsprryPico-RFBench` remains an explicit diagnostic target with Commands on CDC instance 1. Diagnostic images do not select the normal application or establish physical qualification.
 
 The normal build produces `build/pico2-w/firmware/WsprryPico.elf`, `.bin`, `.hex`, `.dis`, `.elf.map`, and `.uf2`. Generated artifacts are ignored. The UF2 metadata contains the product, development version, source revision, SDK, board, and target. The SDK build-date field is disabled so wall-clock time does not enter that metadata.
 
@@ -50,7 +50,7 @@ The normal build produces `build/pico2-w/firmware/WsprryPico.elf`, `.bin`, `.hex
 
 The firmware reports product `WsprryPico`, version `0.0.0-devel`, and the 12-character Git revision. A dirty source tree adds `-dirty`. This version is a local-build identity, independent of protocol and storage versions.
 
-On RP2350, the SDK reads the stable 64-bit unique identifier from OTP. The firmware hashes a WsprryPico namespace and that identifier, then uses the first 128 bits as the lowercase WTP `device_id`. It uses the SDK `pico_rand` 128-bit generator for each `boot_id`; an all-zero entropy result fails service initialization. These values identify protocol state; they are not credentials or proof of device authenticity.
+On RP2350, the SDK reads the stable 64-bit unique identifier from OTP. The firmware hashes a WsprryPico namespace and that identifier, then uses the first 128 bits as the lowercase `device_id`. It uses the SDK `pico_rand` 128-bit generator for each `boot_id`; an all-zero entropy result fails service initialization. These values identify protocol state; they are not credentials or proof of device authenticity.
 
 The target clock reports monotonic microsecond hardware time converted to nanoseconds. UTC starts `unsynchronized`, so the service rejects `ARM` until the configured Wi-Fi SNTP source or qualified USB-time source supplies a usable observation. The portable discipline ages its uncertainty; no wall-clock state survives reboot.
 
@@ -60,7 +60,7 @@ See the [USB CDC roles guide](usb-cdc.md) for transport bounds, connection seman
 
 The runtime button capture keeps its 2,048-word DMA ring in a separate 8 KiB-aligned storage object. Capture state refers to that storage, avoiding alignment padding around unrelated fields. Ring capacity, DMA wrap configuration, sampling cadence and button thresholds remain unchanged. Compile-time assertions enforce the ring size/alignment and bound the separate capture-state footprint.
 
-Inactive diagnostics do not reserve their full buffers. Activity tracing allocates its fixed 256-record storage only on the first successful BEGIN and retains it for subsequent reads and captures; recording itself never allocates. Console allocates its 8,192-byte ring on the first nonempty write and releases it on disconnect. Both optional allocations use the existing nullable buffer allocator and retain the common 32 KiB safety reserve. Their allocation failures refuse the diagnostic operation without starting a capture or queuing a partial console write. The RF waveform buffers and WTP input/decode/preparation reserves are independent and unchanged.
+Inactive diagnostics do not reserve their full buffers. Activity tracing allocates its fixed 256-record storage only on the first successful BEGIN and retains it for subsequent reads and captures; recording itself never allocates. Console allocates its 8,192-byte ring on the first nonempty write and releases it on disconnect. Both optional allocations use the existing nullable buffer allocator and retain the common 32 KiB safety reserve. Their allocation failures refuse the diagnostic operation without starting a capture or queuing a partial console write. The RF waveform buffers and native job preparation reserve are independent and unchanged.
 
 ## USB interfaces and monitoring
 
@@ -90,8 +90,8 @@ Exit with Control-A, backslash, then `y`. Interfaces 2/3 are Reserved and inert 
 
 The firmware instantiates and polls the same portable `JobService` used by host tests. The normal target connects the existing RF worker and engine. In the explicit inhibited target, `DryRunEngine` models local job lifecycles but always reports output inactive and accesses no hardware. The inhibited firmware entry point requires the `WSPRRY_PICO_RF_OUTPUT_DISABLED=1` compile definition.
 
-The standalone scheduler enters the portable JobService through typed internal requests. External WTP admission and generic HTTP job wrappers are retired. Both normal and inhibited application variants preserve timing, ownership, cancellation, and confirmed inactive cleanup; only the explicitly inhibited engine simulates execution without physical RF.
+The standalone scheduler enters the portable JobService through typed internal requests. Both normal and inhibited application variants preserve timing, ownership, cancellation, and confirmed inactive cleanup; only the explicitly inhibited engine simulates execution without physical RF.
 
-Building the image is hardware-free. Physical validation requires the board, firmware digest, connection, and observed output. A build does not establish USB behavior, target timing, electrical safety, RF behavior, or WTP conformance.
+Building the image is hardware-free. Physical validation requires the board, firmware digest, connection, and observed output. A build does not establish USB behavior, target timing, electrical safety, or RF behavior.
 
 Build authority: [root CMake](../../CMakeLists.txt), [presets](../../CMakePresets.json), [application wiring](../../firmware/CMakeLists.txt), [dependency verification](../../cmake/verify_pico_dependencies.cmake), and [local helper](../../scripts/build_pico.sh). Existing [image-selection checks](../../tests/application_image_tests.py) exercise role selection and refusal behavior; their passes do not qualify physical RF.

@@ -16,7 +16,7 @@ Five outputs suit a small five-position bank while preserving ordinary RF/button
 
 `rf::FilterCoverage` intersects the selectors covering every RF-on event. Both its requested nominal frequency and its programmed NCO frequency must fall within declared ranges for the same physical selector. Nominal endpoints are inclusive; programmed values must be strictly inside the whole-Hz endpoints, providing a conservative 1 nHz guard around rounded realization. Declare enough usable coverage for correction, modulation shifts, and quantization. Several disjoint ranges on one selector can cover different events; separate selectors cannot be combined inside one job.
 
-`StreamEngine` prepares the actual NCO plan and freezes the selector before ARM. `FrequencyPolicyEngine` applies the same coverage rule around every engine, including the inhibited simulator, using immutable boot settings. Native engine limits and amateur/experimental frequency permissions remain separate checks. WSPR tones, FSKCW/DFCW shifts, arbitrary accepted event frequencies, and manual correction all enter this complete-job boundary. No GPIO commands or filter names are added to WTP/1.
+`StreamEngine` prepares the actual NCO plan and freezes the selector before ARM. `FrequencyPolicyEngine` applies the same coverage rule around every engine, including the inhibited simulator, using immutable boot settings. Native engine limits and amateur/experimental frequency permissions remain separate checks. WSPR tones, FSKCW/DFCW shifts, arbitrary accepted event frequencies, and manual correction all enter this complete-job boundary.
 
 ## Local sequence and cleanup
 

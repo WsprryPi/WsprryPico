@@ -1,14 +1,13 @@
 #include "encoding/morse.hpp"
 #include "provisioning/rf_setup_gate.hpp"
 #include "runtime/activity_trace.hpp"
+#include "runtime/frame_buffer.hpp"
+#include "runtime/json.hpp"
 #include "time/usb_time_source.hpp"
 #include "time/utc_discipline.hpp"
-#include "wtp/codec.hpp"
-#include "wtp/endpoint.hpp"
-#include "wtp/frame_parser.hpp"
-#include "wtp/inhibited_rf_engine.hpp"
-#include "wtp/job_service.hpp"
-#include "wtp/memory_budget.hpp"
+#include "rf/inhibited_rf_engine.hpp"
+#include "rf/job_service.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <algorithm>
 #include <array>
@@ -27,15 +26,11 @@
 #include <utility>
 #include <vector>
 
-using namespace wsprrypico::wtp;
+using namespace wsprrypico::execution;
 
 static std::size_t allocations = 0;
 static std::size_t largest_allocation = 0;
 static std::size_t large_allocations = 0;
-static std::size_t measured_reply_bytes = 0, measured_reply_allocations = 0;
-static bool reject_reply_allocation = false;
-static bool reply_allocation_phase = false;
-static std::size_t input_pages_until_failure = 0;
 static std::size_t watched_event_bytes = 0;
 static std::array<void*, 8> watched_event_allocations{};
 static std::size_t watched_event_allocation_count = 0;
@@ -256,14 +251,14 @@ Request request(std::string operation, RequestBody body = std::monostate{},
     const auto digest =
         sha256(std::span(reinterpret_cast<const std::uint8_t*>(payload.data()), payload.size()));
     return {
-        "WTP/1", id(session_digit), id(request_digit), std::move(principal), std::move(operation),
+        "native-execution/1", id(session_digit), id(request_digit), std::move(principal), std::move(operation),
         digest,  std::move(body)};
 }
 
 Response hello(JobService& service, char session_digit = '1', char request_digit = 'a',
                std::string principal = "local") {
     return service.handle(
-        request("HELLO", HelloBody{{"WTP/1"}}, request_digit, session_digit, std::move(principal)));
+        request("HELLO", HelloBody{{"native-execution/1"}}, request_digit, session_digit, std::move(principal)));
 }
 
 Response claim(JobService& service, char session_digit = '1', char request_digit = 'b',
@@ -286,43 +281,6 @@ Job sample_job(char job_digit = '3') {
 void establish_owner(JobService& service) {
     CHECK(hello(service).ok);
     CHECK(claim(service).ok);
-}
-
-void test_crc_and_frame_encoding() {
-    const std::string check = "123456789";
-    CHECK(crc32c(std::span(reinterpret_cast<const std::uint8_t*>(check.data()), check.size())) ==
-          0xe3069283U);
-    const std::string abc = "abc";
-    CHECK(hex(sha256(std::span(reinterpret_cast<const std::uint8_t*>(abc.data()), abc.size()))) ==
-          "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
-    const std::string payload = "{}";
-    const auto encoded = encode_frame(
-        std::span(reinterpret_cast<const std::uint8_t*>(payload.data()), payload.size()));
-    CHECK(encoded.size() == kFrameHeaderBytes + payload.size());
-    CHECK(encoded[0] == 'W' && encoded[1] == 'T' && encoded[2] == 'P' && encoded[3] == 'F');
-    CHECK(encode_frame({}).empty());
-    std::vector<std::uint8_t> oversized(kMaximumPayloadBytes + 1, 0);
-    CHECK(encode_frame(oversized).empty());
-}
-
-void test_maximum_frame_with_fragmented_input_heap() {
-    const auto normal = allocate_input;
-    const std::vector<std::uint8_t> bytes(65536, ' ');
-    const auto wire = encode_frame(bytes);
-    allocate_input = [](std::size_t size) -> void* {
-        return size <= 4096 ? std::malloc(size) : nullptr;
-    };
-    FrameParser parser;
-    std::vector<FrameEvent> events;
-    for (const auto& byte : wire) {
-        for (auto& event : parser.feed(std::span(&byte, 1), 0))
-            events.push_back(std::move(event));
-    }
-    allocate_input = normal;
-    CHECK(!parser.closed());
-    CHECK(events.size() == 1 && events[0].kind == FrameEventKind::Payload);
-    if (!events.empty())
-        CHECK(events[0].payload == bytes);
 }
 
 void test_paged_json_and_digest_boundaries() {
@@ -349,20 +307,6 @@ void test_paged_json_and_digest_boundaries() {
                       b->integer() == a->integer());
         }
     }
-    const std::string request = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
-                                id('1') + "\",\"request_id\":\"" + id('2') +
-                                "\",\"op\":\"STATUS\",\"body\":{}}";
-    std::string text(65536 - request.size(), ' ');
-    text += request;
-    FrameBuffer storage;
-    CHECK(storage.reserve(text.size()));
-    storage.append(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
-    const auto root = json::parse(storage.view());
-    CHECK(root);
-    const auto decoded = decode_request(*root, "usb-physical", storage.view());
-    CHECK(decoded && decoded->operation == "STATUS" && decoded->body_valid);
-    CHECK(decoded->payload_digest ==
-          sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size())));
     for (const auto invalid :
          {"{\"x\":1,\"\\u0078\":2}", "{\"v\":2147483648}", "{\"v\":\"\\uD800\"}"}) {
         std::string bad(FrameBuffer::page_bytes - 3, ' ');
@@ -372,62 +316,6 @@ void test_paged_json_and_digest_boundaries() {
         buffer.append(std::span(reinterpret_cast<const std::uint8_t*>(bad.data()), bad.size()));
         CHECK(!json::parse(buffer.view()));
     }
-}
-
-void test_load_array_traversal_boundaries() {
-    for (const std::size_t count : {0, 1, 512, 513}) {
-        std::string events;
-        for (std::size_t i = 0; i < count; ++i) {
-            if (i)
-                events += ", \n";
-            events += "{\"offset_ns\":\"" + std::to_string(i) +
-                      "\",\"duration_ns\":\"1\",\"rf_on\":false}";
-        }
-        const auto text = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
-                          id('1') + "\",\"request_id\":\"" + id('2') +
-                          "\",\"op\":\"LOAD\",\"body\":{\"job_id\":\"" + id('3') +
-                          "\",\"profile\":\"rf-events/1\",\"mode\":\"qrss\","
-                          "\"total_duration_ns\":\"512\",\"events\":[ " +
-                          events + " ]}}";
-        for (const bool paged : {false, true}) {
-            FrameBuffer buffer;
-            CHECK(buffer.reserve(text.size()));
-            buffer.append(
-                std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
-            const auto input = paged ? buffer.view() : InputView(text);
-            const auto root = json::parse(input);
-            CHECK(root);
-            auto decoded = decode_request(*root, "local", input);
-            CHECK(decoded && decoded->body_valid == (count > 0 && count <= 512));
-            if (decoded->body_valid) {
-                const auto& job = std::get<Job>(decoded->body);
-                CHECK(job.events.size() == count);
-                for (std::size_t i = 0; i < count; ++i)
-                    CHECK(job.events[i].offset_ns == i && job.events[i].duration_ns == 1 &&
-                          !job.events[i].rf_on && !job.events[i].frequency_nhz);
-            }
-        }
-    }
-    // Nested arrays/objects, escapes and empty arrays remain single values,
-    // including when the first element crosses a storage page boundary.
-    std::string text = "{\"a\":[";
-    text.append(FrameBuffer::page_bytes - text.size() - 2, ' ');
-    text += "[1,{\"s\":\"x\\\"y\"}],{},[],true,null,-2]}";
-    FrameBuffer storage;
-    CHECK(storage.reserve(text.size()));
-    storage.append(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size()));
-    auto root = json::parse(storage.view());
-    CHECK(root);
-    auto array = *root->get("a");
-    std::size_t cursor = 0;
-    for (const auto expected : {"[1,{\"s\":\"x\\\"y\"}]", "{}", "[]", "true", "null", "-2"}) {
-        const auto element = array.next_element(cursor);
-        CHECK(element && element->raw == expected);
-    }
-    CHECK(!array.next_element(cursor));
-    CHECK(!array.next_element(cursor));
-    cursor = 0;
-    CHECK(!root->next_element(cursor));
 }
 
 void test_paged_nested_wide_object_keys() {
@@ -451,273 +339,6 @@ void test_paged_nested_wide_object_keys() {
     // An escaped spelling of an existing key must still be rejected after sorting.
     CHECK(!parse_paged(prefix + body + ",\"\\u0066ield-127\":0}" + suffix));
     CHECK(!parse_paged("{\"extra\":" + prefix + body + "}" + suffix + "}"));
-}
-
-void test_input_allocation_failure_closes_without_dispatch() {
-    const auto normal = allocate_input;
-    const std::vector<std::uint8_t> bytes(65536, ' ');
-    const auto wire = encode_frame(bytes);
-    for (const std::size_t successful_pages : {0U, 1U, 8U, 15U}) {
-        input_pages_until_failure = successful_pages;
-        allocate_input = [](std::size_t n) -> void* {
-            if (n == FrameBuffer::page_bytes) {
-                if (input_pages_until_failure == 0)
-                    return nullptr;
-                --input_pages_until_failure;
-            }
-            return std::malloc(n);
-        };
-        FrameParser parser;
-        std::vector<FrameEvent> events;
-        for (const auto& byte : wire) {
-            auto part = parser.feed(std::span(&byte, 1), 0);
-            for (auto& event : part)
-                events.push_back(std::move(event));
-        }
-        allocate_input = normal;
-        CHECK(parser.closed());
-        CHECK(parser.buffered_bytes() == 0);
-        CHECK(events.size() == 1 && events[0].kind == FrameEventKind::Closed);
-        CHECK(parser.feed(wire, 1).empty());
-    }
-    FrameParser recovered;
-    auto good = recovered.feed(wire, 2);
-    CHECK(!recovered.closed() && good.size() == 1 && good[0].payload == bytes);
-}
-
-void test_wspr_sized_frame_allocation() {
-    // The failed target USB LOAD was 16,684 framed bytes. Its proven R1
-    // single-request lower bound was 18,364 bytes, not the geometric 32 KiB.
-    const std::vector<std::uint8_t> payload(16668, 'x');
-    const auto wire = encode_frame(payload);
-    FrameParser parser;
-    largest_allocation = 0;
-    std::vector<FrameEvent> completed;
-    for (const auto& byte : wire) {
-        auto events = parser.feed(std::span(&byte, 1), 0);
-        if (!events.empty())
-            completed = std::move(events);
-    }
-    CHECK(completed.size() == 1);
-    CHECK(completed[0].payload == payload);
-    CHECK(largest_allocation <= 18364);
-}
-
-void test_wspr_adjustment_response_allocation() {
-    Request r;
-    r.operation = "LOAD";
-    r.session_id = std::string(32, '1');
-    r.request_id = std::string(32, '2');
-    Response response;
-    response.ok = true;
-    response.job_id = std::string(32, '3');
-    std::vector<FrequencyAdjustment> adjustments;
-    for (std::size_t n = 0; n < 162; ++n)
-        adjustments.push_back({n, 135500000000000ULL, 135500000000001ULL});
-    response.adjustments = std::move(adjustments);
-    largest_allocation = 0;
-    const auto encoded = encode_response(r, response, ServiceConfig{}, "device", "firmware");
-    CHECK(largest_allocation <= 18364);
-    CHECK(encoded.size() == 17466);
-    const auto parsed = json::parse(encoded);
-    CHECK(parsed.has_value());
-    CHECK(parsed->get("body")->get("adjustments")->elements().size() == 162);
-    CHECK(hex(sha256(
-              std::span(reinterpret_cast<const std::uint8_t*>(encoded.data()), encoded.size()))) ==
-          "f636c031c226c26495c0dd23e89db1033e97f80da876957c064f466dd326caa9");
-}
-
-void test_large_endpoint_reply_has_one_payload_allocation() {
-    VirtualClock clock;
-    TestIdentitySource identities;
-    MockRfEngine engine;
-    JobService service(clock, engine, identities);
-    Endpoint endpoint(service, id('d'), "test");
-    endpoint.connect("local");
-    std::vector<std::uint8_t> received;
-    received.reserve(131072);
-    auto send = [&](const std::string& op, const std::string& body, char digit, bool measured,
-                    bool expect_closed = false) {
-        const auto text = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
-                          id('1') + "\",\"request_id\":\"" + id(digit) + "\",\"op\":\"" + op +
-                          "\",\"body\":" + body + "}";
-        const auto wire =
-            encode_frame({reinterpret_cast<const std::uint8_t*>(text.data()), text.size()});
-        CHECK(!wire.empty());
-        reply_allocation_phase = false;
-        if (measured)
-            large_allocations = 0;
-        received.clear();
-        std::size_t offset = 0;
-        while (offset < wire.size() || !endpoint.output().empty()) {
-            if (endpoint.can_receive() && offset < wire.size()) {
-                // Reserve and fill the input before measuring reply allocations.
-                // Dispatch happens on the separately delivered final byte, also
-                // for a cached LOAD that does not call engine.prepare().
-                const auto remaining = wire.size() - offset;
-                reply_allocation_phase = op == "LOAD" && remaining == 1;
-                offset += endpoint.receive(
-                    std::span(wire).subspan(offset, remaining > 1 ? remaining - 1 : 1), 0);
-                if (remaining > 1) {
-                    CHECK(endpoint.input_reserved_bytes() == wire.size());
-                } else {
-                    CHECK(endpoint.input_reserved_bytes() == 0);
-                }
-            }
-            while (!endpoint.output().empty()) {
-                const auto chunk =
-                    endpoint.output().first(std::min<std::size_t>(7, endpoint.output().size()));
-                received.insert(received.end(), chunk.begin(), chunk.end());
-                endpoint.consume_output(chunk.size(), 0);
-            }
-            if (expect_closed && endpoint.closed()) {
-                CHECK(offset == wire.size());
-                return;
-            }
-            CHECK(!endpoint.closed());
-        }
-        CHECK(!expect_closed);
-    };
-    send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}",
-         'a', false);
-    send("CLAIM", "{\"owner_id\":\"" + id('2') + "\",\"lease_ms\":10000}", 'b', false);
-    std::string body = "{\"job_id\":\"" + id('3') +
-                       "\",\"profile\":\"rf-events/"
-                       "1\",\"mode\":\"qrss\",\"total_duration_ns\":\"512\",\"allow_frequency_"
-                       "adjustment\":true,\"events\":[";
-    for (std::size_t n = 0; n < 512; ++n) {
-        if (n)
-            body += ',';
-        body += "{\"offset_ns\":\"" + std::to_string(n) +
-                "\",\"duration_ns\":\"1\",\"rf_on\":true,\"frequency_nhz\":\"135500000000000\"}";
-        engine.adjustments.push_back({n, 135500000000000ULL, 135500000000001ULL});
-    }
-    body += "]}";
-    Request expected_request;
-    expected_request.operation = "LOAD";
-    expected_request.session_id = id('1');
-    expected_request.request_id = id('c');
-    Response expected_response;
-    expected_response.ok = true;
-    expected_response.job_id = id('3');
-    expected_response.adjustments = engine.adjustments;
-    const auto expected =
-        encode_response(expected_request, expected_response, service.config(), id('d'), "test");
-    measured_reply_bytes = expected.size();
-    measured_reply_allocations = 0;
-    send("LOAD", body, 'c', true);
-    // The reply can use separated 4 KiB holes, with no large contiguous
-    // string or framed copy. Its externally visible frame remains identical.
-    CHECK(large_allocations == 0 && measured_reply_allocations == 1);
-    CHECK(service.status().state == State::Loaded && !service.status().output_active);
-    FrameParser parser;
-    const auto frames = parser.feed(received, 0);
-    CHECK(!frames.empty());
-    CHECK(frames.front().payload.view() == expected);
-    const auto root = json::parse(frames.front().payload.view());
-    CHECK(root && root->get("ok")->boolean());
-    CHECK(root->get("body")->get("adjustments")->elements().size() == 512);
-    const auto normal_allocator = allocate_input;
-    allocate_input = [](std::size_t bytes) -> void* {
-        return bytes <= OutputBuffer::page_bytes ? std::malloc(bytes) : nullptr;
-    };
-    for (const bool browser : {false, true}) {
-        auto paged = encode_load_response_buffer(expected_request, expected_response, browser);
-        CHECK(!paged.empty());
-        std::string text;
-        for (std::size_t offset = 0; offset < paged.size();) {
-            const auto part = paged.at(offset);
-            CHECK(!part.empty() && part.size() <= OutputBuffer::page_bytes);
-            text.append(reinterpret_cast<const char*>(part.data()), part.size());
-            offset += part.size();
-        }
-        if (!browser)
-            CHECK(text == expected);
-        const auto value = json::parse(text);
-        CHECK(value &&
-              value->get(browser ? "result" : "body")->get("adjustments")->elements().size() ==
-                  512);
-    }
-    allocate_input = normal_allocator;
-    // Repeat the LOAD with a fresh request id, failing only its output buffer.
-    // The accepted inactive job remains reconcilable; allocation failure does
-    // not reset the service, fabricate an error for an accepted operation, or ARM.
-    measured_reply_allocations = 0;
-    reject_reply_allocation = true;
-    const auto prepared_before_replay = engine.prepare_calls;
-    send("LOAD", body, 'd', false, true);
-    reject_reply_allocation = false;
-    CHECK(measured_reply_allocations == 1);
-    CHECK(engine.prepare_calls == prepared_before_replay);
-    CHECK(service.status().state == State::Loaded && !service.status().output_active);
-    endpoint.connect("local");
-    send("HELLO", "{\"versions\":[\"WTP/1\"],\"client_name\":\"test\",\"client_version\":\"1\"}",
-         'e', false);
-    send("STATUS", "{}", 'f', false);
-    CHECK(!endpoint.closed() && service.status().state == State::Loaded);
-    measured_reply_bytes = 0;
-}
-
-void test_endpoint_unread_output_timeout_and_reconnect() {
-    VirtualClock clock;
-    TestIdentitySource identities;
-    MockRfEngine engine;
-    JobService service(clock, engine, identities);
-    Endpoint endpoint(service, id('d'), "test");
-    const auto hello = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" + id('1') +
-                       "\",\"request_id\":\"" + id('2') +
-                       "\",\"op\":\"HELLO\",\"body\":{\"versions\":[\"WTP/1\"],"
-                       "\"client_name\":\"timeout\",\"client_version\":\"1\"}}";
-    const auto wire =
-        encode_frame({reinterpret_cast<const std::uint8_t*>(hello.data()), hello.size()});
-    auto offer = [&] {
-        std::size_t offset = 0;
-        while (offset < wire.size())
-            offset += endpoint.receive(std::span(wire).subspan(offset), 0);
-        CHECK(!endpoint.output().empty());
-    };
-    endpoint.connect("local");
-    offer();
-    endpoint.poll(4999);
-    CHECK(!endpoint.closed() && !endpoint.output().empty());
-    endpoint.poll(5000);
-    CHECK(endpoint.closed() && endpoint.output().empty());
-    CHECK(endpoint.receive(wire, 5001) == 0);
-    endpoint.connect("local");
-    offer();
-    CHECK(!endpoint.closed());
-}
-
-void test_large_frames_across_feed_boundaries() {
-    for (const std::size_t length : {16668U, 65536U}) {
-        std::vector<std::uint8_t> payload(length);
-        for (std::size_t i = 0; i < length; ++i)
-            payload[i] = static_cast<std::uint8_t>(i * 37);
-        const auto frame = encode_frame(payload);
-        const std::vector<std::uint8_t> suffix_payload{1, 2, 3};
-        const auto suffix = encode_frame(suffix_payload);
-        auto wire = std::vector<std::uint8_t>{'x', 'W', 'T'};
-        wire.insert(wire.end(), frame.begin(), frame.end());
-        wire.insert(wire.end(), suffix.begin(), suffix.end());
-        for (const std::size_t chunk : {1U, 15U, 16U, 17U, 4096U, 65536U}) {
-            FrameParser parser;
-            std::vector<std::vector<std::uint8_t>> decoded;
-            largest_allocation = 0;
-            for (std::size_t offset = 0; offset < wire.size(); offset += chunk) {
-                for (auto& event : parser.feed(
-                         std::span(wire).subspan(offset, std::min(chunk, wire.size() - offset)),
-                         0)) {
-                    CHECK(event.kind == FrameEventKind::Payload);
-                    decoded.emplace_back(event.payload.begin(), event.payload.end());
-                }
-            }
-            CHECK(!parser.closed());
-            CHECK(parser.buffered_bytes() == 0);
-            CHECK(decoded.size() == 2);
-            CHECK(decoded[0] == payload && decoded[1] == suffix_payload);
-            CHECK(largest_allocation <= length + kFrameHeaderBytes + 4096);
-        }
-    }
 }
 
 void test_sha256_allocation_free_padding_boundaries() {
@@ -885,80 +506,6 @@ void test_extended_morse_message_boundaries() {
     }
 }
 
-void test_fragmented_and_combined_frames() {
-    const std::string first = "{\"one\":1}";
-    const std::string second = "{\"two\":2}";
-    const auto first_frame =
-        encode_frame(std::span(reinterpret_cast<const std::uint8_t*>(first.data()), first.size()));
-    const auto second_frame = encode_frame(
-        std::span(reinterpret_cast<const std::uint8_t*>(second.data()), second.size()));
-    FrameParser parser;
-    auto events = parser.feed(std::span(first_frame).first(7), 0);
-    CHECK(events.empty());
-    std::vector<std::uint8_t> remainder(first_frame.begin() + 7, first_frame.end());
-    remainder.insert(remainder.end(), second_frame.begin(), second_frame.end());
-    events = parser.feed(remainder, 1);
-    CHECK(events.size() == 2);
-    CHECK(std::string(events[0].payload.begin(), events[0].payload.end()) == first);
-    CHECK(std::string(events[1].payload.begin(), events[1].payload.end()) == second);
-    CHECK(parser.buffered_bytes() == 0);
-}
-
-void test_frame_recovery_limits_and_timeout() {
-    const std::string payload = "{}";
-    const auto good = encode_frame(
-        std::span(reinterpret_cast<const std::uint8_t*>(payload.data()), payload.size()));
-    std::vector<std::uint8_t> noisy{'x', 'y', 'z'};
-    noisy.insert(noisy.end(), good.begin(), good.end());
-    FrameParser recovering;
-    const auto recovered = recovering.feed(noisy, 0);
-    CHECK(recovered.size() == 1 && recovered[0].kind == FrameEventKind::Payload);
-
-    auto corrupt = good;
-    corrupt.back() ^= 1U;
-    FrameParser invalid;
-    std::vector<std::uint8_t> three;
-    three.insert(three.end(), corrupt.begin(), corrupt.end());
-    three.insert(three.end(), corrupt.begin(), corrupt.end());
-    three.insert(three.end(), corrupt.begin(), corrupt.end());
-    const auto invalid_events = invalid.feed(three, 0);
-    CHECK(std::count_if(invalid_events.begin(), invalid_events.end(), [](const FrameEvent& event) {
-              return event.kind == FrameEventKind::InvalidFrame;
-          }) == 3);
-    CHECK(invalid.closed());
-
-    FrameParser timeout;
-    timeout.feed(std::span(good).first(5), 10);
-    CHECK(timeout.check_timeout(5009).empty());
-    const auto timeout_events = timeout.check_timeout(5010);
-    CHECK(timeout_events.size() == 1 && timeout_events[0].kind == FrameEventKind::Closed);
-
-    auto oversized_header = good;
-    oversized_header.resize(kFrameHeaderBytes);
-    oversized_header[8] = 0;
-    oversized_header[9] = 1;
-    oversized_header[10] = 0;
-    oversized_header[11] = 1;
-    oversized_header.insert(oversized_header.end(), good.begin(), good.end());
-    FrameParser oversized;
-    const auto oversized_events = oversized.feed(oversized_header, 0);
-    CHECK(
-        std::any_of(oversized_events.begin(), oversized_events.end(), [](const FrameEvent& event) {
-            return event.kind == FrameEventKind::InvalidFrame;
-        }));
-    CHECK(
-        std::any_of(oversized_events.begin(), oversized_events.end(),
-                    [](const FrameEvent& event) { return event.kind == FrameEventKind::Payload; }));
-
-    FrameParser resync_limit;
-    std::vector<std::uint8_t> garbage(131'076, 'x');
-    const auto limit_events = resync_limit.feed(garbage, 0);
-    CHECK(resync_limit.closed());
-    CHECK(std::any_of(limit_events.begin(), limit_events.end(), [](const FrameEvent& event) {
-        return event.kind == FrameEventKind::Closed;
-    }));
-}
-
 void test_status_activity_trace_integration() {
     class CountingClock final : public Clock {
       public:
@@ -1018,7 +565,7 @@ void test_negotiation_sessions_and_unknown_operations() {
     JobService service(clock, engine, identities);
 
     CHECK(service.handle(request("STATUS")).error == ErrorCode::HelloRequired);
-    CHECK(service.handle(request("HELLO", HelloBody{{"WTP/2"}})).error ==
+    CHECK(service.handle(request("HELLO", HelloBody{{"native-execution/2"}})).error ==
           ErrorCode::UnsupportedVersion);
     CHECK(hello(service).ok);
     CHECK(service.handle(request("BOGUS", std::monostate{}, 'b')).error ==
@@ -1312,12 +859,12 @@ void test_safety_gate_and_connection_close() {
     engine.active = true;
     JobService blocked(clock, engine, identities);
     CHECK(blocked.status().state == State::Failed);
-    CHECK(blocked.handle(request("HELLO", HelloBody{{"WTP/1"}})).error == ErrorCode::DeviceFault);
+    CHECK(blocked.handle(request("HELLO", HelloBody{{"native-execution/1"}})).error == ErrorCode::DeviceFault);
 
     MockRfEngine safe_engine;
     TestIdentitySource safe_identities;
     JobService service(clock, safe_engine, safe_identities);
-    const auto unsupported = service.handle(request("HELLO", HelloBody{{"WTP/2"}}));
+    const auto unsupported = service.handle(request("HELLO", HelloBody{{"native-execution/2"}}));
     CHECK(unsupported.error == ErrorCode::UnsupportedVersion);
     CHECK(unsupported.close_connection);
     CHECK(hello(service).ok);
@@ -1445,97 +992,6 @@ void test_identical_adjustments_preserve_distinct_job_replays() {
     CHECK(first.adjustments != third.adjustments);
 }
 
-void test_active_load_replay_decode_and_authority() {
-    VirtualClock clock;
-    MockRfEngine engine;
-    TestIdentitySource ids;
-    JobService service(clock, engine, ids);
-    establish_owner(service);
-    std::string body =
-        "{\"job_id\":\"" + id('3') +
-        "\",\"profile\":\"rf-events/1\",\"mode\":\"fskcw\",\"total_duration_ns\":\"512\","
-        "\"allow_frequency_adjustment\":true,\"events\":[";
-    for (unsigned n = 0; n < 512; ++n) {
-        if (n)
-            body += ',';
-        body += "{\"offset_ns\":\"" + std::to_string(n) +
-                "\",\"duration_ns\":\"1\",\"rf_on\":true,\"frequency_nhz\":\"135500000000000\"}";
-    }
-    body += "]}";
-    auto decode = [&](const std::string& value, char rid, std::string_view hint) {
-        const auto wire = "{\"type\":\"request\",\"protocol\":\"WTP/1\",\"session_id\":\"" +
-                          id('1') + "\",\"request_id\":\"" + id(rid) +
-                          "\",\"op\":\"LOAD\",\"body\":" + value + "}";
-        const auto root = json::parse(wire);
-        CHECK(root);
-        largest_allocation = 0;
-        auto result = decode_request(*root, "local", wire, hint);
-        CHECK(result);
-        return *result;
-    };
-    auto first = decode(body, 'c', {});
-    CHECK(std::holds_alternative<Job>(first.body));
-    const auto digest = job_digest(std::get<Job>(first.body));
-    CHECK(hex(digest) == "68c1ad542ba02ab4421d51bea473432dda5433bfd4ce4f20c660798a576a8ff5");
-    auto loaded = service.handle(first);
-    CHECK(loaded.ok && service.active_load_replay_id() == id('3'));
-    auto replay = decode(body, 'd', service.active_load_replay_id());
-    CHECK(largest_allocation < 1024);
-    CHECK(std::get<LoadReplayBody>(replay.body).digest == digest);
-    CHECK(service.handle(replay) == loaded && engine.prepare_calls == 1);
-    auto escaped = body;
-    const auto offset = escaped.find("135500000000000");
-    escaped.replace(offset, 1, "\\u0031");
-    CHECK(service.handle(decode(escaped, 'e', id('3'))) == loaded);
-    char conflict_digit = '4';
-    for (const auto& change :
-         {std::pair{"135500000000000", "135500000000001"}, std::pair{"\"512\"", "\"513\""},
-          std::pair{"\"fskcw\"", "\"qrss\""}}) {
-        auto changed = body;
-        changed.replace(changed.find(change.first), std::string_view(change.first).size(),
-                        change.second);
-        auto q = decode(changed, 'f', id('3'));
-        // Distinct request IDs avoid substituting request-reuse precedence for
-        // the semantic job-conflict behavior under test.
-        q.request_id = id(conflict_digit++);
-        CHECK(service.handle(q).error == ErrorCode::JobIdConflict);
-    }
-    auto malformed = body;
-    malformed.replace(malformed.find("135500000000000"), 15, "0");
-    auto bad = decode(malformed, '7', id('3'));
-    CHECK(!bad.body_valid && service.handle(bad).error == ErrorCode::InvalidMessage);
-    auto oversized_scalar = body;
-    oversized_scalar.replace(oversized_scalar.find("135500000000000"), 15, std::string(8000, '1'));
-    auto bounded = decode(oversized_scalar, '8', id('3'));
-    CHECK(!bounded.body_valid && largest_allocation < 1024);
-    auto foreign = replay;
-    foreign.request_id = id('8');
-    foreign.session_id = id('9');
-    CHECK(hello(service, '9', 'a').ok);
-    CHECK(service.handle(foreign).error == ErrorCode::NotOwner);
-    CHECK(
-        service
-            .handle(request("ARM", ArmBody{id('3'), clock.value.utc_now_ns + 100000000, 1000}, '9'))
-            .ok);
-    CHECK(service.active_load_replay_id() == id('3'));
-    auto armed_replay = decode(body, '0', service.active_load_replay_id());
-    CHECK(service.handle(armed_replay) == loaded && engine.begin_calls == 0);
-    CHECK(service.handle(request("ABORT", AbortBody{id('3')}, '2')).ok);
-    CHECK(service.active_load_replay_id().empty());
-    CHECK(service.handle(request("RELEASE", {}, '3')).ok);
-    auto expired = replay;
-    expired.request_id = id('f');
-    CHECK(service.handle(expired).error == ErrorCode::LeaseExpired);
-    // A compact body cannot introduce a new job, even with a valid owner.
-    CHECK(hello(service, 'e', 'e').ok && claim(service, 'e', 'f').ok);
-    auto unknown = request("LOAD", LoadReplayBody{id('f'), digest}, '0', 'e');
-    CHECK(service.handle(unknown).error == ErrorCode::InvalidState);
-    clock.advance(11000000000ULL);
-    unknown.request_id = id('1');
-    CHECK(service.handle(unknown).error == ErrorCode::LeaseExpired);
-    CHECK(engine.prepare_calls == 1 && engine.begin_calls == 0);
-}
-
 void test_execution_input_handoff_and_replay() {
     for (const bool local : {false, true}) {
         for (const bool independent : {false, true}) {
@@ -1578,8 +1034,6 @@ void test_execution_input_handoff_and_replay() {
                 if (outcome != 3) {
                     CHECK(service.handle(load) == loaded);
                     CHECK(service.handle(request("LOAD", job, 'e')) == loaded);
-                    CHECK(service.handle(request(
-                              "LOAD", LoadReplayBody{job.job_id, job_digest(job)}, 'f')) == loaded);
                     auto changed = job;
                     ++*changed.events.back().frequency_nhz;
                     CHECK(service.handle(request("LOAD", changed, '0')).error ==
@@ -1628,35 +1082,6 @@ void test_execution_input_handoff_and_replay() {
             }
         }
     }
-}
-
-void test_input_workspace_admission() {
-    const std::vector<std::uint8_t> bytes(65536, 'x');
-    const auto wire = encode_frame(bytes);
-    static std::size_t budget;
-    available_memory = [] { return budget; };
-    // Gate at the original reserve would allow this input but leave no room
-    // for the real serialized diagnostics/decode lifetime.
-    for (const auto free :
-         {65552U + 32768U, 65552U + 32768U + 8192U + 1023U, 65552U + 32768U + 8192U + 1024U}) {
-        budget = free;
-        FrameParser parser;
-        std::vector<FrameEvent> events;
-        for (const auto& byte : wire)
-            for (auto& event : parser.feed(std::span(&byte, 1), 0))
-                events.push_back(std::move(event));
-        const bool admitted = free == 65552U + 32768U + 8192U + 1024U;
-        CHECK(parser.closed() != admitted);
-        CHECK(events.size() == 1);
-        CHECK(events[0].kind == (admitted ? FrameEventKind::Payload : FrameEventKind::Closed));
-        if (admitted)
-            CHECK(events[0].payload == bytes);
-        else
-            CHECK(parser.buffered_bytes() == 0);
-    }
-    budget = std::numeric_limits<std::size_t>::max();
-    CHECK(!input_memory_admitted(budget));
-    available_memory = nullptr;
 }
 
 void test_completed_event_storage_and_replacement() {
@@ -1721,72 +1146,6 @@ void test_completed_event_storage_and_replacement() {
         CHECK(service.status().state == State::Loaded);
         CHECK(service.status().terminal_records == terminal.terminal_records);
     }
-}
-
-static std::size_t reply_available = 0, reply_page_calls = 0, fail_reply_page = 0;
-void test_reply_reserve_and_all_page_failures() {
-    Request request;
-    request.operation = "LOAD";
-    request.session_id = id('1');
-    request.request_id = id('2');
-    Response response;
-    response.ok = true;
-    response.job_id = id('3');
-    std::vector<FrequencyAdjustment> values;
-    for (std::size_t i = 0; i < 512; ++i)
-        values.push_back({i, 135500000000000ULL, 135500000000001ULL});
-    response.adjustments = std::move(values);
-    const auto allocator = allocate_input;
-    for (bool browser : {false, true}) {
-        const auto bytes = encode_load_response_buffer(request, response, browser).size();
-        CHECK(bytes > 50000);
-        available_memory = [] { return reply_available; };
-        reply_available = bytes + 1024 + 32768 - 1;
-        CHECK(encode_load_response_buffer(request, response, browser).empty());
-        ++reply_available;
-        CHECK(encode_load_response_buffer(request, response, browser).size() == bytes);
-        available_memory = nullptr;
-        for (fail_reply_page = 1; fail_reply_page <= (bytes + 4095) / 4096; ++fail_reply_page) {
-            reply_page_calls = 0;
-            allocate_input = [](std::size_t size) -> void* {
-                return ++reply_page_calls == fail_reply_page ? nullptr : std::malloc(size);
-            };
-            CHECK(encode_load_response_buffer(request, response, browser).empty());
-            CHECK(reply_page_calls == fail_reply_page);
-            allocate_input = allocator;
-            CHECK(encode_load_response_buffer(request, response, browser).size() == bytes);
-        }
-    }
-    allocate_input = allocator;
-    available_memory = [] { return reply_available; };
-    reply_available = 85000; // The captured retained LOAD had only about 85 KiB.
-    CHECK(encode_load_response_buffer(request, response).empty());
-    auto streamed = LoadResponseStream(request, response);
-    CHECK(!streamed.empty());
-    const auto expected = encode_response(request, response, {}, id('4'), "test");
-    CHECK(streamed.size() == expected.size());
-    CHECK(streamed.checksum() ==
-          crc32c({reinterpret_cast<const std::uint8_t*>(expected.data()), expected.size()}));
-    // The stream retains the immutable reply across producer release and move.
-    response.adjustments.clear();
-    auto moved = std::move(streamed);
-    std::string actual;
-    while (actual.size() < moved.size()) {
-        const auto part = moved.at(actual.size());
-        CHECK(!part.empty() && part.size() <= 4096);
-        CHECK(moved.at(actual.size()).data() == part.data());
-        const auto count = std::min<std::size_t>(part.size(), 17);
-        actual.append(reinterpret_cast<const char*>(part.data()), count);
-    }
-    CHECK(actual == expected && moved.at(moved.size()).empty());
-    reply_available = 32768 + 6144 - 1;
-    CHECK(LoadResponseStream(request, response).empty());
-    ++reply_available;
-    CHECK(!LoadResponseStream(request, response).empty());
-    allocate_input = [](std::size_t) -> void* { return nullptr; };
-    CHECK(LoadResponseStream(request, response).empty());
-    allocate_input = allocator;
-    available_memory = nullptr;
 }
 
 void test_expired_active_lease_and_terminal_retention() {
@@ -1935,7 +1294,7 @@ void test_invalid_configuration_fails_without_exception() {
     CHECK(service.status().state == State::Failed);
     CHECK(engine.disable_calls == 1);
     CHECK(!service.status().output_active);
-    CHECK(service.handle(request("HELLO", HelloBody{{"WTP/1"}})).error == ErrorCode::DeviceFault);
+    CHECK(service.handle(request("HELLO", HelloBody{{"native-execution/1"}})).error == ErrorCode::DeviceFault);
 }
 
 void test_utc_discipline_boundaries() {
@@ -2132,7 +1491,7 @@ void test_activity_with_retained_history() {
     engine.active = true;
     observe(State::Empty, true, false, 0); // Unexpected output is never hidden.
     engine.active = false;
-    CHECK(invoke("HELLO", HelloBody{{"WTP/1"}}).ok);
+    CHECK(invoke("HELLO", HelloBody{{"native-execution/1"}}).ok);
     for (unsigned i = 0; i < 8; ++i) {
         CHECK(invoke("CLAIM", ClaimBody{id('2'), 10'000}).ok);
         const auto job = sample_job("3456789a"[i]);
@@ -2169,13 +1528,6 @@ using Test = std::pair<const char*, void (*)()>;
 
 int main() {
     allocate_input = [](std::size_t size) -> void* {
-        if (measured_reply_bytes && reply_allocation_phase &&
-            (size == OutputBuffer::page_bytes ||
-             size == measured_reply_bytes % OutputBuffer::page_bytes)) {
-            ++measured_reply_allocations;
-            if (reject_reply_allocation && measured_reply_allocations == 1)
-                return nullptr;
-        }
         ++allocations;
         largest_allocation = std::max(largest_allocation, size);
         return std::malloc(size);
@@ -2186,24 +1538,11 @@ int main() {
         {"allocation-free activity with retained history", test_activity_with_retained_history},
         {"physical Console abort", test_physical_console_abort},
         {"physical output inhibit", test_physical_output_inhibit},
-        {"crc and frame encoding", test_crc_and_frame_encoding},
-        {"WSPR-sized frame allocation", test_wspr_sized_frame_allocation},
         {"allocation-free SHA padding", test_sha256_allocation_free_padding_boundaries},
-        {"large frame feed boundaries", test_large_frames_across_feed_boundaries},
-        {"large endpoint response allocation",
-         test_large_endpoint_reply_has_one_payload_allocation},
-        {"endpoint unread output timeout and reconnect",
-         test_endpoint_unread_output_timeout_and_reconnect},
-        {"WSPR adjustment response allocation", test_wspr_adjustment_response_allocation},
-        {"input allocation failure", test_input_allocation_failure_closes_without_dispatch},
-        {"maximum input in fragmented heap", test_maximum_frame_with_fragmented_input_heap},
         {"paged JSON and digest boundaries", test_paged_json_and_digest_boundaries},
-        {"LOAD array traversal boundaries", test_load_array_traversal_boundaries},
         {"paged nested wide object keys", test_paged_nested_wide_object_keys},
         {"CW frequency events", test_cw_frequency_events},
         {"extended Morse boundaries", test_extended_morse_message_boundaries},
-        {"fragmented and combined frames", test_fragmented_and_combined_frames},
-        {"frame recovery limits and timeout", test_frame_recovery_limits_and_timeout},
         {"status activity trace integration", test_status_activity_trace_integration},
         {"negotiation sessions and unknown operations",
          test_negotiation_sessions_and_unknown_operations},
@@ -2222,9 +1561,6 @@ int main() {
         {"shared adjustment replay lifetimes", test_shared_adjustment_replay_lifetimes},
         {"completed event storage and replacement", test_completed_event_storage_and_replacement},
         {"execution input handoff and replay", test_execution_input_handoff_and_replay},
-        {"input workspace admission", test_input_workspace_admission},
-        {"active LOAD replay decoding and authority", test_active_load_replay_decode_and_authority},
-        {"reply reserve and every page failure", test_reply_reserve_and_all_page_failures},
         {"expired active lease and terminal retention",
          test_expired_active_lease_and_terminal_retention},
         {"engine completion watchdog", test_engine_completion_watchdog},

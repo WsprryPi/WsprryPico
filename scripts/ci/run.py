@@ -40,6 +40,7 @@ def execute(log, *args, cwd=ROOT, context=None, expected=None):
 def producer_execution_policy():
     policy = bundle.validate_execution_policy(bundle.read_json(ROOT / "scripts/ci/execution-policy.json"))
     bundle.require(policy["schema"] == "ci-execution-policy/2", "Current producer requires current completion policy")
+    bundle.require(set(policy['contexts']) == set(execution.HOST_CONTEXTS), 'Incomplete producer execution contexts')
     return policy
 
 
@@ -177,9 +178,9 @@ def host_checks(deps, audit):
     import numpy
     import serial
     import ssl
-    from wsprrypi_qualification import carrier, cw_defaults, wtp_control
+    from wsprrypi_qualification import carrier, cw_defaults
     # Import before configure: missing modules must never silently shrink coverage.
-    assert all((cryptography, jsonschema, numpy, serial, ssl, carrier, cw_defaults, wtp_control))
+    assert all((cryptography, jsonschema, numpy, serial, ssl, carrier, cw_defaults))
     log = audit / 'host.log'
     web = ROOT / 'src/network/bootstrap_web'
     execute(log, 'npm', 'ci', '--ignore-scripts', '--no-audit', '--no-fund', cwd=web)
@@ -216,7 +217,7 @@ def host_checks(deps, audit):
     cases = suite.findall('testcase')
     execution.ctest_result(suite, names, completion, registered, command_root=ROOT)
     (audit / 'evidence-skips.json').write_text('[]\n')
-    execute(log, sys.executable, ROOT / 'scripts/validate_wtp_contract.py', context='wtp-contract')
+    execute(log, sys.executable, ROOT / 'scripts/check_control_policy.py', context='control-policy')
     execute(log, 'npm', 'test', cwd=web, context='npm', expected=completion['contexts']['npm'])
     execute(log, sys.executable, ROOT / 'tests/ci_bundle_tests.py', context='packaging', expected=completion['contexts']['packaging'])
     execute(log, 'node', '--test', ROOT / 'tests/ui_process_cleanup.test.mjs',
@@ -243,7 +244,7 @@ def host_checks(deps, audit):
         execute(log, 'env', 'UI_REVIEW_NO_CAPTURE=1', 'node', ROOT / 'tests/ui_sections_browser.mjs',
                 host / 'consumer_bootstrap_driver', audit / f'sections-{carrier}', carrier, context=f'sections-{carrier}')
     return {'registered': len(names), 'passed': len(cases), 'failed': 0, 'skipped': 0,
-            'test_names': sorted(names), 'wtp_contract': 'passed', 'browser_npm': 'passed',
+            'test_names': sorted(names), 'control_policy': 'passed', 'browser_npm': 'passed',
             'packaging_failure_tests': 'passed', 'consumer_ui': 'passed',
             'historical_evidence_skips': json.loads((audit / 'evidence-skips.json').read_text())}
 

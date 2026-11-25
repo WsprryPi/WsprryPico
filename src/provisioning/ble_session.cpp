@@ -1,6 +1,6 @@
 #include "provisioning/ble_session.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <charconv>
 #include <limits>
@@ -72,10 +72,10 @@ Code manager_code(AccessCode code) {
 CommandReply reply(std::string_view request_id, AccessCode code, std::uint64_t generation) {
     if (request_id.size() != 32)
         return {};
-    std::string notification = "{\"version\":1,\"request_id\":" + wtp::json::quote(request_id) +
+    std::string notification = "{\"version\":1,\"request_id\":" + execution::json::quote(request_id) +
                                ",\"ok\":" + (code == AccessCode::Ok ? "true" : "false");
     if (code != AccessCode::Ok)
-        notification += ",\"error\":" + wtp::json::quote(access_name(code));
+        notification += ",\"error\":" + execution::json::quote(access_name(code));
     notification += ",\"generation\":" + std::to_string(generation) + "}";
     return {manager_code(code), std::move(notification)};
 }
@@ -83,10 +83,10 @@ CommandReply reply(std::string_view request_id, AccessCode code, std::uint64_t g
 CommandReply field_reply(std::string_view request_id, Code code, std::string body = {}) {
     if (request_id.size() != 32)
         return {};
-    std::string notification = "{\"version\":1,\"request_id\":" + wtp::json::quote(request_id) +
+    std::string notification = "{\"version\":1,\"request_id\":" + execution::json::quote(request_id) +
                                ",\"ok\":" + (code == Code::Ok ? "true" : "false");
     if (code != Code::Ok)
-        notification += ",\"error\":" + wtp::json::quote(code_name(code));
+        notification += ",\"error\":" + execution::json::quote(code_name(code));
     else if (!body.empty())
         notification += "," + body;
     notification += '}';
@@ -157,7 +157,7 @@ bool decimal(std::string_view value, std::uint64_t& output) {
     return parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size();
 }
 
-bool generation(const std::optional<wtp::json::Value>& value, std::uint64_t& output) {
+bool generation(const std::optional<execution::json::Value>& value, std::uint64_t& output) {
     if (!value || value->type() < '0' || value->type() > '9')
         return false;
     const auto parsed = value->integer();
@@ -171,10 +171,10 @@ std::span<const std::uint8_t> bytes(std::string_view value) {
     return {reinterpret_cast<const std::uint8_t*>(value.data()), value.size()};
 }
 
-wtp::PayloadDigest profile_parameters(std::string_view profile_session,
+execution::PayloadDigest profile_parameters(std::string_view profile_session,
                                       std::uint64_t expected_generation,
-                                      const wtp::PayloadDigest& staged) {
-    wtp::Sha256 hash;
+                                      const execution::PayloadDigest& staged) {
+    execution::Sha256 hash;
     constexpr std::string_view operation = "profile_apply";
     const std::uint8_t separator = 0;
     hash.update(bytes(operation));
@@ -246,8 +246,8 @@ std::string BleCommandSession::principal() const {
 }
 
 CommandReply BleCommandSession::authorize(std::string_view command, std::uint64_t now_ms) {
-    const auto root = wtp::json::parse(command);
-    if (!root || !wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
+    const auto root = execution::json::parse(command);
+    if (!root || !execution::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                             "device_id", "password"}))
         return {};
     const auto version = root->get("version");
@@ -257,9 +257,9 @@ CommandReply BleCommandSession::authorize(std::string_view command, std::uint64_
     const auto device = root->get("device_id");
     const auto password_value = root->get("password");
     if (!version || version->type() != '1' || version->integer() != 1 || !operation ||
-        operation->string() != "authorize" || !request || !wtp::json::identifier(*request) ||
-        !session || !wtp::json::identifier(*session) || !device ||
-        !wtp::json::identifier(*device) || !password_value || password_value->type() != '"')
+        operation->string() != "authorize" || !request || !execution::json::identifier(*request) ||
+        !session || !execution::json::identifier(*session) || !device ||
+        !execution::json::identifier(*device) || !password_value || password_value->type() != '"')
         return {};
     const auto request_id = request->string();
     if (device->string() != device_id_)
@@ -277,7 +277,7 @@ CommandReply BleCommandSession::authorize(std::string_view command, std::uint64_
 }
 
 CommandReply BleCommandSession::field_command(std::string_view command, std::uint64_t now_ms) {
-    const auto root = wtp::json::parse(command);
+    const auto root = execution::json::parse(command);
     if (!root)
         return {};
     const auto version = root->get("version");
@@ -286,8 +286,8 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
     const auto session = root->get("session_id");
     const auto device = root->get("device_id");
     if (!version || version->type() != '1' || version->integer() != 1 || !operation ||
-        operation->type() != '"' || !request || !wtp::json::identifier(*request) || !session ||
-        !wtp::json::identifier(*session) || !device || !wtp::json::identifier(*device))
+        operation->type() != '"' || !request || !execution::json::identifier(*request) || !session ||
+        !execution::json::identifier(*session) || !device || !execution::json::identifier(*device))
         return {};
     const auto request_id = request->string();
     if (device->string() != device_id_)
@@ -301,7 +301,7 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
 
     const auto name = operation->string();
     if (name == "profile_step_up") {
-        if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
+        if (!execution::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                        "device_id", "profile_session_id", "apply_request_id",
                                        "expected_generation", "password"}))
             return field_reply(request_id, Code::InvalidRequest);
@@ -309,8 +309,8 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
         const auto apply_request = root->get("apply_request_id");
         const auto password_value = root->get("password");
         std::uint64_t expected_generation = 0;
-        if (!profile_session || !wtp::json::identifier(*profile_session) || !apply_request ||
-            !wtp::json::identifier(*apply_request) || !password_value ||
+        if (!profile_session || !execution::json::identifier(*profile_session) || !apply_request ||
+            !execution::json::identifier(*apply_request) || !password_value ||
             password_value->type() != '"' ||
             !generation(root->get("expected_generation"), expected_generation) ||
             expected_generation == std::numeric_limits<std::uint64_t>::max())
@@ -349,12 +349,12 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
                 ",\"ready\":" + (ready ? "true" : "false"));
     }
     if (name == "profile_step_up_status") {
-        if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
+        if (!execution::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                        "device_id", "apply_request_id"}) ||
             !pending_profile_step_up_)
             return field_reply(request_id, Code::InvalidRequest);
         const auto apply_request = root->get("apply_request_id");
-        if (!apply_request || !wtp::json::identifier(*apply_request) ||
+        if (!apply_request || !execution::json::identifier(*apply_request) ||
             apply_request->string() != pending_profile_binding_.nonce)
             return field_reply(request_id, Code::InvalidRequest);
         if (!profile_step_up_matches()) {
@@ -370,7 +370,7 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
                                ",\"ready\":" + (code == AccessCode::Ok ? "true" : "false"));
     }
     if (name == "identify") {
-        if (!wtp::json::fields(*root,
+        if (!execution::json::fields(*root,
                                {"version", "operation", "request_id", "session_id", "device_id"}) ||
             !indicator_)
             return field_reply(request_id, Code::InvalidRequest);
@@ -384,7 +384,7 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
         return field_reply(request_id, Code::InvalidRequest);
     }
     if (name == "field_status") {
-        if (!wtp::json::fields(*root,
+        if (!execution::json::fields(*root,
                                {"version", "operation", "request_id", "session_id", "device_id"}) ||
             !controller_time_ || !indicator_)
             return field_reply(request_id, Code::InvalidRequest);
@@ -392,15 +392,15 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
         const auto indicator_status = indicator_->status(now_ms);
         return field_reply(
             request_id, Code::Ok,
-            "\"time_source\":" + wtp::json::quote(source_name(time_status.source)) +
+            "\"time_source\":" + execution::json::quote(source_name(time_status.source)) +
                 ",\"time_age_ns\":\"" + std::to_string(time_status.age_ns) +
                 "\",\"time_uncertainty_ns\":\"" + std::to_string(time_status.uncertainty_ns) +
                 "\",\"time_disagreement\":" + (time_status.disagreement ? "true" : "false") +
-                ",\"indicator\":" + wtp::json::quote(pattern_name(indicator_status.pattern)) +
+                ",\"indicator\":" + execution::json::quote(pattern_name(indicator_status.pattern)) +
                 ",\"indicator_fault\":" + (indicator_status.output_fault ? "true" : "false"));
     }
     if (name == "time_challenge") {
-        if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
+        if (!execution::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                        "device_id", "nonce"}) ||
             !controller_time_)
             return field_reply(request_id, Code::InvalidRequest);
@@ -414,12 +414,12 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
             return field_reply(request_id, code);
         pending_time_nonce_ = result.nonce;
         return field_reply(request_id, Code::Ok,
-                           "\"nonce\":" + wtp::json::quote(result.nonce) +
+                           "\"nonce\":" + execution::json::quote(result.nonce) +
                                ",\"sampled_monotonic_ns\":\"" +
                                std::to_string(result.sampled_monotonic_ns) + "\"");
     }
     if (name == "time_submit") {
-        if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
+        if (!execution::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                        "device_id", "nonce", "utc_ns"}) ||
             !controller_time_)
             return field_reply(request_id, Code::InvalidRequest);
@@ -441,7 +441,7 @@ CommandReply BleCommandSession::field_command(std::string_view command, std::uin
 CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t now_ms) {
     if (!connected_ || command.empty() || command.size() > max_command_bytes)
         return {};
-    const auto parsed = wtp::json::parse(command);
+    const auto parsed = execution::json::parse(command);
     const auto operation = parsed ? parsed->get("operation") : std::nullopt;
     if (operation && operation->type() == '"' && operation->string() == "authorize")
         return authorize(command, now_ms);
@@ -457,14 +457,14 @@ CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t n
         const auto request = parsed->get("request_id");
         const auto session = parsed->get("session_id");
         std::uint64_t expected_generation = 0;
-        if (!request || !wtp::json::identifier(*request) || !session ||
-            !wtp::json::identifier(*session) ||
+        if (!request || !execution::json::identifier(*request) || !session ||
+            !execution::json::identifier(*session) ||
             !generation(parsed->get("expected_generation"), expected_generation) ||
             !pending_profile_step_up_ || session->string() != pending_profile_session_ ||
             request->string() != pending_profile_binding_.nonce ||
             expected_generation != pending_profile_binding_.current_generation) {
             clear_profile_step_up(true);
-            return request && wtp::json::identifier(*request)
+            return request && execution::json::identifier(*request)
                        ? field_reply(request->string(), Code::AuthenticationRequired)
                        : CommandReply{};
         }
@@ -485,7 +485,7 @@ CommandReply BleCommandSession::handle(std::string_view command, std::uint64_t n
     if (response.code == Code::Ok && operation && operation->type() == '"' &&
         operation->string() == "apply" && parsed) {
         const auto request = parsed->get("request_id");
-        if (request && wtp::json::identifier(*request)) {
+        if (request && execution::json::identifier(*request)) {
             pending_apply_request_ = request->string();
             pending_apply_generation_ = manager_.status().generation;
         }

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Guard retained HTTPS delivery/security and retired WTP entry points."""
+"""Guard engineering HTTPS delivery, request binding, and setup recovery."""
 
 from pathlib import Path
 import re
@@ -12,7 +12,6 @@ server_header = (ROOT / "src/network/pico/server.hpp").read_text()
 main = (ROOT / "src/standalone/pico/main.cpp").read_text()
 network_cmake = (ROOT / "cmake/network.cmake").read_text()
 mbedtls = (ROOT / "src/network/pico/mbedtls_config.h").read_text()
-protocol = (ROOT / "engineering/protocol/WTP.md").read_text()
 lwipopts = (ROOT / "src/standalone/pico/lwipopts.h").read_text()
 
 # Reclaim the previous response only at completed/cancelled close or after
@@ -47,13 +46,8 @@ assert '#undef MBEDTLS_SSL_PROTO_TLS1_2' in mbedtls
 assert '#undef MBEDTLS_SSL_TLS1_3_KEY_EXCHANGE_MODE_PSK_ENABLED' in mbedtls
 assert '#undef MBEDTLS_SSL_EARLY_DATA' in mbedtls
 
-# Certificate identity becomes the transport principal; WTP is not decoded or
-# authorized by a parallel network-specific job implementation.
 assert 'principal_ = "tls-cert:";' in server
 assert 'principal_ = "local-network";' not in server
-assert "endpoint_.connect(principal_);" not in server
-assert "plain_offset_ += endpoint_.receive(bytes, now);" not in server
-assert "wtp::Endpoint endpoint_;" not in server_header
 
 # Activation closes the TLS listener before reboot, and recovery can close the
 # bootstrap listener. lwIP panics if tcp_abort is used on either LISTEN PCB.
@@ -62,11 +56,7 @@ for source in (server, http_server):
     assert "tcp_close(listener_)" in source
     assert "tcp_abort(listener_)" not in source
 
-# USB, BLE and TCP endpoints share the one production JobService. Complete-job
-# execution therefore retains one ownership, scheduler and local timing source.
-assert main.count("static wsprrypico::wtp::JobService service(") == 1
-assert "wtp::Endpoint" not in main
-assert "WTP/1" not in server
+assert main.count("static wsprrypico::execution::JobService service(") == 1
 assert re.search(r"static wsprrypico::network::PicoServer server\s*\(\s*service,", main)
 assert "static wsprrypico::standalone::Scheduler scheduler(store, service);" in main
 
@@ -81,15 +71,8 @@ assert "network_setup_authority()" in bootstrap
 assert "bootstrap.configure_recovery(" in main
 assert "reset_coordinator.blocks_admission() || recovery_reset_at" in main
 assert "reset_pending" in main[main.index("auto command ="):main.index("if (text == \"INFO\")")]
-assert "start_plain" not in main and "start_plain" not in server
 listener_slots = re.search(r"#define MEMP_NUM_TCP_PCB_LISTEN\s+(\d+)", lwipopts)
 assert listener_slots and int(listener_slots.group(1)) >= 3
-
-# Normative transport text defines explicit TLS and Plain LAN bindings.
-for required in ("identical frame stream", "TLS 1.3", "ALPN", "wtp/1", "Plain LAN", "MUST NOT automatically fall back"):
-    assert required in protocol
-
-print("Retained HTTPS delivery/security and removed WTP admission checked")
 
 # Unknown durable setup outcomes cannot expire/cancel into rollback or accept
 # an ACK/new save before reboot/readback resolves the journal authority.

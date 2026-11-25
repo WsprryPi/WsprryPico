@@ -71,7 +71,7 @@ Use [Fleet settings controls](connect.md#usb-access-without-wi-fi) to manage the
    The Console port selected after checking USB interface identity on this Mac. Windows shows COM port names.
    ```
 
-   In Windows Chrome, choose the Console role after checking MI_00 in Device Manager. Other entries may show Management, Logging, or Reserved; COM numbers depend on the host. The former WTP label is not a current application role.
+   In Windows Chrome, choose the Console role after checking MI_00 in Device Manager. Other entries may show Management, Logging, or Reserved. COM numbers depend on the host.
 
 
 6. Type uppercase `INFO` in the command box and click **Send**. Console commands are case-sensitive. Wait for the JSON reply. Scroll **inside the terminal output** back to the start to find `"ok":true` and `device_id`. Use the [diagnostic field guide](#read-the-address-and-web-service-status) below. Before sending another command, wait for the current reply to finish.
@@ -165,8 +165,8 @@ To close `screen`, press **Ctrl+A**, then **backslash (\\)**, then **y**. Close 
 ## Join the setup network again
 
 1. In your phone or computer's Wi-Fi list, select **WsprryPico-** followed by your Pico's six-character suffix. Keep the connection if it reports no Internet.
-2. Setup Wi-Fi is **open**, even after you have saved your home-network credentials. No password is needed to join it. If your phone asks for a Wi-Fi join password, check that you selected the intended Pico.
-3. In a regular browser, open **http://192.168.4.1/**. On a configured Pico, sign in to the page using the **Pico password**, which defaults to the home Wi-Fi password saved during setup. Joining the open setup network does not sign you in to the control page.
+2. A blank Pico or deliberate recovery can provide open setup Wi-Fi. Configured field and fallback access use WPA2. If the intended Pico's network asks for a join password, use the Pico password.
+3. In a regular browser, open **http://192.168.4.1/**. On a configured Pico, sign in to the page using the **Pico password**, which defaults to the home Wi-Fi password saved during setup. Joining the network and signing in are separate steps.
 4. Use **Wi-Fi/Host** to review the saved network and [update its password if needed](maintain.md#change-wi-fi). Station details are optional for browser access. Return your computer or phone to the home network before retrying the Pico's home-network address.
 
 The Console request does not reset the Pico password or bypass browser login. WsprryPi's [USB settings controls](connect.md#usb-access-without-wi-fi) can manage saved Wi-Fi credentials without that login, but changing Wi-Fi does not clear a separate Pico password. If the Pico password is forgotten, retain the diagnostics and review the [reset options and their consequences](maintain.md#recovery-and-reset).

@@ -32,13 +32,13 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
             return http_error(412, "revision_conflict");
         if (!scheduler_.idle() || pending_transaction_)
             return http_error(409, "busy");
-        const auto root = wtp::json::parse(r.body_view(), 8);
-        if (!root || !wtp::json::fields(*root, {"schema", "target"}) ||
+        const auto root = execution::json::parse(r.body_view(), 8);
+        if (!root || !execution::json::fields(*root, {"schema", "target"}) ||
             root->get("schema")->type() != '"' ||
             root->get("schema")->string() != "udp-logging-test")
             return http_error(400, "invalid_udp_test");
         const auto t = *root->get("target");
-        if (!wtp::json::fields(t, {"scope", "device_id", "boot_id"}) ||
+        if (!execution::json::fields(t, {"scope", "device_id", "boot_id"}) ||
             t.get("scope")->type() != '"' || t.get("device_id")->type() != '"' ||
             t.get("boot_id")->type() != '"' || t.get("scope")->string() != "member" ||
             t.get("device_id")->string() != device_ ||
@@ -57,7 +57,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
         udp_test_at_ = clock.monotonic_now_ns;
         const auto before = udp_sender_->queued();
         logger_->event(5, "UDP_TEST", "UDP logging test event", clock.monotonic_now_ns,
-                       clock.state == wtp::ClockState::Unsynchronized ? 0 : clock.utc_now_ns);
+                       clock.state == execution::ClockState::Unsynchronized ? 0 : clock.utc_now_ns);
         HttpResponse out;
         out.body = "{\"schema\":\"udp-logging-test\",\"target\":" + target +
                    ",\"accepted\":" + (udp_sender_->queued() > before ? "true" : "false") +
@@ -92,7 +92,7 @@ HttpResponse BrowserApi::udp_logging_resource(const HttpRequest& r) {
             return http_error(412, "revision_conflict");
         if (!scheduler_.idle() || pending_transaction_)
             return http_error(409, "busy");
-        const auto root = wtp::json::parse(r.body_view(), 8);
+        const auto root = execution::json::parse(r.body_view(), 8);
         if (!root || application::validate_envelope(*root, "udp-logging", "settings",
                                                     device_, service_.status().boot_id) !=
                          application::Envelope::Valid)

@@ -14,7 +14,7 @@ class SoftApApi {
   public:
     SoftApApi(BrowserApi& browser, provisioning::SoftApHttpAdmission& admission,
               provisioning::LocalAccessController& access, time::ControllerTimeArbiter& time,
-              wtp::JobService& service, std::string device, std::string firmware)
+              execution::JobService& service, std::string device, std::string firmware)
         : browser_(browser), admission_(admission), access_(access), time_(time), service_(service),
           device_(std::move(device)), firmware_(std::move(firmware)) {}
 
@@ -33,7 +33,7 @@ class SoftApApi {
 
     provisioning::Activity activity() const;
     HttpResponse identity(provisioning::SoftApSurface surface) const;
-    HttpResponse local_status(std::string_view principal, std::string_view wtp_session,
+    HttpResponse local_status(std::string_view principal, std::string_view execution_session,
                               provisioning::SoftApSurface surface) const;
     HttpResponse challenge(const HttpRequest& request, std::string_view principal,
                            std::string_view session, std::uint64_t transaction);
@@ -48,7 +48,7 @@ class SoftApApi {
     provisioning::SoftApHttpAdmission& admission_;
     provisioning::LocalAccessController& access_;
     time::ControllerTimeArbiter& time_;
-    wtp::JobService& service_;
+    execution::JobService& service_;
     std::string device_;
     std::string firmware_;
     std::array<PendingTime, 2> pending_time_{};

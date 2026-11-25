@@ -20,7 +20,7 @@ struct LaunchGuard {
 };
 
 struct SinkReport {
-    wtp::EngineState state = wtp::EngineState::Idle;
+    execution::EngineState state = execution::EngineState::Idle;
     std::uint64_t epoch = 0;
     std::uint64_t completed_blocks = 0;
     std::uint64_t consumed_samples = 0;
@@ -28,7 +28,7 @@ struct SinkReport {
     std::optional<std::uint64_t> observed_monotonic_ns = {};
     std::optional<bool> observed_output_active = {};
     std::optional<std::uint64_t> launch_monotonic_ns = {};
-    wtp::ChainPhase chain_phase = wtp::ChainPhase::Unspecified;
+    execution::ChainPhase chain_phase = execution::ChainPhase::Unspecified;
     std::optional<std::uint64_t> tail_deadline_monotonic_ns = {};
     int filter_selector = -1;
 };
@@ -40,7 +40,7 @@ struct SinkReport {
 class BlockSink {
   public:
     virtual ~BlockSink() = default;
-    virtual wtp::PadObservation pad_observation() const {
+    virtual execution::PadObservation pad_observation() const {
         return {};
     }
     virtual std::uint64_t amplifier_lead_ns() const {
@@ -70,13 +70,13 @@ class BlockSink {
     [[nodiscard]] virtual bool output_active() const = 0;
 };
 
-class StreamEngine final : public wtp::RfEngine {
+class StreamEngine final : public execution::RfEngine {
   public:
     explicit StreamEngine(BlockSink& sink, FilterSelector* filters = nullptr)
         : sink_(sink), filters_(filters) {}
-    wtp::PadObservation pad_observation() const override {
+    execution::PadObservation pad_observation() const override {
         const auto pad = sink_.pad_observation();
-        return pad.epoch == epoch_ ? pad : wtp::PadObservation{};
+        return pad.epoch == epoch_ ? pad : execution::PadObservation{};
     }
     StreamEngine(const StreamEngine&) = delete;
     StreamEngine& operator=(const StreamEngine&) = delete;
@@ -91,24 +91,24 @@ class StreamEngine final : public wtp::RfEngine {
         return failure_;
     }
     bool set_frequency_correction_ppb(std::int32_t ppb) override;
-    std::size_t preparation_memory_bytes(const wtp::Job& job) const override;
-    wtp::PrepareResult prepare(const wtp::Job& job) override;
+    std::size_t preparation_memory_bytes(const execution::Job& job) const override;
+    execution::PrepareResult prepare(const execution::Job& job) override;
     [[nodiscard]] bool schedules_locally() const override {
         return sink_.schedules_locally();
     }
     [[nodiscard]] bool owns_execution_plan() const override {
         return true;
     }
-    bool schedule(const wtp::Job& job, std::uint64_t start_ns,
-                  const wtp::LocalStartConditions& conditions) override;
+    bool schedule(const execution::Job& job, std::uint64_t start_ns,
+                  const execution::LocalStartConditions& conditions) override;
     [[nodiscard]] std::uint64_t start_resolution_ns() const override {
         return sink_.start_resolution_ns();
     }
     [[nodiscard]] std::uint64_t completion_acknowledgement_ns() const override {
         return schedules_locally() ? maximum_completion_acknowledgement_ns : 0;
     }
-    bool begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) override;
-    wtp::EngineReport poll(std::uint64_t monotonic_now_ns) override;
+    bool begin(const execution::Job& job, std::uint64_t start_monotonic_ns) override;
+    execution::EngineReport poll(std::uint64_t monotonic_now_ns) override;
     bool disable(std::uint64_t deadline_monotonic_ns) override;
     bool execution_started() const override {
         return sink_.execution_started();
@@ -118,11 +118,11 @@ class StreamEngine final : public wtp::RfEngine {
     }
 
   private:
-    wtp::EngineReport poll_impl(std::uint64_t now_ns);
+    execution::EngineReport poll_impl(std::uint64_t now_ns);
     static LaunchTarget project_clock(void* context);
-    wtp::LocalStartConditions start_conditions_{};
+    execution::LocalStartConditions start_conditions_{};
     bool submit_next(std::size_t slot);
-    wtp::EngineReport fail(std::uint64_t now_ns, const char* reason = "sink_rejected");
+    execution::EngineReport fail(std::uint64_t now_ns, const char* reason = "sink_rejected");
     std::int32_t correction_ppb_ = 0;
     const char* failure_ = "";
     BlockSink& sink_;
@@ -130,10 +130,10 @@ class StreamEngine final : public wtp::RfEngine {
     int filter_observation_ = -1;
     Plan plan_{};
     Waveform waveform_;
-    std::optional<wtp::PayloadDigest> job_;
+    std::optional<execution::PayloadDigest> job_;
     alignas(4) std::array<std::array<std::uint32_t, block_words>, 2> buffers_{};
     std::array<std::uint64_t, 2> valid_{};
-    wtp::EngineState state_ = wtp::EngineState::Idle;
+    execution::EngineState state_ = execution::EngineState::Idle;
     std::uint64_t epoch_ = 0;
     std::uint64_t submitted_ = 0;
     std::uint64_t completed_ = 0;

@@ -2,7 +2,7 @@
 
 The shared logical API uses `/api/control/v1` and the contract identifier `Wsprry-Control/1`. Resource types have stable `schema` discriminators under that contract; application, station, hardware, progress, and settings updates do not negotiate independent schema generations. Superseded `/api/v1` control routes and historical views are unsupported.
 
-WsprryPico owns the contract definitions. WsprryPi consumes the same current contract. Firmware versions identify builds; they do not select a settings schema or substitute for capability negotiation. WTP/1 remains the independent device-neutral finite-job protocol.
+WsprryPico owns the contract definitions, and WsprryPi consumes the same current contract. Firmware versions identify builds. Select capabilities and resource schemas from the current device descriptor.
 
 ## Resource model
 
@@ -38,7 +38,7 @@ Session durations and payload budgets are typed policy data within documented im
 
 Pin roles are exclusive. Drive and amplifier/filter changes retain boot activation and restart/output-inhibition latching, including A-to-B-to-A saves. An amplifier-enable pin is disabled by default. Lead and tail default to 200 ms and accept 0–1000 whole milliseconds. They surround one complete finite job; stop/fault cleanup disables the amplifier without waiting for normal tail. Readback does not measure amplifier readiness, RF power, or filter response.
 
-All job producers use the existing JobService. Internal ownership, scheduling, UTC admission, and local RP2350 RF timing remain independent of management. External WTP framing and generic jobs routes are retired. No control save transmits or proves readiness.
+Native schedules and admitted finite Test Tone operations use the same JobService. Job ownership, clock admission, and local RP2350 timing remain in the native executor. A settings save alone does not establish transmit readiness.
 
 ## Version policy and evidence
 

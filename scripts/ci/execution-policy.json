@@ -2,7 +2,7 @@
   "schema": "ci-execution-policy/2",
   "contexts": [
     "ctest",
-    "wtp-contract",
+    "control-policy",
     "npm",
     "packaging",
     "browser-lifecycle",

@@ -16,11 +16,11 @@ inline HttpResponse local_usb_ap_request(const HttpRequest& request, std::string
     auto payload = control_payload(request.body_view());
     std::string bytes = payload ? std::move(*payload) : std::string{};
     ControlStringWiper wipe(bytes);
-    const auto root = payload ? wtp::json::parse(bytes) : std::nullopt;
+    const auto root = payload ? execution::json::parse(bytes) : std::nullopt;
     if (request.path != "/api/usb/v1/ap" || request.method != "POST" || !root ||
-        !wtp::json::fields(*root, {"schema", "target"}) ||
+        !execution::json::fields(*root, {"schema", "target"}) ||
         root->get("schema")->type() != '"' || root->get("schema")->string() != "ap-request" ||
-        !wtp::json::fields(*root->get("target"), {"scope", "device_id", "boot_id"}) ||
+        !execution::json::fields(*root->get("target"), {"scope", "device_id", "boot_id"}) ||
         root->get("target")->get("scope")->type() != '"' ||
         root->get("target")->get("device_id")->type() != '"' ||
         root->get("target")->get("boot_id")->type() != '"' ||

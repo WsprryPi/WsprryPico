@@ -3,7 +3,7 @@
 #include "mbedtls/platform.h"
 #include "pico/time.h"
 #include "provisioning/pico/credential_validator.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/memory_budget.hpp"
 #ifdef WSPRRY_PICO_HEAP_METRICS
 #include "runtime/pico/heap_metrics.h"
 #endif
@@ -19,8 +19,8 @@ extern "C" mbedtls_ms_time_t mbedtls_ms_time(void) {
 
 namespace wsprrypico::network {
 namespace {
-wtp::JobService* time_service = nullptr;
-wtp::JobService* validation_time_service = nullptr;
+execution::JobService* time_service = nullptr;
+execution::JobService* validation_time_service = nullptr;
 PicoServer* tls_owner = nullptr;
 // TLS is entirely core-0 owned, including PSA and this allocator. Exhaustion
 // fails the allocating handshake/session; no allocation can consume RF memory.
@@ -39,7 +39,7 @@ void* tls_calloc(std::size_t count, std::size_t size) {
         ++tls_failed;
         return nullptr;
     }
-    if (!wtp::memory_admitted(bytes)) {
+    if (!execution::memory_admitted(bytes)) {
         ++tls_failed;
         return nullptr;
     }
@@ -82,12 +82,12 @@ void scrub(std::string& value) {
     std::string{}.swap(value);
 }
 } // namespace
-void install_tls_time_source(wtp::JobService& service) {
+void install_tls_time_source(execution::JobService& service) {
     validation_time_service = &service;
     mbedtls_platform_set_time(tls_time);
 }
 
-PicoServer::PicoServer(wtp::JobService& service, BrowserApi& api, std::string device,
+PicoServer::PicoServer(execution::JobService& service, BrowserApi& api, std::string device,
                        provisioning::CredentialMaterial credentials,
                        Admission admission)
     : service_(service), api_(api), device_id_(device), credentials_(credentials),
@@ -115,7 +115,7 @@ bool PicoServer::busy() const {
     if (api_.active_job_connections())
         return false;
     const auto state = service_.activity().state;
-    return state == wtp::State::Armed || state == wtp::State::Running;
+    return state == execution::State::Armed || state == execution::State::Running;
 }
 bool PicoServer::start() {
     if (!configured() || setup_ || tls_owner || !admission_open_)
@@ -224,7 +224,7 @@ err_t PicoServer::accept_connection(tcp_pcb* pcb, err_t err) {
     const bool softap = classifier_ && classifier_(pcb, classifier_context_);
     if (err != ERR_OK || !admission_open_ || pending_ || busy() ||
         (!softap && admission_ == Admission::SoftApOnly) ||
-        (!softap && (clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0))) {
+        (!softap && (clock.state == execution::ClockState::Unsynchronized || clock.utc_now_ns == 0))) {
         ++metrics_.rejected;
         tcp_abort(pcb);
         return ERR_ABRT;
@@ -519,7 +519,7 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
         if (!allow_http_steps)
             return;
         const auto clock = service_.clock_snapshot();
-        if (!softap_ && (clock.state == wtp::ClockState::Unsynchronized || !clock.utc_now_ns)) {
+        if (!softap_ && (clock.state == execution::ClockState::Unsynchronized || !clock.utc_now_ns)) {
             close(false);
             return;
         }
@@ -545,7 +545,7 @@ void PicoServer::Connection::poll(bool link_up, std::string_view authority,
             return;
         }
         if (!softap_ && owner_.admission_ == Admission::ClientCertificate) {
-            const auto digest = wtp::sha256(std::span(peer->raw.p, peer->raw.len));
+            const auto digest = execution::sha256(std::span(peer->raw.p, peer->raw.len));
             principal_ = "tls-cert:";
             for (auto b : digest) {
                 principal_ += "0123456789abcdef"[b >> 4];

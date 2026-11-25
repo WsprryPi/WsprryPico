@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Offline production-policy replay of independently validated physical captures.
 #include "rf/reference_measurement.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 #include "time/controller_time.hpp"
 #include "time/ntp_client.hpp"
 
@@ -86,7 +86,7 @@ int main(int argc, char** argv) {
             time::ControllerTimeArbiter arbiter(clock, now, &raw, "physical-capture");
             time::NtpClient client(arbiter);
             require(arbiter.observe(time::ObservationSource::Browser, epoch, raw,
-                                    time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                                    time::browser_clock_uncertainty_ns, execution::LeapState::Normal, {},
                                     "fixture-epoch"),
                     "epoch rejected");
             rf::ReferencePolicy policy;
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
                 const auto error = difference(model.utc_now_ns, truth);
                 require(model.sync_age_ns == raw - pulses.front().raw(),
                         "epoch source rejuvenated");
-                require(model.state != wtp::ClockState::Unsynchronized &&
+                require(model.state != execution::ClockState::Unsynchronized &&
                             error <= model.uncertainty_ns,
                         "reported bound does not cover independently measured elapsed error");
                 maximum_error = std::max(maximum_error, error);

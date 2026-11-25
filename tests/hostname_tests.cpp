@@ -212,8 +212,8 @@ int main() {
     for (const auto& name :
          {"", "bare", "-bad.local", "bad-.local", "a.b.local", "http://a.local", "a.local:80",
           "192.0.2.1", "a_.local", "a local", "a.local\n", "é.local", "<script>.local"})
-        assert(t.request(wtp::json::quote(name)).status == 400);
-    assert(t.request(wtp::json::quote(std::string(64, 'a') + ".local")).status == 400);
+        assert(t.request(execution::json::quote(name)).status == 400);
+    assert(t.request(execution::json::quote(std::string(64, 'a') + ".local")).status == 400);
     auto response = t.request("\"Pico-A.LOCAL.\"");
     if (response.status != 200)
         std::cerr << response.status << " " << response.body << "\n";
@@ -235,7 +235,7 @@ int main() {
     assert(t.request("\"pico-a.local\"").status == 409);
     t.platform.safe = true;
     for (const auto length : {1, 63}) {
-        assert(t.request(wtp::json::quote(std::string(length, 'x') + ".local")).status == 200);
+        assert(t.request(execution::json::quote(std::string(length, 'x') + ".local")).status == 200);
         provisioning::ProfileStore reloaded(t.media);
         assert(reloaded.load() && reloaded.data() == t.store.data());
     }
@@ -312,17 +312,17 @@ int main() {
     assert(busy.f.scheduler.command("CONFIG " + network_test::config).find("true") !=
            std::string::npos);
     assert(busy.f.scheduler.idle());
-    wtp::Request claim;
+    execution::Request claim;
     claim.payload_digest[0] = 1;
     claim.principal = "owner";
     claim.session_id = std::string(32, 'b');
     claim.request_id = std::string(32, '1');
     claim.operation = "HELLO";
-    claim.body = wtp::HelloBody{{"WTP/1"}};
+    claim.body = execution::HelloBody{{"native-execution/1"}};
     assert(busy.f.service.handle(claim).ok);
     claim.operation = "CLAIM";
     claim.request_id = std::string(32, '2');
-    claim.body = wtp::ClaimBody{std::string(32, 'b'), 30000};
+    claim.body = execution::ClaimBody{std::string(32, 'b'), 30000};
     assert(busy.f.service.handle(claim).ok);
     assert(busy.request("\"busy.local\"").status == 409 && busy.store.sequence() == 1);
     assert(t.store.select(provisioning::ProfileSource::Unprovisioned));

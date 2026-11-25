@@ -2,7 +2,7 @@
 
 #include "provisioning/consumer_profile.hpp"
 #include "provisioning/network_profile.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <array>
@@ -44,7 +44,7 @@ std::uint32_t crc32(std::span<const std::uint8_t> bytes) {
 bool erased(std::span<const std::uint8_t> bytes) {
     return std::all_of(bytes.begin(), bytes.end(), [](std::uint8_t byte) { return byte == 255; });
 }
-void digest_to(std::span<std::uint8_t> out, const wtp::PayloadDigest& digest) {
+void digest_to(std::span<std::uint8_t> out, const execution::PayloadDigest& digest) {
     std::copy(digest.begin(), digest.end(), out.begin());
 }
 void secure_clear(std::span<std::uint8_t> value) {
@@ -122,9 +122,9 @@ Candidate scan(Media& media, std::size_t slot) {
         result.sequence = sequence;
         std::vector<std::uint8_t> payload(length);
         const bool read = media.read(base + payload_offset, payload);
-        wtp::PayloadDigest digest{};
+        execution::PayloadDigest digest{};
         if (read)
-            digest = wtp::sha256(payload);
+            digest = execution::sha256(payload);
         const bool matches = read && std::equal(digest.begin(), digest.end(), header.begin() + 24);
         secure_clear(std::span(payload));
         result.state = matches ? Candidate::State::Pending : Candidate::State::InvalidCommitted;
@@ -154,7 +154,7 @@ Candidate scan(Media& media, std::size_t slot) {
         result.state = Candidate::State::InvalidCommitted;
         return result;
     }
-    const auto digest = wtp::sha256(payload);
+    const auto digest = execution::sha256(payload);
     if (!std::equal(digest.begin(), digest.end(), header.begin() + 24)) {
         secure_clear(std::span(payload));
         result.state = Candidate::State::InvalidCommitted;
@@ -372,7 +372,7 @@ bool ProfileStore::select(ProfileSource source, std::string_view canonical_profi
             return false;
         }
     }
-    const auto digest = wtp::sha256(input);
+    const auto digest = execution::sha256(input);
     std::array<std::uint8_t, profile_page_size> header;
     header.fill(255);
     put(std::span(header).first(8), header_magic);

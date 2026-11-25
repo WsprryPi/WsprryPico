@@ -497,15 +497,15 @@ void utc_horizon() {
             {raw, transition - (120 - i) * second, 100'000, i, microchrony::Leap::Normal}, raw));
     }
     auto value = clock.snapshot();
-    assert(value.state == wsprrypico::wtp::ClockState::Synchronized);
+    assert(value.state == wsprrypico::execution::ClockState::Synchronized);
     assert(value.valid_until_utc_ns == transition - 5 * second);
     raw += 58 * second;
     value = clock.snapshot();
-    assert(value.state == wsprrypico::wtp::ClockState::Unsynchronized);
-    assert(value.leap == wsprrypico::wtp::LeapState::Unknown);
+    assert(value.state == wsprrypico::execution::ClockState::Unsynchronized);
+    assert(value.leap == wsprrypico::execution::LeapState::Unknown);
     // Advancing into the next month cannot renew an old GPS model.
     raw += 20 * second;
-    assert(clock.snapshot().state == wsprrypico::wtp::ClockState::Unsynchronized);
+    assert(clock.snapshot().state == wsprrypico::execution::ClockState::Unsynchronized);
 }
 void arbitration() {
     using namespace wsprrypico;
@@ -522,20 +522,20 @@ void arbitration() {
     }
     client.online(false, raw);
     raw += 120 * second;
-    assert(clock.snapshot().state == wtp::ClockState::Holdover);
+    assert(clock.snapshot().state == execution::ClockState::Holdover);
     assert(arbiter.status().source == time::ActiveTimeSource::Gps);
     assert(!arbiter.observe(time::ObservationSource::Browser, clock.snapshot().utc_now_ns, raw,
-                            250'000'000, wtp::LeapState::Normal, {}, "phone"));
+                            250'000'000, execution::LeapState::Normal, {}, "phone"));
     // Explicit removal revokes the GPS epoch; loss alone retained holdover.
     assert(client.reference_clock(false, raw));
-    assert(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    assert(clock.snapshot().state == execution::ClockState::Unsynchronized);
     assert(arbiter.status().source == time::ActiveTimeSource::None);
     raw += second;
     assert(arbiter.observe(time::ObservationSource::Browser, 1'800'000'000ULL * second + raw, raw,
-                           250'000'000, wtp::LeapState::Normal, {}, "phone"));
+                           250'000'000, execution::LeapState::Normal, {}, "phone"));
     // Removing a different source cannot invalidate a healthy selected epoch.
     clock.invalidate(time::ObservationSource::Gps);
-    assert(clock.snapshot().state != wtp::ClockState::Unsynchronized);
+    assert(clock.snapshot().state != execution::ClockState::Unsynchronized);
 }
 } // namespace
 int main() {

@@ -2,7 +2,7 @@
 #include "logging/logger.hpp"
 
 #include "logging/udp_sender.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <charconv>
@@ -208,6 +208,6 @@ std::string Logger::status() const {
            ",\"streaming\":" + (streaming_ ? "true" : "false") +
            ",\"connected\":" + (connected_ ? "true" : "false") +
            ",\"queued\":" + std::to_string(size_) +
-           ",\"dropped\":" + wtp::json::quote(std::to_string(dropped_)) + "}";
+           ",\"dropped\":" + execution::json::quote(std::to_string(dropped_)) + "}";
 }
 } // namespace wsprrypico::logging

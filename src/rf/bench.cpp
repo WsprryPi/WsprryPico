@@ -17,7 +17,7 @@ std::optional<unsigned> number(std::string_view text) {
         return {};
     return value;
 }
-wtp::Job tone(unsigned index, unsigned duration_ms) {
+execution::Job tone(unsigned index, unsigned duration_ms) {
     const auto ns = std::uint64_t{duration_ms} * 1000000;
     return {std::string(32, 'b'),
             "rf-events/1",
@@ -31,8 +31,8 @@ std::string error(std::string_view reason) {
 }
 } // namespace
 
-wtp::Job diagnostic_frame() {
-    wtp::Job job{std::string(32, 'b'), "rf-events/1", "wspr", 110592000000ULL, {}, true};
+execution::Job diagnostic_frame() {
+    execution::Job job{std::string(32, 'b'), "rf-events/1", "wspr", 110592000000ULL, {}, true};
     if (!job.events.reserve(162))
         return job;
     for (unsigned i = 0; i < 162; ++i) {
@@ -228,9 +228,9 @@ void Bench::poll() {
         return;
     }
     const auto report = engine_.poll(now);
-    if (report.state == wtp::EngineState::Armed)
+    if (report.state == execution::EngineState::Armed)
         return;
-    if (report.state == wtp::EngineState::Running) {
+    if (report.state == execution::EngineState::Running) {
         state_ = "running";
         return;
     }
@@ -238,8 +238,8 @@ void Bench::poll() {
     ended_ns_ = clock_.now_ns();
     const auto stopped = engine_.disable(ended_ns_ + 10000000) && !engine_.output_active();
     state_ = !stopped                                     ? "failed"
-             : report.state == wtp::EngineState::Complete ? "complete"
-             : report.state == wtp::EngineState::Missed   ? "missed"
+             : report.state == execution::EngineState::Complete ? "complete"
+             : report.state == execution::EngineState::Missed   ? "missed"
                                                           : "failed";
 }
 } // namespace wsprrypico::rf

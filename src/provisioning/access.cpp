@@ -210,7 +210,7 @@ Candidate scan(AccessMedia& media, std::size_t slot) {
     const auto commit_crc = crc32(std::span(commit).first(access_page_size - 4));
     const auto sequence = get(std::span(header).subspan(8, 8));
     const auto commit_sequence = get(std::span(commit).subspan(8, 8));
-    const auto digest = wtp::sha256(payload);
+    const auto digest = execution::sha256(payload);
     const bool valid = get(std::span(header).first(8)) == header_magic && sequence &&
                        get(std::span(header).subspan(16, 4)) == access_page_size &&
                        get(std::span(header).subspan(20, 4)) == 2 &&
@@ -432,7 +432,7 @@ bool AccessStore::commit(const AccessRecord& record) {
         return false;
     }
     auto payload = serialize(record);
-    const auto digest = wtp::sha256(payload);
+    const auto digest = execution::sha256(payload);
     if (!media_.program(base + payload_offset, payload)) {
         secure_clear(payload);
         state_ = AccessStoreState::Fault;

@@ -13,15 +13,15 @@ A **job** is one complete scheduled transmission, including its repeats and gaps
 
 The prominent state and explanation describe the accepted job. **Future transmissions** describes saved schedules separately: enabled, paused, expired, waiting for time, or awaiting recovery. A pause can let the current job finish. When it is awaiting a durable save, keep the Pico powered until confirmation. A saved schedule does not by itself mean a job is active.
 
-Accepted message jobs show their original message, frequencies, timing, copies, and duration. QRSS uses **Carrier**; FSKCW uses **Space** and **Mark**; DFCW uses **Dot** and **Dash**, even when Dot is the higher frequency. WSPR shows accepted nominal RF values separately from the saved standalone USB dial and RF center. Externally supplied RF-event jobs may have no original message text. The page labels it unavailable instead of guessing.
+Accepted Morse jobs show their message and nominal frequencies. QRSS uses **Carrier**, FSKCW uses **Space** and **Mark**, and DFCW uses **Dot** and **Dash**. WSPR shows the confirmed dial frequency while the matching schedule owns the job.
 
 **Job running** remains active during an RF-off keyed gap. Estimated progress can reach 100 percent while the Pico still reports running. Only a confirmed terminal state establishes completion. **Manual RF correction** separates the selected value for the next preparation from the value frozen for an accepted job. Network time synchronizes UTC; it does not measure RF frequency error.
 
-Status refreshes every five seconds without replacing form entries or moving focus. A failed read or a status reading more than 15 seconds out of date makes live state unavailable and disables controls. Saved settings, message, schedule, and correction details remain read-only while controls are locked. Unlock controls before changing settings or submitting a job.
+Status refreshes every five seconds without replacing form entries or moving focus. A failed read or a status reading more than 15 seconds out of date makes live state unavailable and disables controls. Saved settings, message, schedule, and correction details remain read-only while controls are locked. Unlock controls before changing settings or enabling a schedule.
 
 Choose **Reset Pico** in Station Control → Transmitter status for a normal restart with saved settings retained. Read the confirmation: enabled schedules may resume after clock and readiness checks. Consumed occurrences are not replayed. Reset is unavailable during loaded or active jobs, ownership, faults, pending pause saves, and recovery barriers. It cannot clear a latched RF fault. The page sends one request, retains drafts, and checks for up to 90 seconds. Sign in again to confirm the same Pico and a new boot. A timeout or lost reply remains unconfirmed. The page never retries the reset automatically.
 
-A visible warning identifies conditions that prevent scheduled transmissions, including clock uncertainty, required restart, missing setup, storage faults, and failed WSPR preparation. The Pico skips a failed occurrence rather than replaying it. You can see more than one condition at once. Resolve each reported condition. A warning about future transmissions does not mean an accepted running job has stopped. Refresh to read the current result. The status fields use three columns on wide screens, two at intermediate widths, and one on narrow screens.
+A visible warning identifies conditions that prevent scheduled transmissions, including an unusable clock, required restart, missing setup, storage faults, and failed WSPR preparation. The Pico skips failed occurrences. Resolve each reported condition and refresh to read the current result. A warning about future transmissions can appear while the current job continues. The status fields use three columns on wide screens, two at intermediate widths, and one on narrow screens.
 
 ## Your first WSPR transmission
 
@@ -31,7 +31,7 @@ Use this walkthrough after [installing firmware](install.md), [connecting the Pi
 2. In **WSPR Configuration**, enter your **Callsign**, **Grid locator**, and **Reported WSPR power (dBm)**. Choose **Save valid station fields**, check that all three fields are saved, then select **Apply saved station**. A saved draft alone cannot transmit. If the Pico reconnects or restarts, follow the displayed continuation, sign in again, and choose **Check saved result** until the station application is confirmed. Review the saved WSPR plan: an ordinary callsign normally uses one frame; some compound callsigns need two adjacent frames.
 3. Under **WSPR Configuration**, choose **Read saved frequency** and review the whole-Hz **WSPR dial frequency**. New station settings already select `14095600`; keeping that value needs no save. To change it, or to select a frequency for an existing unset configuration, enter the dial and choose **Save frequency**. For example, `14095600` selects a center of `14097100 Hz`. Wait for the saved-frequency confirmation and use **Read saved frequency** to verify it. The first frequency save leaves schedules disabled. A confirmed save refreshes the settings the schedule controls need while keeping your other edits.
 4. Leave **Enable standalone schedules** unchecked. Enter `240 / 0` on one line in **Schedule interval / offset (seconds)** and leave **Schedule expiry (UTC)** blank. For a one-frame plan, this trial repeats every four minutes until disabled, leaving time to check completion and disable the schedule before the Pico prepares another job. For a two-frame plan, use `600 / 0` instead to allow both frames to finish and leave time to disable. Keep the existing pin assignments if they match your wiring. Choose **Save WSPR configuration**, check the field results, then **Apply WSPR configuration**. If a restart is required, use **Station Control → Transmitter status → Reset Pico**, reconnect, and sign in before continuing.
-5. In **Transmitter status**, choose **Refresh**. Check the clock, inactive output, and available ownership, and resolve any STOP, storage, or restart message. When ready for automatic transmission, check **Enable standalone schedules**, choose **Save WSPR configuration**, then **Apply WSPR configuration**. Choose **Refresh** and confirm the enabled schedule under **Future transmissions**. The checkbox is a browser edit until you save and apply it. There is no separate **Load and arm** action for scheduled WSPR.
+5. In **Transmitter status**, choose **Refresh**. Check the clock, inactive output, and available ownership, and resolve any STOP, storage, or restart message. When ready for automatic transmission, check **Enable standalone schedules**, choose **Save WSPR configuration**, then **Apply WSPR configuration**. Choose **Refresh** and confirm the enabled schedule under **Future transmissions**. The checkbox is a browser edit until you save and apply it.
 6. Wait for the next eligible UTC window. With `240 / 0`, example starts are **12:00:01**, **12:04:01**, and **12:08:01 UTC**. For `600 / 0`, example starts are **12:00:01** and **12:10:01 UTC**. Allow a full selected cycle (four or ten minutes) if the Pico was enabled too close to a boundary. Before preparation, **Future transmissions** shows the saved schedule without an accepted job; this does not mean scheduling is disabled. Status is an observation, so choose **Refresh** shortly before and during the expected window to see **armed**, then **running**, and later **complete**. One frame lasts about 111 seconds. A two-frame plan also uses the following window. A configured TX indicator stays lit during RF output. An external LED needs the correct GPIO and polarity under **Radio pins**. Check reception with your receiver if available; a reported running job alone does not establish received or decoded RF.
 7. To finish the trial, wait for the complete transmission, uncheck **Enable standalone schedules**, choose **Save WSPR configuration**, then **Apply WSPR configuration**. Refresh and confirm standalone WSPR is disabled and RF output is inactive. Disabling prevents future starts; use the [stop controls](#status-stop-and-connection-loss) if you need to stop an already accepted job.
 
@@ -41,7 +41,7 @@ If an entire expected window passes without a transmission, refresh and check th
 
 ## WSPR schedules
 
-For initial setup, follow [Your first WSPR transmission](#your-first-wspr-transmission). The [Frequency and schedules](configure.md#frequency-and-schedules) section describes each setting. Save and apply **Enable standalone schedules** to start automatic WSPR operation; no **Load and arm** action is needed for each scheduled transmission.
+For initial setup, follow [Your first WSPR transmission](#your-first-wspr-transmission). The [Frequency and schedules](configure.md#frequency-and-schedules) section describes each setting. Save and apply **Enable standalone schedules** to start automatic WSPR operation.
 
 WSPR uses two-minute transmission windows, also called **slots**. The Pico starts one second after the selected window begins. It must be ready before that start, so enabling a schedule just before or after a boundary can leave it waiting for the next window. The clock must be usable, the frequency and station must be complete, the transmitter must be available, and no STOP or restart requirement may be active.
 
@@ -49,7 +49,7 @@ Before preparing a scheduled job, the Pico saves a record marking its slot as us
 
 ### Automatic WSPR plan
 
-The Pico chooses a **WSPR plan** from the applied callsign and locator. A **frame** is one WSPR message sent in a two-minute window. Type 1 sends a basic callsign, four-character locator, and reported power. Type 2 sends a callsign with a supported prefix or suffix and reported power. Type 3 sends a short callsign identifier, called a **hash**, with a six-character locator and reported power. WsprryPi plans the jobs it submits separately.
+The Pico chooses a **WSPR plan** from the applied callsign and locator. A **frame** is one WSPR message sent in a two-minute window. Type 1 sends a basic callsign, four-character locator, and reported power. Type 2 sends a callsign with a supported prefix or suffix and reported power. Type 3 sends a short callsign identifier, called a **hash**, with a six-character locator and reported power.
 
 | Callsign and locator | Pico standalone plan |
 | --- | --- |
@@ -64,7 +64,7 @@ A **compound callsign** has a prefix or suffix separated from the base call by `
 
 Type 2 contains no locator. A Type 3 hash does not contain the full callsign, so a receiver may need the preceding Type 2 or another message to resolve it. A receiver without that context can show `<...>` with grid and power. Different callsigns can share a hash. Two-digit suffixes `/00`–`/09` share Type 2 encodings with `/Q`–`/Z`; a paired Type 3 uses the requested full callsign when calculating its hash.
 
-Standalone WSPR uses the saved whole-Hz USB dial frequency. Its four tones lie at center −2.197265625, −0.732421875, +0.732421875, and +2.197265625 Hz, where center is dial +1500 Hz. For dial `14095600`, the tones are `14097097.802734375`, `14097099.267578125`, `14097100.732421875`, and `14097102.197265625 Hz`. There is no random placement. Individual jobs and Pi Fleet WSPR RF-center entries retain their own frequency references.
+Standalone WSPR uses the saved whole-Hz USB dial frequency. Its four tones lie at center −2.197265625, −0.732421875, +0.732421875, and +2.197265625 Hz, where center is dial +1500 Hz. For dial `14095600`, the tones are `14097097.802734375`, `14097099.267578125`, `14097100.732421875`, and `14097102.197265625 Hz`. Tone placement is fixed.
 
 A pair starts its second frame 120 seconds after the first. The Pico reserves both windows and keeps control between frames. The Pico skips other scheduled occurrences that would overlap the pair. STOP, restart, changed settings, lost clock or control, or a failure can prevent the second frame; the Pico does not later resume the pair or automatically retry it. If output cannot be confirmed inactive, resolve that condition before another transmission.
 
@@ -90,7 +90,7 @@ Switching modes keeps the raw frequency, shift, message, and timing entries whil
 
 **Dot length (seconds)** sets the basic mark duration. **Dash length**, **Within a character**, **Between characters**, and **Between words** in **Timing settings** are multipliers of that dot length, not seconds. Defaults are 3, 1, 3, and 7, respectively. DFCW uses one dot length for both dots and dashes; its dash multiplier does not lengthen marks. QRSS switches RF off during gaps; FSKCW shifts down during gaps within a message; DFCW places dashes above the entered dot frequency by the selected shift. The frequency guidance changes when the mode changes. With a three-second dot and the default multipliers, a QRSS or FSKCW dash lasts nine seconds; gaps within a character, between characters, and between words last three, nine, and 21 seconds, respectively.
 
-**Repeat count** is the number of message copies within one complete job (1–512). **Gap between repeats (seconds)** is a duration in seconds, separate from the timing multipliers; it must be positive when sending more than one copy. Read the calculated preview after editing. The complete job, including repeats and gaps, must fit the reported duration and event limits. Invalid entries remain in the editor for correction; no job is submitted until **Load and arm message** succeeds. A recurring schedule repeats this whole job at its start-to-start interval; it does not replace these message repeats.
+**Repeat count** is the number of message copies within one complete job (1–512). **Gap between repeats (seconds)** is separate from the timing multipliers and must be positive when sending more than one copy. Read the calculated preview after editing. The complete job, including repeats and gaps, must fit the reported duration and event limits. Correct invalid entries before selecting **Save and start schedule**. The schedule repeats the whole job at its start-to-start interval.
 
 (prepared-job-files)=
 (repeat-a-message-on-a-schedule)=
@@ -123,9 +123,9 @@ Use **Transmitter status → Refresh** to read the Pico's current report:
 | Field | Meaning |
 | --- | --- |
 | Mode | Accepted mode, or explicitly labeled scheduled context when no job is accepted |
-| Frequency | Nominal values use Hz, kHz, or MHz. QRSS shows Carrier; FSKCW shows Space/Mark; DFCW shows Dot/Dash, for example `135.505/135.500 kHz`. Pair order follows those labels even when the second frequency is lower. |
-| Dial frequency | WSPR shows only its confirmed dial, for example `14.0956 MHz`. A matching Pico-scheduled job supplies it while still owned; external jobs and released history show **Unavailable** when their dial cannot be confirmed. |
-| Message | Accepted text alone, **Encoded WSPR frame**, or **Text unavailable** for prepared RF events without original text. A single-frequency test tone and no accepted job show a dash. |
+| Frequency | Nominal values use Hz, kHz, or MHz. QRSS shows Carrier, FSKCW shows Space/Mark, and DFCW shows Dot/Dash, for example `135.500/135.505 kHz`. |
+| Dial frequency | WSPR shows its confirmed dial, for example `14.0956 MHz`, while the matching schedule still owns the job. The dial shows **Unavailable** when it cannot be confirmed. |
+| Message | Accepted Morse text or **Encoded WSPR frame**. A single-frequency test tone and no accepted job show a dash. |
 | Progress | **Loaded**, **Armed** with UTC start, **Running · ~50%**, or **Complete**, **Aborted**, **Missed**, **Failed**. A matching two-frame WSPR job shows its frame number. Percentages are estimates; 100% does not confirm completion. Unsynchronized time suppresses the estimate. |
 | RF output | **Active**, **Inactive**, or **Unknown** is the Pico's reported output state; RF may be off during a running job's keyed gaps |
 | Clock | **Synchronized**, **Holdover**, or **Unsynchronized**, with estimated timing uncertainty after `±`; see [clock status](reference/time.md#read-the-clock-status) |
@@ -134,7 +134,7 @@ Use **Transmitter status → Refresh** to read the Pico's current report:
 | Manual correction (ppm) | The saved manual frequency correction selected for the next job preparation, with three decimal places |
 | Wi-Fi | Connection state and current IP address |
 
-Values wrap naturally on small screens. Raw jobs may show a complete nominal frequency span; an incomplete list shows **Multiple frequencies**. No accepted frequency or message is filled from an unsaved edit. The confirmed active hostname is in the page heading; a saved name awaiting restart is shown in Wi-Fi/Host. Actionable warnings remain visible, including simultaneous conditions and blockers affecting future transmissions while an accepted job continues.
+Values wrap naturally on small screens. Accepted frequencies and messages come from the Pico's report. The confirmed active hostname is in the page heading, and a saved name awaiting restart is shown in Wi-Fi/Host. Warnings include conditions that block future transmissions while an accepted job continues.
 
 A successful login alone does not mean the Pico is ready to transmit. A connection failure makes observations stale or unknown. Complete jobs execute locally; closing a browser or unplugging a controller does not stop them.
 
@@ -144,7 +144,7 @@ If stop is refused or the reply is lost, use **Read stop status**. Do not infer 
 
 When browser control is unavailable, the configured [external button](connect.md#request-setup-wi-fi-with-the-external-button) or the physical [USB Console stop command](usb.md#stop-output-from-the-console) can request shutdown. Check the resulting output state before touching the RF path.
 
-After an abort, fault, or restart, read the current state before trying again. Resolve the reported cause, review configuration and ownership, and submit a new job deliberately. Neither reconnect nor refresh re-arms the old job.
+After an abort, fault, or restart, read the current state before trying again. Resolve the reported cause and review the saved schedules and output state before enabling operation.
 
 A local button or Console **STOP** suspension survives configuration saves. This local suspension is separate from **Stop native schedules**, which durably disables both schedules and permits a later explicit native enable. To resume standalone operation, first review the saved schedule and frequency, confirm that output is inactive and the Pico is idle, then explicitly **Reset Pico** in **Station Control → Transmitter status**. Restart clears STOP; an enabled saved schedule can then run at the next eligible slot after time and other readiness checks pass. Leave it disabled before restart if automatic output is not intended.
 

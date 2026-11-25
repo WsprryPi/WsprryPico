@@ -13,7 +13,7 @@
 #include "hardware/uart.h"
 #include "pico/time.h"
 #include "time/capture_gap.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 
@@ -446,32 +446,32 @@ std::string PicoGpsInput::status(std::uint64_t now) const {
            ",\"time_valid\":" + flag(capture_clock_bound() && fresh(time)) +
            ",\"position_valid\":" + flag(bool(fix)) +
            ",\"satellites\":" + std::to_string(satellites_) +
-           ",\"observation_raw_ns\":" + wtp::json::quote(std::to_string(time)) +
-           ",\"age_ns\":" + wtp::json::quote(std::to_string(time && now >= time ? now - time : 0)) +
+           ",\"observation_raw_ns\":" + execution::json::quote(std::to_string(time)) +
+           ",\"age_ns\":" + execution::json::quote(std::to_string(time && now >= time ? now - time : 0)) +
            ",\"position\":" +
            (fix ? "{\"latitude_e7\":" + std::to_string(fix->latitude_e7) + ",\"longitude_e7\":" +
                       std::to_string(fix->longitude_e7) + ",\"observed_raw_ns\":" +
-                      wtp::json::quote(std::to_string(fix->observed_raw_ns)) + ",\"age_ns\":" +
-                      wtp::json::quote(std::to_string(now - fix->observed_raw_ns)) +
-                      ",\"locator\":" + wtp::json::quote(gps::locator(*fix)->data()) + "}"
+                      execution::json::quote(std::to_string(fix->observed_raw_ns)) + ",\"age_ns\":" +
+                      execution::json::quote(std::to_string(now - fix->observed_raw_ns)) +
+                      ",\"locator\":" + execution::json::quote(gps::locator(*fix)->data()) + "}"
                 : "null") +
-           ",\"candidate_utc_ns\":" + wtp::json::quote(std::to_string(candidate_utc_ns_)) +
-           ",\"candidate_raw_ns\":" + wtp::json::quote(std::to_string(candidate_raw_ns_)) +
-           ",\"candidate_pps_raw_ns\":" + wtp::json::quote(std::to_string(candidate_pps_ns_)) +
+           ",\"candidate_utc_ns\":" + execution::json::quote(std::to_string(candidate_utc_ns_)) +
+           ",\"candidate_raw_ns\":" + execution::json::quote(std::to_string(candidate_raw_ns_)) +
+           ",\"candidate_pps_raw_ns\":" + execution::json::quote(std::to_string(candidate_pps_ns_)) +
            ",\"observations\":" + std::to_string(observations_) +
            ",\"rejected_sentences\":" + std::to_string(parser_.rejected()) +
            ",\"dropped\":" + std::to_string(observed_drops_) +
            ",\"uart_errors\":" + std::to_string(uart_errors_) +
-           ",\"irq_latency_ns\":" + wtp::json::quote(std::to_string(latency)) +
+           ",\"irq_latency_ns\":" + execution::json::quote(std::to_string(latency)) +
            ",\"maximum_irq_latency_ns\":" +
-           wtp::json::quote(
+           execution::json::quote(
                std::to_string(maximum_irq_latency_ns_.load(std::memory_order_relaxed))) +
            ",\"capture_error_bound_ns\":" +
-           wtp::json::quote(
+           execution::json::quote(
                std::to_string(capture_error_bound_ns_.load(std::memory_order_acquire))) +
            ",\"capture_rejections\":" +
            std::to_string(capture_rejections_.load(std::memory_order_relaxed)) + ",\"error\":" +
-           wtp::json::quote(failed_         ? "receiver_command_failed"
+           execution::json::quote(failed_         ? "receiver_command_failed"
                             : capture_error ? capture_errors[capture_error]
                                             : pairer_.error()) +
            "}";

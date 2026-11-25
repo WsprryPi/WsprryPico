@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 #pragma once
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <charconv>
 #include <optional>
@@ -25,8 +25,8 @@ struct GrayLine {
     }
     bool operator==(const GrayLine&) const = default;
 };
-inline std::optional<GrayLine> parse_gray_line(wtp::json::Value value) {
-    using namespace wtp::json;
+inline std::optional<GrayLine> parse_gray_line(execution::json::Value value) {
+    using namespace execution::json;
     if (!fields(value, {"location", "morning", "evening"}) ||
         (value.get("location")->raw != "\"manual\"" && value.get("location")->raw != "\"gps\""))
         return {};
@@ -72,11 +72,11 @@ inline std::string serialize_gray_line(const GrayLine& g) {
                ",\"upper_mdeg\":" + std::to_string(p.upper_mdeg) + ",\"wspr_dial_frequency_hz\":" +
                (p.wspr_dial_frequency_hz ? std::to_string(*p.wspr_dial_frequency_hz) : "null") +
                ",\"message_frequency_nhz\":" +
-               (p.message_frequency_nhz ? wtp::json::quote(std::to_string(*p.message_frequency_nhz))
+               (p.message_frequency_nhz ? execution::json::quote(std::to_string(*p.message_frequency_nhz))
                                         : "null") +
                "}";
     };
-    return "{\"location\":" + wtp::json::quote(g.gps ? "gps" : "manual") +
+    return "{\"location\":" + execution::json::quote(g.gps ? "gps" : "manual") +
            ",\"morning\":" + period(g.morning) + ",\"evening\":" + period(g.evening) + "}";
 }
 } // namespace wsprrypico::standalone

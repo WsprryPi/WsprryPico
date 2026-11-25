@@ -1,25 +1,25 @@
 #pragma once
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 namespace wsprrypico::standalone {
 // No hardware access. Models a locally scheduled job in the inhibited image;
 // it provides lifecycle diagnostics, never evidence of a physical launch.
-class DryRunEngine final : public wtp::RfEngine {
+class DryRunEngine final : public execution::RfEngine {
   public:
-    wtp::PrepareResult prepare(const wtp::Job&) override {
+    execution::PrepareResult prepare(const execution::Job&) override {
         return {true, {}};
     }
     bool schedules_locally() const override {
         return true;
     }
-    bool schedule(const wtp::Job& job, std::uint64_t start,
-                  const wtp::LocalStartConditions& conditions) override;
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool schedule(const execution::Job& job, std::uint64_t start,
+                  const execution::LocalStartConditions& conditions) override;
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t now) override;
+    execution::EngineReport poll(std::uint64_t now) override;
     bool disable(std::uint64_t) override {
-        state_ = wtp::EngineState::Idle;
+        state_ = execution::EngineState::Idle;
         return true;
     }
     bool output_active() const override {
@@ -27,8 +27,8 @@ class DryRunEngine final : public wtp::RfEngine {
     }
 
   private:
-    wtp::LocalStartConditions conditions_{};
+    execution::LocalStartConditions conditions_{};
     std::uint64_t start_ = 0, duration_ = 0;
-    wtp::EngineState state_ = wtp::EngineState::Idle;
+    execution::EngineState state_ = execution::EngineState::Idle;
 };
 } // namespace wsprrypico::standalone

@@ -2,7 +2,7 @@
 #include "sdk.hpp"
 #include "time/capture_gap.hpp"
 #include "time/pico/gps_input.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <cstdio>
 #include <vector>
@@ -196,7 +196,7 @@ int main() {
                10'000);
     }
     const auto status_text = input.status(gps_mock::us * 1000);
-    auto status = wtp::json::parse(status_text);
+    auto status = execution::json::parse(status_text);
     assert(status && std::stoull(status->get("maximum_irq_latency_ns")->string()) >= 19'000'000);
     assert(std::stoull(status->get("capture_error_bound_ns")->string()) <= 100'000);
     gps_mock::irq_delay_us = 130'000;
@@ -285,7 +285,7 @@ int main() {
     assert(std::abs(std::int64_t(received.back().capture_raw_ns) - 31'000'000'000LL) < 10'000);
     assert(input.cycle() && input.cycle()->raw_ns < 31'001'000'000ULL);
     const auto text = input.status(gps_mock::us * 1000);
-    const auto view = wtp::json::parse(text);
+    const auto view = execution::json::parse(text);
     assert(view && std::stoull(view->get("candidate_pps_raw_ns")->string()) < 31'001'000'000ULL);
     input.close();
     // The label can arrive almost two seconds after its edge, with another

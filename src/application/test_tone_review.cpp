@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 #include "application/test_tone_review.hpp"
 
-#include "wtp/arm_admission.hpp"
+#include "rf/arm_admission.hpp"
 
 namespace wsprrypico::application {
 TestToneReview review_test_tone(const TestToneProposal& proposal, const TestToneContext& context,
                                 const standalone::FrequencyPolicyEngine& policy,
-                                const wtp::ServiceConfig& limits, const wtp::ClockSnapshot& clock) {
+                                const execution::ServiceConfig& limits, const execution::ClockSnapshot& clock) {
     constexpr std::uint64_t millisecond = 1'000'000, second = 1'000'000'000;
     TestToneReview result;
     const auto refuse = [&](std::string_view reason) {
@@ -100,10 +100,10 @@ TestToneReview review_test_tone(const TestToneProposal& proposal, const TestTone
             const auto earliest = clock.utc_now_ns + lead;
             const auto launch = ((earliest + second - 1) / second) * second;
             std::uint64_t monotonic = 0;
-            result.clock_error = wtp::assess_arm(
+            result.clock_error = execution::assess_arm(
                 proposal.duration_ms * millisecond, {"", launch, limits.maximum_arm_uncertainty_ns},
                 clock, limits, context.start_resolution_ns, monotonic);
-            if (result.clock_error == wtp::ErrorCode::None) {
+            if (result.clock_error == execution::ErrorCode::None) {
                 result.launch_utc_ns = launch;
                 result.launch_monotonic_ns = monotonic;
             } else

@@ -1,8 +1,8 @@
 #pragma once
 #include "network/http.hpp"
 #include "network/control_contract.hpp"
-#include "wtp/json.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 
 namespace wsprrypico::network {
 // Owned plaintext created by the control adapter is wiped on normal return
@@ -21,16 +21,16 @@ class ControlStringWiper {
 };
 // Validate the outer contract once, then pass the closed domain payload to its
 // existing authoritative validator. No field other than contract is removed.
-inline std::size_t control_workspace_bytes(wtp::InputView bytes) {
+inline std::size_t control_workspace_bytes(execution::InputView bytes) {
     const auto whitespace = [](char c) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; };
     std::size_t first = 0, last = bytes.size();
     while (first < last && whitespace(bytes[first])) ++first;
     while (last > first && whitespace(bytes[last - 1])) --last;
     return (last - first) * 2 + 16384;
 }
-inline std::optional<std::string> control_payload(wtp::InputView bytes) {
-    if (bytes.size() > max_http_body || !wtp::memory_admitted(control_workspace_bytes(bytes))) return {};
-    const auto root = wtp::json::parse(bytes);
+inline std::optional<std::string> control_payload(execution::InputView bytes) {
+    if (bytes.size() > max_http_body || !execution::memory_admitted(control_workspace_bytes(bytes))) return {};
+    const auto root = execution::json::parse(bytes);
     if (!root || root->type() != '{') return {};
     const auto contract = root->get("contract");
     if (!contract || contract->type() != '"' || contract->string() != control_contract) return {};
@@ -74,11 +74,11 @@ inline HttpResponse control_response(HttpResponse response) {
     constexpr std::string_view member = "\"contract\":\"Wsprry-Control/1\",";
     if (response.generated_body) {
         if (!response.generated_body->json_document()) return http_error(503, "resource_exhausted");
-        auto body = wtp::make_response_source<wtp::SlicedResponseSource>(
+        auto body = execution::make_response_source<execution::SlicedResponseSource>(
             std::move(response.generated_body), 1);
         if (!body)
             return http_error(503, "resource_exhausted");
-        response.generated_body = wtp::make_response_source<wtp::JoinedResponseSource>(
+        response.generated_body = execution::make_response_source<execution::JoinedResponseSource>(
             "{" + std::string(member) + " ", std::move(body), "", true);
         if (!response.generated_body)
             return http_error(503, "resource_exhausted");

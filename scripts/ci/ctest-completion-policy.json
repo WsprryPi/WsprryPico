@@ -38,7 +38,7 @@
     },
     "console_io_tests": {
       "kind": "unittest",
-      "count": 5,
+      "count": 3,
       "entrypoint": "tests/console_io_tests.py"
     },
     "console_trace_tests": {
@@ -86,11 +86,6 @@
       "count": 17,
       "entrypoint": "tests/clock_measurement_tests.py"
     },
-    "inhibited_network_acceptance_tests": {
-      "kind": "unittest",
-      "count": 13,
-      "entrypoint": "tests/inhibited_network_acceptance_tests.py"
-    },
     "inhibited_sync_image_checker_tests": {
       "kind": "unittest",
       "count": 1,
@@ -101,11 +96,6 @@
       "count": 1,
       "entrypoint": "tests/journal_power_cut_tests.py"
     },
-    "load_reply_tests": {
-      "kind": "unittest",
-      "count": 7,
-      "entrypoint": "tests/load_reply_tests.py"
-    },
     "network_certificate_strict_tests": {
       "kind": "unittest",
       "count": 1,
@@ -115,11 +105,6 @@
       "kind": "unittest",
       "count": 8,
       "entrypoint": "tests/network_control_tests.py"
-    },
-    "network_replies_tests": {
-      "kind": "unittest",
-      "count": 12,
-      "entrypoint": "tests/network_replies_tests.py"
     },
     "network_socket_tests": {
       "kind": "unittest",
@@ -165,11 +150,6 @@
       "kind": "unittest",
       "count": 30,
       "entrypoint": "tests/raspberry_pi_ble_client_tests.py"
-    },
-    "retired_tools_tests": {
-      "kind": "unittest",
-      "count": 1,
-      "entrypoint": "tests/retired_tools_tests.py"
     },
     "rf_abort_analysis_tests": {
       "kind": "unittest",
@@ -276,11 +256,6 @@
       "count": 182,
       "entrypoint": "tests/usb_installer_tests.py"
     },
-    "usb_inventory_tests": {
-      "kind": "unittest",
-      "count": 7,
-      "entrypoint": "tests/usb_inventory_tests.py"
-    },
     "usb_tool_download_tests": {
       "kind": "unittest",
       "count": 39,
@@ -290,16 +265,6 @@
       "kind": "unittest",
       "count": 7,
       "entrypoint": "tests/wspr_type23_decode_tests.py"
-    },
-    "wtp_capacity_tests": {
-      "kind": "unittest",
-      "count": 6,
-      "entrypoint": "tests/wtp_capacity_tests.py"
-    },
-    "wtp_monitor_tests": {
-      "kind": "unittest",
-      "count": 3,
-      "entrypoint": "tests/wtp_monitor_tests.py"
     }
   },
   "contexts": {

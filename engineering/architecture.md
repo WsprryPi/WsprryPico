@@ -8,9 +8,9 @@ Native WSPR and keyed-message schedules and authenticated finite Test Tone use o
 
 ## Transports and management
 
-Four CDC allocations preserve Console interface 0, a Reserved inert allocation at interfaces 2/3, [USB management/time](protocol/USB-Management.md) at interface 4, and [Logging](development/usb-logging.md) at interface 6. Application firmware discards at most 64 reserved-input bytes per foreground pass and emits no response. The optional RFBench image alone uses that allocation for its non-WTP Commands interface.
+Four CDC allocations preserve Console interface 0, a Reserved inert allocation at interfaces 2/3, [USB management/time](protocol/USB-Management.md) at interface 4, and [Logging](development/usb-logging.md) at interface 6. Application firmware discards at most 64 reserved-input bytes per foreground pass and emits no response. The optional RFBench image alone uses that allocation for its diagnostic Commands interface.
 
-Network management retains certificate-authenticated HTTPS with `http/1.1` ALPN and encrypted Consumer-Radio. No WTP TCP listener, plaintext binding, `wtp/1` ALPN admission, or external HTTP job wrapper is available.
+Network management retains certificate-authenticated HTTPS with `http/1.1` ALPN and encrypted Consumer-Radio.
 
 The browser uses lightweight HTTP handlers and static assets backed by the shared [JSON API](browser-api.md). The current `Wsprry-Control/1` contract uses `/api/control/v1` and stable resource types. USB and network share the management shape with explicit carrier and bounded policy data; historical settings views are unsupported. [Management carriers](development/management-carriers.md), [configuration updates](development/configuration-updates.md), [saved progress](development/saved-progress.md), and [USB local configuration](development/usb-local-configuration.md) define exact authority, revision, application, and delivery semantics. Management authority alone grants no transmitter ownership.
 
@@ -18,7 +18,7 @@ Consumer port-80 control is available through the current station IP/hostname an
 
 Two cooperative HTTP tasks run on core 0, with absolute ten-second connection deadlines, bounded output steps, and serialized application mutations. Three fixed consumer login slots permit one pending ordinary login. A separate five-second recovery workspace can retire one deliberately selected session under fresh password authentication. It never becomes an application session. Authentication closure cancels that login's undelivered effects and unsubmitted setup preparation; accepted jobs and durable writes survive. Both UIs preserve drafts and require saved-state readback/review before a new save. See [web service](development/web-service.md), [sessions](development/consumer-sessions.md), and [recovery](development/session-recovery.md).
 
-BLE retains independently versioned [Field-GATT/1](protocol/Field-GATT.md) commissioning, shared with the native Linux BlueZ client. Service/identity/command/status UUIDs 0001–0004 retain their permissions, framing, bonding, request-bound proofs, staged profile digests, access epochs, and USB-local confirmation. WTP characteristics 0005/0006 and carrier selection are absent. The SoftAP portal remains the offline consumer setup path.
+BLE retains independently versioned [Field-GATT/1](protocol/Field-GATT.md) commissioning, shared with the native Linux BlueZ client. Service/identity/command/status UUIDs 0001–0004 retain their permissions, framing, bonding, request-bound proofs, staged profile digests, access epochs, and USB-local confirmation. The SoftAP portal remains the offline consumer setup path.
 
 ## Setup and local access
 
@@ -28,7 +28,7 @@ The active-low GP14 factory button requests reset on release under 0.4 seconds, 
 
 ## Local execution and RF
 
-The portable [RF stream](development/rf-stream.md) plans and generates packed GPIO samples independently of the SDK. The [PIO/DMA adapter](development/pio-dma-driver.md) owns physical peripherals and monotonic launch interrupts. The normal firmware selects the 138 MHz application; `WsprryPico-Inhibited` selects its simulator. `WsprryPico-StandaloneRF` remains a compatibility RF target. A separate [bench image](development/rf-bench.md) provides finite relative-time tones, synthetic/encoded frames, and CPU measurements; it provides neither WTP nor UTC synchronization.
+The portable [RF stream](development/rf-stream.md) plans and generates packed GPIO samples independently of the SDK. The [PIO/DMA adapter](development/pio-dma-driver.md) owns physical peripherals and monotonic launch interrupts. The normal firmware selects the 138 MHz application; `WsprryPico-Inhibited` selects its simulator. `WsprryPico-StandaloneRF` remains a compatibility RF target. A separate [bench image](development/rf-bench.md) provides finite relative-time tones, synthetic/encoded frames, and CPU measurements; it operates on a relative clock.
 
 Core 0 owns application state, USB/network service, and storage. Core 1 owns the RF engine, sink/peripherals, and local launch interrupts. A synchronous one-command ownership-transfer mailbox coordinates the two cores. The RF core ages an independent UTC discipline copy. Idle-only flash writes use SDK core lockout. Two bounded engineering HTTPS contexts share the retained authentication and resource limits.
 

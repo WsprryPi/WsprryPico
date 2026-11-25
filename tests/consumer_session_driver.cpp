@@ -8,11 +8,11 @@
 #include "network_support.hpp"
 #include "provisioning/consumer_profile.hpp"
 #include "standalone/frequency_policy_engine.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 #include "time/controller_time.hpp"
 #include "time/ntp_client.hpp"
-#include "wtp/json.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
 #include "network/pico/bootstrap_server.hpp"
 #include "provisioning/field_runtime.hpp"
@@ -127,10 +127,10 @@ namespace wsprrypico::network {
 struct ConsumerRadioTestAccess {
     static void exhaust(ConsumerRadioApi& api, std::span<const std::uint8_t, 16> id) {
         const auto header = consumer_radio_header(id, 1);
-        wtp::FrameBuffer bytes;
+        execution::FrameBuffer bytes;
         check(bytes.reserve(44));
         bytes.append(header);
-        bytes.append(wtp::InputView(std::string(16, 'x')));
+        bytes.append(execution::InputView(std::string(16, 'x')));
         auto* session = api.select(bytes.view());
         check(session != nullptr);
         session->next_sequence = UINT64_MAX;
@@ -198,14 +198,14 @@ struct HostnamePlatform : provisioning::ConsumerClaimCommitPlatform {
 };
 // Test-only observation at the real engine admission boundary. Lifecycle is
 // delegated to the same dry-run engine; production exposes no debug resource.
-struct ObservedEngine : wtp::RfEngine {
+struct ObservedEngine : execution::RfEngine {
     standalone::DryRunEngine engine;
     std::optional<standalone::FrequencyPolicyEngine> policy;
-    std::optional<wtp::Job> accepted;
-    wtp::RfEngine& active() {
-        return policy ? static_cast<wtp::RfEngine&>(*policy) : engine;
+    std::optional<execution::Job> accepted;
+    execution::RfEngine& active() {
+        return policy ? static_cast<execution::RfEngine&>(*policy) : engine;
     }
-    wtp::PrepareResult prepare(const wtp::Job& job) override {
+    execution::PrepareResult prepare(const execution::Job& job) override {
         auto result = active().prepare(job);
         if (result.accepted)
             accepted = job;
@@ -217,14 +217,14 @@ struct ObservedEngine : wtp::RfEngine {
     void calibration_boundary() override {
         active().calibration_boundary();
     }
-    bool schedule(const wtp::Job& job, std::uint64_t start,
-                  const wtp::LocalStartConditions& conditions) override {
+    bool schedule(const execution::Job& job, std::uint64_t start,
+                  const execution::LocalStartConditions& conditions) override {
         return active().schedule(job, start, conditions);
     }
-    bool begin(const wtp::Job& job, std::uint64_t start) override {
+    bool begin(const execution::Job& job, std::uint64_t start) override {
         return engine.begin(job, start);
     }
-    wtp::EngineReport poll(std::uint64_t now) override {
+    execution::EngineReport poll(std::uint64_t now) override {
         return engine.poll(now);
     }
     bool disable(std::uint64_t deadline) override {
@@ -243,10 +243,10 @@ struct Driver {
         device};
     time::NtpClient field_ntp{field_time};
     ObservedEngine consumer_engine, engineering_engine;
-    static wtp::ServiceConfig application_policy() {
+    static execution::ServiceConfig application_policy() {
         auto policy = network_test::Fixture::physical_policy();
         policy.maximum_arm_uncertainty_ns =
-            standalone::wtp_profile(false).maximum_arm_uncertainty_ns;
+            standalone::execution_profile(false).maximum_arm_uncertainty_ns;
         return policy;
     }
     network_test::Fixture f{0, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", &consumer_engine,
@@ -330,14 +330,14 @@ struct Driver {
         recovery_targets.emplace(
             f.store, f.flash, media, recovery_bonds,
             +[](void* context) {
-                auto& service = *static_cast<wtp::JobService*>(context);
+                auto& service = *static_cast<execution::JobService*>(context);
                 const auto a = service.activity();
                 return provisioning::Activity{a.owned,
                                               !service.maintenance(),
                                               a.output_active,
-                                              a.state == wtp::State::Armed,
-                                              a.state == wtp::State::Running,
-                                              a.state == wtp::State::Failed};
+                                              a.state == execution::State::Armed,
+                                              a.state == execution::State::Running,
+                                              a.state == execution::State::Failed};
             },
             &f.service);
         recovery_targets->udp_logging(udp_store);
@@ -346,7 +346,7 @@ struct Driver {
         recovery_coordinator.emplace(access, profiles, *recovery_targets, identity);
         server.configure_recovery(f.service.status().boot_id, access, random);
         server.reset_control(
-            +[](provisioning::ResetLevel level, const wtp::PayloadDigest& digest, void* context) {
+            +[](provisioning::ResetLevel level, const execution::PayloadDigest& digest, void* context) {
                 auto& self = *static_cast<Driver*>(context);
                 if (!self.f.scheduler.idle() ||
                     !provisioning::idle_for_access(self.recovery_targets->activity()))
@@ -410,7 +410,7 @@ struct Driver {
         auto& self = *static_cast<Driver*>(p);
         self.last_transaction = tx;
         if (self.handler_memory_failure)
-            wtp::available_memory = +[]() -> std::size_t { return 0; };
+            execution::available_memory = +[]() -> std::size_t { return 0; };
         return self.radio.handle(r, now_ms, tx, i);
     }
     static void finish(void* p, std::uint64_t tx, bool delivered) {
@@ -532,12 +532,12 @@ struct Driver {
                 ack(pcb);
         }
     }
-    static std::string field(const wtp::json::Value& v, std::string_view key) {
+    static std::string field(const execution::json::Value& v, std::string_view key) {
         const auto x = v.get(key);
         check(x && x->type() == '"');
         return x->string();
     }
-    std::string command(const wtp::json::Value& v) {
+    std::string command(const execution::json::Value& v) {
         const auto op = field(v, "op");
         if (op == "forget_engineering_station") {
             check(engineering.scheduler.idle());
@@ -636,8 +636,8 @@ struct Driver {
             if (!job)
                 return "null";
             std::string result =
-                "{\"job_id\":" + wtp::json::quote(job->job_id) +
-                ",\"mode\":" + wtp::json::quote(job->mode) + ",\"total_duration_ns\":\"" +
+                "{\"job_id\":" + execution::json::quote(job->job_id) +
+                ",\"mode\":" + execution::json::quote(job->mode) + ",\"total_duration_ns\":\"" +
                 std::to_string(job->total_duration_ns) + "\",\"allow_frequency_adjustment\":" +
                 (job->allow_frequency_adjustment ? "true" : "false") + ",\"events\":[";
             for (const auto& event : job->events) {
@@ -647,7 +647,7 @@ struct Driver {
                     "{\"offset_ns\":\"" + std::to_string(event.offset_ns) +
                     "\",\"duration_ns\":\"" + std::to_string(event.duration_ns) +
                     "\",\"rf_on\":" + (event.rf_on ? "true" : "false") + ",\"frequency_nhz\":" +
-                    (event.frequency_nhz ? wtp::json::quote(std::to_string(*event.frequency_nhz))
+                    (event.frequency_nhz ? execution::json::quote(std::to_string(*event.frequency_nhz))
                                          : "null") +
                     "}";
             }
@@ -669,7 +669,7 @@ struct Driver {
                 engineering.api.handle(request, "engineering-test", "127.0.0.1:8443");
             const auto wire = response.wire();
             return "{\"wire\":" +
-                   wtp::json::quote(bootstrap_hex(std::span(
+                   execution::json::quote(bootstrap_hex(std::span(
                        reinterpret_cast<const std::uint8_t*>(wire.data()), wire.size()))) +
                    "}";
         }
@@ -690,17 +690,17 @@ struct Driver {
             auto& selected = v.get("surface") && field(v, "surface") == "engineering"
                                  ? engineering : f;
             std::uint64_t delta;
-            check(wtp::json::decimal(*v.get("delta_ns"), delta) && delta <= 600'000'000'000ULL);
+            check(execution::json::decimal(*v.get("delta_ns"), delta) && delta <= 600'000'000'000ULL);
             selected.clock.now += delta;
             if (const auto uncertainty = v.get("uncertainty_ns"))
-                check(wtp::json::decimal(*uncertainty, selected.clock.uncertainty));
+                check(execution::json::decimal(*uncertainty, selected.clock.uncertainty));
             if (const auto bytes = v.get("free_bytes")) {
                 static std::uint64_t free_bytes;
-                check(wtp::json::decimal(*bytes, free_bytes) && free_bytes <= SIZE_MAX);
-                wtp::available_memory = +[]() -> std::size_t { return free_bytes; };
+                check(execution::json::decimal(*bytes, free_bytes) && free_bytes <= SIZE_MAX);
+                execution::available_memory = +[]() -> std::size_t { return free_bytes; };
             }
             selected.scheduler.poll();
-            wtp::available_memory = nullptr;
+            execution::available_memory = nullptr;
             auto result = selected.scheduler.status();
             if (!result.empty() && result.back() == '\n')
                 result.pop_back();
@@ -738,10 +738,10 @@ struct Driver {
             else
                 check(action == "get");
             const auto model = field_clock.snapshot();
-            return "{\"utc_ns\":" + wtp::json::quote(std::to_string(model.utc_now_ns)) +
-                   ",\"age_ns\":" + wtp::json::quote(std::to_string(model.sync_age_ns)) +
+            return "{\"utc_ns\":" + execution::json::quote(std::to_string(model.utc_now_ns)) +
+                   ",\"age_ns\":" + execution::json::quote(std::to_string(model.sync_age_ns)) +
                    ",\"rate_ppb\":" + std::to_string(model.rate_ppb) + ",\"reference_state\":" +
-                   wtp::json::quote(field_ntp.frequency_reference_status(raw)) + "}";
+                   execution::json::quote(field_ntp.frequency_reference_status(raw)) + "}";
         }
         if (op == "field_clock") {
             f.clock.selected = &field_clock;
@@ -751,7 +751,7 @@ struct Driver {
         }
         if (op == "time") {
             std::uint64_t time;
-            check(wtp::json::decimal(*v.get("ms"), time));
+            check(execution::json::decimal(*v.get("ms"), time));
             now_ms = time;
             radio.poll(now_ms);
             poll_server();
@@ -775,7 +775,7 @@ struct Driver {
         }
         if (op == "delivery") {
             std::uint64_t tx;
-            check(wtp::json::decimal(*v.get("tx"), tx));
+            check(execution::json::decimal(*v.get("tx"), tx));
             radio.finish_request(tx, v.get("apply")->raw == "true");
             return "{}";
         }
@@ -813,13 +813,13 @@ struct Driver {
         }
         if (op == "stats")
             return "{\"api_restarts\":" + std::to_string(api_restarts) +
-                   ",\"transaction\":" + wtp::json::quote(std::to_string(last_transaction)) +
+                   ",\"transaction\":" + execution::json::quote(std::to_string(last_transaction)) +
                    ",\"connections\":" + std::to_string(connections()) +
                    ",\"pending_bytes\":" + std::to_string(pending_bytes()) +
                    ",\"profile_programs\":" + std::to_string(media.programs) +
                    ",\"profile_generation\":" +
-                   wtp::json::quote(std::to_string(profiles.sequence())) + ",\"config_sequence\":" +
-                   wtp::json::quote(std::to_string(f.store.config_sequence())) +
+                   execution::json::quote(std::to_string(profiles.sequence())) + ",\"config_sequence\":" +
+                   execution::json::quote(std::to_string(f.store.config_sequence())) +
 #ifdef WSPRRY_PICO_BOOTSTRAP_RECOVERY_TEST
                    ",\"trial_starts\":" + std::to_string(network.starts + platform.trial_starts) +
                    ",\"setup_pending\":" + (server.setup_pending() ? "true" : "false") +
@@ -922,7 +922,7 @@ struct Driver {
             if (mode == "recovery" || mode == "network-recovery" || mode == "storage-fault") {
                 server.configure_recovery(f.service.status().boot_id, access, random);
                 server.reset_control(
-                    +[](provisioning::ResetLevel, const wtp::PayloadDigest&, void* context) {
+                    +[](provisioning::ResetLevel, const execution::PayloadDigest&, void* context) {
                         // Board reset is the boundary double. Production crypto,
                         // slot admission and HTTP dispatch remain unchanged.
                         ++static_cast<Driver*>(context)->recovery_requests;
@@ -950,9 +950,9 @@ struct Driver {
 #endif
         if (op == "native_load") {
             const std::string session(32, '1');
-            check(network_test::internal_command(f.service, "HELLO", wtp::HelloBody{{"WTP/1"}}, "native-fixture", session).ok);
-            check(network_test::internal_command(f.service, "CLAIM", wtp::ClaimBody{session, 60000}, "native-fixture", session).ok);
-            wtp::Job job;
+            check(network_test::internal_command(f.service, "HELLO", execution::HelloBody{{"native-execution/1"}}, "native-fixture", session).ok);
+            check(network_test::internal_command(f.service, "CLAIM", execution::ClaimBody{session, 60000}, "native-fixture", session).ok);
+            execution::Job job;
             job.job_id = std::string(32, '2');
             job.mode = "tone";
             job.total_duration_ns = 1'000'000'000;
@@ -962,16 +962,16 @@ struct Driver {
         }
         if (op == "wire") {
             std::uint64_t index;
-            check(wtp::json::decimal(*v.get("socket"), index) && index < 2);
+            check(execution::json::decimal(*v.get("socket"), index) && index < 2);
             const auto& pcb = sockets[index];
             return "{\"closed\":" + std::string(pcb.closed ? "true" : "false") + ",\"wire\":" +
-                   wtp::json::quote(bootstrap_hex(std::span(
+                   execution::json::quote(bootstrap_hex(std::span(
                        reinterpret_cast<const std::uint8_t*>(pcb.wire.data()), pcb.wire.size()))) +
                    "}";
         }
         if (op == "continue") {
             std::uint64_t index;
-            check(wtp::json::decimal(*v.get("socket"), index) && index < 2);
+            check(execution::json::decimal(*v.get("socket"), index) && index < 2);
             auto& pcb = sockets[index];
             const auto input = std::move(remaining_input[index]);
             for (std::size_t at = 0; at < input.size(); at += 317) {
@@ -985,7 +985,7 @@ struct Driver {
         }
         if (op == "complete" || op == "fin" || op == "rst" || op == "ack") {
             std::uint64_t index;
-            check(wtp::json::decimal(*v.get("socket"), index) && index < 2);
+            check(execution::json::decimal(*v.get("socket"), index) && index < 2);
             auto& pcb = sockets[index];
             if (!pcb.closed) {
                 if (op == "complete")
@@ -999,7 +999,7 @@ struct Driver {
                     cb(arg, ERR_ABRT);
                 } else {
                     std::uint64_t n;
-                    check(wtp::json::decimal(*v.get("bytes"), n));
+                    check(execution::json::decimal(*v.get("bytes"), n));
                     ack(pcb, n);
                 }
             }
@@ -1026,10 +1026,10 @@ struct Driver {
                              ": 1\r\nContent-Type: " + field(v, "type") +
                              "\r\nContent-Length: " + std::to_string(bytes.size()) + "\r\n\r\n" +
                              std::string(bytes.begin(), bytes.end());
-        wtp::available_memory = low_memory ? +[]() -> std::size_t { return 0; } : nullptr;
+        execution::available_memory = low_memory ? +[]() -> std::size_t { return 0; } : nullptr;
         std::uint64_t cutoff = request.size();
         if (const auto cut = v.get("cut"))
-            check(wtp::json::decimal(*cut, cutoff) && cutoff < request.size());
+            check(execution::json::decimal(*cut, cutoff) && cutoff < request.size());
         remaining_input[index] = request.substr(cutoff);
         // pbuf fragments exercise the production parser without requiring a real socket.
         for (std::size_t at = 0; at < cutoff && !pcb.closed; at += 317) {
@@ -1038,9 +1038,9 @@ struct Driver {
             pcb.receive(pcb.arg, &pcb, &packet, ERR_OK);
         }
         poll(v.get("hold")->raw != "true", pcb);
-        wtp::available_memory = nullptr;
+        execution::available_memory = nullptr;
         return "{\"socket\":" + std::to_string(index) + ",\"wire\":" +
-               wtp::json::quote(bootstrap_hex(std::span(
+               execution::json::quote(bootstrap_hex(std::span(
                    reinterpret_cast<const std::uint8_t*>(pcb.wire.data()), pcb.wire.size()))) +
                "}";
     }
@@ -1057,7 +1057,7 @@ int main(int argc, char** argv) {
               << '\n';
     std::string line;
     while (std::getline(std::cin, line)) {
-        const auto root = wsprrypico::wtp::json::parse(line);
+        const auto root = wsprrypico::execution::json::parse(line);
         check(bool(root));
         if (root->get("op")->string() == "reboot") {
             const auto media = driver->media;

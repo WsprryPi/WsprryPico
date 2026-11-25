@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -28,7 +28,7 @@ class ObservationSink {
     virtual ~ObservationSink() = default;
     virtual bool observe(ObservationSource source, std::uint64_t utc_ns,
                          std::uint64_t sampled_monotonic_ns, std::uint64_t uncertainty_ns,
-                         wtp::LeapState leap,
+                         execution::LeapState leap,
                          std::optional<std::uint64_t> leap_transition_utc_ns = {},
                          std::string_view principal = {}) = 0;
     virtual bool observe_rate(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
@@ -38,18 +38,18 @@ class ObservationSink {
         (void)rate_uncertainty_ppb;
         (void)generation;
         return observe(ObservationSource::Sntp, utc_ns, sampled_monotonic_ns, uncertainty_ns,
-                       wtp::LeapState::Normal);
+                       execution::LeapState::Normal);
     }
     // Import an independently maintained NTP model without refreshing its
     // original source age. Used by μChrony; no second NTP servo is applied.
-    virtual bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+    virtual bool observe_ntp_model(const RateObservation& source, const execution::ClockSnapshot& model,
                                    std::uint32_t max_clock_error_ppb) {
         (void)source;
         (void)model;
         (void)max_clock_error_ppb;
         return false; // A sink must explicitly support age-preserving model import.
     }
-    virtual bool observe_reference_model(const RateObservation&, const wtp::ClockSnapshot&,
+    virtual bool observe_reference_model(const RateObservation&, const execution::ClockSnapshot&,
                                          std::uint32_t) {
         return false;
     }

@@ -1,7 +1,7 @@
 #include "mbedtls/chachapoly.h"
 #include "mbedtls/platform.h"
 #include "network/pico/bootstrap_crypto.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -73,7 +73,7 @@ template <std::size_t N> std::array<std::uint8_t, N> fixed(const std::vector<std
     std::copy(bytes.begin(), bytes.end(), result.begin());
     return result;
 }
-std::string field(wsprrypico::wtp::json::Value root, std::string_view key) {
+std::string field(wsprrypico::execution::json::Value root, std::string_view key) {
     const auto value = root.get(key);
     assert(value);
     return value->string();
@@ -84,7 +84,7 @@ int main(int argc, char** argv) {
     assert(argc == 2);
     std::ifstream stream(argv[1]);
     const std::string fixture(std::istreambuf_iterator<char>{stream}, {});
-    const auto root = wsprrypico::wtp::json::parse(fixture);
+    const auto root = wsprrypico::execution::json::parse(fixture);
     assert(root);
     const auto private_key = fixed<32>(hex(field(*root, "pico_private_key_hex")));
     const auto expected_public = fixed<32>(b64u(field(*root, "pico_public_key")));

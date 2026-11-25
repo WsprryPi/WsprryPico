@@ -25,9 +25,9 @@ int main() {
     // Cold diagnostics consume no record storage. Admission and nullable
     // allocation failures leave capture disabled and permit a later retry.
     static_assert(sizeof(ActivityTrace) < 256);
-    wsprrypico::wtp::allocate_input = allocate;
-    wsprrypico::wtp::deallocate_input = release;
-    wsprrypico::wtp::available_memory = +[] { return free_bytes; };
+    wsprrypico::execution::allocate_input = allocate;
+    wsprrypico::execution::deallocate_input = release;
+    wsprrypico::execution::available_memory = +[] { return free_bytes; };
     {
         ActivityTrace cold;
         assert(allocated == 0 && !cold.begin() && allocated == 0);
@@ -42,9 +42,9 @@ int main() {
         assert(allocated == ActivityTrace::capacity * sizeof(ActivityRecord));
     }
     assert(released == 1);
-    wsprrypico::wtp::allocate_input = std::malloc;
-    wsprrypico::wtp::deallocate_input = std::free;
-    wsprrypico::wtp::available_memory = nullptr;
+    wsprrypico::execution::allocate_input = std::malloc;
+    wsprrypico::execution::deallocate_input = std::free;
+    wsprrypico::execution::available_memory = nullptr;
     ActivityTrace trace;
     unsigned calls = 0;
     std::uint64_t now = 100;

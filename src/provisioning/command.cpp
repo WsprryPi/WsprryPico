@@ -1,7 +1,7 @@
 #include "provisioning/command.hpp"
 
 #include "network/identity.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <limits>
 #include <optional>
@@ -9,7 +9,7 @@
 
 namespace wsprrypico::provisioning {
 namespace {
-using wtp::json::Value;
+using execution::json::Value;
 
 void secure_clear(std::vector<std::uint8_t>& value) {
     volatile std::uint8_t* bytes = value.empty() ? nullptr : value.data();
@@ -81,7 +81,7 @@ std::optional<std::vector<std::uint8_t>> decode_fragment(std::string_view input)
 }
 
 bool identifier(const std::optional<Value>& value) {
-    return value && value->raw.size() == 34 && wtp::json::identifier(*value);
+    return value && value->raw.size() == 34 && execution::json::identifier(*value);
 }
 
 bool boolean(const std::optional<Value>& value) {
@@ -139,15 +139,15 @@ std::string CommandAdapter::identity() const {
     const auto generation = manager_.status().generation;
     if (!network::valid_device_id(device_id_) || generation > max_wire_integer)
         return {};
-    return "{\"device_id\":" + wtp::json::quote(device_id_) +
+    return "{\"device_id\":" + execution::json::quote(device_id_) +
            ",\"generation\":" + std::to_string(generation) + "}";
 }
 
 CommandReply CommandAdapter::reply(std::string_view request_id, Result result) const {
-    std::string notification = "{\"version\":1,\"request_id\":" + wtp::json::quote(request_id) +
+    std::string notification = "{\"version\":1,\"request_id\":" + execution::json::quote(request_id) +
                                ",\"ok\":" + (result.ok() ? "true" : "false");
     if (!result.ok())
-        notification += ",\"error\":" + wtp::json::quote(code_name(result.code));
+        notification += ",\"error\":" + execution::json::quote(code_name(result.code));
     notification += ",\"generation\":" + std::to_string(result.generation) +
                     ",\"accepted_bytes\":" + std::to_string(result.accepted_bytes) +
                     ",\"replayed\":" + (result.replayed ? "true" : "false") + "}";
@@ -160,7 +160,7 @@ CommandReply CommandAdapter::handle(std::string_view command, const Authorizatio
                                     const Activity& activity, std::uint64_t now_ms) {
     if (command.empty() || command.size() > max_command_bytes)
         return {};
-    const auto root = wtp::json::parse(command);
+    const auto root = execution::json::parse(command);
     if (!root)
         return {};
     const auto request_value = root->get("request_id");
@@ -187,7 +187,7 @@ CommandReply CommandAdapter::handle(std::string_view command, const Authorizatio
 
     Result result;
     if (operation == "open") {
-        if (!wtp::json::fields(*root,
+        if (!execution::json::fields(*root,
                                {"version", "operation", "request_id", "session_id", "device_id"}))
             result = invalid(manager_);
         else
@@ -198,7 +198,7 @@ CommandReply CommandAdapter::handle(std::string_view command, const Authorizatio
         const auto final_value = root->get("final");
         const auto payload_value = root->get("payload");
         std::uint64_t offset = 0;
-        if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
+        if (!execution::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                        "device_id", "offset", "final", "payload"}) ||
             !offset_value || !integer(*offset_value, offset) ||
             offset > std::numeric_limits<std::size_t>::max() || !boolean(final_value) ||
@@ -220,7 +220,7 @@ CommandReply CommandAdapter::handle(std::string_view command, const Authorizatio
     } else if (operation == "apply") {
         const auto generation_value = root->get("expected_generation");
         std::uint64_t generation = 0;
-        if (!wtp::json::fields(*root, {"version", "operation", "request_id", "session_id",
+        if (!execution::json::fields(*root, {"version", "operation", "request_id", "session_id",
                                        "device_id", "expected_generation"}) ||
             !generation_value || !integer(*generation_value, generation))
             result = invalid(manager_);
@@ -228,7 +228,7 @@ CommandReply CommandAdapter::handle(std::string_view command, const Authorizatio
             result = manager_.apply(request_id, session_id, generation, activity, transport_,
                                     authorization, now_ms);
     } else if (operation == "cancel") {
-        if (!wtp::json::fields(*root,
+        if (!execution::json::fields(*root,
                                {"version", "operation", "request_id", "session_id", "device_id"}))
             result = invalid(manager_);
         else

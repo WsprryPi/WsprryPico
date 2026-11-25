@@ -3,7 +3,7 @@
 #include "mbedtls/chachapoly.h"
 #include "mbedtls/hkdf.h"
 #include "mbedtls/md.h"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <array>
@@ -79,8 +79,8 @@ bool PicoConsumerRadioCrypto::begin_for_test(std::span<const std::uint8_t, 32> k
 }
 #endif
 
-std::optional<wtp::InputView>
-PicoConsumerRadioCrypto::decrypt(wtp::FrameBuffer& packet, const ConsumerRadioBinding& binding,
+std::optional<execution::InputView>
+PicoConsumerRadioCrypto::decrypt(execution::FrameBuffer& packet, const ConsumerRadioBinding& binding,
                                  std::uint64_t sequence, std::span<const std::uint8_t, 32> key) {
     if (!consumer_radio_header_matches(packet.view(), binding.session, sequence))
         return {};
@@ -118,7 +118,7 @@ PicoConsumerRadioCrypto::decrypt(wtp::FrameBuffer& packet, const ConsumerRadioBi
     }
     return packet.view().substr(consumer_radio_header_bytes, size);
 }
-bool PicoConsumerRadioCrypto::authenticate(wtp::FrameBuffer& packet,
+bool PicoConsumerRadioCrypto::authenticate(execution::FrameBuffer& packet,
                                            const ConsumerRadioBinding& binding,
                                            std::string_view password) {
     if (!private_key_ || password.size() < 8 || password.size() > 63 ||
@@ -137,7 +137,7 @@ bool PicoConsumerRadioCrypto::authenticate(wtp::FrameBuffer& packet,
                  std::any_of(shared.begin(), shared.end(), [](std::uint8_t b) { return b; });
     valid = (psa_destroy_key(private_key_) == PSA_SUCCESS) && valid;
     private_key_ = 0;
-    auto password_hash = wtp::sha256(
+    auto password_hash = execution::sha256(
         std::span(reinterpret_cast<const std::uint8_t*>(password.data()), password.size()));
     std::copy(shared.begin(), shared.end(), secret.begin());
     std::copy(password_hash.begin(), password_hash.end(), secret.begin() + 32);
@@ -174,7 +174,7 @@ bool PicoConsumerRadioCrypto::authenticate(wtp::FrameBuffer& packet,
         clear();
     return valid;
 }
-std::optional<wtp::InputView> PicoConsumerRadioCrypto::open(wtp::FrameBuffer& packet,
+std::optional<execution::InputView> PicoConsumerRadioCrypto::open(execution::FrameBuffer& packet,
                                                             const ConsumerRadioBinding& binding,
                                                             std::uint64_t sequence) {
     if (!authenticated_ || !sequence || transcript_hash_ != consumer_radio_digest(binding))
@@ -182,7 +182,7 @@ std::optional<wtp::InputView> PicoConsumerRadioCrypto::open(wtp::FrameBuffer& pa
     return decrypt(packet, binding, sequence, request_key_);
 }
 std::optional<HttpResponse>
-PicoConsumerRadioCrypto::seal_parts(std::span<const wtp::InputView> plaintext,
+PicoConsumerRadioCrypto::seal_parts(std::span<const execution::InputView> plaintext,
                                     const ConsumerRadioBinding& binding, std::uint64_t sequence) {
     std::size_t size = 0;
     for (const auto part : plaintext) {
@@ -227,7 +227,7 @@ PicoConsumerRadioCrypto::seal_parts(std::span<const wtp::InputView> plaintext,
     return response;
 }
 std::optional<HttpResponse>
-PicoConsumerRadioCrypto::seal_buffer(wtp::OutputBuffer plaintext,
+PicoConsumerRadioCrypto::seal_buffer(execution::OutputBuffer plaintext,
                                      const ConsumerRadioBinding& binding, std::uint64_t sequence) {
     const auto size = plaintext.size();
     if (!authenticated_ ||
@@ -259,9 +259,9 @@ PicoConsumerRadioCrypto::seal_buffer(wtp::OutputBuffer plaintext,
     return HttpResponse{200, "", "application/octet-stream", {}, std::move(plaintext)};
 }
 namespace {
-class CipherResponseSource final : public wtp::ResponseSource {
+class CipherResponseSource final : public execution::ResponseSource {
   public:
-    CipherResponseSource(wtp::ResponseSourcePtr plaintext, std::span<const std::uint8_t, 32> key,
+    CipherResponseSource(execution::ResponseSourcePtr plaintext, std::span<const std::uint8_t, 32> key,
                          const ConsumerRadioBinding& binding, std::uint64_t sequence)
         : plaintext_(std::move(plaintext)),
           header_(consumer_radio_header(binding.session, sequence)) {
@@ -329,7 +329,7 @@ class CipherResponseSource final : public wtp::ResponseSource {
     }
 
   private:
-    wtp::ResponseSourcePtr plaintext_;
+    execution::ResponseSourcePtr plaintext_;
     std::array<std::uint8_t, consumer_radio_header_bytes> header_;
     mutable std::array<std::uint8_t, consumer_radio_tag_bytes> tag_{};
     mutable mbedtls_chachapoly_context context_{};
@@ -338,12 +338,12 @@ class CipherResponseSource final : public wtp::ResponseSource {
 };
 } // namespace
 std::optional<HttpResponse>
-PicoConsumerRadioCrypto::seal_source(wtp::ResponseSourcePtr plaintext,
+PicoConsumerRadioCrypto::seal_source(execution::ResponseSourcePtr plaintext,
                                      const ConsumerRadioBinding& binding, std::uint64_t sequence) {
     if (!plaintext || !authenticated_ || transcript_hash_ != consumer_radio_digest(binding) ||
         plaintext->size() > max_http_body - consumer_radio_header_bytes - consumer_radio_tag_bytes)
         return {};
-    auto source = wtp::make_response_source<CipherResponseSource>(std::move(plaintext),
+    auto source = execution::make_response_source<CipherResponseSource>(std::move(plaintext),
                                                                   response_key_, binding, sequence);
     if (!source || !source->valid())
         return {};

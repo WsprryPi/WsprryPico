@@ -2,14 +2,14 @@
 
 #include "network/identity.hpp"
 #include "standalone/config.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <charconv>
 
 namespace wsprrypico::provisioning {
 namespace {
-bool string_field(const std::optional<wtp::json::Value>& value) {
+bool string_field(const std::optional<execution::json::Value>& value) {
     return value && value->type() == '"';
 }
 bool pem(std::string_view text, std::string_view begin, std::string_view end, std::size_t maximum) {
@@ -85,7 +85,7 @@ CredentialMaterial credentials(const Profile& profile) {
 }
 
 std::optional<Profile> parse_profile(std::string_view text) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (text.empty() || text.size() > max_profile_bytes)
         return {};
     auto root = parse(text);

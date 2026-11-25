@@ -196,7 +196,6 @@ with process_scope(timeout=80):
         assert http(headers={'Origin': 'https://evil.local:18443'})[0] == 403
         caps = json.loads(http('/api/control/v1/capabilities')[2])
         assert caps['active_execution_connections'] and caps['max_network_connections'] == 2
-        assert 'max_wtp_connections' not in caps and 'wtp' not in caps and 'jobs' not in caps['features']
         assert caps['execution']['max_events']==512
         for fragmented in (False, True):
             control('WRITE FRAGMENT' if fragmented else 'WRITE NORMAL')
@@ -331,7 +330,7 @@ with process_scope(timeout=80):
             except (ssl.SSLError, ConnectionError): pass
         control('CLOCK ON')
         assert http()[0] == 200
-        # A plaintext client never reaches HTTP or WTP dispatch.
+        # A plaintext client never reaches HTTP dispatch.
         admitted_before_plaintext = state()['admitted']
         with connect_socket(('127.0.0.1',18443),deadline=process.deadline,timeout=3) as raw:
             raw.sendall(b'GET / HTTP/1.1\r\nHost: 127.0.0.1:18443\r\n\r\n')
@@ -348,14 +347,11 @@ with process_scope(timeout=80):
         released()
         assert http()[0] == 200
         try:
-            with connect(context(protocols=('wtp/1',))):
-                raise AssertionError('Retired ALPN admitted')
+            with connect(context(protocols=('h2',))):
+                raise AssertionError('Unsupported ALPN admitted')
         except ssl.SSLError:
             pass
         released()
-        for method in ('GET','POST','PUT'):
-            for path in ('jobs','jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/abort','jobs/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'):
-                assert http('/api/control/v1/'+path,method,{} if method!='GET' else None)[0]==404
         def native(operation):
             control('NATIVE '+operation)
             assert controls.line().strip()=='NATIVE '+operation+' 1'

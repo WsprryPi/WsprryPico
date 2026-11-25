@@ -303,7 +303,7 @@ class BundleTests(unittest.TestCase):
         self.source = subprocess.check_output(['git', '-C', str(ROOT), 'rev-parse', 'HEAD'], text=True).strip()
         self.version = '0.1.0-ci.1.1'
         self.checks = dict(registered=1, passed=1, failed=0, skipped=0, test_names=['fixture'],
-                           wtp_contract='passed', browser_npm='passed', packaging_failure_tests='passed',
+                           control_policy='passed', browser_npm='passed', packaging_failure_tests='passed',
                            consumer_ui='passed', compatibility_rf='passed', inhibited_regression='passed',
                            reproducibility='identical', historical_evidence_skips=[])
         pins = bundle.read_json(ROOT / 'scripts/ci/inputs.json')
@@ -499,8 +499,12 @@ class BundleTests(unittest.TestCase):
     def test_ordinary_bundle_keeps_installer_schema_interpreter_compatibility(self):
         sys.path.insert(0, str(ROOT / 'scripts'))
         import usb_installer
-        usb_installer.schema_check(bundle.read_json(self.deploy / 'release-manifest.json'),
-                                   bundle.read_json(bundle.SCHEMA))
+        manifest = bundle.read_json(self.deploy / 'release-manifest.json')
+        schema = bundle.read_json(bundle.SCHEMA)
+        usb_installer.schema_check(manifest, schema)
+        del manifest['checks']['control_policy']
+        with self.assertRaisesRegex(usb_installer.Refusal, 'Missing manifest field'):
+            usb_installer.schema_check(manifest, schema)
 
     def test_tampered_payload_and_checksum_file_fail(self):
         uf2 = next(self.deploy.glob('*.uf2'))

@@ -1,6 +1,6 @@
 #pragma once
 #include "standalone/storage.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <array>
 
@@ -11,7 +11,7 @@ inline constexpr std::array<std::string_view, 11> progress_fields{
     "callsign", "locator",          "power_dbm", "enabled",  "schedules",    "expires_utc_s",
     "pins",     "frequency_policy", "wifi",      "ntp_ipv4", "gpio_drive_ma"};
 inline constexpr std::size_t max_progress_bytes = 1400;
-bool valid_progress_field(std::string_view name, wtp::json::Value value);
+bool valid_progress_field(std::string_view name, execution::json::Value value);
 class Progress {
   public:
     explicit Progress(Flash& flash) : flash_(flash), journal_(flash, 0, 2048) {}
@@ -19,7 +19,7 @@ class Progress {
     bool erase();
     // Caller validates the envelope, authority and common revision first.
     // Empty optional means no verified commit; never report field success then.
-    std::optional<std::string> save(wtp::json::Value fields, std::string_view receipt);
+    std::optional<std::string> save(execution::json::Value fields, std::string_view receipt);
     std::string fields(bool redacted = true, bool station_only = false, bool drive = true,
                        bool amplifier_view = false) const;
     std::string station_fields(const std::optional<Config>& applied) const;

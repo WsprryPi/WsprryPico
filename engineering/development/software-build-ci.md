@@ -18,7 +18,7 @@ All current firmware help links use the `devel` operator manual. `main` is absen
 
 [`scripts/ci/requirements.txt`](../../scripts/ci/requirements.txt) contains exact host-tool/test versions and official PyPI artifact hashes. Python/Node versions are pinned; npm uses the checked-in lockfile. Runner image/version, host compiler, OpenSSL, Chrome, CMake/Ninja, Python/Node, and installed package versions are recorded. Host/compiler/system libraries supplied by the named runner image are inventoried rather than claimed to be a byte-reproducible container.
 
-[`scripts/ci/run.py`](../../scripts/ci/run.py) is the executable recipe. It supplies TinyUSB, BTstack, lwIP, CYW43, Mbed TLS, and the exact reviewed companion source to optional SDK-backed host tests, supplies the pinned Harness source for offline analysis, installs npm dependencies before CTest, and checks that the expected source test inventory was registered. Missing Node/Python modules or the compiled endpoint fixture fail CI. All registered CTest cases must execute successfully. WTP contract validation, npm browser tests, real consumer frequency UI checks, and packaging failure tests are additional required gates.
+[`scripts/ci/run.py`](../../scripts/ci/run.py) is the executable recipe. It supplies TinyUSB, BTstack, lwIP, CYW43, Mbed TLS, and the exact reviewed companion source to optional SDK-backed host tests, supplies the pinned Harness source for offline analysis, installs npm dependencies before CTest, and checks that the expected source test inventory was registered. Missing runtime modules or required test fixtures fail CI. All registered CTest cases must execute successfully. Control lifecycle policy validation, npm browser tests, real consumer frequency UI checks, and packaging failure tests are additional required gates.
 
 Current CI requires the exact registered CTest inventory and rejects failed, cancelled, skipped, empty, duplicate, truncated, or incomplete framework execution. Python assertion-based checks refuse optimized Python. The verifier retains the exact [legacy test skip reasons](../../scripts/ci/legacy-test-skip-reasons.json) only to verify already-published images whose frozen source registered evidence-only tests. Current builds record an empty legacy skip inventory. Hardware acceptance remains separate from these software checks.
 
@@ -30,7 +30,7 @@ Local checks remain documented in [the development commands](README.md#determini
 
 ## Canonical bundle and retention
 
-The current deployment manifest uses [schema version 2](../../scripts/ci/release-manifest-2.schema.json). Older [version 1](../../scripts/ci/release-manifest-1.schema.json) bundles remain readable with their frozen producer rules. The canonical `release-manifest.json` describes the deployment payload for CI and preserved firmware bundles. Deployment, settings/control, WTP, transport, and storage versions are independent. The inhibited candidate-fixture manifest is a different contract.
+The current deployment manifest uses [schema version 2](../../scripts/ci/release-manifest-2.schema.json). The canonical `release-manifest.json` describes the deployment payload for CI and preserved firmware bundles. Deployment, settings/control, transport, and storage versions are independent. The inhibited candidate-fixture manifest is a different contract.
 
 The deployment allowlist is exactly:
 

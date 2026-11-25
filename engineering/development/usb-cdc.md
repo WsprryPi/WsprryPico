@@ -1,6 +1,6 @@
 # USB CDC transport roles
 
-Console provides bounded line administration and UTF-8/JSON diagnostics. USB-Management/1 provides independent framed management/time requests. Logging has its own diagnostic stream. Application firmware exposes no WTP parser or response on the Reserved allocation. RFBench alone uses its separate non-WTP Commands protocol there.
+Console provides bounded line administration and UTF-8/JSON diagnostics. USB-Management/1 provides independent framed management/time requests. Logging has its own diagnostic stream. Application firmware leaves the Reserved allocation inactive. RFBench uses that allocation for its Commands interface.
 
 ## Identity and ownership
 
@@ -11,7 +11,7 @@ Console provides bounded line administration and UTF-8/JSON diagnostics. USB-Man
 | Management | 2 | 4 | 5 |
 | Logging | 3 | 6 | 7 |
 
-Manufacturer WsprryPi, product WsprryPico, board-derived serial, development VID/PID cafe:4012, and endpoint addresses remain stable. Addresses are Console 81/02/82, Reserved 83/04/84, Management 85/06/86, and Logging 87/08/88 (notification/OUT/IN). This is not a production VID/PID allocation. Role strings belong to control interfaces. Identify roles by exact physical USB parent, serial, VID/PID, control-interface number, and current management handshake; tty order and friendly names are not identity. USB serial and full control device ID are distinct. Discover Management directly without a WTP sibling, and never probe Console as a fallback.
+Manufacturer WsprryPi, product WsprryPico, board-derived serial, development VID/PID cafe:4012, and endpoint addresses remain stable. Addresses are Console 81/02/82, Reserved 83/04/84, Management 85/06/86, and Logging 87/08/88 (notification/OUT/IN). This is not a production VID/PID allocation. Role strings belong to control interfaces. Identify roles by exact physical USB parent, serial, VID/PID, control-interface number, and current management handshake; tty order and friendly names are not identity. USB serial and full control device ID are distinct. Discover Management directly using its own interface.
 
 ## Bounds and servicing
 

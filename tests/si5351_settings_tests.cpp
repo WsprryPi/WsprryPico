@@ -3,7 +3,7 @@
 #include "network_support.hpp"
 #include "rf/si5351_observation.hpp"
 #include "standalone/frequency_policy_engine.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 
 #include <iostream>
 
@@ -201,11 +201,11 @@ int main(int argc, char** argv) {
         if (matched_profile)
             config.si5351->synthesis.drive_ma = 8;
         REQUIRE(f.store.save(config));
-        const auto service_policy = standalone::wtp_profile(
+        const auto service_policy = standalone::execution_profile(
             matched_profile, standalone::default_ntp_timeout_s,
             hardware::PinPlan::Engine::I2c, false,
             hardware::si5351_ordinary_qualified(config.pins, *config.si5351, rf::sample_rate));
-        wtp::JobService service(f.clock, f.engine, f.identities, service_policy);
+        execution::JobService service(f.clock, f.engine, f.identities, service_policy);
         standalone::Scheduler scheduler(f.store, service);
         network::BrowserApi api(service, f.store, scheduler, f.network, std::string(32, 'a'),
                                 "test");

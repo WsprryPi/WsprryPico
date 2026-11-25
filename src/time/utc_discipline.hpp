@@ -1,7 +1,7 @@
 #pragma once
 
 #include "time/observation.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 namespace wsprrypico::time {
 
@@ -19,15 +19,15 @@ struct DisciplineConfig {
     bool unlimited_ntp_holdover = false; // Retain an accepted NTP anchor without age expiry.
 };
 
-class UtcDiscipline final : public wtp::Clock, public ObservationSink {
+class UtcDiscipline final : public execution::Clock, public ObservationSink {
   public:
     using MonotonicNow = std::uint64_t (*)(void*);
     UtcDiscipline(MonotonicNow now, void* context, DisciplineConfig config = {});
     bool observe(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
-                 std::uint64_t uncertainty_ns, wtp::LeapState leap,
+                 std::uint64_t uncertainty_ns, execution::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns = {});
     bool observe(ObservationSource source, std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
-                 std::uint64_t uncertainty_ns, wtp::LeapState leap,
+                 std::uint64_t uncertainty_ns, execution::LeapState leap,
                  std::optional<std::uint64_t> leap_transition_utc_ns, std::string_view) override {
         if (source == ObservationSource::Gps)
             return false;
@@ -39,13 +39,13 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     bool observe_rate(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
                       std::uint64_t uncertainty_ns, std::int32_t rate_ppb,
                       std::uint32_t rate_uncertainty_ppb, std::uint64_t generation) override;
-    bool observe_ntp_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+    bool observe_ntp_model(const RateObservation& source, const execution::ClockSnapshot& model,
                            std::uint32_t max_clock_error_ppb) override;
-    bool observe_reference_model(const RateObservation& source, const wtp::ClockSnapshot& model,
+    bool observe_reference_model(const RateObservation& source, const execution::ClockSnapshot& model,
                                  std::uint32_t max_clock_error_ppb) override;
     bool browser_time_available() const {
         const auto value = snapshot();
-        return value.state == wtp::ClockState::Unsynchronized;
+        return value.state == execution::ClockState::Unsynchronized;
     }
     // Change only the slope of an accepted browser epoch. Preserve its UTC
     // continuity, accumulated uncertainty and original source age.
@@ -55,13 +55,13 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
         if (source == observation_source_)
             invalidate();
     }
-    [[nodiscard]] wtp::ClockSnapshot snapshot() const override;
+    [[nodiscard]] execution::ClockSnapshot snapshot() const override;
 
   private:
-    bool import_model(ObservationSource kind, const RateObservation&, const wtp::ClockSnapshot&,
+    bool import_model(ObservationSource kind, const RateObservation&, const execution::ClockSnapshot&,
                       std::uint32_t max_clock_error_ppb);
     bool accept(std::uint64_t utc, std::uint64_t raw, std::uint64_t uncertainty,
-                wtp::LeapState leap, std::optional<std::uint64_t> transition,
+                execution::LeapState leap, std::optional<std::uint64_t> transition,
                 std::uint64_t maximum_age);
     MonotonicNow now_;
     void* context_;
@@ -72,7 +72,7 @@ class UtcDiscipline final : public wtp::Clock, public ObservationSink {
     std::int32_t rate_ppb_ = 0;
     std::uint32_t rate_uncertainty_ppb_ = 0;
     std::uint64_t generation_ = 0;
-    wtp::LeapState leap_ = wtp::LeapState::Unknown;
+    execution::LeapState leap_ = execution::LeapState::Unknown;
     std::optional<std::uint64_t> leap_transition_utc_ns_;
     bool imported_ntp_ = false, browser_rate_model_ = false;
     ObservationSource observation_source_ = ObservationSource::Sntp;

@@ -84,9 +84,9 @@ struct Test {
         f.api.local_usb_settings(settings);
     }
     std::string envelope(std::string_view schema, std::string_view field, std::string_view value) {
-        return "{\"schema\":" + wtp::json::quote(schema) +
+        return "{\"schema\":" + execution::json::quote(schema) +
                ",\"target\":" + application::target(device, f.service.status().boot_id) + ',' +
-               wtp::json::quote(field) + ':' + std::string(value) + '}';
+               execution::json::quote(field) + ':' + std::string(value) + '}';
     }
     network::HttpResponse request(std::string method, std::string path, std::string body = {},
                                   std::string rev = "current") {
@@ -123,17 +123,17 @@ void blank_usb_workflow() {
     REQUIRE(t.runtime.consumer_profile()->callsign.empty());
     const auto blank_app = t.request("GET", "/api/control/v1/application");
     REQUIRE(blank_app.status == 200);
-    const auto blank_json = wtp::json::parse(blank_app.body_view());
+    const auto blank_json = execution::json::parse(blank_app.body_view());
     REQUIRE(blank_json && blank_json->get("station")->get("station")->raw == "null");
     REQUIRE(!blank_json->get("capabilities")->get("management_carrier"));
     REQUIRE(std::string(blank_json->get("capabilities")->get("unavailable")->raw)
                 .find("usb_json_management") == std::string::npos);
     const auto usb_caps = t.request("GET", "/api/control/v1/capabilities");
-    const auto usb_caps_json = wtp::json::parse(usb_caps.body_view());
+    const auto usb_caps_json = execution::json::parse(usb_caps.body_view());
     REQUIRE(usb_caps_json &&
             !usb_caps_json->get("application_resources")->get("management_carrier"));
     const auto management = t.request("GET", "/api/control/v1/management");
-    const auto management_json = wtp::json::parse(management.body_view());
+    const auto management_json = execution::json::parse(management.body_view());
     REQUIRE(management_json && usb_caps_json->get("management_carriers")->get("schema")->string() ==
                                    management_json->get("schema")->string());
     REQUIRE(management_json->get("limits")->get("idle_ms")->raw == "1800000");
@@ -200,10 +200,10 @@ void preserves_state_and_network_policy() {
     REQUIRE(t.wifi("null").status == 200);
     REQUIRE(t.f.scheduler.reboot_required());
     const auto shared_app = t.request("GET", "/api/control/v1/application");
-    const auto app_json = wtp::json::parse(shared_app.body_view());
+    const auto app_json = execution::json::parse(shared_app.body_view());
     REQUIRE(app_json && app_json->get("reboot_required")->raw == "true");
     const auto shared_status = t.request("GET", "/api/control/v1/status");
-    const auto status_json = wtp::json::parse(shared_status.body_view());
+    const auto status_json = execution::json::parse(shared_status.body_view());
     REQUIRE(status_json && status_json->get("standalone")->get("reboot_required")->raw == "true");
     REQUIRE(t.request("POST", "/api/control/v1/config/update", network_test::configuration_update(standalone::serialize_config(*t.f.store.config())))
                 .status == 200);
@@ -320,7 +320,7 @@ void saved_progress_explicit_usb_application() {
     REQUIRE(save(R"({"callsign":"AA0NT"})").status == 200);
     REQUIRE(!t.f.store.config());
     const auto incomplete = t.request("GET", "/api/control/v1/progress");
-    const auto incomplete_json = wtp::json::parse(incomplete.body_view());
+    const auto incomplete_json = execution::json::parse(incomplete.body_view());
     REQUIRE(incomplete_json && incomplete_json->get("station_complete")->raw == "false");
     REQUIRE(incomplete_json->get("applied_station")->raw == "null");
     REQUIRE(save(R"({"locator":"EM18","power_dbm":20})").status == 200);
@@ -333,7 +333,7 @@ void saved_progress_explicit_usb_application() {
     const auto observed = t.f.api.handle(network_test::control_request(read), "network-consumer", "127.0.0.1", 99,
                                          network::ManagementCarrier::ConsumerStation);
     REQUIRE(observed.status == 200);
-    const auto observed_json = wtp::json::parse(observed.body_view());
+    const auto observed_json = execution::json::parse(observed.body_view());
     REQUIRE(observed_json && observed_json->get("station_complete")->raw == "true");
     REQUIRE(observed_json->get("applied_station")->raw == "null");
     t.f.scheduler.poll();
@@ -341,7 +341,7 @@ void saved_progress_explicit_usb_application() {
     REQUIRE(t.profiles.data() == before_apply_profile);
     const auto application = [&](std::string_view revision) {
         return t.envelope("progress", "application",
-                          "{\"draft_revision\":" + wtp::json::quote(revision) +
+                          "{\"draft_revision\":" + execution::json::quote(revision) +
                               ",\"domain\":\"station\"}");
     };
     REQUIRE(t.request("POST", "/api/control/v1/progress/apply", application("0")).status == 400);

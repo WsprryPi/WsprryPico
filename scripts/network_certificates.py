@@ -140,7 +140,7 @@ def server_identity(args):
     if len(addresses) > 4 or len(set(addresses)) != len(addresses):
         raise ValueError('Use at most four distinct IPv4 SANs')
     if (args.hostname or args.mac_address) and not args.device_id:
-        raise ValueError('--hostname and --mac-address require the stable WTP --device-id')
+        raise ValueError('--hostname and --mac-address require the stable Pico --device-id')
     if args.device_id and not args.hostname and not args.mac_address:
         raise ValueError('Default hostname requires observed --mac-address; use --hostname for an explicit alias')
     selected = args.hostname or ('wpico-' + args.mac_address.replace(':', '')[-4:] + '.local'
@@ -189,7 +189,7 @@ def main(argv=None):
     init = commands.add_parser('init', help='Create one device CA and initial server build bundle')
     init.add_argument('--directory', required=True)
     init.add_argument('--device', type=name, help='Optional descriptive label; required for legacy IP-only deployment')
-    client = commands.add_parser('issue-client', help='Issue a separate identity for a browser or WTP controller')
+    client = commands.add_parser('issue-client', help='Issue a separate identity for a browser or management client')
     client.add_argument('--ca-directory', required=True)
     client.add_argument('--name', type=name, required=True)
     client.add_argument('--output', required=True)
@@ -198,7 +198,7 @@ def main(argv=None):
     renew.add_argument('--device', type=name)
     renew.add_argument('--output', required=True)
     for command in (init, renew):
-        command.add_argument('--device-id', type=device_id, help='Stable WTP device identity from existing INFO/HELLO')
+        command.add_argument('--device-id', type=device_id, help='Stable Pico device identity from Console INFO')
         command.add_argument('--hostname', type=hostname, help='Optional deliberate build-time .local alias')
         command.add_argument('--mac-address', type=mac_address, help='Observed Wi-Fi station MAC; required for the default short hostname')
         command.add_argument('--address', type=ipaddress.IPv4Address, action='append', help='Optional explicit IPv4 SAN; repeat up to four times')

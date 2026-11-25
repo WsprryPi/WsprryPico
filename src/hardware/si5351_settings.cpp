@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "hardware/si5351_settings.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <charconv>
 
@@ -32,7 +32,7 @@ std::string validate_si5351_settings(const Si5351Settings& settings) {
     return {};
 }
 namespace {
-template <class T> bool integer(wtp::json::Value value, T& result) {
+template <class T> bool integer(execution::json::Value value, T& result) {
     if (value.raw.size() > 11)
         return false;
     const std::string raw(value.raw);
@@ -47,7 +47,7 @@ template <class T> std::string optional_number(const std::optional<T>& value) {
 }
 } // namespace
 std::optional<Si5351Settings> parse_si5351(std::string_view text) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (text.size() > 768)
         return {};
     const auto root = parse(text);
@@ -127,7 +127,7 @@ std::optional<Si5351Settings> parse_si5351(std::string_view text) {
 std::string serialize_si5351(const Si5351Settings& settings) {
     const auto& c = settings.synthesis;
     return "{\"reference_hz\":" + std::to_string(c.reference_hz) + ",\"reference_source\":" +
-           wtp::json::quote(c.reference == rf::si5351::Reference::Crystal ? "crystal"
+           execution::json::quote(c.reference == rf::si5351::Reference::Crystal ? "crystal"
                                                                           : "external_xa") +
            ",\"crystal_load_pf\":" + optional_number(c.crystal_load_pf) +
            ",\"address\":" + std::to_string(settings.address) +
@@ -139,7 +139,7 @@ std::string serialize_si5351(const Si5351Settings& settings) {
            ",\"rf_gate_gp\":" + optional_number(settings.gate) +
            ",\"rf_gate_active_high\":" + (settings.gate_active_high ? "true" : "false") +
            ",\"reference_use\":" +
-           wtp::json::quote(settings.reference_use == rf::ReferenceUse::MeasurementOnly
+           execution::json::quote(settings.reference_use == rf::ReferenceUse::MeasurementOnly
                                 ? "measurement_only"
                                 : "trusted_local") +
            ",\"trusted_uncertainty_ppb\":" + optional_number(settings.trusted_uncertainty_ppb) +

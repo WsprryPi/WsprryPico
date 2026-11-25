@@ -1,13 +1,13 @@
 #pragma once
 #include "encoding/wspr.hpp"
 #include "standalone/storage.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 #include "time/gps_calibration.hpp"
 
 namespace wsprrypico::standalone {
 class Scheduler {
   public:
-    Scheduler(Store& store, wtp::JobService& service);
+    Scheduler(Store& store, execution::JobService& service);
     void poll();
     void gps_position(std::optional<time::gps::Position> position) { gps_position_ = position; }
     std::optional<Config> station_snapshot(const Config&) const;
@@ -44,7 +44,7 @@ class Scheduler {
     void message_saved(bool resume = false) {
         message_pause_pending_ = false;
         message_recovery_required_ = false;
-        message_error_ = wtp::ErrorCode::None;
+        message_error_ = execution::ErrorCode::None;
         if (resume) {
             suspended_ = false;
             native_stop_suspended_ = false;
@@ -106,14 +106,14 @@ class Scheduler {
     // Console CONFIG and all transmission-setting writes retain full prerequisites.
     enum class ConfigPurpose { General, Hardware, Drive };
     std::string command(std::string_view line, ConfigPurpose purpose = ConfigPurpose::General);
-    std::string status(const wtp::ServiceStatus* observation = nullptr) const;
+    std::string status(const execution::ServiceStatus* observation = nullptr) const;
 
   private:
     bool poll_message();
     bool finish_message_pause();
     bool prepare_frame(const encoding::WsprFrame& frame, std::uint64_t slot,
                        const std::array<std::uint64_t, 4>& tones);
-    void cancel_pair(wtp::ErrorCode reason);
+    void cancel_pair(execution::ErrorCode reason);
     void poll_pair();
     enum class GraySelection { Ordinary, Morning, Evening, LocationUnavailable, TimeUnavailable };
     GraySelection gray_selection(std::uint64_t utc_ns, std::uint64_t raw_ns) const;
@@ -126,14 +126,14 @@ class Scheduler {
     bool daylight_allowed(std::uint64_t utc_ns, std::uint64_t raw_ns) const {
         return beacon_window(utc_ns, raw_ns) == BeaconWindow::Open;
     }
-    std::optional<std::uint64_t> next_message_candidate(const wtp::ClockSnapshot&) const;
+    std::optional<std::uint64_t> next_message_candidate(const execution::ClockSnapshot&) const;
     std::optional<time::gps::Position> gps_position_;
     std::optional<TransmissionStation> prepared_station_;
     struct Pair {
         encoding::WsprPlan plan;
         std::uint64_t second_slot, config_sequence, renew_at, anchor_utc, anchor_monotonic,
             anchor_uncertainty;
-        wtp::ClockSnapshot mapping;
+        execution::ClockSnapshot mapping;
         std::array<std::uint64_t, 4> tones;
         unsigned frame = 0;
     };
@@ -141,22 +141,22 @@ class Scheduler {
     unsigned last_frame_ = 0, last_frame_count_ = 0;
     std::size_t last_load_free_before_ = 0, last_load_free_after_ = 0;
     unsigned last_load_stage_ = 0;
-    wtp::Response request(std::string_view operation, wtp::RequestBody body = {});
+    execution::Response request(std::string_view operation, execution::RequestBody body = {});
     Store& store_;
-    wtp::JobService& service_;
+    execution::JobService& service_;
     std::uint64_t sequence_ = 0;
-    wtp::ErrorCode last_error_ = wtp::ErrorCode::None;
+    execution::ErrorCode last_error_ = execution::ErrorCode::None;
     std::string last_job_;
     std::optional<std::string> message_job_;
     std::string last_message_job_, last_message_result_;
     bool message_pause_pending_ = false, message_recovery_required_ = false;
-    wtp::ErrorCode message_error_ = wtp::ErrorCode::None;
+    execution::ErrorCode message_error_ = execution::ErrorCode::None;
     bool reboot_required_ = false, suspended_ = false, pin_restart_required_ = false;
     bool native_stop_suspended_ = false;
     bool external_network_restart_required_ = false;
     bool boot_configured_ = false;
     bool hardware_application_failed_ = false;
-    std::optional<wtp::PayloadDigest> active_network_;
+    std::optional<execution::PayloadDigest> active_network_;
     hardware::PinPlan active_pins_ = factory_config().pins;
     std::optional<hardware::Si5351Settings> active_si5351_;
     std::optional<hardware::GpsSettings> active_gps_;

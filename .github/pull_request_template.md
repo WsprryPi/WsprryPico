@@ -9,5 +9,5 @@ State skipped checks and material limitations. -->
 
 ## Compatibility and documentation
 
-<!-- Note WTP/browser API changes, board/engine scope, dependencies and affected docs.
+<!-- Note Control API changes, board/engine scope, dependencies and affected docs.
 Remove this section when it does not apply. -->

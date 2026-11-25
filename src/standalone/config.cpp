@@ -3,7 +3,7 @@
 #include "application/frequency_policy.hpp"
 #include "encoding/wspr.hpp"
 #include "rf/calibration.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -36,7 +36,7 @@ bool ipv4(std::string_view text) {
     }
     return first > 0 && first < 224 && first != 127;
 }
-bool integer(wtp::json::Value value, std::uint32_t& n) {
+bool integer(execution::json::Value value, std::uint32_t& n) {
     if ((value.type() < '0' || value.type() > '9') || value.raw.empty())
         return false;
     if (value.raw.size() > 10)
@@ -75,7 +75,7 @@ std::string validate_rf_configuration(const Config& config,
     }
     return hardware::validate_filters(filters, config.pins);
 }
-bool valid_ntp_timeout_token(wtp::json::Value value, bool unlimited) {
+bool valid_ntp_timeout_token(execution::json::Value value, bool unlimited) {
     std::uint32_t seconds = 0;
     return integer(value, seconds) && std::to_string(seconds) == value.raw &&
            ((unlimited && seconds == 0) || seconds >= minimum_ntp_timeout_s) &&
@@ -93,7 +93,7 @@ std::optional<std::array<std::uint64_t, 4>> wspr_tones(std::uint64_t dial_hz) {
         tones[k] = tone0 + k * spacing_nhz;
     return tones;
 }
-bool valid_wspr_frequency_token(wtp::json::Value value) {
+bool valid_wspr_frequency_token(execution::json::Value value) {
     std::uint32_t frequency = 0;
     return integer(value, frequency) && std::to_string(frequency) == value.raw &&
            frequency >= minimum_wspr_dial_hz && frequency <= maximum_wspr_dial_hz;
@@ -113,7 +113,7 @@ bool wspr_frequency_allowed(const Config& config, std::uint64_t minimum_nhz,
     }
     return true;
 }
-bool valid_gpio_drive_token(wtp::json::Value value) {
+bool valid_gpio_drive_token(execution::json::Value value) {
     return value.raw == "2" || value.raw == "4" || value.raw == "8" || value.raw == "12";
 }
 bool gray_line_frequency_update_allowed(const Config& candidate, const Config* current,
@@ -188,7 +188,7 @@ bool valid_wifi_credentials(std::string_view ssid, std::string_view password,
     return printable(ssid, 1, 32) && printable(password, 8, 63) && valid_time_server(time_server);
 }
 std::optional<Config> parse_config(std::string_view text) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (text.size() > max_config_bytes)
         return {};
     auto root = parse(text);
@@ -348,7 +348,7 @@ std::optional<Config> parse_config(std::string_view text) {
     return c;
 }
 std::string serialize_config(const Config& c, bool amplifier_view) {
-    using wtp::json::quote;
+    using execution::json::quote;
     std::string result =
         "{\"version\":" + std::string(c.ntp_timeout_s == 0 ? "2" : "1") +
         ",\"enabled\":" + std::string(c.enabled ? "true" : "false") +

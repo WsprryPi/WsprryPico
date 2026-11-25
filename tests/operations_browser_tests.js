@@ -80,7 +80,7 @@ function recurring(v) {
   assert.equal(ops.model(progress,compactCaps,'x').progress,'Armed · 08:00 UTC');
   progress.accepted.start_utc_ns='1800000000123456789';
   assert.equal(ops.model(progress,compactCaps,'x').progress,'Armed · 08:00:00.123456789 UTC','non-minute starts retain their exact time');
-  const codes=JSON.parse(fs.readFileSync(__dirname+'/../engineering/protocol/wtp-1.schema.json','utf8')).$defs.errorCode.enum;
+  const codes=JSON.parse(fs.readFileSync(__dirname+'/../engineering/protocol/control-1.schema.json','utf8')).$defs['execution-core'].$defs.errorCode.enum;
   for(const code of codes) assert(ops.validError({code,message:code,retryable:false}));
   for(const invalid of [undefined,[],{}, {code:'invented',message:'x',retryable:false},
     {code:'INTERNAL_ERROR',message:'',retryable:false}, {code:'INTERNAL_ERROR',message:'x',retryable:1},
@@ -90,7 +90,7 @@ function recurring(v) {
     {code:'INTERNAL_ERROR',message:'x',retryable:false,detail:[]}]) assert.equal(ops.validError(invalid),false);
   assert(ops.validError({code:'INTERNAL_ERROR',message:'é'.repeat(128),retryable:false,detail:{}}));
   const detailed=observation();detailed.message_schedule.last_error={code:'INTERNAL_ERROR',message:'error',retryable:false,detail:{stage:'prepare'}};
-  assert(ops.valid(detailed),'the current optional WTP error detail is valid for message errors too');
+  assert(ops.valid(detailed),'the current optional error detail is valid for message errors too');
   const caps={execution:{maximum_holdover_age_ns:'3600000000000',maximum_arm_uncertainty_ns:'1000000'}};
   const next=x=>ops.model(x,caps,'x').next;
   let scheduled=observation();recurring(scheduled);assert(ops.valid(scheduled));
@@ -159,25 +159,27 @@ function recurring(v) {
   assert.doesNotMatch(ops.model(failed,caps,'x').warning,/WSPR occurrence failed/,'accepted-job authority supersedes historical load failure');
   failed.standalone.uncertainty_ns='5000000000';assert.doesNotMatch(ops.model(failed,caps,'x').warning,/uncertainty/i);
   const owned=observation();owned.standalone.enabled=true;owned.standalone.clock_state='synchronized';owned.job.owner_id='4'.repeat(32);
-  assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/This browser.*Release control/);
-  assert.match(ops.model(owned,caps,'5'.repeat(32)).warning,/Another controller/);
+  assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/This browser holds the transmitter/);
+  assert.match(ops.model(owned,caps,'5'.repeat(32)).warning,/The transmitter is reserved/);
   owned.job.state=owned.standalone.state='failed';
-  assert.doesNotMatch(ops.model(owned,caps,'4'.repeat(32)).warning,/Choose Release control/,'fault recovery must not recommend an ineligible release');
+  assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/Output recovery required/,'fault recovery takes priority over ownership guidance');
   owned.job.state=owned.standalone.state='complete';owned.job.output_active=true;
-  assert.doesNotMatch(ops.model(owned,caps,'4'.repeat(32)).warning,/Choose Release control/,'unknown active output retains recovery guidance');
+  assert.match(ops.model(owned,caps,'4'.repeat(32)).warning,/Output recovery required/,'unexpected active output retains recovery guidance');
   const oldMessage=observation();recurring(oldMessage);oldMessage.message_schedule.saved.enabled=false;
   oldMessage.message_schedule.state='expired';oldMessage.standalone.enabled=true;oldMessage.standalone.clock_state='synchronized';
   oldMessage.next_wspr_start_utc_ns='1800000120000000000';
   assert.equal(ops.model(oldMessage,caps,'x').state,'Waiting for next occurrence','expired disabled message history must not mask current WSPR authority');
   const disabled=observation();disabled.standalone.last_error={code:'INTERNAL_ERROR',message:'old',retryable:false};
-  assert.equal(ops.model(disabled,caps,'x').warning,'','disabled WSPR does not keep a stale failure banner');
+  const disabledView=ops.model(disabled,caps,'x');
+  assert.equal(disabledView.warning,'','disabled WSPR does not keep a stale failure banner');
+  assert.equal(disabledView.explanation,'No standalone schedule is enabled.');
   for(const mutate of [x=>delete x.standalone.last_error,x=>x.standalone.last_error=[],x=>x.standalone.last_error={code:'INTERNAL_ERROR'},x=>x.message_schedule.last_error={code:'bad',message:'bad',retryable:false}]) {
     const bad=structuredClone(disabled);mutate(bad);assert.equal(ops.valid(bad),false);
   }
   active(v);assert(ops.valid(v));
   let view=ops.model(v,caps,'9'.repeat(32));assert.equal(view.state,'Job running');assert.match(view.explanation,/keyed gaps/);assert.equal(view.reset,false);
   assert.equal(view.frequency,'135.505/135.500 kHz');assert.equal(view.progress,'Running · ~100%');assert.equal(view.correction,'3.470');
-  assert.match(view.actions,/cannot abort/);
+  assert.match(view.actions,/Check the Owner field/);
   v.standalone.configured=false;v.standalone.frequency_required=true;assert.equal(ops.model(v,caps,'x').state,'Job running');
   v.message_schedule.state='recovery_required';assert.equal(ops.model(v,caps,'x').state,'Job running');
   for(const mode of ['qrss','fskcw','dfcw','tone','arbitrary']) {

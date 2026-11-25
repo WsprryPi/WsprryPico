@@ -4,7 +4,7 @@
 #include "rf/waveform.hpp"
 #include "standalone/frequency_policy_engine.hpp"
 #include "standalone/ntp_retention.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 #include "time/controller_time.hpp"
 #include "time/mapping.hpp"
 #include "time/ntp_filter.hpp"
@@ -44,8 +44,8 @@ void manual() {
         network::HttpRequest r{"PUT",
                                "/api/control/v1/rf-calibration",
                                "{\"schema\":\"rf-calibration\",\"target\":" + target +
-                                   ",\"calibration\":{\"manual_ppm\":" + wtp::json::quote(ppm) +
-                                   ",\"mode\":" + wtp::json::quote(mode) + "}}",
+                                   ",\"calibration\":{\"manual_ppm\":" + execution::json::quote(ppm) +
+                                   ",\"mode\":" + execution::json::quote(mode) + "}}",
                                {{"host", "127.0.0.1:8443"},
                                 {"origin", "https://127.0.0.1:8443"},
                                 {"content-type", "application/json"},
@@ -68,7 +68,7 @@ void manual() {
     auto extended = *old;
     extended.manual_correction_ppb = -10125;
     extended.ntp_rf_calibration = true;
-    const auto supplied = wtp::json::parse(R"({"enabled":false})");
+    const auto supplied = execution::json::parse(R"({"enabled":false})");
     const auto legacy =
         application::config_candidate(*supplied, extended, application::ConfigWrite::Merge);
     REQUIRE(standalone::parse_config(*legacy)->manual_correction_ppb == -10125);
@@ -79,7 +79,7 @@ void manual() {
         "test", "127.0.0.1:8443");
     REQUIRE(legacy_view.status == 200 &&
             legacy_view.body.find("\"mode\":\"manual\"") != std::string::npos);
-    REQUIRE(wtp::json::parse(f.scheduler.command("CONFIG " + network_test::config))
+    REQUIRE(execution::json::parse(f.scheduler.command("CONFIG " + network_test::config))
                 ->get("ok")
                 ->boolean());
     REQUIRE(f.store.config()->manual_correction_ppb == -10125);
@@ -145,7 +145,7 @@ void diagnostic_pages(bool emit_packets = false) {
     do {
         const auto wire = client.history_page(binding, token + " " + std::to_string(cursor), raw);
         REQUIRE(wire.size() <= 4096);
-        const auto page = wtp::json::parse(wire);
+        const auto page = execution::json::parse(wire);
         REQUIRE(page && page->get("ok")->boolean());
         token = std::string(page->get("token")->string());
         REQUIRE(page->get("records")->elements().size() <= 4);
@@ -159,7 +159,7 @@ void diagnostic_pages(bool emit_packets = false) {
     } while (true);
     REQUIRE(count == client.engine().history(0).size());
     const auto audit_wire = client.packet_page(binding, "0", raw);
-    const auto audit = wtp::json::parse(audit_wire);
+    const auto audit = execution::json::parse(audit_wire);
     REQUIRE(audit && audit->get("ok")->boolean());
     REQUIRE(audit->get("lost_before")->string() == "48");
     REQUIRE(audit->get("oldest_id")->string() == "49");
@@ -170,14 +170,14 @@ void diagnostic_pages(bool emit_packets = false) {
     REQUIRE(first.get("prefix_hex")->string().size() == 96);
     REQUIRE(client.configure(0, 123, raw));
     const auto same_wire = client.packet_page(binding, "48", raw);
-    const auto same = wtp::json::parse(same_wire);
+    const auto same = execution::json::parse(same_wire);
     REQUIRE(same->get("records")->elements().front().get("endpoint")->string() == "1");
     REQUIRE(same->get("records")->elements().front().get("clock_epoch")->string() == "1");
     std::array<std::uint8_t, 49> malformed{};
     malformed[0] = 0xe4;
     REQUIRE(!client.receive(0, malformed, ++raw, true, 300));
     const auto rejected_wire = client.packet_page(binding, "80", raw);
-    const auto rejected = wtp::json::parse(rejected_wire);
+    const auto rejected = execution::json::parse(rejected_wire);
     const auto bad = rejected->get("records")->elements().front();
     REQUIRE(!bad.get("accepted")->boolean() && bad.get("truncated")->boolean());
     REQUIRE(bad.get("prefix_hex")->string().starts_with("e4"));
@@ -192,7 +192,7 @@ void diagnostic_pages(bool emit_packets = false) {
         REQUIRE(client.packet_page(binding, cursor_text, raw).find("ntp_packet_cursor") !=
                 std::string::npos);
     const auto other = client.history_page(binding, "@1 - 0", raw);
-    REQUIRE(wtp::json::parse(other)->get("count")->integer() == 0);
+    REQUIRE(execution::json::parse(other)->get("count")->integer() == 0);
     client.reset_peer();
     REQUIRE(client.history_page(binding, token + " 60", raw).find("ntp_history_changed") !=
             std::string::npos);
@@ -203,7 +203,7 @@ void diagnostic_pages(bool emit_packets = false) {
         for (unsigned i = 0; i < 8; ++i) {
             const auto wire = client.packet_page(binding, packet_cursor, raw);
             std::cout << wire;
-            const auto page = wtp::json::parse(wire);
+            const auto page = execution::json::parse(wire);
             REQUIRE(page && page->get("ok")->boolean());
             packet_cursor = page->get("next_cursor")->string();
             if (!page->get("more")->boolean())
@@ -248,16 +248,16 @@ void selected_source_freshness() {
     REQUIRE(client.engine().tracking(raw).source_raw_ns == source);
     raw = source + time::ntp_fresh_ns;
     REQUIRE(client.apply(raw));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Synchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Synchronized);
     ++raw;
     REQUIRE(client.apply(raw));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Holdover);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Holdover);
     REQUIRE(!client.peer_fresh(raw) && !client.rate(raw).qualified);
     raw = source + 132 * ns;
     const auto recovered = client.request(raw, 1002);
     raw += 2'000'000;
     REQUIRE(client.receive(ntp_reply(recovered, epoch + raw - 1'000'000), raw));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Synchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Synchronized);
     REQUIRE(client.engine().tracking(raw).generation > before.generation);
 }
 void reference_frequency_authority() {
@@ -268,7 +268,7 @@ void reference_frequency_authority() {
     raw = ns;
     REQUIRE(client.frequency_reference(
         microchrony::FrequencyReference{raw, raw + 30 * ns, 1, 10000, 100}, raw));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     REQUIRE(client.engine().history(0).empty());
     client.clear_frequency_reference(raw);
     for (unsigned i = 0; i < 12; ++i) {
@@ -283,7 +283,7 @@ void reference_frequency_authority() {
     REQUIRE(client.apply(raw));
     const auto before = clock.snapshot();
     const auto samples = client.engine().history(0).size();
-    REQUIRE(before.state == wtp::ClockState::Synchronized);
+    REQUIRE(before.state == execution::ClockState::Synchronized);
     const microchrony::FrequencyReference reference{raw, raw + 30 * ns, 7, 10000, 100};
     REQUIRE(client.frequency_reference(reference, raw));
     const auto after = clock.snapshot();
@@ -304,18 +304,18 @@ void reference_frequency_authority() {
     REQUIRE(!client.frequency_reference(
         microchrony::FrequencyReference{raw, raw + 30 * ns, 7, 90000, 100}, raw));
     REQUIRE(arbiter.status().disagreement);
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     (void)client.frequency_reference({}, raw);
     REQUIRE(arbiter.status().disagreement);
     REQUIRE(arbiter.challenge("browser", "session", "test", "fresh-nonce").code ==
             time::ControllerTimeCode::Disagreement);
     REQUIRE(!arbiter.observe(time::ObservationSource::Browser, epoch + raw, raw,
-                             time::browser_clock_uncertainty_ns, wtp::LeapState::Normal));
+                             time::browser_clock_uncertainty_ns, execution::LeapState::Normal));
     raw += ns;
     REQUIRE(client.frequency_reference(
         microchrony::FrequencyReference{raw, raw + 30 * ns, 7, 0, 100}, raw));
     REQUIRE(!arbiter.status().disagreement &&
-            clock.snapshot().state == wtp::ClockState::Synchronized);
+            clock.snapshot().state == execution::ClockState::Synchronized);
     REQUIRE(clock.snapshot().sync_age_ns == before.sync_age_ns + 3 * ns);
     REQUIRE(client.engine().history(0).size() == samples);
     client.clear_seed();
@@ -330,10 +330,10 @@ void browser_reference_holdover() {
     time::NtpClient client(arbiter);
     const microchrony::FrequencyReference first{raw, raw + 30 * ns, 1, -20000, 1000};
     REQUIRE(client.frequency_reference(first, raw));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     REQUIRE(client.frequency_reference_status(raw) == "awaiting_utc");
     REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch + raw, raw,
-                            time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                            time::browser_clock_uncertainty_ns, execution::LeapState::Normal, {},
                             "phone"));
     REQUIRE(client.frequency_reference_status(raw) == "selected");
     REQUIRE(clock.snapshot().rate_ppb == -20000);
@@ -392,22 +392,22 @@ void browser_reference_holdover() {
         REQUIRE(clock.snapshot() == before_bad);
     }
     raw = start + 3600 * ns + 1;
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     REQUIRE(client.frequency_reference(
         microchrony::FrequencyReference{raw, raw + 30 * ns, 3, -20000, 1000}, raw));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     REQUIRE(clock.snapshot().sync_age_ns == 3600 * ns + 1);
     REQUIRE(client.frequency_reference_status(raw) == "awaiting_utc");
     REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch + raw, raw,
-                            time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                            time::browser_clock_uncertainty_ns, execution::LeapState::Normal, {},
                             "phone"));
     REQUIRE(clock.snapshot().rate_ppb == -20000 && clock.snapshot().sync_age_ns == 0);
     arbiter.frequency_reference_conflict(true);
     REQUIRE(client.frequency_reference_status(raw) == "disagreement");
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     raw += ns;
     REQUIRE(arbiter.observe_frequency_reference({raw, raw + 30 * ns, 3, -20000, 1000}, raw));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
 }
 void browser_reference_drift_benefit() {
     std::uint64_t raw = ns;
@@ -417,10 +417,10 @@ void browser_reference_drift_benefit() {
     time::ControllerTimeArbiter arbiter(assisted, now, &raw, "test");
     time::NtpClient client(arbiter);
     REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch, raw,
-                            time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                            time::browser_clock_uncertainty_ns, execution::LeapState::Normal, {},
                             "phone"));
     REQUIRE(unassisted.observe(time::ObservationSource::Browser, epoch, raw,
-                               time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                               time::browser_clock_uncertainty_ns, execution::LeapState::Normal, {},
                                "phone"));
     for (unsigned seconds = 0; seconds <= 1800; seconds += 20) {
         // Independent truth: a raw timer that runs 20 ppm fast. A stable
@@ -435,7 +435,7 @@ void browser_reference_drift_benefit() {
     REQUIRE(corrected <= truth && truth - corrected < 2000);
     REQUIRE(unassisted.snapshot().utc_now_ns - truth == 36'000'000);
     REQUIRE(assisted.snapshot().uncertainty_ns >= time::browser_clock_uncertainty_ns);
-    REQUIRE(assisted.snapshot().state != wtp::ClockState::Unsynchronized);
+    REQUIRE(assisted.snapshot().state != execution::ClockState::Unsynchronized);
     REQUIRE(arbiter.status().age_ns == raw - start);
 }
 void browser_reference_transmission_gaps() {
@@ -449,7 +449,7 @@ void browser_reference_transmission_gaps() {
         time::ControllerTimeArbiter arbiter(clock, now, &raw, "test");
         time::NtpClient client(arbiter);
         REQUIRE(arbiter.observe(time::ObservationSource::Browser, epoch, raw,
-                                time::browser_clock_uncertainty_ns, wtp::LeapState::Normal, {},
+                                time::browser_clock_uncertainty_ns, execution::LeapState::Normal, {},
                                 "phone"));
         REQUIRE(client.frequency_reference(
             microchrony::FrequencyReference{raw, raw + 30 * ns, 1, -timer_ppb, 1000}, raw));
@@ -478,13 +478,13 @@ void model_import() {
     std::uint64_t raw = 10 * ns;
     time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
     time::ControllerTimeArbiter arbiter(clock, now, &raw, "test");
-    wtp::ClockSnapshot model;
-    model.state = wtp::ClockState::Synchronized;
+    execution::ClockSnapshot model;
+    model.state = execution::ClockState::Synchronized;
     model.utc_now_ns = epoch;
     model.monotonic_now_ns = raw;
     model.uncertainty_ns = 11'000'000;
     model.sync_age_ns = ns;
-    model.leap = wtp::LeapState::Normal;
+    model.leap = execution::LeapState::Normal;
     model.rate_ppb = 1'000'000;
     model.rate_uncertainty_ppb = 1000;
     model.model_generation = 1;
@@ -503,14 +503,14 @@ void model_import() {
     REQUIRE(snapshot.model_generation == generation && snapshot.sync_age_ns == 16 * ns);
     REQUIRE(!arbiter.observe_ntp_model(source, model, 1000)); // Old import anchor.
     clock.invalidate();
-    REQUIRE(clock.observe(epoch, raw, 1000000, wtp::LeapState::Normal));
+    REQUIRE(clock.observe(epoch, raw, 1000000, execution::LeapState::Normal));
     REQUIRE(clock.snapshot().subsequent_rate_ppb == 0);
     REQUIRE(clock.snapshot().rate_until_monotonic_ns == UINT64_MAX);
 
     time::UtcDiscipline other_clock(now, &raw, standalone::clock_profile());
     time::ControllerTimeArbiter other(other_clock, now, &raw, "other");
     REQUIRE(other.observe(time::ObservationSource::Controller, epoch, raw, 1'000'000,
-                          wtp::LeapState::Normal, {}, "controller"));
+                          execution::LeapState::Normal, {}, "controller"));
     model.monotonic_now_ns = raw;
     model.utc_now_ns = epoch; // Slewed control can agree while NTP truth disagrees.
     model.rate_until_monotonic_ns = UINT64_MAX;
@@ -599,18 +599,18 @@ void retention() {
     time::UtcDiscipline clock(now, &raw, standalone::clock_profile());
     time::Sntp ntp(clock);
     ntp.seed_rate(cold.record()->utc_rate_ppb);
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     for (unsigned i = 0; i < 3; ++i) {
         const auto request = ntp.request(raw, i + 1);
         raw += 2'000'000;
         REQUIRE(ntp.receive(ntp_reply(request, epoch + raw - 1'000'000), raw));
         if (i < 2)
-            REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+            REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
         raw += 64 * ns;
     }
     REQUIRE(ntp.control_model().learned && ntp.rate(raw).qualified);
     ntp.reset_peer();
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     REQUIRE(!ntp.rate(raw).qualified);
     // The manual value and cache are independent media and authorities.
     network_test::Flash manual_flash;
@@ -709,41 +709,41 @@ void mapping() {
     REQUIRE(time::project(snapshot, target - 1, prior) && prior < epoch + 70 * ns);
     const auto generation = snapshot.model_generation;
     clock.invalidate();
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     REQUIRE(clock.snapshot().model_generation > generation);
     REQUIRE(clock.observe_rate(epoch + 64 * ns, raw, 2'000'000, -10000, 2500, 1));
     REQUIRE(clock.snapshot().model_generation > generation + 1);
     raw += 117 * ns;
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Holdover);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Holdover);
     raw += 64 * ns;
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Holdover);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Holdover);
     raw += 3420 * ns;
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     REQUIRE(clock.snapshot().model_generation > generation);
     time::UtcDiscipline cold(now, &raw, standalone::clock_profile());
-    REQUIRE(cold.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(cold.snapshot().state == execution::ClockState::Unsynchronized);
     snapshot.monotonic_now_ns = UINT64_MAX - 1;
     snapshot.utc_now_ns = epoch;
     REQUIRE(!time::inverse(snapshot, epoch + ns, target));
     snapshot.rate_ppb = INT32_MIN;
     REQUIRE(!time::inverse(snapshot, epoch, target));
 }
-struct CorrectionEngine : wtp::RfEngine {
+struct CorrectionEngine : execution::RfEngine {
     std::int32_t correction = 0;
     unsigned prepares = 0;
     bool set_frequency_correction_ppb(std::int32_t ppb) override {
         correction = ppb;
         return true;
     }
-    wtp::PrepareResult prepare(const wtp::Job& job) override {
+    execution::PrepareResult prepare(const execution::Job& job) override {
         ++prepares;
         const auto plan = rf::plan_job(job, correction);
-        return plan ? wtp::PrepareResult{true, {}} : wtp::PrepareResult{};
+        return plan ? execution::PrepareResult{true, {}} : execution::PrepareResult{};
     }
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t) override {
+    execution::EngineReport poll(std::uint64_t) override {
         return {};
     }
     bool disable(std::uint64_t) override {
@@ -762,7 +762,7 @@ void freeze() {
     REQUIRE(store.save(c));
     CorrectionEngine raw;
     standalone::FrequencyPolicyEngine engine(raw, store, 100000 * ns, 74000000 * ns);
-    wtp::Job job{
+    execution::Job job{
         std::string(32, 'a'), "rf-events/1", "tone", ns, {{0, ns, true, 3'570'100 * ns}}, true};
     engine.freeze_pair_calibration(true);
     REQUIRE(engine.prepare(job).accepted && raw.correction == 10000);
@@ -810,7 +810,7 @@ int main(int argc, char** argv) {
         return 0;
     }
     if ((argc == 6 || argc == 8) && std::string_view(argv[1]) == "map") {
-        wtp::ClockSnapshot anchor;
+        execution::ClockSnapshot anchor;
         anchor.monotonic_now_ns = std::stoull(argv[2]);
         anchor.utc_now_ns = std::stoull(argv[3]);
         anchor.rate_ppb = std::stoi(argv[4]);

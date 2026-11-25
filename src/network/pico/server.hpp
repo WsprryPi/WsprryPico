@@ -13,13 +13,13 @@
 namespace wsprrypico::network {
 // Install the disciplined UTC source before first profile validation, including
 // a boot with no configured TLS server. The service must outlive the firmware.
-void install_tls_time_source(wtp::JobService& service);
+void install_tls_time_source(execution::JobService& service);
 
 // Core-0-only TLS/lwIP/application owner. Physical waveform servicing is isolated.
 class PicoServer {
   public:
     enum class Admission { ClientCertificate, SoftApOnly };
-    PicoServer(wtp::JobService&, BrowserApi&, std::string device,
+    PicoServer(execution::JobService&, BrowserApi&, std::string device,
                provisioning::CredentialMaterial,
                Admission admission = Admission::ClientCertificate);
     ~PicoServer();
@@ -108,7 +108,7 @@ class PicoServer {
         static int send_tls(void*, const unsigned char*, std::size_t);
         static int receive_tls(void*, unsigned char*, std::size_t);
         PicoServer& owner_;
-        wtp::JobService& service_;
+        execution::JobService& service_;
         BrowserApi& api_;
         std::uint64_t generation_ = 0;
         tcp_pcb* client_ = nullptr;
@@ -139,7 +139,7 @@ class PicoServer {
     void close_pending();
     void publish_transport_status();
     bool busy() const;
-    wtp::JobService& service_;
+    execution::JobService& service_;
     BrowserApi& api_;
     std::string device_id_;
     provisioning::CredentialMaterial credentials_;

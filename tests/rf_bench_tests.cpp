@@ -18,29 +18,29 @@ class Clock final : public rf::BenchClock {
         return now;
     }
 };
-class Engine final : public wtp::RfEngine {
+class Engine final : public execution::RfEngine {
   public:
     unsigned begins = 0, prepares = 0, stops = 0;
     bool fail_stop = false, fail_prepare = false, fail_begin = false, active = false;
     std::uint64_t start = 0;
-    wtp::Job prepared_job;
-    wtp::EngineState state = wtp::EngineState::Idle;
+    execution::Job prepared_job;
+    execution::EngineState state = execution::EngineState::Idle;
     bool set_frequency_correction_ppb(std::int32_t) override {
         return !active;
     }
-    wtp::PrepareResult prepare(const wtp::Job& job) override {
+    execution::PrepareResult prepare(const execution::Job& job) override {
         ++prepares;
         prepared_job = job;
         CHECK(rf::plan_job(job).has_value());
         return {!fail_prepare, {}};
     }
-    bool begin(const wtp::Job&, std::uint64_t when) override {
+    bool begin(const execution::Job&, std::uint64_t when) override {
         ++begins;
         start = when;
-        state = wtp::EngineState::Armed;
+        state = execution::EngineState::Armed;
         return !fail_begin;
     }
-    wtp::EngineReport poll(std::uint64_t) override {
+    execution::EngineReport poll(std::uint64_t) override {
         return {state, active};
     }
     bool disable(std::uint64_t) override {
@@ -92,7 +92,7 @@ int main() {
             CHECK(encoding::valid_station_details(call, "EM18AA", 20));
             CHECK(!encoding::wspr_type1_from_station(call, "EM18AA", 20));
         }
-        wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
+        execution::allocate_input = [](std::size_t) -> void* { return nullptr; };
         {
             const auto failed_frame = rf::diagnostic_frame();
             CHECK(!failed_frame.events.valid() && failed_frame.events.empty());
@@ -103,7 +103,7 @@ int main() {
             CHECK(refused.find("resource_exhausted") != refused.npos);
             CHECK(failed_engine.prepares == 0 && failed_engine.begins == 0);
         }
-        wtp::allocate_input = std::malloc;
+        execution::allocate_input = std::malloc;
         rf::prepare_word_tables();
         for (unsigned tone = 0; tone < 4; ++tone) {
             const auto check = [tone](std::uint32_t phase) {
@@ -161,13 +161,13 @@ int main() {
         CHECK(ok(bench.command("RUN 2 100 100")));
         CHECK(engine.start == clock.now + 100000000 && !engine.active);
         CHECK(!ok(bench.command("RUN 0 100 100")) && engine.begins == 1);
-        engine.state = wtp::EngineState::Running;
+        engine.state = execution::EngineState::Running;
         engine.active = true;
         clock.now = engine.start;
         bench.poll();
         CHECK(bench.busy());
         CHECK(!ok(bench.command("CORRECTION 2222")));
-        engine.state = wtp::EngineState::Complete;
+        engine.state = execution::EngineState::Complete;
         engine.active = false;
         clock.now += 100000000;
         bench.poll();

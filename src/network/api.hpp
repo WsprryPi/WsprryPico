@@ -29,7 +29,7 @@ class NetworkControl {
 };
 class BrowserApi {
   public:
-    BrowserApi(wtp::JobService& service, standalone::Store& store, standalone::Scheduler& scheduler,
+    BrowserApi(execution::JobService& service, standalone::Store& store, standalone::Scheduler& scheduler,
                NetworkControl& network, std::string device, std::string firmware)
         : service_(service), store_(store), scheduler_(scheduler), network_(network),
           device_(std::move(device)), firmware_(std::move(firmware)),
@@ -98,7 +98,7 @@ class BrowserApi {
         return scheduler_.idle() && !mutation_pending();
     }
     bool restart_safe() const {
-        return scheduler_.idle() && service_.activity().state != wtp::State::Loaded &&
+        return scheduler_.idle() && service_.activity().state != execution::State::Loaded &&
                store_.healthy() && !scheduler_.message_pause_pending() &&
                !scheduler_.message_recovery_required();
     }
@@ -175,7 +175,7 @@ class BrowserApi {
     HttpResponse station_config() const;
     HttpResponse hardware_config() const;
     HttpResponse application_config() const;
-    wtp::JobService& service_;
+    execution::JobService& service_;
     standalone::Store& store_;
     standalone::Scheduler& scheduler_;
     NetworkControl& network_;

@@ -2,15 +2,15 @@
 
 #include "tusb.h"
 #include "usb/roles.h"
-#include "wtp/input_buffer.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/input_buffer.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <algorithm>
 #include <array>
 
 namespace wsprrypico::usb {
 namespace {
-wtp::InputBuffer console_queue;
+execution::InputBuffer console_queue;
 std::size_t head = 0;
 std::size_t size = 0;
 std::array<char, kLoggingCapacity> logging_queue{};
@@ -168,7 +168,7 @@ bool console_write(std::string_view text) {
     if (text.empty())
         return true;
     if (!console_queue.capacity() &&
-        (!wtp::memory_admitted(kConsoleCapacity) || !console_queue.reserve(kConsoleCapacity)))
+        (!execution::memory_admitted(kConsoleCapacity) || !console_queue.reserve(kConsoleCapacity)))
         return false;
     for (char byte : text) {
         console_queue.data()[(head + size) % kConsoleCapacity] = byte;

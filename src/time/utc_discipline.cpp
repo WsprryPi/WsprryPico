@@ -30,13 +30,13 @@ UtcDiscipline::UtcDiscipline(MonotonicNow now, void* context, DisciplineConfig c
           config.max_uncertainty_ns > 0 && config.oscillator_drift_ppb <= 1'000'000'000ULL) {}
 
 bool UtcDiscipline::observe(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
-                            std::uint64_t uncertainty_ns, wtp::LeapState leap,
+                            std::uint64_t uncertainty_ns, execution::LeapState leap,
                             std::optional<std::uint64_t> leap_transition_utc_ns) {
     return accept(utc_ns, sampled_monotonic_ns, uncertainty_ns, leap, leap_transition_utc_ns,
                   config_.max_observation_age_ns);
 }
 bool UtcDiscipline::accept(std::uint64_t utc_ns, std::uint64_t sampled_monotonic_ns,
-                           std::uint64_t uncertainty_ns, wtp::LeapState leap,
+                           std::uint64_t uncertainty_ns, execution::LeapState leap,
                            std::optional<std::uint64_t> leap_transition_utc_ns,
                            std::uint64_t maximum_age) {
     if (!config_valid_)
@@ -44,9 +44,9 @@ bool UtcDiscipline::accept(std::uint64_t utc_ns, std::uint64_t sampled_monotonic
     const auto now = now_(context_);
     if (sampled_monotonic_ns > now || (valid_ && sampled_monotonic_ns <= monotonic_ns_) ||
         now - sampled_monotonic_ns > maximum_age || uncertainty_ns > config_.max_uncertainty_ns ||
-        leap == wtp::LeapState::Unknown ||
-        (leap == wtp::LeapState::Normal && leap_transition_utc_ns) ||
-        (leap != wtp::LeapState::Normal && !leap_transition_utc_ns))
+        leap == execution::LeapState::Unknown ||
+        (leap == execution::LeapState::Normal && leap_transition_utc_ns) ||
+        (leap != execution::LeapState::Normal && !leap_transition_utc_ns))
         return false;
     std::uint64_t projected{};
     if (!add(utc_ns, now - sampled_monotonic_ns, projected))
@@ -74,7 +74,7 @@ bool UtcDiscipline::adjust_browser_rate(std::int32_t rate, std::uint32_t uncerta
         rate > 100'000 || uncertainty > 100'000 || (rate != 0 && uncertainty == 0))
         return false;
     const auto model = snapshot();
-    if (model.state == wtp::ClockState::Unsynchronized)
+    if (model.state == execution::ClockState::Unsynchronized)
         return false;
     if (rate_ppb_ == rate && rate_uncertainty_ppb_ == uncertainty)
         return true;
@@ -98,7 +98,7 @@ bool UtcDiscipline::observe_rate(std::uint64_t utc, std::uint64_t raw, std::uint
     if (rate < -utc_max_rate_ppb || rate > utc_max_rate_ppb ||
         rate_uncertainty > utc_max_rate_uncertainty_ppb)
         return false;
-    if (!accept(utc, raw, uncertainty, wtp::LeapState::Normal, {},
+    if (!accept(utc, raw, uncertainty, execution::LeapState::Normal, {},
                 config_.max_rate_observation_age_ns ? config_.max_rate_observation_age_ns
                                                     : config_.max_observation_age_ns))
         return false;
@@ -108,15 +108,15 @@ bool UtcDiscipline::observe_rate(std::uint64_t utc, std::uint64_t raw, std::uint
     return true;
 }
 bool UtcDiscipline::observe_ntp_model(const RateObservation& source,
-    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    const execution::ClockSnapshot& model, std::uint32_t maximum_error) {
     return import_model(ObservationSource::Sntp, source, model, maximum_error);
 }
 bool UtcDiscipline::observe_reference_model(const RateObservation& source,
-    const wtp::ClockSnapshot& model, std::uint32_t maximum_error) {
+    const execution::ClockSnapshot& model, std::uint32_t maximum_error) {
     return import_model(ObservationSource::Gps, source, model, maximum_error);
 }
 bool UtcDiscipline::import_model(ObservationSource kind, const RateObservation& source,
-    const wtp::ClockSnapshot& model, std::uint32_t max_clock_error_ppb) {
+    const execution::ClockSnapshot& model, std::uint32_t max_clock_error_ppb) {
     const auto horizon = kind == ObservationSource::Gps ? gps::utc_valid_until(source.utc_ns)
                                                        : std::optional<std::uint64_t>(UINT64_MAX);
     if (!horizon || model.utc_now_ns >= *horizon) return false;
@@ -128,9 +128,9 @@ bool UtcDiscipline::import_model(ObservationSource kind, const RateObservation& 
         model.subsequent_rate_ppb > utc_max_rate_ppb ||
         model.rate_uncertainty_ppb > utc_max_rate_uncertainty_ppb ||
         max_clock_error_ppb > utc_max_rate_uncertainty_ppb ||
-        model.state == wtp::ClockState::Unsynchronized || model.leap == wtp::LeapState::Unknown ||
-        (model.leap != wtp::LeapState::Normal && !model.leap_transition_utc_ns) ||
-        (model.leap == wtp::LeapState::Normal && model.leap_transition_utc_ns) ||
+        model.state == execution::ClockState::Unsynchronized || model.leap == execution::LeapState::Unknown ||
+        (model.leap != execution::LeapState::Normal && !model.leap_transition_utc_ns) ||
+        (model.leap == execution::LeapState::Normal && model.leap_transition_utc_ns) ||
         model.rate_until_monotonic_ns < model.monotonic_now_ns || !model.model_generation ||
         source.generation != model.model_generation ||
         source.raw_ns != model.monotonic_now_ns - model.sync_age_ns ||
@@ -163,26 +163,26 @@ void UtcDiscipline::invalidate() {
     valid_ = false;
 }
 
-wtp::ClockSnapshot UtcDiscipline::snapshot() const {
+execution::ClockSnapshot UtcDiscipline::snapshot() const {
     if (!config_valid_)
-        return {wtp::ClockState::Unsynchronized,
+        return {execution::ClockState::Unsynchronized,
                 0,
                 0,
                 std::numeric_limits<std::uint64_t>::max(),
                 std::numeric_limits<std::uint64_t>::max(),
-                wtp::LeapState::Unknown,
+                execution::LeapState::Unknown,
                 {},
                 0,
                 0,
                 generation_};
     const auto now = now_(context_);
     if (!valid_ || now < monotonic_ns_)
-        return {wtp::ClockState::Unsynchronized,
+        return {execution::ClockState::Unsynchronized,
                 0,
                 now,
                 std::numeric_limits<std::uint64_t>::max(),
                 std::numeric_limits<std::uint64_t>::max(),
-                wtp::LeapState::Unknown,
+                execution::LeapState::Unknown,
                 {},
                 0,
                 0,
@@ -191,7 +191,7 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
     const auto model_age = now - monotonic_ns_;
     std::uint64_t utc{}, grown{};
     std::uint64_t drift{};
-    wtp::ClockSnapshot anchor;
+    execution::ClockSnapshot anchor;
     anchor.utc_now_ns = utc_ns_;
     anchor.monotonic_now_ns = monotonic_ns_;
     anchor.rate_ppb = rate_ppb_;
@@ -201,17 +201,17 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
                                           : config_.oscillator_drift_ppb + rate_uncertainty_ppb_;
     if (!growth(model_age, growth_ppb, drift) || !project(anchor, now, utc) ||
         !add(uncertainty_ns_, drift + (rate_ppb_ != 0), grown))
-        return {wtp::ClockState::Unsynchronized,
+        return {execution::ClockState::Unsynchronized,
                 0,
                 now,
                 std::numeric_limits<std::uint64_t>::max(),
                 age,
-                wtp::LeapState::Unknown,
+                execution::LeapState::Unknown,
                 {},
                 0,
                 0,
                 generation_};
-    auto state = wtp::ClockState::Unsynchronized;
+    auto state = execution::ClockState::Unsynchronized;
     const auto maximum_age =
         observation_source_ == ObservationSource::Gps ? config_.gps_holdover_for_ns
         : observation_source_ == ObservationSource::Browser ? config_.browser_holdover_for_ns
@@ -221,11 +221,11 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
     const auto synchronized_for = observation_source_ == ObservationSource::Gps
         ? config_.gps_synchronized_for_ns : config_.synchronized_for_ns;
     if (age <= std::min(synchronized_for, maximum_age))
-        state = wtp::ClockState::Synchronized;
+        state = execution::ClockState::Synchronized;
     else if (age <= maximum_age ||
              (config_.unlimited_ntp_holdover && observation_source_ == ObservationSource::Sntp))
-        state = wtp::ClockState::Holdover;
-    auto result = wtp::ClockSnapshot{
+        state = execution::ClockState::Holdover;
+    auto result = execution::ClockSnapshot{
         state,
         utc,
         now,
@@ -242,8 +242,8 @@ wtp::ClockSnapshot UtcDiscipline::snapshot() const {
     result.subsequent_rate_ppb = subsequent_rate_ppb_;
     result.valid_until_utc_ns = observation_source_ == ObservationSource::Gps ? valid_until_utc_ns_ : UINT64_MAX;
     if (utc >= result.valid_until_utc_ns) {
-        result.state = wtp::ClockState::Unsynchronized;
-        result.leap = wtp::LeapState::Unknown;
+        result.state = execution::ClockState::Unsynchronized;
+        result.leap = execution::LeapState::Unknown;
     }
     return result;
 }

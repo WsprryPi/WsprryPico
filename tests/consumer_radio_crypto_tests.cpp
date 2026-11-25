@@ -2,8 +2,8 @@
 #include "mbedtls/platform.h"
 #include "network/bootstrap_codec.hpp"
 #include "network/pico/consumer_radio_crypto.hpp"
-#include "wtp/json.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <cassert>
@@ -25,7 +25,7 @@ extern "C" int mbedtls_hardware_poll(void*, unsigned char* out, std::size_t coun
     return 0;
 }
 namespace {
-std::string field(wtp::json::Value root, std::string_view name) {
+std::string field(execution::json::Value root, std::string_view name) {
     auto value = root.get(name);
     assert(value);
     return value->string();
@@ -38,9 +38,9 @@ std::vector<std::uint8_t> unhex(std::string_view value) {
             static_cast<std::uint8_t>(std::stoul(std::string(value.substr(i, 2)), nullptr, 16)));
     return bytes;
 }
-wtp::FrameBuffer packet(std::string_view input) {
+execution::FrameBuffer packet(std::string_view input) {
     auto bytes = unhex(input);
-    wtp::FrameBuffer result;
+    execution::FrameBuffer result;
     assert(result.reserve(bytes.size()));
     result.append(bytes);
     return result;
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
     assert(argc == 2);
     std::ifstream stream(argv[1]);
     std::string bytes(std::istreambuf_iterator<char>{stream}, {});
-    auto root = wtp::json::parse(bytes);
+    auto root = execution::json::parse(bytes);
     assert(root);
     network::ConsumerRadioBinding binding;
     assert(network::bootstrap_unhex(field(*root, "device_id"), binding.device));
@@ -105,12 +105,12 @@ int main(int argc, char** argv) {
     assert(response->body_text() ==
            std::string(expected_response.begin(), expected_response.end()));
     const auto response_plain = field(*root, "response_plain");
-    const wtp::InputView response_view(response_plain);
-    const std::array<wtp::InputView, 4> parts{
+    const execution::InputView response_view(response_plain);
+    const std::array<execution::InputView, 4> parts{
         response_view.substr(0, 1), {}, response_view.substr(1, 7), response_view.substr(8)};
     auto segmented = crypto.seal_parts(parts, binding, 1);
     assert(segmented && segmented->body_text() == response->body_text());
-    wtp::OutputBuffer owned;
+    execution::OutputBuffer owned;
     assert(owned.reserve(response_plain.size()) && owned.append(response_view.at(0)));
     auto inplace = crypto.seal_buffer(std::move(owned), binding, 1);
     assert(inplace && inplace->body_text() == response->body_text());
@@ -133,49 +133,49 @@ int main(int argc, char** argv) {
                reinterpret_cast<const unsigned char*>(large_plain.data()), large_bytes.data() + 28,
                large_bytes.data() + 32752) == 0);
     mbedtls_chachapoly_free(&context);
-    assert(network::bootstrap_hex(wtp::sha256(large_bytes)) ==
+    assert(network::bootstrap_hex(execution::sha256(large_bytes)) ==
            field(*root, "large_request_sha256"));
-    wtp::FrameBuffer large;
+    execution::FrameBuffer large;
     assert(large.reserve(large_bytes.size()));
     large.append(large_bytes);
     auto opened = crypto.open(large, binding, 2);
-    assert(opened && opened->size() == 32724 && wtp::json::parse(*opened));
+    assert(opened && opened->size() == 32724 && execution::json::parse(*opened));
     // A maximum-size paged reply and boundaries inside cipher blocks must
     // produce exactly the same authenticated bytes as one contiguous value.
     auto large_response = crypto.seal(large_plain, binding, 2);
-    const std::array<wtp::InputView, 4> large_parts{
+    const std::array<execution::InputView, 4> large_parts{
         opened->substr(0, 3), opened->substr(3, 4100), {}, opened->substr(4103)};
     auto large_segmented = crypto.seal_parts(large_parts, binding, 2);
     assert(large_response && large_segmented &&
            large_response->body_text() == large_segmented->body_text());
     assert(owned.reserve(large_plain.size()));
-    assert(owned.append(wtp::InputView(large_plain).at(0)));
+    assert(owned.append(execution::InputView(large_plain).at(0)));
     inplace = crypto.seal_buffer(std::move(owned), binding, 2);
     assert(inplace && inplace->body_text() == large_response->body_text());
     // The streaming cipher owns its state across session retirement and emits
     // exactly the existing packet, including partial writes inside cipher blocks.
     auto streamed = crypto.seal_source(
-        wtp::make_response_source<wtp::TextResponseSource>(large_plain), binding, 2);
+        execution::make_response_source<execution::TextResponseSource>(large_plain), binding, 2);
     assert(streamed && streamed->body_size() == large_response->body_size());
     const auto expected_stream = large_response->body_text();
     crypto.clear();
     std::string actual_stream;
-    const auto allocator = wtp::allocate_input;
-    wtp::allocate_input = [](std::size_t) -> void* { return nullptr; };
+    const auto allocator = execution::allocate_input;
+    execution::allocate_input = [](std::size_t) -> void* { return nullptr; };
     while (actual_stream.size() < streamed->body_size()) {
         const auto part = streamed->body_at(actual_stream.size());
         assert(!part.empty() && part.size() <= 1024);
         assert(streamed->body_at(actual_stream.size()).data() == part.data());
         actual_stream.push_back(static_cast<char>(part.front()));
     }
-    wtp::allocate_input = allocator;
+    execution::allocate_input = allocator;
     assert(actual_stream == expected_stream);
     // A forward-only packet cannot be replayed after its first window is gone.
     // Convenience serializers must return failure instead of spinning forever.
     assert(streamed->body_text().empty());
     assert(streamed->wire().empty());
     login();
-    const std::array<wtp::InputView, 2> oversized{*opened, wtp::InputView(" ")};
+    const std::array<execution::InputView, 2> oversized{*opened, execution::InputView(" ")};
     assert(!crypto.seal_parts(oversized, binding, 2));
     auto altered = binding;
     ++altered.generation;

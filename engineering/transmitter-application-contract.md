@@ -26,9 +26,8 @@ Required filter selection covers every nominal and programmed RF-on frequency in
 
 ## Transport boundaries
 
-[WTP/1](protocol/WTP.md) remains an independent format reference for complete `rf-events/1` jobs. Its closed objects contain no hardware settings, arbitrary filter identifiers, or envelope events. Its CAPS format is independent of the current management capability document.
 
-The [management carrier contract](development/management-carriers.md) defines engineering mTLS HTTPS, authenticated consumer station/AP control, and local USB management through UMP1. All use the same current management shape with explicit selected-carrier and device/boot/profile bindings. Dedicated provisioning retains its separate authority. Current firmware has retired external WTP execution and refuses unsupported carriers and control versions.
+The [management carrier contract](development/management-carriers.md) defines engineering mTLS HTTPS, authenticated consumer station/AP control, and local USB management through UMP1. All use the same current management shape with explicit selected-carrier and device/boot/profile bindings. Dedicated provisioning retains its separate authority. Firmware refuses unsupported carriers and control versions.
 
 ## Validation boundaries
 
@@ -40,4 +39,4 @@ Host tests, cross-linking, physical device observations, and conducted RF measur
 
 The shared Control/1 Pi scheduling capability reports `next_occurrence`. The Pi owns validation, explicit native enablement, complete-occurrence solar admission, progress, and runtime observations. `stored_only` is not a current activation value. This descriptor adds no Pico RF or scheduling feature.
 
-Pi enable binds the complete saved candidate digest and revision after positive retirement/reconciliation. Disable admits no new recurrence and allows accepted complete work to drain; Stop remains a separate observed-output operation. Neither action changes the independent WTP transmission contract or adds a Pico master scheduling switch. Missing healthy target-local UTC/location holds new Pi solar occurrences. Saved/active revisions, observation age, selected tones, and bounded next-start forecasts remain distinct from output execution evidence. A known forecast includes a start; an unknown forecast has a null start.
+Pi enable binds the complete saved candidate digest and revision after positive retirement/reconciliation. Disable admits no new recurrence and allows accepted complete work to drain; Stop remains a separate observed-output operation. Missing healthy target-local UTC/location holds new Pi solar occurrences. Saved/active revisions, observation age, selected tones, and bounded next-start forecasts remain distinct from output execution evidence. A known forecast includes a start; an unknown forecast has a null start.

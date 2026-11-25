@@ -2,9 +2,9 @@
 #pragma once
 #include "logging/udp_sender.hpp"
 #include "standalone/storage.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 namespace wsprrypico::logging {
-std::optional<UdpSettings> parse_udp_settings(wtp::json::Value value);
+std::optional<UdpSettings> parse_udp_settings(execution::json::Value value);
 std::string udp_settings_json(const UdpSettings& value);
 std::string udp_active_json(const UdpSender& sender, std::string_view revision);
 class UdpStore {

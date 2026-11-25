@@ -82,7 +82,6 @@ def main():
     assert '<svg aria-hidden="true"' in index
     for control in ("identify", "sync-time", "field-status"):
         assert f'id="{control}"' in index
-    assert 'id="wtp-status"' not in index
     for name in ("style.css", "bluefy.js", "app.js"):
         assert links.integrity[name] == sha384((RELEASE / name).read_bytes())
 

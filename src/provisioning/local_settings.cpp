@@ -3,13 +3,13 @@
 #include "application/resources.hpp"
 #include "network/bootstrap_codec.hpp"
 #include "network/identity.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 namespace wsprrypico::provisioning {
 namespace {
 std::string digest(std::string_view text) {
     return network::bootstrap_hex(
-        wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size())));
+        execution::sha256(std::span(reinterpret_cast<const std::uint8_t*>(text.data()), text.size())));
 }
 struct ConsumerProposal {
     ConsumerProfile value;
@@ -99,14 +99,14 @@ std::string LocalSettings::wifi_readback(std::string_view boot) const {
            ",\"wifi\":" +
            (ssid.empty()
                 ? std::string("null")
-                : "{\"ssid\":" + wtp::json::quote(ssid) +
-                      ",\"password\":null,\"time_server\":" + wtp::json::quote(server) + "}") +
-           ",\"generation\":" + wtp::json::quote(std::to_string(profiles_.sequence())) +
+                : "{\"ssid\":" + execution::json::quote(ssid) +
+                      ",\"password\":null,\"time_server\":" + execution::json::quote(server) + "}") +
+           ",\"generation\":" + execution::json::quote(std::to_string(profiles_.sequence())) +
            ",\"pending_restart\":" + (pending_restart_ ? "true" : "false") +
            ",\"storage_healthy\":" + (healthy() ? "true}" : "false}");
 }
-std::string LocalSettings::wifi_save(wtp::json::Value wifi) {
-    using namespace wtp::json;
+std::string LocalSettings::wifi_save(execution::json::Value wifi) {
+    using namespace execution::json;
     if (!healthy())
         return "storage_fault";
     const bool remove = wifi.raw == "null";

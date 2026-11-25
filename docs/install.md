@@ -8,7 +8,7 @@ Choose your computer and what you want to do. The recommended installer keeps ba
 | --- | --- | --- |
 | Linux or macOS | Install WsprryPico for the first time, including over another program | [Get the installer and identify the Pico](#get-the-installer-and-identify-the-pico), then [First installation](#first-installation) |
 | Linux or macOS | Update an existing WsprryPico and preserve settings | [Get the installer](#get-the-installer-and-identify-the-pico), then [Preserve settings during an update](#preserve-settings-during-an-update) |
-| Windows | Copy firmware directly over USB | [Windows manual UF2 installation](#windows-manual-uf2-installation-available-but-not-recommended), available but not recommended |
+| Windows | Copy firmware directly over USB | [Windows manual UF2 installation](#windows-manual-uf2-installation), available but not recommended |
 | Linux | Set up USB access without sudo for future installations | [Optional Linux USB permission setup](#linux-usb-permission-setup) |
 
 If the installer cannot open the Pico, use [Linux BOOTSEL access checks](#check-linux-bootsel-access). If a Windows file copy fails, use [Windows UF2 copy checks](#check-a-windows-uf2-copy).
@@ -17,19 +17,16 @@ If the installer cannot open the Pico, use [Linux BOOTSEL access checks](#check-
 
 Firmware is the program stored on the Pico. Use a USB **data** cable to install or update it. Enter the installer commands in a **Terminal application on your computer**. The Pico's text Console and your browser's address bar cannot run them.
 
-The recommended USB installer uses native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. The installer script does not support Windows, Git Bash, or WSL. Windows users can use the [manual UF2 path, available but not recommended](#windows-manual-uf2-installation-available-but-not-recommended). **Run the installer as your ordinary user, without `sudo`.** On Linux, the installer can use `sudo` for picotool USB access and to [repair serial group access](#check-running-firmware-serial-access), while Python continues as your ordinary user. Use a local login account with sudo rights. To avoid sudo during installation, complete the optional [USB permission setup](#linux-usb-permission-setup) and ensure your account has serial access.
+The recommended USB installer uses native macOS or Linux, Python **3.10 or newer**, and `curl`. The installer reports missing or unsupported Python with instructions before downloading its code. The installer script does not support Windows, Git Bash, or WSL. Windows users can use the [manual UF2 path, available but not recommended](#windows-manual-uf2-installation). **Run the installer as your ordinary user, without `sudo`.** On Linux, the installer can use `sudo` for picotool USB access and to [repair serial group access](#check-running-firmware-serial-access), while Python continues as your ordinary user. Use a local login account with sudo rights. To avoid sudo during installation, complete the optional [USB permission setup](#linux-usb-permission-setup) and ensure your account has serial access.
 
 The curl commands in this guide omit `--proto '=https' --proto-redir '=https'` for brevity when typing or copying them. **Adding these options is recommended for protection:** they restrict downloads and redirects to HTTPS. Insert them after `curl -fsSL`, especially when piping a downloaded script directly to Bash. The bootstrap script keeps these restrictions on its own downloads.
 
-## Select recommended firmware
+(select-recommended-firmware)=
+## Select firmware
 
-Use an exact firmware version to select a published release. The recommended version below is a prerelease; review its release notes before installing it.
+The current installer selects the latest verified development firmware with `--branch devel`. The [published development download](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel) identifies the selected version and source revision. Review the [release notes and qualification scope](reference/releases.md).
 
-Use the published [recommended firmware, version **@RECOMMENDED_FIRMWARE_VERSION@**](https://github.com/WsprryPi/WsprryPico/releases/tag/v@RECOMMENDED_FIRMWARE_VERSION@). The installation, update, and image-check commands below include `--version @RECOMMENDED_FIRMWARE_VERSION@` to select that exact release. The version argument omits the tag's `v` prefix. The installer verifies image identity, source, workflow, and SHA-256 checksums before programming; it stops if the selected release is unavailable or fails verification.
-
-See the [recommended release notes and qualification scope](reference/releases.md) before selecting this prerelease.
-
-For development firmware, use the [published devel download](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel) and the [devel upgrade command](#upgrade-to-devel-firmware).
+Use a build with the current release manifest. If the published development download predates that manifest, the installer stops before programming. An exact version may be selected with `--version VERSION` when its bundle uses the current manifest.
 
 ## Get the installer and identify the Pico
 
@@ -69,10 +66,10 @@ set -o pipefail
 curl -fsSL \
   --connect-timeout 10 --max-time 60 --max-filesize 1048576 \
   https://raw.githubusercontent.com/WsprryPi/WsprryPico/devel/scripts/install_usb.sh \
-  | bash -s -- install --board pico2_w --yes --version @RECOMMENDED_FIRMWARE_VERSION@
+  | bash -s -- install --board pico2_w --yes --branch devel
 ```
 
-Choose the intended Pico from the numbered menu. This installs the exact recommended firmware release after checking the existing flash. The installer stops if it finds existing saved data. Keep `--version @RECOMMENDED_FIRMWARE_VERSION@` in the command; `--branch devel` does not select this exact release.
+Choose the intended Pico from the numbered menu. The installer checks existing flash before programming the selected verified development image. It stops if it finds existing saved data.
 
 For an existing WsprryPico, complete [the update preparation below](#preserve-settings-during-an-update), leave its firmware running, and replace `install` with `upgrade` in the command. Starting an upgrade in BOOTSEL stops before downloading tools or firmware. Reconnect without holding BOOTSEL before retrying. If an update already has a retained transaction, use its printed recovery command.
 
@@ -86,14 +83,14 @@ Terminal runs show progress and a readable result. Add `--json-only` for JSON wi
 2. Run the installer. Confirm that the numbered selection is your **Pico 2 W**:
 
    ```sh
-   bash install_usb.sh install --board pico2_w --yes --version @RECOMMENDED_FIRMWARE_VERSION@
+   bash install_usb.sh install --board pico2_w --yes --branch devel
    ```
 
 3. Keep USB connected through programming and verification. A final verified result, followed by the running firmware identity, confirms completion.
 
 After successful installation, leave the Pico powered and continue to [Connect to your Pico](connect.md). Its setup Wi-Fi lets you save the network details and open the control page.
 
-The command selects the recommended release explicitly. If an existing application cannot be identified, stop and inspect the refusal; do not assume that replacing it can preserve its settings.
+The command selects verified development firmware. If an existing application cannot be identified, stop and inspect the refusal; do not assume that replacing it can preserve its settings.
 
 ### Erase and reinstall from a Raspberry Pi
 
@@ -142,11 +139,11 @@ Use the [USB full flash erase](maintain.md#recovery-and-reset) command when the 
 
 ## Preserve settings during an update
 
-1. Finish or abort any job through its owning controller, release control, and leave the Pico idle. Disable its standalone schedule. Resolve STOP/fault states through the normal controls before updating. If WsprryPi uses this USB connection, follow [the standalone-on-Pi procedure](wsprrypi.md#standalone-installer-on-a-wsprrypi-host) to pause its service while the standalone installer runs.
+1. Disable both saved schedules and confirm that the Pico is idle, inactive, and unowned. Use [Stop native schedules and readback](operate.md#status-stop-and-connection-loss) when needed. For an active [Test Tone](operate.md#conducted-test-tones-from-a-local-client), use the measurement client's Stop control and confirm the result. Resolve STOP or fault states before updating. If WsprryPi uses this USB connection, follow [the standalone-on-Pi procedure](wsprrypi.md#standalone-installer-on-a-wsprrypi-host).
 2. Run:
 
    ```sh
-   bash install_usb.sh upgrade --board pico2_w --yes --version @RECOMMENDED_FIRMWARE_VERSION@
+   bash install_usb.sh upgrade --board pico2_w --yes --branch devel
    ```
 
 3. Choose the intended Pico from the list. The installer uses its USB serial number and port to keep the update tied to that Pico. It checks compatibility, backs up flash memory, and verifies saved settings after programming.
@@ -157,7 +154,7 @@ Preparation or a BOOTSEL prompt is not a completed update. If interrupted, keep 
 
 ### Upgrade to devel firmware
 
-To upgrade to the latest published `devel` firmware, finish or abort any job, release control, and disable standalone scheduling. Leave the Pico idle and running normally over USB. If WsprryPi uses this connection, follow [the standalone-on-Pi procedure](wsprrypi.md#standalone-installer-on-a-wsprrypi-host) to pause its service. Run this command from a Bash terminal as your ordinary user:
+To upgrade to the latest published `devel` firmware, complete the [update preparation](#preserve-settings-during-an-update) and leave the idle Pico running normally over USB. Run this command from a Bash terminal as your ordinary user:
 
 ```sh
 set -o pipefail
@@ -176,7 +173,7 @@ If the installer computer has no matching local-image reference for the firmware
 Do not delete the reference, edit its source identity, or erase the Pico to get past a refusal. If the original bundle is unavailable or does not match, stop and retain the reported transaction for support. A firmware version or source string alone is insufficient to preserve settings safely.
 
 (windows-manual-uf2-installation-available-but-not-recommended)=
-## Windows manual UF2 installation — available but not recommended
+## Windows manual UF2 installation
 
 Windows can copy a firmware UF2 file directly to a Pico 2 W in BOOTSEL mode, using the board's USB drive. This path is **available but not recommended**. It bypasses the recommended installer, and this procedure has not been tested on Windows hardware with this WsprryPico release. Raspberry Pi documents the underlying [BOOTSEL and UF2 loading process](https://www.raspberrypi.com/documentation/microcontrollers/c_sdk.html).
 
@@ -197,7 +194,7 @@ Copying a UF2 replaces the firmware program without erasing all flash memory or 
 
 ### Copy the recommended release from Windows
 
-1. Confirm that the board is a **Pico 2 W**. For an existing WsprryPico, disable and save its standalone schedule, finish or abort jobs through their owning controller, release control, and confirm inactive output before disconnecting it. Record settings you may need to enter again. If another program is installed, expect to replace it; this procedure does not back it up.
+1. Confirm that the board is a **Pico 2 W**. On a configured Pico, disable both saved schedules and confirm inactive, unowned output before disconnecting it. Record settings you may need to enter again. If another program is installed, expect to replace it. This procedure makes no backup.
 2. In your Windows browser, open the [recommended release, version @RECOMMENDED_FIRMWARE_VERSION@](https://github.com/WsprryPi/WsprryPico/releases/tag/v@RECOMMENDED_FIRMWARE_VERSION@). Expand **Assets** and download **`WsprryPico-@RECOMMENDED_FIRMWARE_VERSION@-pico2_w.uf2`** and **`SHA256SUMS`** into the same folder. Choose the named UF2 asset, rather than GitHub's **Source code** archives. Keep the original filenames. If either asset is missing, confirm the version at the top of the release page and expand the full asset list. Wait for both files to be available; source archives cannot replace them.
 3. Open that folder in File Explorer, right-click an empty area, and choose **Open in Terminal** or **Open PowerShell window here**. Use a PowerShell tab and run:
 
@@ -327,7 +324,7 @@ After the operation, the installer offers cleanup only if it downloaded picotool
 For unattended use, provide `--device SERIAL` and explicitly allow downloading with `--download-picotool`. `--yes` confirms programming; it does not approve tool downloads. Choose `--tool-cleanup keep` or `--tool-cleanup remove` to skip the cleanup question. Without a terminal, or with `--json-only`, the default keeps downloaded tools. For example:
 
 ```sh
-bash install_usb.sh upgrade --version @RECOMMENDED_FIRMWARE_VERSION@ --device SERIAL \
+bash install_usb.sh upgrade --branch devel --device SERIAL \
   --board pico2_w --yes --download-picotool --tool-cleanup remove
 ```
 
@@ -336,18 +333,14 @@ The bootstrap removes its temporary files on exit. A deliberately downloaded `in
 ## Check an image without programming
 
 ```sh
-bash install_usb.sh plan --version @RECOMMENDED_FIRMWARE_VERSION@ --output ./pico-firmware-bundle
+bash install_usb.sh plan --branch devel --output ./pico-firmware-bundle
 ```
 
-The output directory must be new. Confirm the returned version is `@RECOMMENDED_FIRMWARE_VERSION@` and review the full source revision and manifest. The saved verified bundle can be used offline with `--bundle ./pico-firmware-bundle` in place of `--version @RECOMMENDED_FIRMWARE_VERSION@`. A checksum verifies integrity; it is not a signature. The ordinary download uses anonymous HTTPS. If GitHub reports a rate limit, wait until the reported UTC retry time; the installer does not substitute another image or branch.
+The output directory must be new. Confirm the returned version, full source revision, and manifest. The saved verified bundle can be used offline with `--bundle ./pico-firmware-bundle` in place of `--branch devel`. A checksum verifies integrity; it is not a signature. The ordinary download uses anonymous HTTPS. If GitHub reports a rate limit, wait until the reported UTC retry time; the installer does not substitute another image or branch.
 
 ## Other firmware selectors
 
-No `--branch` option is needed for the recommended release. The firmware version is independent of the installer source and any WsprryPi branch. The `devel` segment in the installer download URL above selects the installer source, while `--version @RECOMMENDED_FIRMWARE_VERSION@` selects the firmware.
-
-`--branch devel` selects the latest [published devel firmware](https://github.com/WsprryPi/WsprryPico/releases/tag/ci-devel). Its download page identifies the firmware version and source revision.
-
-Choose firmware explicitly with `--branch devel` or `--version @RECOMMENDED_FIRMWARE_VERSION@`. The `--version` option selects an exact published release. If the requested image is unavailable or fails verification, the installer stops and does not substitute another image.
+The `devel` segment in the launcher URL selects the installer source. `--branch devel` selects the latest published development firmware, and `--version VERSION` selects one exact compatible bundle. A request that fails verification stops without choosing a different image.
 
 For destructive erase, see [Recovery and reset](maintain.md#recovery-and-reset).
 

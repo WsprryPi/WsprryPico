@@ -12,15 +12,15 @@
 
 using namespace wsprrypico;
 namespace {
-struct Engine : wtp::RfEngine {
+struct Engine : execution::RfEngine {
     standalone::DryRunEngine native;
     network_test::Clock& clock;
     unsigned drive = 12, prepares = 0, schedules = 0, disables = 0;
     bool fail_disable = false, fail_prepare = false, bad_pad = false, missing_pad = false;
     bool stale_pad = false;
-    wtp::PadObservation pad;
+    execution::PadObservation pad;
     explicit Engine(network_test::Clock& c) : clock(c) {}
-    wtp::PrepareResult prepare(const wtp::Job& job) override {
+    execution::PrepareResult prepare(const execution::Job& job) override {
         ++prepares;
         if (fail_prepare)
             return {};
@@ -33,21 +33,21 @@ struct Engine : wtp::RfEngine {
     bool schedules_locally() const override {
         return true;
     }
-    bool schedule(const wtp::Job& job, std::uint64_t at,
-                  const wtp::LocalStartConditions& c) override {
+    bool schedule(const execution::Job& job, std::uint64_t at,
+                  const execution::LocalStartConditions& c) override {
         ++schedules;
         pad = {stale_pad ? 1U : schedules, clock.now, 2, bad_pad ? 4 : int(drive)};
         if (missing_pad)
             pad = {};
         return native.schedule(job, at, c);
     }
-    wtp::PadObservation pad_observation() const override {
+    execution::PadObservation pad_observation() const override {
         return pad;
     }
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t at) override {
+    execution::EngineReport poll(std::uint64_t at) override {
         return native.poll(at);
     }
     bool disable(std::uint64_t at) override {
@@ -65,12 +65,12 @@ struct Fixture {
     Engine raw{clock};
     standalone::FrequencyPolicyEngine policy;
     network_test::Identity identity;
-    wtp::JobService service;
+    execution::JobService service;
     standalone::Scheduler scheduler;
     network_test::Network network;
     network::BrowserApi api;
-    static wtp::ServiceConfig limits() {
-        wtp::ServiceConfig c;
+    static execution::ServiceConfig limits() {
+        execution::ServiceConfig c;
         c.capability_engine = "pio-dma-gp2";
         c.minimum_frequency_nhz = rf::minimum_frequency_nhz;
         c.maximum_frequency_nhz = rf::maximum_frequency_nhz;
@@ -162,16 +162,16 @@ struct Fixture {
 };
 std::string field(const network::HttpResponse& r, std::string_view name) {
     const auto text = r.body_text();
-    const auto value = wtp::json::parse(text);
+    const auto value = execution::json::parse(text);
     REQUIRE(value);
     return value->get("job")->get(name)->string();
 }
 std::uint64_t timing(const network::HttpResponse& r, std::string_view name) {
     std::uint64_t n;
     const auto text = r.body_text();
-    const auto value = wtp::json::parse(text);
+    const auto value = execution::json::parse(text);
     REQUIRE(value);
-    REQUIRE(wtp::json::decimal(*value->get("job")->get(name), n));
+    REQUIRE(execution::json::decimal(*value->get("job")->get(name), n));
     return n;
 }
 void station_free_reviews() {
@@ -196,8 +196,8 @@ constexpr std::string_view start_path = "/api/control/v1/test-tone/start";
 
 void ordinary_load_refuses(synthesis_tone_test::Fixture& f, bool internal) {
     unsigned sequence = 0;
-    const auto send = [&](std::string_view operation, wtp::RequestBody body = {}) {
-        wtp::Request request;
+    const auto send = [&](std::string_view operation, execution::RequestBody body = {}) {
+        execution::Request request;
         request.session_id = std::string(32, 'e');
         request.request_id = std::string(31, 'e') + std::to_string(++sequence);
         request.principal = "other-producer";
@@ -208,17 +208,17 @@ void ordinary_load_refuses(synthesis_tone_test::Fixture& f, bool internal) {
                         : f.service.handle(std::move(request));
     };
     const std::string job_id(32, 'd');
-    REQUIRE(send("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-    REQUIRE(send("CLAIM", wtp::ClaimBody{job_id, 30'000}).ok);
-    wtp::Job job;
+    REQUIRE(send("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+    REQUIRE(send("CLAIM", execution::ClaimBody{job_id, 30'000}).ok);
+    execution::Job job;
     job.job_id = job_id;
     job.mode = "tone";
     job.total_duration_ns = 1'000'000'000;
     job.allow_frequency_adjustment = true;
     REQUIRE(job.events.push_back({0, job.total_duration_ns, true, qualified_carrier_nhz}));
     const auto loaded = send("LOAD", std::move(job));
-    REQUIRE(!loaded.ok && loaded.error == wtp::ErrorCode::FrequencyRejected);
-    REQUIRE(f.service.activity().state != wtp::State::Loaded && !f.raw.output_active());
+    REQUIRE(!loaded.ok && loaded.error == execution::ErrorCode::FrequencyRejected);
+    REQUIRE(f.service.activity().state != execution::State::Loaded && !f.raw.output_active());
     REQUIRE(send("RELEASE").ok);
 }
 
@@ -243,7 +243,7 @@ void exact_si5351_carrier() {
                        f.body(false, proposed, 1000, qualified_carrier_hz));
             REQUIRE(response.status == 200);
             const auto text = response.body_text();
-            const auto review = wtp::json::parse(text);
+            const auto review = execution::json::parse(text);
             REQUIRE(review && review->get("admission")->string() ==
                                   (proposed == boot_drive ? "ready" : "requires_restart"));
             REQUIRE(review->get("reasons")->raw == "[]");
@@ -251,10 +251,10 @@ void exact_si5351_carrier() {
             const auto realization = review->get("realization");
             std::uint64_t requested = 0, programmed = 0, bound = 0;
             REQUIRE(realization &&
-                    wtp::json::decimal(*realization->get("requested_nhz"), requested) &&
+                    execution::json::decimal(*realization->get("requested_nhz"), requested) &&
                     requested == qualified_carrier_nhz);
-            REQUIRE(wtp::json::decimal(*realization->get("programmed_nhz"), programmed));
-            REQUIRE(wtp::json::decimal(*realization->get("quantization_bound_nhz"), bound));
+            REQUIRE(execution::json::decimal(*realization->get("programmed_nhz"), programmed));
+            REQUIRE(execution::json::decimal(*realization->get("quantization_bound_nhz"), bound));
             const long double target = qualified_carrier_nhz / (1 + correction_ppb / 1e9L);
             REQUIRE(std::fabs(programmed - target) <= bound);
             REQUIRE(bound <= 1'000'000 + rf::si5351::frequency_reporting_guard_nhz);
@@ -279,14 +279,14 @@ void exact_si5351_carrier() {
                                      ready_revision);
         REQUIRE(accepted.status == 202 &&
                 synthesis_tone_test::job_field(accepted, "phase") == "accepted" &&
-                f.service.activity().state == wtp::State::Armed);
+                f.service.activity().state == execution::State::Armed);
         const auto readback = f.raw.synthesis_observation();
         REQUIRE(readback.epoch && readback.drive_ma == int(boot_drive) &&
                 readback.transmit_output == 0 && readback.reference_hz == 25'000'000);
         const auto correction = f.policy.prepared_correction();
         REQUIRE(correction && correction->ppb == correction_ppb);
         const auto accepted_text = accepted.body_text();
-        const auto receipt = wtp::json::parse(accepted_text);
+        const auto receipt = execution::json::parse(accepted_text);
         REQUIRE(receipt);
         const auto job = receipt->get("job");
         REQUIRE(job);
@@ -294,7 +294,7 @@ void exact_si5351_carrier() {
         REQUIRE(synthesis && synthesis->get("stage")->string() == "verified" &&
                 synthesis->get("drive_ma")->raw == std::to_string(boot_drive));
         std::uint64_t prepared = 0;
-        REQUIRE(wtp::json::decimal(*job->get("realization")->get("programmed_nhz"), prepared));
+        REQUIRE(execution::json::decimal(*job->get("realization")->get("programmed_nhz"), prepared));
         REQUIRE(prepared == ready_programmed);
         if (correction_ppb)
             REQUIRE(prepared != qualified_carrier_nhz);
@@ -323,11 +323,11 @@ void exact_carrier_exclusions() {
             f.send("POST", std::string(review_path), f.body(false, 8, 1000, carrier_hz));
         REQUIRE(review.status == 200);
         const auto text = review.body_text();
-        const auto doc = wtp::json::parse(text);
+        const auto doc = execution::json::parse(text);
         REQUIRE(doc && doc->get("admission")->string() == "refused" &&
                 doc->get("reasons")->raw == "[\"unqualified_frequency_not_permitted\"]");
         std::uint64_t programmed = 0;
-        REQUIRE(wtp::json::decimal(*doc->get("realization")->get("programmed_nhz"), programmed));
+        REQUIRE(execution::json::decimal(*doc->get("realization")->get("programmed_nhz"), programmed));
         const auto start =
             f.send("POST", std::string(start_path), f.body(true, 8, 1000, carrier_hz), revision);
         REQUIRE(start.status == 409 &&
@@ -449,7 +449,7 @@ void shutdown_and_pad_failures() {
         auto rejected = p.start();
         REQUIRE(rejected.status == 202);
         REQUIRE(field(rejected, "outcome") == "failed");
-        REQUIRE(p.service.activity().state == wtp::State::Failed &&
+        REQUIRE(p.service.activity().state == execution::State::Failed &&
                 !p.service.activity().output_active);
     }
     Fixture prep;
@@ -468,10 +468,10 @@ void restart_and_stale_evidence() {
     const auto rejected = f.start(f.start_body(std::string(32, '2')));
     REQUIRE(field(rejected, "outcome") == "failed");
     const auto text = rejected.body_text();
-    REQUIRE(wtp::json::parse(text)->get("job")->get("pad_readback")->get("drive_ma")->raw ==
+    REQUIRE(execution::json::parse(text)->get("job")->get("pad_readback")->get("drive_ma")->raw ==
             "null");
     REQUIRE(f.status().body_text().find("\"stage\":\"verified\"") != std::string::npos);
-    REQUIRE(f.service.activity().state == wtp::State::Failed);
+    REQUIRE(f.service.activity().state == execution::State::Failed);
     const auto old_boot = f.service.status(false).boot_id;
     f.service.reset();
     f.api.poll_test_tone();
@@ -600,24 +600,24 @@ void usb_framing_reconnect() {
         };
         (void)exchange(R"({"schema":"usb-management/1","id":1,"operation":"hello"})");
         const auto common =
-            "{\"schema\":\"usb-management/1\",\"id\":2,\"session\":" + wtp::json::quote(session) +
+            "{\"schema\":\"usb-management/1\",\"id\":2,\"session\":" + execution::json::quote(session) +
             ",\"target\":" + target;
         const auto result =
-            exchange(common + ",\"operation\":\"request\",\"method\":" + wtp::json::quote(method) +
-                     ",\"path\":" + wtp::json::quote(path) + ",\"body\":" + wtp::json::quote(body) +
-                     ",\"if_match\":" + wtp::json::quote(revision) + "}");
+            exchange(common + ",\"operation\":\"request\",\"method\":" + execution::json::quote(method) +
+                     ",\"path\":" + execution::json::quote(path) + ",\"body\":" + execution::json::quote(body) +
+                     ",\"if_match\":" + execution::json::quote(revision) + "}");
         if (acknowledge)
             (void)exchange(common + ",\"operation\":\"ack\"}");
         return result;
     };
     const auto lost = open(std::string(32, 'b'), "/api/control/v1/test-tone/start", "POST",
                            f.start_body(), f.api.revision(), false);
-    REQUIRE(wtp::json::parse(lost)->get("status")->integer() == 202 && f.raw.schedules == 1);
+    REQUIRE(execution::json::parse(lost)->get("status")->integer() == 202 && f.raw.schedules == 1);
     const auto read =
         open(std::string(32, 'c'), f.selector(std::string(32, '1')), "GET", "", "", true);
-    REQUIRE(wtp::json::parse(read)->get("status")->integer() == 200 && f.raw.schedules == 1);
-    const auto logical = wtp::json::parse(read)->get("body")->string();
-    REQUIRE(wtp::json::parse(logical)->get("job")->get("request_id")->string() ==
+    REQUIRE(execution::json::parse(read)->get("status")->integer() == 200 && f.raw.schedules == 1);
+    const auto logical = execution::json::parse(read)->get("body")->string();
+    REQUIRE(execution::json::parse(logical)->get("job")->get("request_id")->string() ==
             std::string(32, '1'));
 }
 

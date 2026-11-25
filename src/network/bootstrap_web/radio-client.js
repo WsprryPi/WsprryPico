@@ -148,7 +148,7 @@ export class RadioClient {
         const selected=value.selected;
         const knownCarriers=['engineering_mtls','engineering_field','consumer_station','consumer_ap','usb_physical'];
         if(!result.ok || value.contract!==globalThis.WsprryControl.contract || value.schema!=='management' ||
-            Object.keys(value).sort().join(',')!=='carriers,contract,limits,operations,preclock,profile,profile_generation,schema,selected,target,unsupported' ||
+            Object.keys(value).sort().join(',')!=='carriers,contract,limits,operations,preclock,profile,profile_generation,schema,selected,target' ||
             !target || Object.keys(target).sort().join(',')!=='boot_id,device_id,scope' || target.scope!=='member' ||
             target.device_id!==identity.device_id || target.boot_id!==identity.boot_id || current.device_id!==identity.device_id || current.boot_id!==identity.boot_id || typeof value.profile_generation!=='string' || !/^[1-9][0-9]{0,19}$/.test(value.profile_generation) || BigInt(value.profile_generation)>0xffffffffffffffffn ||
             value.profile!=='consumer' || typeof value.preclock!=='boolean' || !['consumer_station','consumer_ap'].includes(selected) ||
@@ -158,8 +158,7 @@ export class RadioClient {
             !Array.isArray(value.carriers) || value.carriers.length!==knownCarriers.length || new Set(value.carriers.map(v=>v?.carrier)).size!==knownCarriers.length ||
             !value.carriers.some(v=>v.carrier===selected && v.built_in===true && v.available===true) ||
             value.carriers.some(v=>!v || Object.keys(v).sort().join(',')!=='available,built_in,carrier' || !knownCarriers.includes(v.carrier) || typeof v.built_in!=='boolean' || typeof v.available!=='boolean' || v.available && !v.built_in) ||
-            !globalThis.WsprryControl.validManagementOperations(value.operations) ||
-            JSON.stringify(value.unsupported)!==JSON.stringify(['plain_wtp_json','tls_wtp_json','ble_json']))
+            !globalThis.WsprryControl.validManagementOperations(value.operations))
           throw new Error('Authenticated control policy is unsupported. Update both applications before changing settings.');
         if (value.profile_generation!==current.generation) {
           if (attempt===0) continue; // One read-only retry for the single station transfer.

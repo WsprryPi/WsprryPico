@@ -32,14 +32,6 @@ ctest --test-dir build-host --no-tests=error --output-on-failure
 
 Use an unused build directory when existing outputs have another duty. On a Pi, cap parallelism to available resources, normally leaving one core free. Do not retry a known broken local macOS compiler without explicit toolchain repair or local-build authorization. `scripts/check_host.sh` and `scripts/xcode_env.sh` select installed Xcode for an available macOS host setup; they do not install or repair it. Linux CI defines the reproducible software baseline. A host test or build establishes no device timing or RF performance.
 
-Check the WTP artifacts with the Python standard library:
-
-```sh
-python3 scripts/validate_wtp_contract.py
-```
-
-This validates schemas, normative vectors, raw-JSON rejection, framing and checksums, semantic job invariants, and transitions. It is an artifact check, not general implementation or physical conformance.
-
 The [RF calculation report](../rf-calculations.md) is reproducible without hardware:
 
 ```sh
@@ -142,11 +134,11 @@ Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`, `WSPRRY_PICO_JOURNA
 
 ## Engineering references
 
-- [Portable core](portable-core.md), [Native execution core](wtp-endpoint.md), and [USB CDC roles](usb-cdc.md).
+- [Portable core](portable-core.md), [Native execution](../protocol/Native-Execution.md), and [USB CDC roles](usb-cdc.md).
 - [USB installation and preserving upgrades](usb-installer.md).
 - [Erase and reinstall from a Raspberry Pi](../../docs/install.md#erase-and-reinstall-from-a-raspberry-pi), including BOOTSEL and flash_nuke without preinstalled Pico tools.
 - [Factory-new Wi-Fi, Pico password, and setup-network checklist](factory-new-access-checklist.md) for manual checks from a Mac or Raspberry Pi.
-- [WTP/1](../protocol/WTP.md), [USB management/time](../protocol/USB-Management.md), [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md), and the [browser API](../browser-api.md).
+- [USB management/time](../protocol/USB-Management.md), [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md), and the [browser API](../browser-api.md).
 - [Standalone configuration, journals, and scheduling](standalone.md), [configuration updates](configuration-updates.md), [saved progress](saved-progress.md), and [USB local configuration](usb-local-configuration.md).
 - [Shared application resources](../browser-api.md#resource-model) and the [member/controller contract](../transmitter-application-contract.md).
 - [Contextual transmitter status and Reset Pico](status-console.md).

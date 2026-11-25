@@ -4,7 +4,7 @@
 #include "provisioning/activation.hpp"
 #include "provisioning/runtime.hpp"
 #include "provisioning/storage.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <cstdint>
 #include <string>
@@ -16,7 +16,7 @@ class PicoActivationPlatform final : public ActivationPlatform {
   public:
     using Restart = bool (*)(void*);
     PicoActivationPlatform(ProfileStore& store, RuntimeProfile& runtime,
-                           wtp::JobService& service, network::PicoServer& server,
+                           execution::JobService& service, network::PicoServer& server,
                            std::string device_id, Restart restart, void* context)
         : store_(store), runtime_(runtime), service_(service), server_(server),
           device_id_(std::move(device_id)), restart_(restart), context_(context) {}
@@ -34,7 +34,7 @@ class PicoActivationPlatform final : public ActivationPlatform {
 
     ProfileStore& store_;
     RuntimeProfile& runtime_;
-    wtp::JobService& service_;
+    execution::JobService& service_;
     network::PicoServer& server_;
     std::string device_id_;
     Restart restart_ = nullptr;

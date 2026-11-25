@@ -3,7 +3,7 @@
 #include "network_support.hpp"
 
 using namespace wsprrypico;
-using namespace wtp::json;
+using namespace execution::json;
 namespace {
 network::HttpRequest request(std::string method, std::string path, std::string body = {}) {
     return {method,
@@ -331,8 +331,8 @@ void drafts_and_failures() {
     REQUIRE(n.drive("2").status == 200);
     REQUIRE(n.api.handle(network_test::control_request(stale), "test", "127.0.0.1:8443").status == 412);
     Member busy;
-    REQUIRE(network_test::internal_command(busy.f.service,"HELLO",wtp::HelloBody{{"WTP/1"}}).ok);
-    REQUIRE(network_test::internal_command(busy.f.service,"CLAIM",wtp::ClaimBody{std::string(32,'3'),30000}).ok);
+    REQUIRE(network_test::internal_command(busy.f.service,"HELLO",execution::HelloBody{{"native-execution/1"}}).ok);
+    REQUIRE(network_test::internal_command(busy.f.service,"CLAIM",execution::ClaimBody{std::string(32,'3'),30000}).ok);
     REQUIRE(busy.drive("8").status == 409);
 }
 } // namespace

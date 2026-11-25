@@ -204,7 +204,7 @@ int main() {
     auto read = usb.handle(network_test::control_request(req));
     assert(read.status == 200);
     const auto read_body = read.body_text();
-    const auto root = wsprrypico::wtp::json::parse(read_body);
+    const auto root = wsprrypico::execution::json::parse(read_body);
     assert(root && root->get("saved"));
     settings.rate = 4;
     req.method = "PUT";
@@ -253,15 +253,15 @@ int main() {
         return text;
     };
     const auto eight = nested(8), nine = nested(9);
-    assert(wsprrypico::wtp::json::parse(eight, 8));
-    assert(!wsprrypico::wtp::json::parse(nine, 8));
-    assert(wsprrypico::wtp::json::parse(nine));
-    assert(!wsprrypico::wtp::json::parse(eight, 0));
+    assert(wsprrypico::execution::json::parse(eight, 8));
+    assert(!wsprrypico::execution::json::parse(nine, 8));
+    assert(wsprrypico::execution::json::parse(nine));
+    assert(!wsprrypico::execution::json::parse(eight, 0));
     req.body = envelope(settings);
     req.body.insert(req.body.size() - 1, ",\"extra\":" + nine);
     assert(usb.handle(network_test::control_request(req)).status == 400 && storage.sequence() == seq);
     for (const auto& bad : {"null", "[]", "{}", "true", "{\"enabled\":true}"}) {
-        const auto document = wsprrypico::wtp::json::parse(bad);
+        const auto document = wsprrypico::execution::json::parse(bad);
         assert(!document || !parse_udp_settings(*document));
     }
     struct DeniedNetwork final : network_test::Network {

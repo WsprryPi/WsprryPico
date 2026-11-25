@@ -46,7 +46,7 @@ inline constexpr std::size_t consumer_radio_header_bytes = 28;
 inline constexpr std::size_t consumer_radio_tag_bytes = 16;
 std::array<std::uint8_t, consumer_radio_header_bytes>
 consumer_radio_header(std::span<const std::uint8_t, 16> session, std::uint64_t sequence);
-bool consumer_radio_header_matches(wtp::InputView packet, std::span<const std::uint8_t, 16> session,
+bool consumer_radio_header_matches(execution::InputView packet, std::span<const std::uint8_t, 16> session,
                                    std::uint64_t sequence);
 
 class ConsumerRadioCrypto {
@@ -56,26 +56,26 @@ class ConsumerRadioCrypto {
     virtual std::array<std::uint8_t, 32> public_key() const = 0;
     // Consumes the ephemeral key on every attempt. Success checks the saved
     // passphrase and derives independent request/response traffic keys.
-    virtual bool authenticate(wtp::FrameBuffer& packet, const ConsumerRadioBinding& binding,
+    virtual bool authenticate(execution::FrameBuffer& packet, const ConsumerRadioBinding& binding,
                               std::string_view password) = 0;
     // Decrypts only transport-owned pages. The returned view is usable only
     // after the complete AEAD tag has authenticated.
-    virtual std::optional<wtp::InputView>
-    open(wtp::FrameBuffer& packet, const ConsumerRadioBinding& binding, std::uint64_t sequence) = 0;
-    std::optional<HttpResponse> seal(wtp::InputView plaintext, const ConsumerRadioBinding& binding,
+    virtual std::optional<execution::InputView>
+    open(execution::FrameBuffer& packet, const ConsumerRadioBinding& binding, std::uint64_t sequence) = 0;
+    std::optional<HttpResponse> seal(execution::InputView plaintext, const ConsumerRadioBinding& binding,
                                      std::uint64_t sequence) {
         return seal_parts(std::span(&plaintext, 1), binding, sequence);
     }
     // Encrypt borrowed reply pages without retaining another full plaintext
     // envelope. Parts form one authenticated message with the same wire format.
-    virtual std::optional<HttpResponse> seal_parts(std::span<const wtp::InputView> plaintext,
+    virtual std::optional<HttpResponse> seal_parts(std::span<const execution::InputView> plaintext,
                                                    const ConsumerRadioBinding& binding,
                                                    std::uint64_t sequence) = 0;
     // Consume and encrypt an owned paged reply in place.
-    virtual std::optional<HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
+    virtual std::optional<HttpResponse> seal_buffer(execution::OutputBuffer plaintext,
                                                     const ConsumerRadioBinding& binding,
                                                     std::uint64_t sequence) = 0;
-    virtual std::optional<HttpResponse> seal_source(wtp::ResponseSourcePtr plaintext,
+    virtual std::optional<HttpResponse> seal_source(execution::ResponseSourcePtr plaintext,
                                                     const ConsumerRadioBinding& binding,
                                                     std::uint64_t sequence) = 0;
     virtual void clear() = 0;
@@ -175,7 +175,7 @@ class ConsumerRadioApi {
     HttpResponse time_resource(const HttpRequest&, Session&);
     HttpResponse password_resource(const HttpRequest& request);
     std::array<std::uint8_t, 32> password_digest() const;
-    Session* select(wtp::InputView packet);
+    Session* select(execution::InputView packet);
     bool admitted(const HttpRequest& request, bool binary) const;
     HttpResponse start(const HttpRequest& request, std::uint64_t now_ms,
                        ConsumerInterface interface);

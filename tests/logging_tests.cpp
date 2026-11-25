@@ -3,7 +3,7 @@
 #include "logging/usb_session.hpp"
 #include "network/local_usb_api.hpp"
 #include "network_support.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <cassert>
 #include <cstdlib>
@@ -138,8 +138,8 @@ int main() {
     assert(read.status == 200 && !read.etag.empty());
     const auto body =
         "{\"schema\":\"logging\",\"target\":{\"scope\":\"member\",\"device_id\":" +
-        wtp::json::quote(std::string(32, 'a')) +
-        ",\"boot_id\":" + wtp::json::quote(fixture.service.status().boot_id) +
+        execution::json::quote(std::string(32, 'a')) +
+        ",\"boot_id\":" + execution::json::quote(fixture.service.status().boot_id) +
         "},\"logging\":{\"enabled\":true,\"maximum_severity\":4}}";
     request.method = "PUT";
     request.body = body;

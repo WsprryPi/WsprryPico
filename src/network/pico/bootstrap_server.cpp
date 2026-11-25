@@ -17,7 +17,7 @@
 #include "provisioning/runtime.hpp"
 #include "provisioning/storage.hpp"
 #include "standalone/pico/adapters.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -235,9 +235,9 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
     else if (request.path == "/api/presentation/v1" && request.method == "GET" &&
              request.header("host") == "192.168.4.1" && network_)
         response_ = json(
-            "{\"schema\":\"device-presentation/1\",\"device_id\":" + wtp::json::quote(device_) +
-            ",\"boot_id\":" + wtp::json::quote(boot_id_) +
-            ",\"hostname\":" + wtp::json::quote(network_->configured_hostname()) + "}");
+            "{\"schema\":\"device-presentation/1\",\"device_id\":" + execution::json::quote(device_) +
+            ",\"boot_id\":" + execution::json::quote(boot_id_) +
+            ",\"hostname\":" + execution::json::quote(network_->configured_hostname()) + "}");
     else if (request.path.starts_with("/api/recovery/v1/"))
         response_ = recovery(request);
     else if (!ap_setup_admitted_ && (request.path.starts_with("/api/bootstrap/v1/") ||
@@ -283,7 +283,7 @@ HttpResponse PicoBootstrapServer::dispatch(const HttpRequest& request,
     if (response_.status == 200 && (request.path.starts_with("/api/bootstrap/v1/") ||
                                     request.path.starts_with("/api/owner/v1/")))
         remember_setup_reply(request, radio_transaction_);
-    // Both tasks dispatch serially on core 0. Close competing WTP admission
+    // Both tasks dispatch serially on core 0. Close competing native admission
     // immediately when setup becomes pending, before returning to network I/O.
     if (setup_pending() && setup_control_)
         setup_control_(setup_control_context_);
@@ -295,8 +295,8 @@ HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request,
     if (request.path == "/api/recovery/v1/status") {
         if (request.method != "GET" || request.header("host") != "192.168.4.1")
             return http_error(400, "invalid_request");
-        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                    ",\"boot_id\":" + wtp::json::quote(recovery_boot_id_) +
+        return json("{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+                    ",\"boot_id\":" + execution::json::quote(recovery_boot_id_) +
                     ",\"pending\":" + (reset_pending_ ? "true" : "false") + "}");
     }
     if (!active_ || !reset_begin_ || reset_pending_ || !recovery_access_ ||
@@ -326,10 +326,10 @@ HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request,
             recovery_login_.emplace();
             std::copy(login.begin(), login.end(), recovery_login_->begin());
         }
-        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-                    ",\"boot_id\":" + wtp::json::quote(recovery_boot_id_) +
-                    ",\"slot_id\":" + wtp::json::quote(slot) + ",\"pico_public_key\":" +
-                    wtp::json::quote(bootstrap_b64url(recovery_crypto_.public_key())) +
+        return json("{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+                    ",\"boot_id\":" + execution::json::quote(recovery_boot_id_) +
+                    ",\"slot_id\":" + execution::json::quote(slot) + ",\"pico_public_key\":" +
+                    execution::json::quote(bootstrap_b64url(recovery_crypto_.public_key())) +
                     ",\"slot_expires_in_ms\":180000}");
     }
     if (request.path != "/api/recovery/v1/submit")
@@ -370,7 +370,7 @@ HttpResponse PicoBootstrapServer::recovery(const HttpRequest& request,
         return http_error(400, "invalid_confirmation");
     const auto level = command == "1:1:erase" ? provisioning::ResetLevel::Full
                                               : provisioning::ResetLevel::Provisioning;
-    const auto result = reset_begin_(level, wtp::sha256(ciphertext), reset_context_);
+    const auto result = reset_begin_(level, execution::sha256(ciphertext), reset_context_);
     if (result != provisioning::ResetResult::Pending &&
         result != provisioning::ResetResult::Complete)
         return http_error(result == provisioning::ResetResult::Busy ? 409 : 503,
@@ -777,11 +777,11 @@ HttpResponse PicoBootstrapServer::status() const {
         std::to_string(healthy ? profile_->sequence() : 0) + ",\"slot_state\":\"" +
         std::string(bootstrap_commit_.reconcile() ? "reconcile" : slot_name(slot_.state())) +
         "\",\"slot_id_digest\":" +
-        (slot_digest_.empty() ? "null" : wtp::json::quote(slot_digest_)) + ",\"join\":\"" + join +
+        (slot_digest_.empty() ? "null" : execution::json::quote(slot_digest_)) + ",\"join\":\"" + join +
         "\",\"address_ready\":" + (address ? "true" : "false") + ",\"request_id_digest\":" +
-        (request_digest.empty() ? "null" : wtp::json::quote(request_digest)) +
+        (request_digest.empty() ? "null" : execution::json::quote(request_digest)) +
         ",\"attempt_request_id_digest\":" +
-        (slot_.request_id_digest().empty() ? "null" : wtp::json::quote(slot_.request_id_digest())) +
+        (slot_.request_id_digest().empty() ? "null" : execution::json::quote(slot_.request_id_digest())) +
         "}");
 }
 
@@ -809,11 +809,11 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
                                  slot_.state() == BootstrapSlotState::None &&
                                  owner_slot_.state() == provisioning::ConsumerClaimState::None;
     std::string body =
-        "{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
-        ",\"boot_id\":" + wtp::json::quote(boot_id_) + ",\"source\":" + wtp::json::quote(label) +
+        "{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
+        ",\"boot_id\":" + execution::json::quote(boot_id_) + ",\"source\":" + execution::json::quote(label) +
         ",\"profile_source\":" +
         std::to_string(healthy && runtime_ok ? static_cast<unsigned>(source) : 255) +
-        ",\"generation\":" + wtp::json::quote(std::to_string(generation)) + ",\"owner_exists\":" +
+        ",\"generation\":" + execution::json::quote(std::to_string(generation)) + ",\"owner_exists\":" +
         (healthy && runtime_ok && source == provisioning::ProfileSource::ConsumerProfile &&
                  owner_exists
              ? "true"
@@ -832,7 +832,7 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
     }
     body += ",\"tls_ready\":" + std::string(tls_ready ? "true" : "false");
     body += ",\"readiness\":" +
-            wtp::json::quote(tls_ready ? "ready" : "pending_trustworthy_time_or_tls");
+            execution::json::quote(tls_ready ? "ready" : "pending_trustworthy_time_or_tls");
     if (claim_status) {
         const std::string_view request_digest =
             owner_request_digest_.empty() && runtime_ && runtime_->consumer_profile()
@@ -860,10 +860,10 @@ HttpResponse PicoBootstrapServer::owner_status(bool claim_status) {
         }
         if (owner_reconcile_)
             state = "reconcile";
-        body += ",\"slot_state\":" + wtp::json::quote(state) + ",\"slot_id_digest\":" +
-                (owner_slot_digest_.empty() ? "null" : wtp::json::quote(owner_slot_digest_)) +
+        body += ",\"slot_state\":" + execution::json::quote(state) + ",\"slot_id_digest\":" +
+                (owner_slot_digest_.empty() ? "null" : execution::json::quote(owner_slot_digest_)) +
                 ",\"request_id_digest\":" +
-                (request_digest.empty() ? "null" : wtp::json::quote(request_digest));
+                (request_digest.empty() ? "null" : execution::json::quote(request_digest));
     }
     body +=
         ",\"station\":" + (healthy && runtime_ok
@@ -888,9 +888,9 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
     if (progress_start || progress_apply) {
         if (!progress_api_ || incoming.body_view().size() > 1024)
             return http_error(400, "invalid_progress_start");
-        const auto root = wtp::json::parse(incoming.body_view());
+        const auto root = execution::json::parse(incoming.body_view());
         if (!root ||
-            !wtp::json::fields(*root, {"version", "device_id", "owner_public_key",
+            !execution::json::fields(*root, {"version", "device_id", "owner_public_key",
                                        "browser_public_key", "browser_nonce", "profile_source",
                                        "generation", "progress_revision"}) ||
             root->get("progress_revision")->type() != '\"')
@@ -903,7 +903,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
                                  "browser_nonce", "profile_source", "generation"}) {
             if (request.body.size() > 1)
                 request.body += ',';
-            request.body += wtp::json::quote(field) + ':' + std::string(root->get(field)->raw);
+            request.body += execution::json::quote(field) + ':' + std::string(root->get(field)->raw);
         }
         request.body += '}';
         request.buffered_body.reset();
@@ -928,7 +928,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
         if (indicator_->identify(parsed->request_id, device_, true, true, now_ms) !=
             provisioning::IndicatorCode::Ok)
             return http_error(409, "busy");
-        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) +
+        return json("{\"version\":1,\"device_id\":" + execution::json::quote(device_) +
                     ",\"pattern\":\"three_short_flashes\",\"duration_ms\":10000}");
     }
     if (request.path == "/api/owner/v1/claim/start") {
@@ -982,14 +982,14 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
                 return http_error(503, "access_unavailable");
             }
         }
-        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) + ",\"boot_id\":" +
-                    wtp::json::quote(boot_id_) + ",\"slot_id\":" + wtp::json::quote(slot_hex) +
+        return json("{\"version\":1,\"device_id\":" + execution::json::quote(device_) + ",\"boot_id\":" +
+                    execution::json::quote(boot_id_) + ",\"slot_id\":" + execution::json::quote(slot_hex) +
                     ",\"profile_source\":" + std::to_string(static_cast<unsigned>(parsed->source)) +
-                    ",\"generation\":" + wtp::json::quote(std::to_string(parsed->generation)) +
-                    ",\"owner_key_sha256\":" + wtp::json::quote(bootstrap_digest(point)) +
-                    ",\"browser_public_key\":" + wtp::json::quote(parsed->browser_public_key) +
-                    ",\"browser_nonce\":" + wtp::json::quote(parsed->browser_nonce) +
-                    ",\"pico_public_key\":" + wtp::json::quote(pico_public_key) + "}");
+                    ",\"generation\":" + execution::json::quote(std::to_string(parsed->generation)) +
+                    ",\"owner_key_sha256\":" + execution::json::quote(bootstrap_digest(point)) +
+                    ",\"browser_public_key\":" + execution::json::quote(parsed->browser_public_key) +
+                    ",\"browser_nonce\":" + execution::json::quote(parsed->browser_nonce) +
+                    ",\"pico_public_key\":" + execution::json::quote(pico_public_key) + "}");
     }
     if (request.path == "/api/owner/v1/claim/submit") {
         if (progress_apply_slot_ &&
@@ -1041,13 +1041,13 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
             ControlStringWiper wipe_save(save.body);
             save.method = "POST";
             save.path = "/api/control/v1/progress/update";
-            auto payload = control_payload(wtp::InputView(plaintext));
+            auto payload = control_payload(execution::InputView(plaintext));
             if (!payload) {
                 cancel_owner_slot(false);
                 return http_error(400, "unsupported_control_contract");
             }
             save.body = std::move(*payload);
-            const wtp::InputView control_wire_body(plaintext);
+            const execution::InputView control_wire_body(plaintext);
             save.control_wire_body = &control_wire_body;
             save.buffered_body.reset();
             save.selected_body.reset();
@@ -1098,7 +1098,7 @@ HttpResponse PicoBootstrapServer::owner_mutation(const HttpRequest& incoming) {
         owner_submit_ms_ = now_ms;
         return json("{\"version\":1,\"state\":\"checking\",\"generation\":\"0\","
                     "\"request_id_digest\":" +
-                    wtp::json::quote(owner_request_digest_) + "}");
+                    execution::json::quote(owner_request_digest_) + "}");
     }
     return http_error(404, "not_found");
 }
@@ -1246,9 +1246,9 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
                 return http_error(503, "access_unavailable");
             }
         }
-        return json("{\"version\":1,\"device_id\":" + wtp::json::quote(device_) + ",\"boot_id\":" +
-                    wtp::json::quote(boot_id_) + ",\"slot_id\":" + wtp::json::quote(slot_hex) +
-                    ",\"pico_public_key\":" + wtp::json::quote(key) +
+        return json("{\"version\":1,\"device_id\":" + execution::json::quote(device_) + ",\"boot_id\":" +
+                    execution::json::quote(boot_id_) + ",\"slot_id\":" + execution::json::quote(slot_hex) +
+                    ",\"pico_public_key\":" + execution::json::quote(key) +
                     ",\"slot_expires_in_ms\":180000}");
     }
     if (request.path == "/api/bootstrap/v1/submit") {
@@ -1314,7 +1314,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
             end_trial(false, now_ms);
             return json("{\"version\":1,\"state\":\"failed\",\"generation\":0,"
                         "\"request_id_digest\":" +
-                        wtp::json::quote(digest) + "}");
+                        execution::json::quote(digest) + "}");
         }
         if (!requested_hostname.empty())
             trial_.hostname = requested_hostname;
@@ -1323,7 +1323,7 @@ HttpResponse PicoBootstrapServer::mutation(const HttpRequest& request) {
         bootstrap_submit_delivered_ms_ = 0;
         return json("{\"version\":1,\"state\":\"checking\",\"generation\":0,"
                     "\"request_id_digest\":" +
-                    wtp::json::quote(digest) + "}");
+                    execution::json::quote(digest) + "}");
     }
     if (request.path == "/api/bootstrap/v1/ack") {
         const auto parsed = parse_bootstrap_ack(request);

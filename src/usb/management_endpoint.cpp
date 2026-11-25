@@ -2,8 +2,8 @@
 
 #include "application/resources.hpp"
 #include "network/test_tone_query.hpp"
-#include "wtp/json.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/json.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -74,10 +74,10 @@ void ManagementEndpoint::poll(std::uint64_t now_ms) {
     }
 }
 
-bool ManagementEndpoint::binding(wtp::json::Value value) const {
+bool ManagementEndpoint::binding(execution::json::Value value) const {
     const auto session = value.get("session"), destination = value.get("target");
     if (!session || session->type() != '"' || session->string() != session_ || !destination ||
-        !wtp::json::fields(*destination, {"scope", "device_id", "boot_id"}))
+        !execution::json::fields(*destination, {"scope", "device_id", "boot_id"}))
         return false;
     for (const auto name : {"scope", "device_id", "boot_id"})
         if (destination->get(name)->type() != '"')
@@ -89,9 +89,9 @@ bool ManagementEndpoint::binding(wtp::json::Value value) const {
 bool ManagementEndpoint::respond(unsigned status, network::HttpResponse response, bool delivery) {
     const auto prefix = "{\"schema\":\"usb-management/1\",\"id\":" + std::to_string(last_id_) +
                         ",\"status\":" + std::to_string(status) +
-                        ",\"session\":" + wtp::json::quote(session_) + ",\"target\":" + target() +
+                        ",\"session\":" + execution::json::quote(session_) + ",\"target\":" + target() +
                         ",\"body\":\"";
-    const auto suffix = "\",\"etag\":" + wtp::json::quote(response.etag) +
+    const auto suffix = "\",\"etag\":" + execution::json::quote(response.etag) +
                         ",\"delivery_required\":" + (delivery ? "true}" : "false}");
     std::size_t length = prefix.size() + suffix.size();
     if (!response.generated_body) {
@@ -102,10 +102,10 @@ bool ManagementEndpoint::respond(unsigned status, network::HttpResponse response
         for (std::size_t offset = 0; offset < response.body_size();) {
             const auto part = response.body_at(offset);
             for (auto c : part)
-                length += wtp::response_escape(c, scratch).size();
+                length += execution::response_escape(c, scratch).size();
             offset += part.size();
         }
-        if (length > maximum_response || !wtp::memory_admitted(length, memory_reserve) ||
+        if (length > maximum_response || !execution::memory_admitted(length, memory_reserve) ||
             !small_output_.reserve(length))
             return false;
         const auto append = [&](std::string_view text) {
@@ -117,23 +117,23 @@ bool ManagementEndpoint::respond(unsigned status, network::HttpResponse response
         for (std::size_t offset = 0; offset < response.body_size();) {
             const auto part = response.body_at(offset);
             for (auto c : part)
-                if (!append(wtp::response_escape(c, scratch)))
+                if (!append(execution::response_escape(c, scratch)))
                     return false;
             offset += part.size();
         }
         if (!append(suffix))
             return false;
     } else {
-        if (!wtp::memory_admitted(8192, memory_reserve) || response.body_size() > maximum_response)
+        if (!execution::memory_admitted(8192, memory_reserve) || response.body_size() > maximum_response)
             return false;
         auto body = network::response_source(std::move(response));
         if (!body)
             return false;
-        auto escaped = wtp::make_response_source<wtp::EscapedResponseSource>(std::move(body), true);
+        auto escaped = execution::make_response_source<execution::EscapedResponseSource>(std::move(body), true);
         if (!escaped || !escaped->valid())
             return false;
         auto* preparing = escaped.get();
-        output_ = wtp::make_response_source<wtp::JoinedResponseSource>(prefix, std::move(escaped),
+        output_ = execution::make_response_source<execution::JoinedResponseSource>(prefix, std::move(escaped),
                                                                        suffix);
         if (!output_)
             return false;
@@ -151,7 +151,7 @@ bool ManagementEndpoint::respond(unsigned status, network::HttpResponse response
     return true;
 }
 bool ManagementEndpoint::dispatch() {
-    using namespace wtp::json;
+    using namespace execution::json;
     auto root = parse(input_.view());
     if (!root || root->type() != '{')
         return false;
@@ -238,7 +238,7 @@ std::size_t ManagementEndpoint::receive(std::span<const std::uint8_t> bytes, std
         for (unsigned i = 4; i < 8; ++i)
             expected_ = (expected_ << 8) | header_[i];
         if (!expected_ || expected_ > maximum_request ||
-            !wtp::memory_admitted(expected_, memory_reserve) || !input_.reserve(expected_)) {
+            !execution::memory_admitted(expected_, memory_reserve) || !input_.reserve(expected_)) {
             disconnect();
             return consumed;
         }

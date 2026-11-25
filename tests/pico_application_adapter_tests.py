@@ -312,7 +312,7 @@ int main(){
 #include "network/assets.hpp"
 #include "network/control.hpp"
 #include "network/consumer_radio.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
@@ -323,7 +323,7 @@ void check_at(bool v,int line) { if (!v) throw std::runtime_error("adapter asser
 #define check(v) check_at((v),__LINE__)
 using wsprrypico::network::ConsumerInterface;
 using wsprrypico::network::WebAsset;
-namespace wtp = wsprrypico::wtp;
+namespace execution = wsprrypico::execution;
 struct Request { std::string path="/", method="GET"; std::string_view header(std::string_view)const{return "192.168.4.1";} };
 struct Parser { Request value; bool invalid=false; bool failed()const{return invalid;} const Request& request()const{return value;} };
 using wsprrypico::network::HttpResponse;
@@ -493,9 +493,9 @@ int main() {
                 args = ['c++', '-std=c++20', '-Wall', '-Wextra', '-Werror',
                         '-I' + str(ROOT / 'src/microchrony'),
                         '-I' + str(ROOT / 'src'), str(path / 'adapter.cpp'),
-                        str(ROOT / 'src/wtp/json.cpp'), str(ROOT / 'src/wtp/observation.cpp'),
-                        str(ROOT / 'src/wtp/job_service.cpp'), str(ROOT / 'src/wtp/arm_admission.cpp'),
-                        str(ROOT / 'src/wtp/sha256.cpp'),
+                        str(ROOT / 'src/runtime/json.cpp'), str(ROOT / 'src/rf/observation.cpp'),
+                        str(ROOT / 'src/rf/job_service.cpp'), str(ROOT / 'src/rf/arm_admission.cpp'),
+                        str(ROOT / 'src/runtime/sha256.cpp'),
                         str(ROOT / 'src/network/http.cpp'),
                         '-o', str(path / 'adapter')]
                 if rf:

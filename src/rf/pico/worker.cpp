@@ -93,13 +93,13 @@ WorkerEngine& start_worker(time::UtcDiscipline& clock, const hardware::PinPlan& 
                            bool gps_pps_calibration) {
     if (!hardware::operational(pins))
         failure();
-    wtp::RfEngine* selected = nullptr;
+    execution::RfEngine* selected = nullptr;
     if (pins.engine == hardware::PinPlan::Engine::Direct) {
         static PicoPioDma direct_hardware(*pins.rf, drive_ma);
         static PioDmaSink sink(direct_hardware, &indicator, amplifier, filters);
         // The complete direct waveform buffers are large. Allocate them only
         // for the immutable direct boot plan; reserving their BSS for a Si5351
-        // boot would consume the heap needed by ordinary WTP LOAD admission.
+        // boot would consume the heap needed by native job preparation.
         static const auto direct_engine = std::make_unique<StreamEngine>(sink, filters);
         drive_hardware = &direct_hardware;
         direct_sink = &sink;

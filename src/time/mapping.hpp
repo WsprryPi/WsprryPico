@@ -1,6 +1,6 @@
 #pragma once
 #include "time/observation.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 namespace wsprrypico::time {
 // Software UTC frequency/slew support is independent of the RF carrier's
@@ -31,7 +31,7 @@ inline bool elapsed_utc(std::uint64_t raw, std::int32_t rate_ppb, std::uint64_t&
         return false;
     return scale(raw, std::uint64_t(1'000'000'000LL + rate_ppb), 1'000'000'000, utc, ceil);
 }
-inline bool project(const wtp::ClockSnapshot& anchor, std::uint64_t raw, std::uint64_t& utc) {
+inline bool project(const execution::ClockSnapshot& anchor, std::uint64_t raw, std::uint64_t& utc) {
     if (anchor.rate_until_monotonic_ns != UINT64_MAX &&
         anchor.rate_until_monotonic_ns >= anchor.monotonic_now_ns &&
         raw > anchor.rate_until_monotonic_ns) {
@@ -59,7 +59,7 @@ inline bool project(const wtp::ClockSnapshot& anchor, std::uint64_t raw, std::ui
     }
     return true;
 }
-inline bool inverse(const wtp::ClockSnapshot& anchor, std::uint64_t utc, std::uint64_t& raw) {
+inline bool inverse(const execution::ClockSnapshot& anchor, std::uint64_t utc, std::uint64_t& raw) {
     if (anchor.rate_ppb < -utc_max_rate_ppb || anchor.rate_ppb > utc_max_rate_ppb)
         return false;
     if (anchor.rate_until_monotonic_ns != UINT64_MAX &&
@@ -92,12 +92,12 @@ inline bool inverse(const wtp::ClockSnapshot& anchor, std::uint64_t utc, std::ui
     }
     return true;
 }
-inline bool consistent_import(const RateObservation& source, const wtp::ClockSnapshot& model) {
+inline bool consistent_import(const RateObservation& source, const execution::ClockSnapshot& model) {
     if (model.sync_age_ns > model.monotonic_now_ns ||
         source.raw_ns != model.monotonic_now_ns - model.sync_age_ns ||
         source.generation != model.model_generation || source.uncertainty_ns > model.uncertainty_ns)
         return false;
-    wtp::ClockSnapshot anchor;
+    execution::ClockSnapshot anchor;
     anchor.monotonic_now_ns = source.raw_ns;
     anchor.utc_now_ns = source.utc_ns;
     anchor.rate_ppb = source.rate_ppb;
@@ -108,7 +108,7 @@ inline bool consistent_import(const RateObservation& source, const wtp::ClockSna
         estimate >= model.utc_now_ns ? estimate - model.utc_now_ns : model.utc_now_ns - estimate;
     return difference <= model.uncertainty_ns - source.uncertainty_ns;
 }
-inline bool duration_utc_bound(std::uint64_t raw, const wtp::ClockSnapshot& clock,
+inline bool duration_utc_bound(std::uint64_t raw, const execution::ClockSnapshot& clock,
                                std::uint64_t& duration) {
     if (clock.rate_ppb < -utc_max_rate_ppb || clock.rate_ppb > utc_max_rate_ppb ||
         clock.subsequent_rate_ppb < -utc_max_rate_ppb ||

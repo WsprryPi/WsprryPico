@@ -16,25 +16,25 @@ class PicoConsumerRadioCrypto final : public ConsumerRadioCrypto {
     std::array<std::uint8_t, 32> public_key() const override {
         return public_key_;
     }
-    bool authenticate(wtp::FrameBuffer& packet, const ConsumerRadioBinding& binding,
+    bool authenticate(execution::FrameBuffer& packet, const ConsumerRadioBinding& binding,
                       std::string_view password) override;
-    std::optional<wtp::InputView> open(wtp::FrameBuffer& packet,
+    std::optional<execution::InputView> open(execution::FrameBuffer& packet,
                                        const ConsumerRadioBinding& binding,
                                        std::uint64_t sequence) override;
-    std::optional<HttpResponse> seal_parts(std::span<const wtp::InputView> plaintext,
+    std::optional<HttpResponse> seal_parts(std::span<const execution::InputView> plaintext,
                                            const ConsumerRadioBinding& binding,
                                            std::uint64_t sequence) override;
-    std::optional<HttpResponse> seal_buffer(wtp::OutputBuffer plaintext,
+    std::optional<HttpResponse> seal_buffer(execution::OutputBuffer plaintext,
                                             const ConsumerRadioBinding& binding,
                                             std::uint64_t sequence) override;
-    std::optional<HttpResponse> seal_source(wtp::ResponseSourcePtr plaintext,
+    std::optional<HttpResponse> seal_source(execution::ResponseSourcePtr plaintext,
                                             const ConsumerRadioBinding& binding,
                                             std::uint64_t sequence) override;
     void clear() override;
 
   private:
     bool create(std::span<const std::uint8_t> private_key);
-    std::optional<wtp::InputView> decrypt(wtp::FrameBuffer& packet,
+    std::optional<execution::InputView> decrypt(execution::FrameBuffer& packet,
                                           const ConsumerRadioBinding& binding,
                                           std::uint64_t sequence,
                                           std::span<const std::uint8_t, 32> key);

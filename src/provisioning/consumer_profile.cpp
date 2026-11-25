@@ -5,15 +5,15 @@
 #include "network/identity.hpp"
 #include "provisioning/storage.hpp"
 #include "standalone/config.hpp"
-#include "wtp/json.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/json.hpp"
+#include "runtime/sha256.hpp"
 
 #include <algorithm>
 #include <charconv>
 
 namespace wsprrypico::provisioning {
 namespace {
-using wtp::json::Value;
+using execution::json::Value;
 
 bool text_field(Value value, std::string_view name, std::string& out) {
     const auto field = value.get(name);
@@ -25,7 +25,7 @@ bool text_field(Value value, std::string_view name, std::string& out) {
 
 bool decimal_field(Value value, std::string_view name, std::uint64_t& out, bool nonzero = true) {
     const auto field = value.get(name);
-    return field && wtp::json::decimal(*field, out, nonzero);
+    return field && execution::json::decimal(*field, out, nonzero);
 }
 
 bool lower_hex(std::string_view value, std::size_t count) {
@@ -141,7 +141,7 @@ bool valid(const ConsumerProfile& profile) {
         if (!printable(client.name, 1, 32) ||
             !network::bootstrap_unb64url(client.csr_der, decoded, 1, 320) ||
             decoded.front() != 0x30 ||
-            client.csr_sha256 != network::bootstrap_hex(wtp::sha256(decoded)) ||
+            client.csr_sha256 != network::bootstrap_hex(execution::sha256(decoded)) ||
             !lower_hex(client.public_key_sha256, 64) || !client.serial || !client.not_after_utc ||
             client.not_after_utc > profile.tls.ca_not_after_utc ||
             (!previous.empty() && previous >= client.public_key_sha256))
@@ -226,7 +226,7 @@ std::string serialize_consumer_profile(const ConsumerProfile& profile) {
 }
 
 std::optional<ConsumerProfile> parse_consumer_profile(std::string_view text) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (text.empty() || text.size() > max_profile_bytes)
         return {};
     const auto root = parse(text);

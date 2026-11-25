@@ -45,7 +45,7 @@ void checkpoint(unsigned stage) {
         usb::service();
         if (!queued && usb::console_connected())
             queued = usb::console_write(cue);
-        // No WTP, Console or network request is dispatched during the pause.
+        // No execution, Console or network request is dispatched during the pause.
         watchdog_update();
         tight_loop_contents();
     }

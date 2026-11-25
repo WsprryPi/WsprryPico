@@ -20,7 +20,7 @@ class Hardware final : public rf::PioDmaHardware {
   public:
     unsigned pad_reads = 0;
     bool pad_failure = false;
-    wtp::PadObservation verify_pad() override {
+    execution::PadObservation verify_pad() override {
         ++pad_reads;
         return {0, time, 2, pad_failure ? -2 : 12};
     }
@@ -174,7 +174,7 @@ class Hardware final : public rf::PioDmaHardware {
 std::uint64_t ns_at(std::uint64_t samples) {
     return (samples * 1000000000ULL + rf::sample_rate / 2) / rf::sample_rate;
 }
-wtp::Job job(std::uint64_t samples) {
+execution::Job job(std::uint64_t samples) {
     return {std::string(32, '3'),
             "rf-events/1",
             "tone",
@@ -217,13 +217,13 @@ void queue_test() {
     hw.time = start + ((ns_at(2 * rf::block_samples) + 999) / 1000) * 1000;
     hw.complete();
     progress = sink.poll(hw.time);
-    CHECK(progress.state == wtp::EngineState::Complete && !hw.enabled);
+    CHECK(progress.state == execution::EngineState::Complete && !hw.enabled);
     CHECK(progress.consumed_samples == 2 * rf::block_samples);
     CHECK(sink.stop(hw.time));
     CHECK(sink.submit(2, 0, a, rf::block_samples));
     CHECK(sink.arm(2, hw.time + 1'000'000, rf::block_samples));
     hw.handler(hw.context, {rf::DriverEventKind::DmaComplete, 1, 1});
-    CHECK(sink.poll(hw.time).state == wtp::EngineState::Armed);
+    CHECK(sink.poll(hw.time).state == execution::EngineState::Armed);
     CHECK(sink.stop(hw.time));
 }
 
@@ -257,10 +257,10 @@ void failures_test() {
             hw.launch_observed_override = start - 1;
         hw.alarm_event(1);
         if (fault == 3) {
-            CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed && !hw.enabled);
+            CHECK(sink.poll(hw.time).state == execution::EngineState::Missed && !hw.enabled);
         } else if (fault == 4) {
             hw.complete(); // Missing next buffer: fail without replay.
-            CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+            CHECK(sink.poll(hw.time).state == execution::EngineState::Failed);
             CHECK(sink.diagnostic() == "refill_starved");
             CHECK(!sink.submit(1, 1, words, rf::block_samples));
             CHECK(sink.diagnostic() == "refill_starved");
@@ -268,7 +268,7 @@ void failures_test() {
             CHECK(sink.diagnostic() == "refill_starved");
         } else if (fault == 5) {
             hw.txstall = true;
-            CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+            CHECK(sink.poll(hw.time).state == execution::EngineState::Failed);
         } else if (fault == 6) {
             hw.fail_halt = true;
             CHECK(!sink.stop(hw.time));
@@ -276,9 +276,9 @@ void failures_test() {
             hw.fail_halt = false;
         } else if (fault == 7) {
             hw.handler(hw.context, {rf::DriverEventKind::DmaError, 1, 0});
-            CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+            CHECK(sink.poll(hw.time).state == execution::EngineState::Failed);
         } else {
-            CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+            CHECK(sink.poll(hw.time).state == execution::EngineState::Failed);
             CHECK(sink.diagnostic() == "invalid_launch_boundary");
             CHECK(!hw.enabled);
         }
@@ -301,20 +301,20 @@ void failures_test() {
     CHECK(sink.stop(hw.time));
 }
 
-class Clock final : public wtp::Clock {
+class Clock final : public execution::Clock {
   public:
     Hardware& hw;
     bool synchronized = true;
     std::uint64_t uncertainty = 0, utc_offset = 0, age = 0;
     bool holdover = false;
     std::int32_t rate = 0;
-    wtp::LeapState leap = wtp::LeapState::Normal;
+    execution::LeapState leap = execution::LeapState::Normal;
     std::optional<std::uint64_t> transition;
     explicit Clock(Hardware& h) : hw(h) {}
-    wtp::ClockSnapshot snapshot() const override {
-        return {holdover ? wtp::ClockState::Holdover
-                         : (synchronized ? wtp::ClockState::Synchronized
-                                         : wtp::ClockState::Unsynchronized),
+    execution::ClockSnapshot snapshot() const override {
+        return {holdover ? execution::ClockState::Holdover
+                         : (synchronized ? execution::ClockState::Synchronized
+                                         : execution::ClockState::Unsynchronized),
                 (hw.time / 1'000'000'000 * std::uint64_t(1'000'000'000LL + rate) +
                  hw.time % 1'000'000'000 * std::uint64_t(1'000'000'000LL + rate) / 1'000'000'000) +
                     utc_offset,
@@ -326,20 +326,20 @@ class Clock final : public wtp::Clock {
                 rate};
     }
 };
-class Identity final : public wtp::IdentitySource {
+class Identity final : public execution::IdentitySource {
   public:
     unsigned generation = 0;
     std::string new_boot_id() override {
         return std::string(32, static_cast<char>('1' + generation++));
     }
 };
-wtp::Request request(std::string op, wtp::RequestBody body, char id) {
-    return {"WTP/1",
+execution::Request request(std::string op, execution::RequestBody body, char id) {
+    return {"native-execution/1",
             std::string(32, '1'),
             std::string(32, id),
             "test",
             std::move(op),
-            wtp::sha256(std::span(reinterpret_cast<const std::uint8_t*>(&id), 1)),
+            execution::sha256(std::span(reinterpret_cast<const std::uint8_t*>(&id), 1)),
             std::move(body)};
 }
 
@@ -353,24 +353,24 @@ void fractional_start_test() {
         Identity identity;
         rf::PioDmaSink sink(hw);
         rf::StreamEngine engine(sink);
-        wtp::JobService service(clock, engine, identity);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        execution::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
         const auto payload = job(rf::block_samples * 2);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
         const auto start = hw.time + 100'000'000;
         if (action == 5) {
-            clock.leap = wtp::LeapState::InsertPending;
+            clock.leap = execution::LeapState::InsertPending;
             clock.transition = start - 1'000'000'000 + 1000;
         }
         // UTC request and clock mapping produce a monotonic target 562 ns
         // after a timer tick. Admission includes the upward timer adjustment.
         const auto response = service.handle(request(
-            "ARM", wtp::ArmBody{payload.job_id, start + 895, action == 1 ? 537ULL : 538ULL}, 'd'));
+            "ARM", execution::ArmBody{payload.job_id, start + 895, action == 1 ? 537ULL : 538ULL}, 'd'));
         if (action == 1 || action == 5) {
-            CHECK(!response.ok && response.error == (action == 1 ? wtp::ErrorCode::ClockUncertain
-                                                                 : wtp::ErrorCode::LeapUnsafe));
-            CHECK(service.status().state == wtp::State::Loaded && !hw.enabled);
+            CHECK(!response.ok && response.error == (action == 1 ? execution::ErrorCode::ClockUncertain
+                                                                 : execution::ErrorCode::LeapUnsafe));
+            CHECK(service.status().state == execution::State::Loaded && !hw.enabled);
         } else {
             CHECK(response.ok && response.start_monotonic_ns == start + 562);
             hw.time = start - 50'000;
@@ -379,7 +379,7 @@ void fractional_start_test() {
             if (action == 3)
                 hw.time = 3'000'000'000;
             if (action == 4) {
-                clock.leap = wtp::LeapState::InsertPending;
+                clock.leap = execution::LeapState::InsertPending;
                 clock.transition = start - 1'000'000'000 + 1000;
             }
             hw.alarm_event(1);
@@ -402,14 +402,14 @@ void rate_launch_test() {
         Identity identity;
         rf::PioDmaSink sink(hw);
         rf::StreamEngine engine(sink);
-        wtp::JobService service(clock, engine, identity);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        execution::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
         CHECK(
-            service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
+            service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
         const auto payload = job(rf::sample_rate);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
         const auto arm =
-            service.handle(request("ARM", wtp::ArmBody{payload.job_id, 2'000'000'000, 20000}, 'd'));
+            service.handle(request("ARM", execution::ArmBody{payload.job_id, 2'000'000'000, 20000}, 'd'));
         CHECK(arm.ok && arm.start_monotonic_ns);
         std::uint64_t expected{};
         CHECK(time::inverse(clock.snapshot(), 2'000'000'000, expected));
@@ -449,16 +449,16 @@ void c4_clock_refinement_replay_test() {
         Identity identity;
         rf::PioDmaSink sink(hw);
         rf::StreamEngine engine(sink);
-        wtp::ServiceConfig config;
+        execution::ServiceConfig config;
         config.maximum_arm_uncertainty_ns = 500'000'000; // Deployed standalone policy.
-        wtp::JobService service(clock, engine, identity, config);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
+        execution::JobService service(clock, engine, identity, config);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
         CHECK(
-            service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
+            service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
         const auto payload = job(rf::sample_rate * 90ULL);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
         const auto ack = service.handle(request(
-            "ARM", wtp::ArmBody{payload.job_id, 1'789'402'941'273'883'000ULL, 500'000'000}, 'd'));
+            "ARM", execution::ArmBody{payload.job_id, 1'789'402'941'273'883'000ULL, 500'000'000}, 'd'));
         if (!ack.ok)
             std::cerr << "C4 replay ARM error: " << static_cast<int>(ack.error) << '\n';
         CHECK(ack.ok && ack.start_monotonic_ns == 264'396'658'000ULL);
@@ -472,7 +472,7 @@ void c4_clock_refinement_replay_test() {
         service.poll();
         CHECK(hw.launches == 1);
         CHECK(hw.last_launch_target == (refined ? 264'396'458'000ULL : 264'396'658'000ULL));
-        CHECK(service.status().state == wtp::State::Running);
+        CHECK(service.status().state == execution::State::Running);
         CHECK(engine.disable(hw.time));
     }
 
@@ -486,26 +486,26 @@ void c4_clock_refinement_replay_test() {
     Identity identity;
     rf::PioDmaSink sink(hw);
     rf::StreamEngine engine(sink);
-    wtp::ServiceConfig config;
+    execution::ServiceConfig config;
     config.maximum_arm_uncertainty_ns = 500'000'000;
-    wtp::JobService service(clock, engine, identity, config);
-    CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-    CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
+    execution::JobService service(clock, engine, identity, config);
+    CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+    CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 60000}, 'b')).ok);
     const auto payload = job(rf::sample_rate * 90ULL);
     CHECK(service.handle(request("LOAD", payload, 'c')).ok);
     const auto ack = service.handle(request(
-        "ARM", wtp::ArmBody{payload.job_id, 1'789'402'941'273'883'000ULL, 500'000'000}, 'd'));
+        "ARM", execution::ArmBody{payload.job_id, 1'789'402'941'273'883'000ULL, 500'000'000}, 'd'));
     CHECK(ack.ok && ack.start_monotonic_ns == 264'396'658'000ULL);
     clock.utc_offset -= 25'805'000;
     clock.uncertainty = 9'629'566;
     hw.time = 264'396'458'000ULL;
     hw.alarm_event(1);
-    CHECK(hw.launches == 0 && service.status().state == wtp::State::Armed);
+    CHECK(hw.launches == 0 && service.status().state == execution::State::Armed);
     CHECK(hw.alarm_requests == 2 && hw.last_alarm == 264'422'463'000ULL);
     hw.time = 264'422'263'000ULL;
     hw.alarm_event(1);
     service.poll();
-    CHECK(hw.launches == 1 && service.status().state == wtp::State::Running);
+    CHECK(hw.launches == 1 && service.status().state == execution::State::Running);
     CHECK(hw.last_launch_target == 264'422'463'000ULL);
     CHECK(engine.disable(hw.time));
 }
@@ -516,17 +516,17 @@ void quantized_end_leap_test() {
     Identity identity;
     rf::PioDmaSink sink(hw);
     rf::StreamEngine engine(sink);
-    wtp::JobService service(clock, engine, identity);
-    CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-    CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+    execution::JobService service(clock, engine, identity);
+    CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+    CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
     auto payload = job(rf::block_samples * 2);
     --payload.total_duration_ns;
     --payload.events.back().duration_ns;
     CHECK(service.handle(request("LOAD", payload, 'c')).ok);
     const auto start = hw.time + 100'000'000;
-    CHECK(service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1000}, 'd')).ok);
+    CHECK(service.handle(request("ARM", execution::ArmBody{payload.job_id, start, 1000}, 'd')).ok);
     hw.time = start - 50'000;
-    clock.leap = wtp::LeapState::InsertPending;
+    clock.leap = execution::LeapState::InsertPending;
     clock.transition = start + ns_at(rf::block_samples * 2) + 1'000'000'000;
     hw.alarm_event(1);
     CHECK(!hw.enabled && hw.launches == 0);
@@ -540,9 +540,9 @@ void local_launch_test() {
         Identity identity;
         rf::PioDmaSink sink(hw);
         rf::StreamEngine engine(sink);
-        wtp::JobService service(clock, engine, identity);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        execution::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
         const auto payload = job(rf::block_samples * 2);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
         const auto start = hw.time + 100'000'000;
@@ -550,20 +550,20 @@ void local_launch_test() {
             hw.fail_alarm = true;
             hw.fail_halt = action == 11;
             const auto response =
-                service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1000}, 'd'));
+                service.handle(request("ARM", execution::ArmBody{payload.job_id, start, 1000}, 'd'));
             CHECK(!response.ok &&
-                  response.error == (action == 10 ? wtp::ErrorCode::DeviceFault
-                                                  : wtp::ErrorCode::OutputStateUnknown));
-            CHECK(service.status().state == wtp::State::Failed && !hw.enabled);
+                  response.error == (action == 10 ? execution::ErrorCode::DeviceFault
+                                                  : execution::ErrorCode::OutputStateUnknown));
+            CHECK(service.status().state == execution::State::Failed && !hw.enabled);
             hw.fail_halt = false;
             CHECK(engine.disable(hw.time));
             continue;
         }
-        CHECK(service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1000}, 'd')).ok);
+        CHECK(service.handle(request("ARM", execution::ArmBody{payload.job_id, start, 1000}, 'd')).ok);
         CHECK(hw.busy && !hw.enabled); // Already prearmed; no foreground start required.
-        CHECK(service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1000}, 'e')).ok);
+        CHECK(service.handle(request("ARM", execution::ArmBody{payload.job_id, start, 1000}, 'e')).ok);
         if (action == 3) {
-            CHECK(service.handle(request("ABORT", wtp::AbortBody{payload.job_id}, 'f')).ok);
+            CHECK(service.handle(request("ABORT", execution::AbortBody{payload.job_id}, 'f')).ok);
         } else if (action == 4) {
             service.reset();
         }
@@ -579,9 +579,9 @@ void local_launch_test() {
         if (action == 6)
             clock.utc_offset = 1000;
         if (action == 7)
-            clock.leap = wtp::LeapState::Unknown;
+            clock.leap = execution::LeapState::Unknown;
         if (action == 8) {
-            clock.leap = wtp::LeapState::InsertPending;
+            clock.leap = execution::LeapState::InsertPending;
             clock.transition = start;
         }
         if (action == 9) {
@@ -597,10 +597,10 @@ void local_launch_test() {
         hw.time = start + 10'000;
         service.poll();
         if (action == 1 || action == 2 || action == 5 || action >= 7) {
-            CHECK(service.status().state == wtp::State::Missed);
+            CHECK(service.status().state == execution::State::Missed);
             CHECK(!hw.enabled && hw.launches == 0);
         } else {
-            CHECK(hw.launches == 1 && service.status().state == wtp::State::Running);
+            CHECK(hw.launches == 1 && service.status().state == execution::State::Running);
             hw.complete();
             hw.time = start + ((ns_at(rf::block_samples) + 999) / 1000) * 1000;
             service.poll();
@@ -608,7 +608,7 @@ void local_launch_test() {
             hw.time = start + payload.total_duration_ns;
             hw.complete();
             service.poll();
-            CHECK(service.status().state == wtp::State::Complete);
+            CHECK(service.status().state == execution::State::Complete);
         }
         CHECK(!engine.output_active());
     }
@@ -625,55 +625,55 @@ void late_launch_window_test() {
         Identity identity;
         rf::PioDmaSink sink(hw);
         rf::StreamEngine engine(sink);
-        wtp::JobService service(clock, engine, identity);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        execution::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
         const auto payload = job(2 * rf::block_samples);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
-        CHECK(service.handle(request("ARM", wtp::ArmBody{payload.job_id, 1'750'000'000, 1000}, 'd'))
+        CHECK(service.handle(request("ARM", execution::ArmBody{payload.job_id, 1'750'000'000, 1000}, 'd'))
                   .ok);
         // A delayed foreground read must not reject an otherwise valid alarm.
         hw.time = start + std::min(delay, 249'999'000ULL);
         service.poll();
-        CHECK(service.status().state == wtp::State::Armed);
+        CHECK(service.status().state == execution::State::Armed);
         hw.time = start + delay;
         hw.alarm_event(1);
         service.poll();
         if (delay == 250'000'000) {
-            CHECK(service.status().state == wtp::State::Missed);
+            CHECK(service.status().state == execution::State::Missed);
             CHECK(!hw.enabled && hw.launches == 0);
         } else {
-            CHECK(service.status().state == wtp::State::Running && hw.launches == 1);
+            CHECK(service.status().state == execution::State::Running && hw.launches == 1);
             CHECK(engine.poll(hw.time).launch_monotonic_ns == start + delay);
             const auto actual = start + delay;
             hw.complete();
             hw.time = actual + ((ns_at(rf::block_samples) + 999) / 1000) * 1000;
             service.poll();
-            CHECK(service.status().state == wtp::State::Running);
+            CHECK(service.status().state == execution::State::Running);
             hw.complete();
             hw.time = actual + payload.total_duration_ns;
             hw.complete();
             service.poll();
-            CHECK(service.status().state == wtp::State::Complete && !hw.enabled);
+            CHECK(service.status().state == execution::State::Complete && !hw.enabled);
         }
     }
-    CHECK(wtp::start_window_ns(2'000'000'000) == 1'000'000'000);
-    CHECK(wtp::start_window_ns(2'999'999'999) == 1);
+    CHECK(execution::start_window_ns(2'000'000'000) == 1'000'000'000);
+    CHECK(execution::start_window_ns(2'999'999'999) == 1);
     Hardware hw;
     Clock clock(hw);
     clock.utc_offset = 1;
     Identity identity;
     rf::PioDmaSink sink(hw);
     rf::StreamEngine engine(sink);
-    wtp::JobService service(clock, engine, identity);
-    CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-    CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+    execution::JobService service(clock, engine, identity);
+    CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+    CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
     const auto payload = job(2 * rf::block_samples);
     CHECK(service.handle(request("LOAD", payload, 'c')).ok);
     // No representable microsecond remains inside this one-nanosecond window.
     const auto reply =
-        service.handle(request("ARM", wtp::ArmBody{payload.job_id, 1'999'999'999, 1000}, 'd'));
-    CHECK(!reply.ok && reply.error == wtp::ErrorCode::InvalidMessage && !hw.enabled);
+        service.handle(request("ARM", execution::ArmBody{payload.job_id, 1'999'999'999, 1000}, 'd'));
+    CHECK(!reply.ok && reply.error == execution::ErrorCode::InvalidMessage && !hw.enabled);
 }
 
 void launch_snapshot_test() {
@@ -688,8 +688,8 @@ void launch_snapshot_test() {
     hw.launch_on_unlock = true;
     const auto snapshot = engine.poll(hw.time);
     CHECK(hw.enabled); // Alarm fired as the sink released its snapshot lock.
-    CHECK(snapshot.state == wtp::EngineState::Armed && !snapshot.output_active);
-    CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+    CHECK(snapshot.state == execution::EngineState::Armed && !snapshot.output_active);
+    CHECK(engine.poll(hw.time).state == execution::EngineState::Running);
     CHECK(engine.disable(hw.time));
 }
 void more_than_final_pending_test() {
@@ -704,7 +704,7 @@ void more_than_final_pending_test() {
     hw.alarm_event(1);
     hw.time = start + payload.total_duration_ns + 61000;
     // Two outstanding blocks cannot use the final-acknowledgement allowance.
-    CHECK(engine.poll(hw.time).state == wtp::EngineState::Failed);
+    CHECK(engine.poll(hw.time).state == execution::EngineState::Failed);
     CHECK(!engine.output_active());
 }
 void delayed_tail_irq_after_hardware_stop_test() {
@@ -723,10 +723,10 @@ void delayed_tail_irq_after_hardware_stop_test() {
     hw.stop_tail_before_irq();
     hw.time = start + payload.total_duration_ns + 100001;
     const auto report = engine.poll(hw.time);
-    CHECK(report.state == wtp::EngineState::Complete && !report.output_active);
+    CHECK(report.state == execution::EngineState::Complete && !report.output_active);
     // A late IRQ is harmless after the same stop has already been observed.
     hw.deliver_completion_irq();
-    CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);
+    CHECK(engine.poll(hw.time).state == execution::EngineState::Complete);
     CHECK(engine.disable(hw.time));
 }
 void refill_test(bool missing_tail = false, bool delayed_final_data = false) {
@@ -745,7 +745,7 @@ void refill_test(bool missing_tail = false, bool delayed_final_data = false) {
     hw.time = start;
     hw.alarm_event(1);
     // Timer IRQ may launch after the caller snapshots time but before sink polling.
-    CHECK(engine.poll(start - 50000).state == wtp::EngineState::Running);
+    CHECK(engine.poll(start - 50000).state == execution::EngineState::Running);
     for (unsigned block = 0; block < 5; ++block) {
         const auto samples = oracle.render(expected);
         CHECK(hw.count == (samples + 31) / 32 && !hw.repeat);
@@ -754,10 +754,10 @@ void refill_test(bool missing_tail = false, bool delayed_final_data = false) {
             // Hardware may already have drained the final block while its IRQ
             // is still pending. Progress is conservative until that IRQ runs.
             hw.time = start + payload.total_duration_ns + 61000;
-            CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+            CHECK(engine.poll(hw.time).state == execution::EngineState::Running);
             if (missing_tail) {
                 hw.time = start + payload.total_duration_ns + 100001;
-                CHECK(engine.poll(hw.time).state == wtp::EngineState::Failed);
+                CHECK(engine.poll(hw.time).state == execution::EngineState::Failed);
                 CHECK(!engine.output_active());
                 CHECK(engine.disable(hw.time));
                 return;
@@ -771,20 +771,20 @@ void refill_test(bool missing_tail = false, bool delayed_final_data = false) {
         }
         if (block < 4) {
             hw.time = start + ((ns_at((block + 1) * rf::block_samples) + 999) / 1000) * 1000;
-            CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+            CHECK(engine.poll(hw.time).state == execution::EngineState::Running);
         }
     }
     CHECK(hw.repeat && hw.count == 10);
     hw.time = start + payload.total_duration_ns + 70000;
-    CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+    CHECK(engine.poll(hw.time).state == execution::EngineState::Running);
     if (missing_tail) {
         hw.time = start + payload.total_duration_ns + 100001;
-        CHECK(engine.poll(hw.time).state == wtp::EngineState::Failed);
+        CHECK(engine.poll(hw.time).state == execution::EngineState::Failed);
         CHECK(!engine.output_active());
     } else {
         hw.time = start + payload.total_duration_ns + 75000;
         hw.complete();
-        CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);
+        CHECK(engine.poll(hw.time).state == execution::EngineState::Complete);
     }
     CHECK(engine.disable(hw.time));
 }
@@ -861,7 +861,7 @@ void indicator_launch_and_shutdown() {
     CHECK(led.on);
     hw.fail_halt = false; // A lying success is also rejected while output stays active.
     CHECK(!sink.stop(hw.time) && gate.requested());
-    CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+    CHECK(sink.poll(hw.time).state == execution::EngineState::Failed);
     hw.enabled = false; // Independently confirmed late physical stop.
     (void)sink.poll(hw.time);
     CHECK(!gate.requested());
@@ -924,7 +924,7 @@ void indicator_stale_ack_and_timeout() {
             hw.time = deadline;
             hw.alarm_event(1);
         }
-        CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+        CHECK(sink.poll(hw.time).state == execution::EngineState::Missed);
         CHECK(!pending.requested() && !hw.enabled && hw.launches == 0);
         CHECK(sink.stop(hw.time));
     }
@@ -958,7 +958,7 @@ void indicator_cancel_before_launch() {
             projection.valid = false;
             hw.time += 100'000;
             hw.alarm_event(1);
-            CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+            CHECK(sink.poll(hw.time).state == execution::EngineState::Missed);
         } else {
             CHECK(sink.stop(hw.time)); // Abort/STOP during indicator activation.
             hw.alarm_event(1);         // A cancelled alarm cannot revive the job.
@@ -983,7 +983,7 @@ void early_alarm_retry_race_case(std::uint64_t programming_ns) {
     CHECK(sink.arm(1, start, words.size() * 32, guard));
     hw.time = start - 25'000;
     hw.alarm_event(1);
-    CHECK(sink.poll(hw.time).state == wtp::EngineState::Armed);
+    CHECK(sink.poll(hw.time).state == execution::EngineState::Armed);
     CHECK(!gate.requested() && !hw.enabled); // No pre-start indicator or RF.
     hw.time = hw.last_alarm;
     hw.alarm_event(1);
@@ -991,7 +991,7 @@ void early_alarm_retry_race_case(std::uint64_t programming_ns) {
     gate.acknowledge(gate.requested());
     hw.time = hw.last_alarm;
     hw.alarm_event(1);
-    CHECK(sink.poll(hw.time).state == wtp::EngineState::Running);
+    CHECK(sink.poll(hw.time).state == execution::EngineState::Running);
     CHECK(hw.enabled && hw.launches == 1 && hw.time < guard.deadline_ns);
     CHECK(sink.stop(hw.time));
     // Retrying must still refuse a wake outside the admitted UTC second.
@@ -1001,7 +1001,7 @@ void early_alarm_retry_race_case(std::uint64_t programming_ns) {
     CHECK(sink.arm(2, next, words.size() * 32, deadline_guard));
     hw.time = next;
     hw.alarm_event(2);
-    CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+    CHECK(sink.poll(hw.time).state == execution::EngineState::Missed);
     CHECK(!hw.enabled && !gate.requested() && hw.launches == 1);
 }
 
@@ -1022,7 +1022,7 @@ void early_alarm_retry_race() {
     CHECK(sink.arm(1, start, words.size() * 32, {nullptr, nullptr, start + 2'000'000}));
     hw.time = start;
     hw.alarm_event(1);
-    CHECK(sink.poll(hw.time).state == wtp::EngineState::Missed);
+    CHECK(sink.poll(hw.time).state == execution::EngineState::Missed);
     CHECK(!hw.enabled && !gate.requested() && hw.launches == 0);
 }
 
@@ -1052,10 +1052,10 @@ void indicator_modes_and_tail() {
             CHECK(engine.prepare(payload).accepted);
             CHECK(!gate.requested() && !led.on); // LOAD/preparation never requests TX.
             const auto start = hw.time + 1'000'000;
-            // Production uses the existing one-second WTP launch window.
+            // Production uses the existing one-second native launch window.
             time::UtcDiscipline clock([](void* p) { return static_cast<Hardware*>(p)->time; }, &hw);
             CHECK(clock.observe(1'800'000'000'000'000'000ULL, hw.time, 1'000,
-                                wtp::LeapState::Normal));
+                                execution::LeapState::Normal));
             CHECK(engine.schedule(
                 payload, start,
                 {&clock, clock.snapshot().utc_now_ns + 1'000'000, 1'000'000, 0, 0}));
@@ -1071,18 +1071,18 @@ void indicator_modes_and_tail() {
             }
             CHECK(hw.enabled && hw.launches == 1);
             const auto launched = hw.time;
-            CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+            CHECK(engine.poll(hw.time).state == execution::EngineState::Running);
             for (unsigned block = 0; block < 3; ++block) {
                 hw.complete();
                 hw.time = launched + ((ns_at((block + 1) * rf::block_samples) + 999) / 1000) * 1000;
-                CHECK(engine.poll(hw.time).state == wtp::EngineState::Running);
+                CHECK(engine.poll(hw.time).state == execution::EngineState::Running);
                 indicator.poll_transmit(gate, 1'200);
                 CHECK(hw.enabled && led.on == enabled); // Includes zero-rendered mode gaps.
             }
             CHECK(hw.repeat);
             hw.stop_tail_before_irq();
             // Hardware stopped first; delayed tail IRQ cannot extend RF/retain TX.
-            CHECK(engine.poll(hw.time).state == wtp::EngineState::Complete);
+            CHECK(engine.poll(hw.time).state == execution::EngineState::Complete);
             CHECK(!gate.requested());
             indicator.poll_transmit(gate, 1'200);
             CHECK(!led.on);
@@ -1150,7 +1150,7 @@ void amplifier_lifecycle() {
         if (failure == 2 || failure == 3 || failure == 4 || failure == 8) {
             CHECK(hw.launches == 0 && !out.on && !hw.enabled);
             CHECK(sink.poll(hw.time).state ==
-                  (failure == 8 ? wtp::EngineState::Failed : wtp::EngineState::Missed));
+                  (failure == 8 ? execution::EngineState::Failed : execution::EngineState::Missed));
         } else {
             CHECK(hw.enabled && out.on);
             CHECK(out.trace[0] == "enable_on" && out.trace[1] == "rf_on");
@@ -1161,13 +1161,13 @@ void amplifier_lifecycle() {
                 CHECK(out.on); // No per-symbol or early tail deassertion.
                 hw.complete();
                 CHECK(!hw.enabled && !out.on);
-                CHECK(sink.poll(hw.time).state == wtp::EngineState::Complete);
+                CHECK(sink.poll(hw.time).state == execution::EngineState::Complete);
             } else {
                 const auto at = out.trace.size();
                 CHECK(!sink.stop(hw.time));
                 CHECK(out.trace[at] == "rf_off" && out.trace[at + 1] == "enable_off" &&
                       out.trace[at + 2] == "halt_wait");
-                CHECK(sink.poll(hw.time).state == wtp::EngineState::Failed);
+                CHECK(sink.poll(hw.time).state == execution::EngineState::Failed);
                 CHECK(sink.output_active() == out.fail_off);
                 const auto prior = out.trace;
                 hw.alarm_event(1);
@@ -1206,9 +1206,9 @@ void amplifier_lifecycle() {
         Identity identity;
         rf::PioDmaSink sink(hw, nullptr, &enable);
         rf::StreamEngine engine(sink);
-        wtp::JobService service(clock, engine, identity);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        execution::JobService service(clock, engine, identity);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
         const auto payload = job(2 * rf::block_samples);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
         CHECK(!out.on && hw.opened == 0); // LOAD only renders/prepares.
@@ -1220,14 +1220,14 @@ void amplifier_lifecycle() {
         }
         const auto start = hw.time + (action == 3 ? 6'000'000'000ULL : 100'000'000ULL);
         CHECK(
-            service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1'000'000}, 'd')).ok);
+            service.handle(request("ARM", execution::ArmBody{payload.job_id, start, 1'000'000}, 'd')).ok);
         CHECK(!out.on);
         if (action != 0) {
             hw.time = start;
             hw.alarm_event(1);
             CHECK(out.on && hw.enabled);
             service.poll();
-            CHECK(service.status().state == wtp::State::Running);
+            CHECK(service.status().state == execution::State::Running);
         }
         if (action == 3) {
             CHECK(out.on); // Armed/running lease expiry retains the finite job.
@@ -1236,26 +1236,26 @@ void amplifier_lifecycle() {
             hw.complete();
             hw.time = start + ((ns_at(2 * rf::block_samples) + 999) / 1000) * 1000;
             service.poll();
-            CHECK(service.status().state == wtp::State::Complete && !service.status().owner_id);
+            CHECK(service.status().state == execution::State::Complete && !service.status().owner_id);
         } else if (action == 4) {
             hw.handler(hw.context, {rf::DriverEventKind::DmaError, 1, 0});
             service.poll();
-            CHECK(service.status().state == wtp::State::Failed);
+            CHECK(service.status().state == execution::State::Failed);
         } else if (action == 5) {
             CHECK(service.local_inhibit_output()); // Physical stop/restart safety authority.
             CHECK(service.output_inhibited());
         } else {
             out.fail_off = action == 6;
             const auto result =
-                service.handle(request("ABORT", wtp::AbortBody{payload.job_id}, 'e'));
+                service.handle(request("ABORT", execution::AbortBody{payload.job_id}, 'e'));
             CHECK(result.ok == !out.fail_off);
             if (out.fail_off) {
-                CHECK(service.status().state == wtp::State::Failed &&
+                CHECK(service.status().state == execution::State::Failed &&
                       service.status().output_active);
                 CHECK(service.status().owner_id.has_value());
                 out.fail_off = false;
                 CHECK(engine.disable(hw.time));
-                CHECK(service.status().state == wtp::State::Failed); // No implicit fault release.
+                CHECK(service.status().state == execution::State::Failed); // No implicit fault release.
             }
         }
         CHECK(!out.on && !hw.enabled);
@@ -1294,10 +1294,10 @@ void amplifier_timing_lifecycle() {
         Identity identity;
         rf::PioDmaSink sink(hw, nullptr, &enable);
         rf::StreamEngine engine(sink);
-        wtp::JobService service(clock, engine, identity);
+        execution::JobService service(clock, engine, identity);
         CHECK(service.config().minimum_arm_lead_ns == 202'000'000);
-        CHECK(service.handle(request("HELLO", wtp::HelloBody{{"WTP/1"}}, 'a')).ok);
-        CHECK(service.handle(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
+        CHECK(service.handle(request("HELLO", execution::HelloBody{{"native-execution/1"}}, 'a')).ok);
+        CHECK(service.handle(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 5000}, 'b')).ok);
         const auto payload = job(2 * rf::block_samples);
         CHECK(service.handle(request("LOAD", payload, 'c')).ok);
         CHECK(!out.on);
@@ -1305,9 +1305,9 @@ void amplifier_timing_lifecycle() {
         if (action == 1)
             start = hw.time + 200'000'000;
         const auto armed =
-            service.handle(request("ARM", wtp::ArmBody{payload.job_id, start, 1'000'000}, 'd'));
+            service.handle(request("ARM", execution::ArmBody{payload.job_id, start, 1'000'000}, 'd'));
         if (action == 1) {
-            CHECK(!armed.ok && armed.error == wtp::ErrorCode::ArmTooLate && out.assertions == 0);
+            CHECK(!armed.ok && armed.error == execution::ErrorCode::ArmTooLate && out.assertions == 0);
             continue;
         }
         CHECK(armed.ok && !out.on);
@@ -1326,13 +1326,13 @@ void amplifier_timing_lifecycle() {
         if (action == 2 || action == 3 || action == 4) {
             CHECK(hw.launches == 0 && !out.on && !hw.enabled);
             CHECK(service.status().state ==
-                  (action == 4 ? wtp::State::Failed : wtp::State::Missed));
+                  (action == 4 ? execution::State::Failed : execution::State::Missed));
             continue;
         }
-        CHECK(out.on && !hw.enabled && service.status().state == wtp::State::Armed);
-        CHECK(service.rf_chain_observation().chain_phase == wtp::ChainPhase::Lead);
+        CHECK(out.on && !hw.enabled && service.status().state == execution::State::Armed);
+        CHECK(service.rf_chain_observation().chain_phase == execution::ChainPhase::Lead);
         if (action == 5) {
-            CHECK(service.handle(request("ABORT", wtp::AbortBody{payload.job_id}, 'e')).ok);
+            CHECK(service.handle(request("ABORT", execution::AbortBody{payload.job_id}, 'e')).ok);
             CHECK(!out.on);
             hw.time = start;
             hw.alarm_event(1);
@@ -1347,7 +1347,7 @@ void amplifier_timing_lifecycle() {
         hw.alarm_event(1);
         service.poll();
         if (action == 6 || action == 11) {
-            CHECK(!out.on && hw.launches == 0 && service.status().state == wtp::State::Missed);
+            CHECK(!out.on && hw.launches == 0 && service.status().state == execution::State::Missed);
             continue;
         }
         CHECK(hw.enabled && out.on && hw.last_launch_target == start && out.assertions == 1);
@@ -1357,8 +1357,8 @@ void amplifier_timing_lifecycle() {
                   (action == 12 ? 167'000 : 0); // Board-observed late RF-off acknowledgement.
         hw.stop_tail_before_irq();
         service.poll();
-        CHECK(!hw.enabled && out.on && service.status().state == wtp::State::Running);
-        CHECK(service.rf_chain_observation().chain_phase == wtp::ChainPhase::Tail);
+        CHECK(!hw.enabled && out.on && service.status().state == execution::State::Running);
+        CHECK(service.rf_chain_observation().chain_phase == execution::ChainPhase::Tail);
         const auto end = hw.time;
         hw.deliver_completion_irq(); // Delayed IRQ must not restart/extend the dwell.
         if (action == 7) {
@@ -1370,7 +1370,7 @@ void amplifier_timing_lifecycle() {
         }
         hw.time = end + 199'999'000;
         service.poll();
-        CHECK(out.on && service.status().state == wtp::State::Running);
+        CHECK(out.on && service.status().state == execution::State::Running);
         if (action == 8)
             out.fail_off = true;
         if (action == 9)
@@ -1385,7 +1385,7 @@ void amplifier_timing_lifecycle() {
         CHECK(observation.rf_off_ns == end);
         CHECK(observation.disable_ns == (action == 8 ? 0 : end + 200'000'000));
         CHECK(service.status().state ==
-              (action == 8 || action == 9 ? wtp::State::Failed : wtp::State::Complete));
+              (action == 8 || action == 9 ? execution::State::Failed : execution::State::Complete));
         out.fail_off = hw.fail_halt = false;
         CHECK(engine.disable(hw.time));
     }
@@ -1414,11 +1414,11 @@ void amplifier_timing_lifecycle() {
         const auto report = sink.poll(hw.time);
         CHECK(!hw.enabled && out.on == (timing.tail_ms != 0));
         if (timing.tail_ms) {
-            CHECK(report.chain_phase == wtp::ChainPhase::Tail);
+            CHECK(report.chain_phase == execution::ChainPhase::Tail);
             hw.time += timing.tail_ns();
             hw.alarm_event(1);
         }
-        CHECK(!out.on && sink.poll(hw.time).state == wtp::EngineState::Complete);
+        CHECK(!out.on && sink.poll(hw.time).state == execution::EngineState::Complete);
         const auto observation = sink.timing_observation();
         CHECK(observation.enable_ns && observation.rf_start_ns == start &&
               observation.rf_off_ns == start + 1'000);

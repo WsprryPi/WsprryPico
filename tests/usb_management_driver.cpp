@@ -74,7 +74,7 @@ std::uint64_t monotonic(void*) {
                                           std::chrono::steady_clock::now().time_since_epoch())
                                           .count());
 }
-struct Identity : wtp::IdentitySource {
+struct Identity : execution::IdentitySource {
     std::string new_boot_id() override {
         return std::string(32, 'b');
     }
@@ -146,7 +146,7 @@ int main() {
     time::ControllerTimeArbiter arbiter(clock, monotonic, nullptr, device);
     standalone::DryRunEngine engine;
     Identity identity;
-    wtp::JobService service(clock, engine, identity);
+    execution::JobService service(clock, engine, identity);
     standalone::Scheduler scheduler(store, service);
     Network network;
     Platform platform;
@@ -181,7 +181,7 @@ int main() {
                 const auto activity = service.activity();
                 return network::local_usb_ap_request(request, device, service.status().boot_id,
                     browser.revision(), scheduler.idle() && !activity.owned && !activity.output_active &&
-                        activity.state != wtp::State::Failed && runtime.control_healthy(profiles));
+                        activity.state != execution::State::Failed && runtime.control_healthy(profiles));
             }
             return api.handle(request, transaction);
         },

@@ -1,8 +1,8 @@
 #pragma once
 
 #include "network/http.hpp"
-#include "wtp/frame_buffer.hpp"
-#include "wtp/json.hpp"
+#include "runtime/frame_buffer.hpp"
+#include "runtime/json.hpp"
 
 #include <array>
 #include <functional>
@@ -13,7 +13,7 @@ class ManagementEndpoint {
   public:
     static constexpr std::size_t maximum_request = 32768, maximum_response = 65536;
     static constexpr std::uint64_t transaction_timeout_ms = 10'000;
-    // Keep the unchanged WTP control reserve and bounded workspace. WTP input
+    // Keep the unchanged execution reserve and bounded workspace. Native input
     // admission can reclaim this optional session's pages before retrying its
     // original, larger budget; idle RF images need not reserve two whole jobs.
     static constexpr std::size_t memory_reserve = 32768 + 8192 + 1024;
@@ -41,7 +41,7 @@ class ManagementEndpoint {
   private:
     bool dispatch();
     bool respond(unsigned status, network::HttpResponse response, bool delivery);
-    bool binding(wtp::json::Value value) const;
+    bool binding(execution::json::Value value) const;
     void clear_input();
     std::string target() const;
     std::string device_, boot_, firmware_, session_;
@@ -49,10 +49,10 @@ class ManagementEndpoint {
     Finish finish_;
     std::array<std::uint8_t, 8> header_{};
     std::size_t header_size_ = 0, expected_ = 0, output_offset_ = 0;
-    wtp::FrameBuffer input_;
-    wtp::ResponseSourcePtr output_;
-    wtp::EscapedResponseSource* preparing_ = nullptr;
-    wtp::OutputBuffer small_output_;
+    execution::FrameBuffer input_;
+    execution::ResponseSourcePtr output_;
+    execution::EscapedResponseSource* preparing_ = nullptr;
+    execution::OutputBuffer small_output_;
     std::array<std::uint8_t, 8> output_header_{};
     std::uint64_t started_ms_ = 0, generation_ = 0, transaction_ = 0;
     std::int32_t last_id_ = 0;

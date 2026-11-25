@@ -1,6 +1,6 @@
 #include "rf/stream_engine.hpp"
 #include "standalone/dry_run_engine.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 
 #include <iostream>
 #include <stdexcept>
@@ -13,7 +13,7 @@ using namespace wsprrypico;
     } while (false)
 
 namespace {
-struct Identity : wtp::IdentitySource {
+struct Identity : execution::IdentitySource {
     std::string new_boot_id() override {
         return std::string(32, 'b');
     }
@@ -36,7 +36,7 @@ struct Sink : rf::BlockSink {
         return false;
     }
 };
-wtp::Job job(std::string mode = "tone") {
+execution::Job job(std::string mode = "tone") {
     return {std::string(32, 'c'),
             "rf-events/1",
             std::move(mode),
@@ -57,10 +57,10 @@ struct Fixture {
     time::UtcDiscipline clock;
     Identity identity;
     standalone::DryRunEngine engine;
-    wtp::JobService service{clock, engine, identity, standalone::wtp_profile(false)};
+    execution::JobService service{clock, engine, identity, standalone::execution_profile(false)};
     unsigned sequence = 0;
-    wtp::Response request(std::string op, wtp::RequestBody body = {}) {
-        wtp::Request r;
+    execution::Response request(std::string op, execution::RequestBody body = {}) {
+        execution::Request r;
         r.session_id = std::string(32, '1');
         r.request_id = std::string(24, '0') + std::to_string(10000000 + ++sequence);
         r.principal = "test";
@@ -71,25 +71,25 @@ struct Fixture {
     }
     explicit Fixture(std::uint64_t maximum_uncertainty = 1'000'000'000ULL)
         : clock(tick, this, profile(maximum_uncertainty)) {
-        CHECK(request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-        CHECK(request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}).ok);
+        CHECK(request("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+        CHECK(request("CLAIM", execution::ClaimBody{std::string(32, '2'), 60000}).ok);
     }
 };
 void limits() {
-    const auto config = standalone::wtp_profile(true);
+    const auto config = standalone::execution_profile(true);
     CHECK(config.capability_engine == "pio-dma-gp2");
     CHECK(config.max_events == 512 && config.max_job_duration_ns == 3'600'000'000'000);
     CHECK(config.minimum_frequency_nhz == 100'000'000'000'000ULL);
     CHECK(config.maximum_frequency_nhz == (rf::sample_rate / 2 - 1) * 1'000'000'000ULL);
     CHECK(config.maximum_arm_uncertainty_ns == UINT64_MAX);
     CHECK(config.maximum_holdover_age_ns == 3'600'000'000'000ULL);
-    const auto si = standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, true);
+    const auto si = standalone::execution_profile(true, 3600, hardware::PinPlan::Engine::I2c, true);
     CHECK(si.capability_engine == "si5351-engineering");
     CHECK(si.minimum_frequency_nhz == 8'000'000'000'000ULL);
     CHECK(si.maximum_frequency_nhz == 160'000'000'000'000'000ULL);
-    CHECK(standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, false)
+    CHECK(standalone::execution_profile(true, 3600, hardware::PinPlan::Engine::I2c, false)
               .capability_engine == "si5351-inhibited");
-    CHECK(standalone::wtp_profile(true, 3600, hardware::PinPlan::Engine::I2c, false, true)
+    CHECK(standalone::execution_profile(true, 3600, hardware::PinPlan::Engine::I2c, false, true)
               .capability_engine == "si5351");
     Fixture f;
     auto good = job();
@@ -97,25 +97,25 @@ void limits() {
     auto bad = good;
     bad.job_id = std::string(32, 'd');
     bad.mode = "cw";
-    CHECK(f.request("LOAD", bad).error == wtp::ErrorCode::UnsupportedMode);
+    CHECK(f.request("LOAD", bad).error == execution::ErrorCode::UnsupportedMode);
     bad.mode = "tone";
     bad.events.assign(513, {0, 1, false, {}});
-    CHECK(f.request("LOAD", bad).error == wtp::ErrorCode::JobLimitExceeded);
+    CHECK(f.request("LOAD", bad).error == execution::ErrorCode::JobLimitExceeded);
     bad = good;
     bad.job_id = std::string(32, 'd');
     bad.total_duration_ns = bad.events[0].duration_ns = 3'600'000'000'001;
-    CHECK(f.request("LOAD", bad).error == wtp::ErrorCode::JobLimitExceeded);
+    CHECK(f.request("LOAD", bad).error == execution::ErrorCode::JobLimitExceeded);
     bad = good;
     bad.job_id = std::string(32, 'd');
     bad.events[0].frequency_nhz = config.maximum_frequency_nhz + 1;
-    CHECK(f.request("LOAD", bad).error == wtp::ErrorCode::FrequencyRejected);
+    CHECK(f.request("LOAD", bad).error == execution::ErrorCode::FrequencyRejected);
     CHECK(f.service.status().job_id == good.job_id);
     CHECK(!f.service.status().output_active);
 }
 void physical_planner() {
     Sink sink;
     rf::StreamEngine engine(sink);
-    for (const auto& mode : standalone::wtp_profile(true).supported_modes) {
+    for (const auto& mode : standalone::execution_profile(true).supported_modes) {
         auto j = job(mode);
         auto result = engine.prepare(j);
         CHECK(result.accepted);
@@ -141,10 +141,10 @@ void physical_planner() {
     // not just the planner API or the more permissive inhibited engine.
     Fixture clock_source;
     Identity ids;
-    wtp::JobService service(clock_source.clock, engine, ids, standalone::wtp_profile(true));
+    execution::JobService service(clock_source.clock, engine, ids, standalone::execution_profile(true));
     unsigned sequence = 0;
-    auto send = [&](std::string operation, wtp::RequestBody body) {
-        wtp::Request r;
+    auto send = [&](std::string operation, execution::RequestBody body) {
+        execution::Request r;
         r.session_id = std::string(32, '1');
         r.request_id = std::string(24, '0') + std::to_string(10000000 + ++sequence);
         r.principal = "test";
@@ -153,99 +153,99 @@ void physical_planner() {
         r.body = std::move(body);
         return service.handle(r);
     };
-    CHECK(send("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-    CHECK(send("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}).ok);
+    CHECK(send("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+    CHECK(send("CLAIM", execution::ClaimBody{std::string(32, '2'), 60000}).ok);
     auto accepted = job("qrss");
     const auto loaded = send("LOAD", accepted);
     CHECK(loaded.ok && !loaded.adjustments.empty());
     auto rejected = job("dfcw");
     rejected.job_id = std::string(32, 'd');
     rejected.allow_frequency_adjustment = false;
-    CHECK(send("LOAD", rejected).error == wtp::ErrorCode::FrequencyRejected);
+    CHECK(send("LOAD", rejected).error == execution::ErrorCode::FrequencyRejected);
     CHECK(service.status().job_id == accepted.job_id);
-    CHECK(send("ABORT", wtp::AbortBody{accepted.job_id}).ok);
-    CHECK(service.status().state == wtp::State::Aborted && !service.status().output_active);
+    CHECK(send("ABORT", execution::AbortBody{accepted.job_id}).ok);
+    CHECK(service.status().state == execution::State::Aborted && !service.status().output_active);
 }
 void clocks() {
     constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
     Fixture f;
     CHECK(f.request("LOAD", job()).ok);
-    CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).error ==
-          wtp::ErrorCode::ClockUnsynchronized);
-    CHECK(f.clock.observe(utc, f.now, 3'000'000, wtp::LeapState::Normal));
-    CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 1'000'000}).error ==
-          wtp::ErrorCode::ClockUncertain);
-    CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).ok);
+    CHECK(f.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).error ==
+          execution::ErrorCode::ClockUnsynchronized);
+    CHECK(f.clock.observe(utc, f.now, 3'000'000, execution::LeapState::Normal));
+    CHECK(f.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, 1'000'000}).error ==
+          execution::ErrorCode::ClockUncertain);
+    CHECK(f.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).ok);
     f.clock.invalidate();
     f.now = 1'000'000'000;
     f.service.poll();
-    CHECK(f.service.status().state == wtp::State::Missed && !f.engine.output_active());
+    CHECK(f.service.status().state == execution::State::Missed && !f.engine.output_active());
     Fixture aged;
-    CHECK(aged.clock.observe(utc, 0, 499'999'999, wtp::LeapState::Normal));
+    CHECK(aged.clock.observe(utc, 0, 499'999'999, execution::LeapState::Normal));
     CHECK(aged.request("LOAD", job()).ok);
-    CHECK(aged.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).ok);
+    CHECK(aged.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).ok);
     aged.now = 1'000'000'000;
     aged.service.poll();
-    CHECK(aged.service.status().state == wtp::State::Missed && !aged.engine.output_active());
+    CHECK(aged.service.status().state == execution::State::Missed && !aged.engine.output_active());
     Fixture old;
-    CHECK(old.clock.observe(utc, 0, 3'000'000, wtp::LeapState::Normal));
+    CHECK(old.clock.observe(utc, 0, 3'000'000, execution::LeapState::Normal));
     old.now = 3'600'000'000'001ULL;
     // Reclaim after idle lease expiry; a source beyond the configured hour cannot arm.
-    CHECK(old.request("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-    CHECK(old.request("CLAIM", wtp::ClaimBody{std::string(32, '2'), 60000}).ok);
+    CHECK(old.request("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+    CHECK(old.request("CLAIM", execution::ClaimBody{std::string(32, '2'), 60000}).ok);
     CHECK(old.request("LOAD", job()).ok);
     CHECK(
-        !old.request("ARM", wtp::ArmBody{job().job_id, utc + old.now + 1'000'000'000, 500'000'000})
+        !old.request("ARM", execution::ArmBody{job().job_id, utc + old.now + 1'000'000'000, 500'000'000})
              .ok);
     CHECK(!old.engine.output_active());
 }
 void ordinary_utc_policy() {
     constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
     constexpr std::uint64_t limit = 100'000'000;
-    // Explicit external WTP limits retain their independent protocol meaning.
+    // The native service honors an explicit request limit.
     for (const auto uncertainty : {limit - 1, limit, limit + 1}) {
         Fixture f;
-        CHECK(f.clock.observe(utc, 0, uncertainty, wtp::LeapState::Normal));
+        CHECK(f.clock.observe(utc, 0, uncertainty, execution::LeapState::Normal));
         CHECK(f.request("LOAD", job()).ok);
-        const auto arm = f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, limit});
+        const auto arm = f.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, limit});
         CHECK(arm.ok == (uncertainty <= limit));
         if (!arm.ok)
-            CHECK(arm.error == wtp::ErrorCode::ClockUncertain);
+            CHECK(arm.error == execution::ErrorCode::ClockUncertain);
         CHECK(!f.engine.output_active());
     }
     // The production drift bound is still charged through the local launch.
     const auto drift = standalone::clock_profile().oscillator_drift_ppb;
     for (const auto launch_uncertainty : {limit - 1, limit, limit + 1}) {
         Fixture f;
-        CHECK(f.clock.observe(utc, 0, launch_uncertainty - drift, wtp::LeapState::Normal));
+        CHECK(f.clock.observe(utc, 0, launch_uncertainty - drift, execution::LeapState::Normal));
         CHECK(f.request("LOAD", job()).ok);
-        CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, limit}).ok);
+        CHECK(f.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, limit}).ok);
         f.now = 1'000'000'000;
         f.service.poll();
         CHECK(f.service.status().state ==
-              (launch_uncertainty <= limit ? wtp::State::Running : wtp::State::Missed));
+              (launch_uncertainty <= limit ? execution::State::Running : execution::State::Missed));
         CHECK(!f.engine.output_active()); // The inhibited engine never asserts physical RF.
     }
     // Explicit tight policies retain their original meaning.
     Fixture tight;
-    CHECK(tight.clock.observe(utc, 0, 1'000'001, wtp::LeapState::Normal));
+    CHECK(tight.clock.observe(utc, 0, 1'000'001, execution::LeapState::Normal));
     CHECK(tight.request("LOAD", job()).ok);
-    CHECK(tight.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 1'000'000}).error ==
-          wtp::ErrorCode::ClockUncertain);
+    CHECK(tight.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, 1'000'000}).error ==
+          execution::ErrorCode::ClockUncertain);
     CHECK(!tight.engine.output_active());
 }
 void informational_utc_uncertainty() {
     constexpr std::uint64_t utc = 1'800'000'000'000'000'000ULL;
     Fixture f(6'000'000'000ULL);
-    CHECK(f.clock.observe(utc, 0, 5'000'000'000ULL, wtp::LeapState::Normal));
+    CHECK(f.clock.observe(utc, 0, 5'000'000'000ULL, execution::LeapState::Normal));
     CHECK(f.request("LOAD", job()).ok);
-    CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).error ==
-          wtp::ErrorCode::ClockUncertain);
-    CHECK(f.request("ARM", wtp::ArmBody{job().job_id, utc + 1'000'000'000, UINT64_MAX}).ok);
+    CHECK(f.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, 500'000'000}).error ==
+          execution::ErrorCode::ClockUncertain);
+    CHECK(f.request("ARM", execution::ArmBody{job().job_id, utc + 1'000'000'000, UINT64_MAX}).ok);
     f.now = 1'000'000'000;
     f.service.poll();
     CHECK(f.clock.snapshot().uncertainty_ns > 5'000'000'000ULL);
-    CHECK(f.service.status().state == wtp::State::Running);
+    CHECK(f.service.status().state == execution::State::Running);
 }
 } // namespace
 int main() {

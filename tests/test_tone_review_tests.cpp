@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #include "application/test_tone_review.hpp"
 #include "network_support.hpp"
-#include "wtp/arm_admission.hpp"
+#include "rf/arm_admission.hpp"
 
 #include <cmath>
 
@@ -18,9 +18,9 @@ struct Flash : network_test::Flash {
         return network_test::Flash::program(offset, data);
     }
 };
-struct Engine : wtp::RfEngine {
+struct Engine : execution::RfEngine {
     mutable unsigned calls = 0;
-    wtp::PrepareResult prepare(const wtp::Job&) override {
+    execution::PrepareResult prepare(const execution::Job&) override {
         ++calls;
         return {true, {}};
     }
@@ -28,13 +28,13 @@ struct Engine : wtp::RfEngine {
         ++calls;
         return true;
     }
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool begin(const execution::Job&, std::uint64_t) override {
         ++calls;
         return true;
     }
-    wtp::EngineReport poll(std::uint64_t) override {
+    execution::EngineReport poll(std::uint64_t) override {
         ++calls;
-        return {wtp::EngineState::Idle};
+        return {execution::EngineState::Idle};
     }
     bool disable(std::uint64_t) override {
         ++calls;
@@ -51,7 +51,7 @@ struct Fixture {
     Engine raw;
     standalone::FrequencyPolicyEngine policy;
     application::TestToneContext context;
-    wtp::ServiceConfig limits;
+    execution::ServiceConfig limits;
     network_test::Clock clock;
     standalone::Store& initialize(unsigned drive, hardware::FilterSettings filters) {
         REQUIRE(store.load());
@@ -216,7 +216,7 @@ void filters_calibration_and_storage() {
     time::gps::Calibration learned{20'000, 1000, 30'000'000'000ULL, 20'000'000'000ULL, 1};
     f.policy.gps_calibration(learned, 35'000'000'000ULL, true, false);
     REQUIRE(f.review({5'366'200, 1000, 12}).frequency.correction->generation == 1);
-    wtp::Job job{std::string(32, '4'), "rf-events/1", "tone", 1'000'000'000, {}, true};
+    execution::Job job{std::string(32, '4'), "rf-events/1", "tone", 1'000'000'000, {}, true};
     REQUIRE(job.events.push_back({0, job.total_duration_ns, true, 5'366'200'000'000'000ULL}));
     REQUIRE(f.policy.prepare(job).accepted);
     const auto calls = f.raw.calls;
@@ -256,32 +256,32 @@ void clock_and_native_arm() {
     Fixture f;
     auto now = f.clock.snapshot();
     const auto base = now;
-    const auto check = [&](wtp::ErrorCode expected) {
+    const auto check = [&](execution::ErrorCode expected) {
         const auto r = application::review_test_tone({5'366'200, 1000, 12}, f.context, f.policy,
                                                      f.limits, now);
         REQUIRE(r.clock_error == expected);
-        REQUIRE(r.admission == (expected == wtp::ErrorCode::None
+        REQUIRE(r.admission == (expected == execution::ErrorCode::None
                                     ? application::TestToneAdmission::Ready
                                     : application::TestToneAdmission::Refused));
     };
-    check(wtp::ErrorCode::None);
-    now.state = wtp::ClockState::Unsynchronized;
-    check(wtp::ErrorCode::ClockUnsynchronized);
+    check(execution::ErrorCode::None);
+    now.state = execution::ClockState::Unsynchronized;
+    check(execution::ErrorCode::ClockUnsynchronized);
     now = base;
-    now.state = wtp::ClockState::Holdover;
-    check(wtp::ErrorCode::ClockUnsynchronized);
+    now.state = execution::ClockState::Holdover;
+    check(execution::ErrorCode::ClockUnsynchronized);
     now = base;
     now.uncertainty_ns = f.limits.maximum_arm_uncertainty_ns + 1;
-    check(wtp::ErrorCode::ClockUncertain);
+    check(execution::ErrorCode::ClockUncertain);
     now = base;
-    now.leap = wtp::LeapState::Unknown;
-    check(wtp::ErrorCode::LeapUnsafe);
+    now.leap = execution::LeapState::Unknown;
+    check(execution::ErrorCode::LeapUnsafe);
     now = base;
     now.valid_until_utc_ns = now.utc_now_ns + 1'000'000'000;
-    check(wtp::ErrorCode::LeapUnsafe);
+    check(execution::ErrorCode::LeapUnsafe);
     now = base;
     f.context.start_resolution_ns = 0;
-    check(wtp::ErrorCode::DeviceFault);
+    check(execution::ErrorCode::DeviceFault);
     f.context.start_resolution_ns = 1000;
     now.utc_now_ns = UINT64_MAX - 10;
     REQUIRE(refused(
@@ -290,21 +290,21 @@ void clock_and_native_arm() {
 
     // Actual native ARM and a prospective review use the same clock rules.
     network_test::Identity identities;
-    wtp::JobService service(f.clock, f.policy, identities, f.limits);
-    REQUIRE(network_test::internal_command(service, "HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
+    execution::JobService service(f.clock, f.policy, identities, f.limits);
+    REQUIRE(network_test::internal_command(service, "HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
     REQUIRE(network_test::internal_command(service, "CLAIM",
-                                           wtp::ClaimBody{std::string(32, '2'), 60'000})
+                                           execution::ClaimBody{std::string(32, '2'), 60'000})
                 .ok);
-    wtp::Job job{std::string(32, '3'), "rf-events/1", "tone", 1'000'000'000, {}, true};
+    execution::Job job{std::string(32, '3'), "rf-events/1", "tone", 1'000'000'000, {}, true};
     REQUIRE(job.events.push_back({0, job.total_duration_ns, true, 5'366'200'000'000'000ULL}));
     REQUIRE(network_test::internal_command(service, "LOAD", job).ok);
     const auto reviewed = application::review_test_tone({5'366'200, 1000, 12}, f.context, f.policy,
                                                         f.limits, f.clock.snapshot());
     const auto armed = network_test::internal_command(
         service, "ARM",
-        wtp::ArmBody{job.job_id, *reviewed.launch_utc_ns, f.limits.maximum_arm_uncertainty_ns});
+        execution::ArmBody{job.job_id, *reviewed.launch_utc_ns, f.limits.maximum_arm_uncertainty_ns});
     REQUIRE(armed.ok && armed.start_monotonic_ns == reviewed.launch_monotonic_ns);
-    REQUIRE(network_test::internal_command(service, "ABORT", wtp::AbortBody{job.job_id}).ok);
+    REQUIRE(network_test::internal_command(service, "ABORT", execution::AbortBody{job.job_id}).ok);
 }
 void si5351_numerical_groundwork() {
     Flash flash;
@@ -376,7 +376,7 @@ void unattached_policy_refuses_execution() {
     }
     REQUIRE(f.flash.bytes == before);
     const auto activity = f.service.activity();
-    REQUIRE(!activity.owned && !activity.output_active && activity.state == wtp::State::Empty);
+    REQUIRE(!activity.owned && !activity.output_active && activity.state == execution::State::Empty);
 }
 } // namespace
 int main() {

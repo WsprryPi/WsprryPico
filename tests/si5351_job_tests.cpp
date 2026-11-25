@@ -11,7 +11,7 @@ int main() {
                                      rf::si5351::Output::Clk0,
                                      rf::si5351::Output::Clk2,
                                      2};
-    wtp::Job job;
+    execution::Job job;
     job.job_id = std::string(32, 'a');
     job.mode = "wspr";
     job.allow_frequency_adjustment = true;
@@ -30,7 +30,7 @@ int main() {
         assert(compiled.plan && compiled.error.empty());
         const auto& plan = *compiled.plan;
         assert(plan.synthesis.tone_count == 4 && plan.count == 163);
-        assert(plan.digest == wtp::job_digest(job));
+        assert(plan.digest == execution::job_digest(job));
         assert(plan.requested_duration_ns == job.total_duration_ns);
         assert(plan.tone[162] == rf::si5351::JobPlan::off);
         for (unsigned i = 0; i < 162; ++i) {

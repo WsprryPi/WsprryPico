@@ -2,7 +2,7 @@
 
 #include "provisioning/activation.hpp"
 #include "provisioning/storage.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -91,7 +91,7 @@ class Manager {
                   const Authorization& authorization, std::uint64_t now_ms);
     ActivationRelease release_activation(std::string_view request_id, std::uint64_t generation,
                                          std::uint64_t now_ms);
-    std::optional<wtp::PayloadDigest> staged_digest(std::string_view session_id,
+    std::optional<execution::PayloadDigest> staged_digest(std::string_view session_id,
                                                     Transport transport,
                                                     const Authorization& authorization,
                                                     std::uint64_t expected_generation) const;
@@ -110,13 +110,13 @@ class Manager {
     };
     struct ReplayEntry {
         std::string request_id;
-        wtp::PayloadDigest digest{};
+        execution::PayloadDigest digest{};
         Result result;
         std::uint64_t recorded_ms = 0;
     };
-    std::optional<Result> replay(std::string_view request_id, const wtp::PayloadDigest& digest,
+    std::optional<Result> replay(std::string_view request_id, const execution::PayloadDigest& digest,
                                  std::uint64_t now_ms);
-    Result remember(std::string_view request_id, const wtp::PayloadDigest& digest, Result result,
+    Result remember(std::string_view request_id, const execution::PayloadDigest& digest, Result result,
                     std::uint64_t now_ms);
     void terminate(State state);
     void expire(std::uint64_t now_ms);

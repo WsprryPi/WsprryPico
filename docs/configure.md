@@ -78,7 +78,7 @@ See [output and reference options](reference/time.md#understand-the-output-and-r
 (ntp-update-timeout)=
 ### NTP update timeout
 
-The **NTP update timeout: Continue without a valid NTP update for (minutes).** control sets how long previously synchronized NTP time remains usable without a new valid update. The default is **60 minutes**. Enter **1–1440 whole minutes**, or **0** to keep using the last synchronized time indefinitely. This setting does not extend browser-time holdover. Zero removes the Pico's NTP source-age cutoff; uncertainty remains visible and time can drift. A valid initial time is still required after startup, and an external controller's stricter per-job timing limit still applies. Choose **Save timeout** while idle, then restart the Pico to activate the change. UTC uncertainty does not automatically pause first-party transmissions; an accepted transmission finishes.
+The **NTP update timeout: Continue without a valid NTP update for (minutes).** control sets how long previously synchronized NTP time remains usable without a new valid update. The default is **60 minutes**. Enter **1–1440 whole minutes**, or **0** to keep using the last synchronized time indefinitely. This setting does not extend browser-time holdover. Zero removes the Pico's NTP source-age cutoff. Uncertainty remains visible, time can drift, and a valid initial time is still required after startup. Choose **Save timeout** while idle, then restart the Pico to activate the change. An increase in UTC uncertainty alone does not pause native scheduled transmissions.
 
 **Carrier calibration** corrects RF frequency in every mode. Edit **Manual correction (ppm)** and choose **Save calibration**; the saved correction applies when the Pico prepares the next job. Network time disciplines UTC separately. See [Time and frequency correction](reference/time.md#manual-frequency-correction) for measuring the correction.
 
@@ -263,7 +263,7 @@ After Wi-Fi setup, **Set your station details** can also retain incomplete progr
 
 ### Apply device-saved values
 
-**Apply saved station** uses the values in the Pico's saved station summary, even if newer unsaved text is visible in the editor. Complete the saved station and review its WSPR plan first. You cannot apply an incomplete or unencodable station for local WSPR. A valid radio-settings draft can still apply using the previously complete station. QRSS, FSKCW, DFCW, and externally prepared jobs have their own message, clock, and frequency checks.
+**Apply saved station** uses the values in the Pico's saved station summary, even if newer unsaved text is visible in the editor. Complete the saved station and review its WSPR plan first. You cannot apply an incomplete or unencodable station for local WSPR. A valid radio-settings draft can still apply using the previously complete station. QRSS, FSKCW, and DFCW schedules have their own message, clock, and frequency checks.
 
 A draft save does not arm a job. Explicitly saving/applying **Enable standalone schedules** authorizes automatic transmissions at later eligible slots once all readiness checks pass. A saved or complete configuration alone does not establish RF readiness. Review [Operate](operate.md) before enabling it.
 

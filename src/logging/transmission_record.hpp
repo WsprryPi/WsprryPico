@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 #pragma once
 #include "logging/logger.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <cstdio>
 #include <optional>
@@ -10,7 +10,7 @@ namespace wsprrypico::logging {
 struct TransmissionRecord {
     std::string_view job, utc_source;
     std::uint64_t start_utc_ns;
-    wtp::ClockSnapshot clock;
+    execution::ClockSnapshot clock;
     struct Station {
         std::string_view locator, source;
         std::uint64_t position_raw_ns;

@@ -239,8 +239,6 @@ async function run() {
   }
   const api=require('../src/provisioning/web/bluefy.js');
   assert.deepStrictEqual(Object.keys(api.UUIDS).sort(),['command','identity','service','status']);
-  for(const name of ['wtpFrame','WtpReceiver','crc32c'])assert.strictEqual(api[name],undefined);
-  for(const name of ['enableLocalControl','wtpExchange','selectWtpChannel'])assert.strictEqual(Client.prototype[name],undefined);
   const canonical = canonicalProfile(profile());
   assert(canonical.value.includes('"hostname":"wsprrypico-010203.local"'));
   canonical.bytes.fill(0);

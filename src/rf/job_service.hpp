@@ -1,0 +1,931 @@
+#pragma once
+
+#include "runtime/input_buffer.hpp"
+#include "runtime/sha256.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <deque>
+#include <list>
+#include <initializer_list>
+#include <iterator>
+#include <limits>
+#include <memory>
+#include <new>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+#include <variant>
+#include <vector>
+
+namespace wsprrypico::execution {
+
+enum class State { Empty, Loaded, Armed, Running, Complete, Aborted, Missed, Failed };
+enum class ClockState { Unsynchronized, Synchronized, Holdover };
+enum class LeapState { Normal, InsertPending, DeletePending, Unknown };
+
+struct ClockSnapshot {
+    ClockState state = ClockState::Unsynchronized;
+    std::uint64_t utc_now_ns = 0;
+    std::uint64_t monotonic_now_ns = 0;
+    std::uint64_t uncertainty_ns = 0;
+    std::uint64_t sync_age_ns = 0;
+    LeapState leap = LeapState::Unknown;
+    std::optional<std::uint64_t> leap_transition_utc_ns;
+    std::int32_t rate_ppb = 0; // UTC nanoseconds per raw second minus 1e9.
+    std::uint32_t rate_uncertainty_ppb = 0;
+    std::uint64_t model_generation = 0;
+    // A finite phase slew may end before a future launch. Both segments belong
+    // to this immutable clock model; neither changes the hardware timer.
+    std::uint64_t rate_until_monotonic_ns = UINT64_MAX;
+    std::int32_t subsequent_rate_ppb = 0;
+    // Internal clock-source horizon. A source lacking leap
+    // announcements cannot authorize jobs across its next UTC ambiguity.
+    std::uint64_t valid_until_utc_ns = UINT64_MAX;
+    bool operator==(const ClockSnapshot&) const = default;
+};
+
+class Clock {
+  public:
+    virtual ~Clock() = default;
+    [[nodiscard]] virtual ClockSnapshot snapshot() const = 0;
+};
+
+class IdentitySource {
+  public:
+    virtual ~IdentitySource() = default;
+    [[nodiscard]] virtual std::string new_boot_id() = 0;
+};
+
+struct RfEvent {
+    std::uint64_t offset_ns = 0;
+    std::uint64_t duration_ns = 0;
+    bool rf_on = false;
+    std::optional<std::uint64_t> frequency_nhz;
+
+    bool operator==(const RfEvent&) const = default;
+};
+
+// Maximum jobs must not depend on one 20,480-byte heap block. Eight bounded
+// pages keep random access and value semantics while using the nullable input
+// allocator that the target can refuse without invoking the SDK panic path.
+class EventList {
+  public:
+    enum class Failure { None, LimitExceeded, AllocationFailed };
+    static constexpr std::size_t page_events = 64;
+    static constexpr std::size_t maximum_events = 512;
+
+    template <bool Constant> class Iterator {
+      public:
+        using Owner = std::conditional_t<Constant, const EventList, EventList>;
+        using value_type = RfEvent;
+        using difference_type = std::ptrdiff_t;
+        using reference = std::conditional_t<Constant, const RfEvent&, RfEvent&>;
+        using pointer = std::conditional_t<Constant, const RfEvent*, RfEvent*>;
+        using iterator_category = std::forward_iterator_tag;
+
+        Iterator() = default;
+        Iterator(Owner* owner, std::size_t index) : owner_(owner), index_(index) {}
+        reference operator*() const {
+            return (*owner_)[index_];
+        }
+        pointer operator->() const {
+            return &(*owner_)[index_];
+        }
+        Iterator& operator++() {
+            ++index_;
+            return *this;
+        }
+        Iterator operator++(int) {
+            auto prior = *this;
+            ++*this;
+            return prior;
+        }
+        bool operator==(const Iterator&) const = default;
+
+      private:
+        Owner* owner_ = nullptr;
+        std::size_t index_ = 0;
+    };
+
+    using iterator = Iterator<false>;
+    using const_iterator = Iterator<true>;
+
+    EventList() = default;
+    EventList(std::initializer_list<RfEvent> values) {
+        if (!reserve(values.size()))
+            return;
+        for (const auto& value : values)
+            if (!push_back(value))
+                return;
+    }
+    EventList(const EventList& other) {
+        copy(other);
+    }
+    EventList& operator=(const EventList& other) {
+        if (this != &other) {
+            clear();
+            copy(other);
+        }
+        return *this;
+    }
+    EventList(EventList&& other) noexcept
+        : pages_(std::move(other.pages_)), size_(std::exchange(other.size_, 0)),
+          failure_(std::exchange(other.failure_, Failure::None)) {}
+    EventList& operator=(EventList&& other) noexcept {
+        if (this != &other) {
+            clear();
+            pages_ = std::move(other.pages_);
+            size_ = std::exchange(other.size_, 0);
+            failure_ = std::exchange(other.failure_, Failure::None);
+        }
+        return *this;
+    }
+    ~EventList() {
+        destroy();
+    }
+
+    bool reserve(std::size_t count) {
+        if (count > maximum_events) {
+            failure_ = Failure::LimitExceeded;
+            return false;
+        }
+        const auto needed = (count + page_events - 1) / page_events;
+        for (std::size_t page = 0; page < needed; ++page) {
+            if (pages_[page].capacity())
+                continue;
+            if (!pages_[page].reserve(page_events * sizeof(RfEvent))) {
+                failure_ = Failure::AllocationFailed;
+                return false;
+            }
+        }
+        return true;
+    }
+    bool push_back(const RfEvent& value) {
+        if (size_ >= maximum_events || !reserve(size_ + 1)) {
+            if (failure_ == Failure::None)
+                failure_ = Failure::LimitExceeded;
+            return false;
+        }
+        new (slot(size_)) RfEvent(value);
+        ++size_;
+        return true;
+    }
+    bool resize(std::size_t count) {
+        if (count < size_) {
+            while (size_ > count)
+                at(--size_).~RfEvent();
+            return true;
+        }
+        if (!reserve(count))
+            return false;
+        while (size_ < count) {
+            new (slot(size_)) RfEvent();
+            ++size_;
+        }
+        return true;
+    }
+    bool assign(std::size_t count, const RfEvent& value) {
+        clear();
+        if (!reserve(count))
+            return false;
+        while (size_ < count)
+            if (!push_back(value))
+                return false;
+        return true;
+    }
+    void clear() {
+        destroy();
+        for (auto& page : pages_)
+            page = {};
+        failure_ = Failure::None;
+    }
+    bool valid() const {
+        return failure_ == Failure::None;
+    }
+    Failure failure() const {
+        return failure_;
+    }
+    bool empty() const {
+        return size_ == 0;
+    }
+    std::size_t size() const {
+        return size_;
+    }
+    RfEvent& operator[](std::size_t index) {
+        return at(index);
+    }
+    const RfEvent& operator[](std::size_t index) const {
+        return at(index);
+    }
+    RfEvent& back() {
+        return at(size_ - 1);
+    }
+    const RfEvent& back() const {
+        return at(size_ - 1);
+    }
+    iterator begin() {
+        return {this, 0};
+    }
+    iterator end() {
+        return {this, size_};
+    }
+    const_iterator begin() const {
+        return {this, 0};
+    }
+    const_iterator end() const {
+        return {this, size_};
+    }
+    bool operator==(const EventList& other) const {
+        return failure_ == other.failure_ && size_ == other.size_ &&
+               std::equal(begin(), end(), other.begin());
+    }
+
+  private:
+    RfEvent& at(std::size_t index) {
+        return *slot(index);
+    }
+    const RfEvent& at(std::size_t index) const {
+        return *slot(index);
+    }
+    RfEvent* slot(std::size_t index) {
+        return reinterpret_cast<RfEvent*>(pages_[index / page_events].data()) + index % page_events;
+    }
+    const RfEvent* slot(std::size_t index) const {
+        return reinterpret_cast<const RfEvent*>(pages_[index / page_events].data()) +
+               index % page_events;
+    }
+    void destroy() {
+        while (size_)
+            at(--size_).~RfEvent();
+    }
+    void copy(const EventList& other) {
+        failure_ = other.failure_;
+        if (!other.valid() || !reserve(other.size_))
+            return;
+        for (const auto& value : other)
+            if (!push_back(value))
+                return;
+    }
+
+    std::array<InputBuffer, maximum_events / page_events> pages_;
+    std::size_t size_ = 0;
+    Failure failure_ = Failure::None;
+};
+
+// Compiler provenance for presentation only. Never decoded from rf-events/1,
+// hashed, or consulted by admission/execution. Bounded to the compiler's text.
+struct MessagePresentation {
+    std::string text;
+    std::uint64_t frequency_nhz = 0, space_frequency_nhz = 0;
+    std::uint64_t dot_ns = 0, dash_ns = 0, repeat_gap_ns = 0;
+    std::uint32_t repeat_count = 0;
+    bool operator==(const MessagePresentation&) const = default;
+};
+struct Job {
+    std::string job_id;
+    std::string profile = "rf-events/1";
+    std::string mode;
+    std::uint64_t total_duration_ns = 0;
+    EventList events;
+    bool allow_frequency_adjustment = false;
+    std::optional<MessagePresentation> message = {};
+
+    bool operator==(const Job&) const = default;
+};
+
+// Stable typed identity, streamed without retaining a serialized event copy.
+class JobDigestBuilder {
+  public:
+    JobDigestBuilder(const Job& header, std::size_t event_count);
+    void append(const RfEvent& event);
+    PayloadDigest finish() {
+        return digest_.finish();
+    }
+
+  private:
+    void number(std::uint64_t value);
+    void text(std::string_view value);
+    Sha256 digest_;
+};
+PayloadDigest job_digest(const Job& job);
+
+enum class EngineState { Idle, Armed, Running, Complete, Failed, Missed };
+
+// The requested UTC second supplies an exclusive latest-start boundary.
+constexpr std::uint64_t start_window_ns(std::uint64_t utc_ns) {
+    return 1'000'000'000 - utc_ns % 1'000'000'000;
+}
+
+struct LocalStartConditions {
+    const Clock* clock = nullptr;
+    std::uint64_t start_utc_ns = 0;
+    std::uint64_t maximum_uncertainty_ns = 0;
+    std::uint64_t maximum_holdover_age_ns = 0;
+    std::uint64_t start_adjustment_ns = 0;
+};
+
+enum class ChainPhase { Unspecified, Inactive, Waiting, Lead, Rf, Tail, Fault, Selecting };
+struct EngineReport {
+    EngineState state = EngineState::Idle;
+    bool output_active = false;
+    std::optional<std::uint64_t> launch_monotonic_ns = {};
+    ChainPhase chain_phase = ChainPhase::Unspecified;
+    // Normal tail starts at the adapter's confirmed RF-off observation, which
+    // may follow nominal waveform completion. This is local execution evidence.
+    std::optional<std::uint64_t> tail_deadline_monotonic_ns = {};
+    int filter_selector = -1; // -1 inactive, -2 unknown; snapshot with RF state.
+};
+
+struct FrequencyAdjustment {
+    std::size_t event_index;
+    std::uint64_t requested_frequency_nhz;
+    std::uint64_t realized_frequency_nhz;
+
+    bool operator==(const FrequencyAdjustment&) const = default;
+};
+
+// LOAD adjustments never change after preparation. Share one immutable list
+// across active-job, response-cache and terminal-history lifetimes. Copying a
+// response must not duplicate a maximum 512-entry allocation. Repeated tones
+// retain their frequency pair once, with exact per-event indexes and order.
+class AdjustmentList {
+    struct Compact {
+        std::array<std::pair<std::uint64_t, std::uint64_t>, 4> tones{};
+        // Low two bits select a tone; the other fourteen retain the event index.
+        std::vector<std::uint16_t> events;
+    };
+
+  public:
+    class Iterator {
+      public:
+        using value_type = FrequencyAdjustment;
+        using reference = FrequencyAdjustment;
+        using difference_type = std::ptrdiff_t;
+        using iterator_category = std::forward_iterator_tag;
+        struct Pointer {
+            FrequencyAdjustment value;
+            const FrequencyAdjustment* operator->() const {
+                return &value;
+            }
+        };
+        using pointer = Pointer;
+        Iterator() = default;
+        Iterator(const AdjustmentList* owner, std::size_t index) : owner_(owner), index_(index) {}
+        FrequencyAdjustment operator*() const {
+            return (*owner_)[index_];
+        }
+        Pointer operator->() const {
+            return {**this};
+        }
+        Iterator& operator++() {
+            ++index_;
+            return *this;
+        }
+        Iterator operator++(int) {
+            auto previous = *this;
+            ++*this;
+            return previous;
+        }
+        bool operator==(const Iterator&) const = default;
+
+      private:
+        const AdjustmentList* owner_ = nullptr;
+        std::size_t index_ = 0;
+    };
+    AdjustmentList() = default;
+    AdjustmentList(std::vector<FrequencyAdjustment> values) {
+        if (values.empty())
+            return;
+        std::array<std::pair<std::uint64_t, std::uint64_t>, 4> tones{};
+        std::size_t count = 0;
+        bool compact = true;
+        for (const auto& value : values) {
+            const auto pair =
+                std::pair{value.requested_frequency_nhz, value.realized_frequency_nhz};
+            if (value.event_index > (std::numeric_limits<std::uint16_t>::max() >> 2)) {
+                compact = false;
+                break;
+            }
+            if (std::find(tones.begin(), tones.begin() + count, pair) == tones.begin() + count) {
+                if (count == tones.size()) {
+                    compact = false;
+                    break;
+                }
+                tones[count++] = pair;
+            }
+        }
+        if (compact && sizeof(tones) + values.size() * sizeof(std::uint16_t) <
+                           values.size() * sizeof(FrequencyAdjustment)) {
+            auto result = std::make_shared<Compact>();
+            result->tones = tones;
+            result->events.reserve(values.size());
+            for (const auto& value : values) {
+                const auto pair =
+                    std::pair{value.requested_frequency_nhz, value.realized_frequency_nhz};
+                const auto tone =
+                    std::find(tones.begin(), tones.begin() + count, pair) - tones.begin();
+                result->events.push_back(
+                    static_cast<std::uint16_t>((value.event_index << 2) | tone));
+            }
+            compact_ = std::move(result);
+        } else
+            values_ = std::make_shared<const std::vector<FrequencyAdjustment>>(std::move(values));
+    }
+    std::size_t size() const {
+        return compact_ ? compact_->events.size() : values_ ? values_->size() : 0;
+    }
+    bool empty() const {
+        return size() == 0;
+    }
+    Iterator begin() const {
+        return {this, 0};
+    }
+    Iterator end() const {
+        return {this, size()};
+    }
+    FrequencyAdjustment operator[](std::size_t index) const {
+        if (compact_) {
+            const auto event = compact_->events[index];
+            const auto& pair = compact_->tones[event & 3];
+            return {static_cast<std::size_t>(event >> 2), pair.first, pair.second};
+        }
+        return (*values_)[index];
+    }
+    void clear() {
+        values_.reset();
+        compact_.reset();
+    }
+    bool operator==(const AdjustmentList& other) const {
+        if (values_ == other.values_ && compact_ == other.compact_)
+            return true;
+        if (size() != other.size())
+            return false;
+        for (std::size_t i = 0; i < size(); ++i)
+            if ((*this)[i] != other[i])
+                return false;
+        return true;
+    }
+
+  private:
+    std::shared_ptr<const std::vector<FrequencyAdjustment>> values_;
+    std::shared_ptr<const Compact> compact_;
+};
+
+struct PrepareResult {
+    bool accepted = false;
+    std::vector<FrequencyAdjustment> adjustments;
+};
+
+// Observation from the local RF worker.
+struct PadObservation {
+    std::uint64_t epoch = 0, observed_monotonic_ns = 0;
+    int rf_pin = -1, drive_ma = -1; // -1 unavailable, -2 verification failed.
+};
+
+// RF-owner register evidence, separate from RP2350 pad observations and all
+// wire formats. The service binds each fresh epoch to its accepted job.
+struct SynthesisObservation {
+    std::uint64_t epoch = 0, observed_monotonic_ns = 0;
+    int transmit_output = -1, drive_ma = -1;
+    std::uint32_t reference_hz = 0;
+};
+
+class RfEngine {
+  public:
+    static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
+    virtual ~RfEngine() = default;
+    virtual PadObservation pad_observation() const {
+        return {};
+    }
+    virtual SynthesisObservation synthesis_observation() const {
+        return {};
+    }
+    virtual std::uint64_t filter_preparation_ns() const {
+        return 0;
+    }
+    virtual std::uint64_t amplifier_lead_ns() const {
+        return 0;
+    }
+    virtual std::uint64_t amplifier_tail_ns() const {
+        return 0;
+    }
+    // Additional heap needed while preparing an already decoded job, including
+    // its adjustment result. Pure sizing only: adapters may call this from the
+    // application core before transferring execution to an RF worker.
+    [[nodiscard]] virtual std::size_t preparation_memory_bytes(const Job&) const {
+        return 32768;
+    }
+    virtual PrepareResult prepare(const Job& job) = 0;
+    // Local application preparation policy. The engine still prepares the same job.
+    virtual PrepareResult prepare_native_test_tone(const Job& job) {
+        return prepare(job);
+    }
+    // Permanent local interlock also suppresses optional background hardware
+    // work. Cleanup remains available; this never re-enables an inhibited job.
+    virtual void inhibit_output() {}
+    virtual bool background_work_allowed() const {
+        return true;
+    }
+    // Application calibration freezes for an ownership lifetime (including pairs).
+    virtual void calibration_boundary() {}
+    virtual void freeze_pair_calibration(bool) {}
+    virtual std::string calibration_status(std::uint64_t) const {
+        return "null";
+    }
+    virtual bool set_frequency_correction_ppb(std::int32_t value) {
+        return value == 0;
+    }
+    virtual std::string_view diagnostic() const {
+        return {};
+    }
+    [[nodiscard]] virtual bool schedules_locally() const {
+        return false;
+    }
+    // Immutable capability: after successful schedule()/begin(), execution
+    // retains no references into the caller's Job. Default preserves input for
+    // adapters that borrow it. Preparation alone does not transfer ownership.
+    [[nodiscard]] virtual bool owns_execution_plan() const {
+        return false;
+    }
+    [[nodiscard]] virtual std::uint64_t start_resolution_ns() const {
+        return 1;
+    }
+    // Finite locally scheduled hardware may finish its IRQ acknowledgement just
+    // after nominal RF end. This never authorizes additional waveform samples.
+    [[nodiscard]] virtual std::uint64_t completion_acknowledgement_ns() const {
+        return 0;
+    }
+    // External generators finish a bounded output-control transaction at the
+    // final event. Their confirmation is bounded by the advertised output
+    // disable timeout, separately from autonomous DMA/IRQ acknowledgement.
+    [[nodiscard]] virtual bool externally_controlled_completion() const {
+        return false;
+    }
+    virtual bool schedule(const Job&, std::uint64_t, const LocalStartConditions&) {
+        return false;
+    }
+    virtual bool begin(const Job& job, std::uint64_t start_monotonic_ns) = 0;
+    [[nodiscard]] virtual EngineReport poll(std::uint64_t monotonic_now_ns) = 0;
+    virtual bool disable(std::uint64_t deadline_monotonic_ns) = 0;
+    virtual bool execution_started() const {
+        return output_active();
+    }
+    [[nodiscard]] virtual bool output_active() const = 0;
+};
+
+enum class ErrorCode {
+    None,
+    InvalidFrame,
+    InvalidMessage,
+    UnsupportedVersion,
+    HelloRequired,
+    UnknownOperation,
+    AuthenticationRequired,
+    SessionReplaced,
+    Busy,
+    NotOwner,
+    LeaseExpired,
+    RequestIdReuse,
+    InvalidState,
+    JobNotFound,
+    JobIdConflict,
+    JobLimitExceeded,
+    UnsupportedProfile,
+    UnsupportedMode,
+    FrequencyRejected,
+    ArmConflict,
+    ClockUnsynchronized,
+    ClockUncertain,
+    LeapUnsafe,
+    ArmTooLate,
+    ArmTooFar,
+    MissedStart,
+    OutputStateUnknown,
+    DeviceFault,
+    InternalError,
+};
+
+// Version shared by typed native producers.
+inline constexpr char session_version[] = "native-execution/1";
+
+struct HelloBody {
+    std::vector<std::string> versions;
+};
+struct ClaimBody {
+    std::string owner_id;
+    std::uint32_t lease_ms = 0;
+};
+struct RenewBody {
+    std::string owner_id;
+    std::uint32_t lease_ms = 0;
+};
+struct ArmBody {
+    std::string job_id;
+    std::uint64_t start_utc_ns = 0;
+    std::uint64_t max_start_uncertainty_ns = 0;
+};
+struct AbortBody {
+    std::string job_id;
+};
+struct PingBody {
+    std::optional<std::string> token;
+};
+
+using RequestBody = std::variant<std::monostate, HelloBody, ClaimBody, RenewBody, Job, ArmBody,
+                                 AbortBody, PingBody>;
+
+struct Request {
+    std::string protocol = session_version;
+    std::string session_id;
+    std::string request_id;
+    std::string principal;
+    std::string operation;
+    PayloadDigest payload_digest{};
+    RequestBody body;
+    bool body_valid = true; // Adapter schema result; checked after replay/operation recognition.
+};
+
+struct TerminalRecord {
+    std::string job_id;
+    State state;
+    std::uint64_t ended_monotonic_ns;
+    bool output_active;
+    ErrorCode error;
+    bool operator==(const TerminalRecord&) const = default;
+};
+
+// Internal activity observation: no identity/history copies or retained views.
+// Each observation still queries the engine's live output state.
+struct ServiceActivity {
+    State state;
+    bool output_active;
+    bool owned;
+};
+
+struct ServiceStatus {
+    std::string boot_id;
+    State state;
+    bool output_active;
+    std::optional<std::string> owner_id;
+    std::optional<std::string> job_id;
+    std::vector<TerminalRecord> terminal_records;
+    bool operator==(const ServiceStatus&) const = default;
+};
+
+struct Response {
+    bool ok = false;
+    ErrorCode error = ErrorCode::None;
+    State state = State::Empty;
+    std::string job_id;
+    std::string boot_id;
+    std::string owner_id;
+    std::uint64_t start_monotonic_ns = 0;
+    std::uint64_t expires_monotonic_ns = 0;
+    std::uint32_t granted_lease_ms = 0;
+    bool output_active = false;
+    bool close_connection = false;
+    std::optional<std::string> ping_token;
+    AdjustmentList adjustments;
+    std::optional<ClockSnapshot> clock_snapshot;
+    std::optional<ServiceStatus> status_snapshot;
+    std::uint64_t start_utc_ns = 0;
+
+    bool operator==(const Response&) const = default;
+};
+
+struct ServiceConfig {
+    std::string capability_engine = "inhibited-no-rf";
+    std::vector<std::string> supported_modes{"wspr", "qrss", "fskcw", "dfcw", "cw", "tone"};
+    std::uint64_t minimum_frequency_nhz = 1;
+    std::uint64_t maximum_frequency_nhz = std::numeric_limits<std::uint64_t>::max();
+    std::size_t max_events = 512;
+    std::uint64_t max_job_duration_ns = 86'400'000'000'000ULL;
+    std::uint64_t minimum_arm_lead_ns = 100'000'000ULL;
+    std::uint64_t maximum_arm_ahead_ns = 604'800'000'000'000ULL;
+    std::uint64_t maximum_arm_uncertainty_ns = 1'000'000ULL;
+    std::uint64_t maximum_holdover_age_ns = 0;
+    std::uint64_t output_disable_timeout_ns = 100'000'000ULL;
+    std::size_t response_cache_entries = 8;
+    std::uint64_t response_cache_ttl_ns = 300'000'000'000ULL;
+    std::size_t terminal_record_entries = 8;
+    std::uint64_t terminal_record_ttl_ns = 3'600'000'000'000ULL;
+};
+
+class JobService {
+  public:
+    EngineReport rf_chain_observation() const {
+        return engine_.poll(clock_.snapshot().monotonic_now_ns);
+    }
+    // Pure sizing for trusted local producers that own the decoded input.
+    // They may reclaim optional transport buffers before LOAD; dispatch still
+    // independently checks this same budget with the authority/RF reserve.
+    std::size_t preparation_memory_bytes(const Job& job) const {
+        return engine_.preparation_memory_bytes(job);
+    }
+    std::string_view engine_diagnostic() const {
+        return engine_.diagnostic();
+    }
+    JobService(Clock& clock, RfEngine& engine, IdentitySource& identities,
+               ServiceConfig config = {});
+
+    // Lvalue callers retain value semantics. Production adapters transfer a
+    // decoded request so a maximum LOAD does not allocate a second event list.
+    Response handle(const Request& request);
+    Response handle(Request&& request);
+    // Trusted in-process producers use fresh IDs and never replay requests.
+    // Omit only their reply cache; retain sessions, ownership, validation and
+    // completed-job identity/history exactly as for transport requests.
+    // Optional application verification is synchronous, in-process only, and
+    // never part of ArmBody or any client document. No context is retained.
+    using ExecutionVerifier = bool (*)(const PadObservation&, const SynthesisObservation&,
+                                       const void*);
+    Response handle_internal(Request&& request, ExecutionVerifier verify = nullptr,
+                             const void* context = nullptr);
+    // Only for the trusted Test Tone coordinator's LOAD. This purpose is
+    // passed on the call stack and is never decoded from a request.
+    Response handle_internal_test_tone_load(Request&& request);
+    // Physical Console safety control only; never exposed as a network operation.
+    Response local_abort();
+    // Local physical output interlock. Once set, no transport or scheduler may
+    // acquire or launch RF until a new firmware boot. Failed shutdown remains
+    // inhibited and must not authorize manual AP admission.
+    bool local_inhibit_output();
+    [[nodiscard]] bool output_inhibited() const {
+        return output_inhibited_;
+    }
+    // Local maintenance only, serialized by the same owner as handle()/poll().
+    // It cannot stop work or clear faults and does not alter saved enablement.
+    bool begin_maintenance();
+    void end_maintenance() {
+        maintenance_deadline_ns_ = 0;
+    }
+    void hold_update_verification() {
+        update_verification_ = true;
+    }
+    void finish_update_verification() {
+        update_verification_ = false;
+    }
+    [[nodiscard]] bool verification_safe() const {
+        return ready_ && !output_inhibited_ && !owner_ && state_ == State::Empty &&
+               !engine_.output_active();
+    }
+    [[nodiscard]] bool update_verification() const {
+        return update_verification_;
+    }
+    [[nodiscard]] bool maintenance() const {
+        return update_verification_ ||
+               (maintenance_deadline_ns_ &&
+                clock_.snapshot().monotonic_now_ns < maintenance_deadline_ns_);
+    }
+    void poll();
+    void reset();
+    [[nodiscard]] ServiceActivity activity() const;
+    [[nodiscard]] ServiceStatus status(bool history = true) const;
+    // Application-core read only; no event walk or retained view while RF runs.
+    [[nodiscard]] std::string presentation_json() const;
+    [[nodiscard]] std::string_view owner_session_id() const {
+        return owner_ ? std::string_view(owner_->session_id) : std::string_view{};
+    }
+    void freeze_pair_calibration(bool freeze) {
+        engine_.freeze_pair_calibration(freeze);
+    }
+    using ArmObserver = void (*)(const Job&, const ArmBody&, const ClockSnapshot&,
+                                  std::string_view principal, void*);
+    // Application provenance only. It does not affect the job digest, replay
+    // admission, the RF interrupt path, or launch authorization.
+    void arm_observer(ArmObserver observer, void* context) {
+        arm_observer_ = observer; arm_observer_context_ = context;
+    }
+    std::string calibration_status() const {
+        return engine_.calibration_status(clock_.snapshot().monotonic_now_ns);
+    }
+    [[nodiscard]] ClockSnapshot clock_snapshot() const {
+        return clock_.snapshot();
+    }
+    std::optional<std::uint64_t> execution_launch(std::string_view job) const {
+        return job_ && job_->job_id == job && arm_ ? arm_->launch_monotonic_ns : std::nullopt;
+    }
+    PadObservation execution_pad(std::string_view job) const {
+        return job == pad_job_ ? accepted_pad_ : PadObservation{};
+    }
+    SynthesisObservation execution_synthesis(std::string_view job) const {
+        return job == pad_job_ ? accepted_synthesis_ : SynthesisObservation{};
+    }
+    std::uint64_t start_resolution_ns() const {
+        return engine_.start_resolution_ns();
+    }
+    using TerminalObserver = void (*)(const TerminalRecord&, void*);
+    void terminal_observer(TerminalObserver observer, void* context) {
+        terminal_observer_ = observer;
+        terminal_context_ = context;
+    }
+    [[nodiscard]] const ServiceConfig& config() const {
+        return config_;
+    }
+
+  private:
+    struct Session {
+        std::string session_id;
+        std::string principal;
+        std::uint64_t last_seen_monotonic_ns;
+    };
+    struct Owner {
+        std::string owner_id;
+        std::string session_id;
+        std::string principal;
+        std::uint64_t expires_monotonic_ns;
+        bool release_after_terminal = false;
+    };
+    struct ArmRecord {
+        std::uint64_t start_utc_ns;
+        std::uint64_t max_uncertainty_ns;
+        std::uint64_t start_monotonic_ns;
+        // Preserve the original mapping without retaining unused reply fields.
+        ClockSnapshot clock_snapshot;
+        bool scheduled_locally = false;
+        std::optional<std::uint64_t> launch_monotonic_ns = {};
+    };
+    struct RetainedJob {
+        std::string job_id;
+        PayloadDigest digest;
+        AdjustmentList adjustments;
+        bool load_output_active;
+        std::optional<ArmRecord> arm;
+    };
+
+    struct ReplayEntry {
+        std::string session_id;
+        std::string request_id;
+        PayloadDigest payload_digest;
+        Response response;
+        std::uint64_t completed_monotonic_ns;
+        std::uint64_t lru;
+    };
+
+    enum class LoadPurpose { Ordinary, NativeTestTone };
+    Response handle_owned(Request& request, bool retain_response = true,
+                          LoadPurpose purpose = LoadPurpose::Ordinary);
+    Response dispatch(Request& request, LoadPurpose purpose);
+    Response abort_job(std::string_view job_id);
+    Response reject(ErrorCode code) const;
+    Response success() const;
+    Response retained_load_response(const RetainedJob& retained) const;
+    Response arm_response(std::string_view job_id, const ArmRecord& arm) const;
+    bool valid_id(std::string_view value) const;
+    bool owns(const Request& request) const;
+    ErrorCode validate_job(const Job& job) const;
+    ErrorCode validate_arm(const ArmBody& arm, const ClockSnapshot& now,
+                           std::uint64_t& start_monotonic_ns) const;
+    void expire_resources(std::uint64_t monotonic_now_ns);
+    void record_terminal(State state, ErrorCode error, std::uint64_t now_ns);
+    void clear_job();
+    void release_execution_input();
+    void touch_terminal(std::string_view job_id);
+    void prune_replay(std::uint64_t now_ns);
+    void prune_terminals(std::uint64_t now_ns);
+    void prune_sessions(std::uint64_t now_ns);
+    std::optional<Response> replay(const Request& request, std::uint64_t now_ns, bool& conflict);
+    void remember(const Request& request, const Response& response, std::uint64_t now_ns);
+
+    Clock& clock_;
+    RfEngine& engine_;
+    IdentitySource& identities_;
+    ServiceConfig config_;
+    std::vector<Session> sessions_;
+    std::optional<Owner> owner_;
+    std::optional<Job> job_;
+    std::array<std::uint64_t, 4> observed_frequencies_{};
+    std::size_t observed_frequency_count_ = 0, observed_event_count_ = 0;
+    bool observed_frequencies_truncated_ = false;
+    PayloadDigest job_digest_{};
+    AdjustmentList adjustments_;
+    std::optional<ArmRecord> arm_;
+    // Allocate one bounded replay entry at a time. A deque implementation may
+    // eagerly allocate sixteen expanded clock replies in a >8 KiB block.
+    std::list<ReplayEntry> replay_cache_;
+    std::deque<TerminalRecord> terminal_records_;
+    std::deque<RetainedJob> retained_jobs_;
+    State state_ = State::Empty;
+    std::string boot_id_;
+    std::uint64_t lru_sequence_ = 0;
+    bool ready_ = false;
+    bool output_inhibited_ = false;
+    std::uint64_t maintenance_deadline_ns_ = 0;
+    ArmObserver arm_observer_ = nullptr;
+    void* arm_observer_context_ = nullptr;
+    bool update_verification_ = false;
+    ExecutionVerifier arm_verifier_ = nullptr;
+    const void* arm_verifier_context_ = nullptr;
+    std::string pad_job_;
+    PadObservation accepted_pad_;
+    SynthesisObservation accepted_synthesis_;
+    TerminalObserver terminal_observer_ = nullptr;
+    void* terminal_context_ = nullptr;
+};
+
+} // namespace wsprrypico::execution

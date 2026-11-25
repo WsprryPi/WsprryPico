@@ -4,7 +4,6 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/"scripts"))
 
 import copy,unittest
 from capacity_pending import assess,run
-from inhibited_network_acceptance import https_authority
 class Tests(unittest.TestCase):
  def test_pending_then_actual_reset_reclaims_and_timeout_never_passes(self):
   b=dict(boot='b',source='s',active=2,pending=0,pool=10,timeouts=0,rejected=0)

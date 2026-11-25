@@ -40,7 +40,7 @@ struct Member {
                                "/api/control/v1/filter-selector",
                                body.empty()
                                    ? ""
-                                   : "{\"schema\":" + wtp::json::quote(version) +
+                                   : "{\"schema\":" + execution::json::quote(version) +
                                          ",\"target\":" + target + ",\"settings\":" + body + "}",
                                {{"host", "127.0.0.1:8443"},
                                 {"origin", "https://127.0.0.1:8443"},
@@ -251,8 +251,8 @@ struct Driver : rf::PioDmaHardware {
         handler(context, {rf::DriverEventKind::Alarm, epoch, 0});
     }
 };
-wtp::Job tone() {
-    wtp::Job j;
+execution::Job tone() {
+    execution::Job j;
     j.job_id = std::string(32, '3');
     j.mode = "tone";
     j.allow_frequency_adjustment = true;
@@ -312,14 +312,14 @@ void completion_and_cleanup() {
         hw.handler(hw.context, {rf::DriverEventKind::DmaComplete, 1, 0});
         hw.active_ = false; // Actual driver's zero-tail stop observation.
         hw.handler(hw.context, {rf::DriverEventKind::DmaComplete, 1, 1});
-        REQUIRE(sink.poll(hw.now).chain_phase == wtp::ChainPhase::Tail);
+        REQUIRE(sink.poll(hw.now).chain_phase == execution::ChainPhase::Tail);
         REQUIRE(pins.active && amp_output.active && pins.activated == 1);
         hw.trace.clear();
         amp_output.fail = pins.fail = hw.halt_fail = fail_cleanup;
         hw.fire();
         const auto report = sink.poll(hw.now);
         REQUIRE(report.state ==
-                (fail_cleanup ? wtp::EngineState::Failed : wtp::EngineState::Complete));
+                (fail_cleanup ? execution::EngineState::Failed : execution::EngineState::Complete));
         REQUIRE(!pins.active && !amp_output.active && !hw.active());
         // Every cleanup attempt runs, in order, even when an earlier one fails.
         REQUIRE(hw.trace.size() >= 4);
@@ -329,7 +329,7 @@ void completion_and_cleanup() {
         REQUIRE(sink.output_active() == fail_cleanup);
     }
 }
-void execution() {
+void exercise_execution() {
     for (const auto& delays : {std::pair{20U, 20U}, std::pair{0U, 0U}, std::pair{250U, 250U}})
         for (const bool amp_enabled : {false, true}) {
             auto s = selected();
@@ -451,7 +451,7 @@ int main(int argc, char** argv) {
     management_storage();
     admission_and_adapter();
     production_admission();
-    execution();
+    exercise_execution();
     completion_and_cleanup();
     std::cout
         << "Filter settings, storage, management, coverage, adapter and local sequencing passed\n";

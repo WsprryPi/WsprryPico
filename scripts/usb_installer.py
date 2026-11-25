@@ -276,7 +276,7 @@ def decode(data):
 
 
 def schema_check(value, schema):
-    """Evaluate the keywords in the canonical v1 manifest (no second schema)."""
+    """Evaluate the keywords in the canonical firmware manifests."""
     supported = {'$schema', '$id', 'title', 'type', 'const', 'enum', 'required',
                  'properties', 'additionalProperties', 'minProperties', 'maxProperties',
                  'pattern', 'minLength', 'maxLength', 'minimum', 'maximum',
@@ -430,35 +430,12 @@ def uf2_blocks(data, application_end):
     return b''.join(blocks[a] for a in addresses)
 
 
-def firmware_schema(version, canonical):
-    """Two exact closed manifests; the original schema file remains unchanged."""
-    require(type(version) is int and version in (1, 2), 'Unsupported firmware manifest version')
-    identifier = canonical.get('$id')
-    base = 'https://github.com/WsprryPi/WsprryPico/firmware-release-manifest/'
-    require(identifier in (base+'1', base+'2'), 'Unknown firmware manifest schema')
-    if version == 2:
-        require(identifier == base+'2', 'Installer schema lacks storage contract 2')
-        return canonical
-    if identifier == base+'1':
-        return canonical
-    historical = json.loads(json.dumps(canonical))
-    historical['$id'] = base+'1'
-    historical['title'] = 'WsprryPico firmware deployment manifest version 1'
-    historical['properties']['schema_version'] = {'const': 1}
-    historical['properties']['testing_release']['properties']['storage']['const']['layout'] = '72 KiB reserved; application ends at 0x103ee000; E10 is SDK workaround only'
-    update = historical['properties']['update']
-    update['properties']['application_end'] = {'enum': ['103ee000', '103f0000']}
-    del update['properties']['storage_contract']
-    update['required'].remove('storage_contract')
-    return historical
-
-
 def verify_bundle(files, branch, schema_path=SCHEMA):
     require('release-manifest.json' in files and 'ci-publication.json' in files and
             'SHA256SUMS' in files, 'Incomplete verified bundle')
     manifest = decode(files['release-manifest.json'])
-    schema_check(manifest, firmware_schema(manifest.get('schema_version'), decode(
-        SCHEMA_BYTES if schema_path == SCHEMA and SCHEMA_BYTES is not None else schema_path.read_bytes())))
+    schema_check(manifest, decode(
+        SCHEMA_BYTES if schema_path == SCHEMA and SCHEMA_BYTES is not None else schema_path.read_bytes()))
     proof = decode(files['ci-publication.json'])
     source, workflow = manifest['source'], manifest['workflow']
     version = manifest['firmware_version']

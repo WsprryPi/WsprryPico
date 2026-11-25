@@ -7,7 +7,7 @@
 #include "mbedtls/x509_crt.h"
 #include "network/identity.hpp"
 #include "network/pico/psa_lifetime.hpp"
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <string_view>
 
@@ -89,7 +89,7 @@ bool MbedTlsCredentialValidator::validate_impl(CredentialMaterial material,
     verify_flags_ = 0;
     if (!allow_time_unknown && trusted_clock_) {
         const auto clock = trusted_clock_->clock_snapshot();
-        if (clock.state == wtp::ClockState::Unsynchronized || clock.utc_now_ns == 0) {
+        if (clock.state == execution::ClockState::Unsynchronized || clock.utc_now_ns == 0) {
             last_error_ = time_error;
             return false;
         }

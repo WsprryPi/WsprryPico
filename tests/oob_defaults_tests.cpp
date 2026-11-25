@@ -24,10 +24,10 @@ int main() {
     Flash drafts;
     standalone::Progress progress(drafts);
     REQUIRE(progress.load());
-    auto fields = wtp::json::parse(R"({"callsign":"N0CALL","locator":"ZZ99","power_dbm":0})");
+    auto fields = execution::json::parse(R"({"callsign":"N0CALL","locator":"ZZ99","power_dbm":0})");
     REQUIRE(progress.save(*fields, std::string(64, 'a')));
     REQUIRE(!progress.station_candidate({}) && !progress.candidate({}, "station"));
-    fields = wtp::json::parse(R"({"callsign":"AA0NT","locator":"EM18","power_dbm":0})");
+    fields = execution::json::parse(R"({"callsign":"AA0NT","locator":"EM18","power_dbm":0})");
     REQUIRE(progress.save(*fields, std::string(64, 'b')));
     const auto fresh = progress.candidate({}, "station");
     REQUIRE(fresh && !fresh->enabled && fresh->gpio_drive_ma == 12);
@@ -46,7 +46,7 @@ int main() {
             edited->schedules == custom.schedules);
     // Complete configuration saves go through the same fresh/default boundary.
     const std::string input = "{" + legacy.substr(13);
-    auto supplied = wtp::json::parse(input);
+    auto supplied = execution::json::parse(input);
     const auto candidate =
         application::config_candidate(*supplied, {}, application::ConfigWrite::Legacy, true, true);
     REQUIRE(candidate);

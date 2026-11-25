@@ -1,6 +1,6 @@
 # Raspberry Pi/Linux BLE local-control client
 
-`scripts/wsprrypico_ble.py` is the native BlueZ client for the retained commissioning, identity, field access, provisioning, security, and controller-time operations. The [Field-GATT guide](../protocol/Field-GATT.md) and [conformance vectors](../protocol/Field-GATT-v1-vectors.json) define its current contract. BLE execution UUIDs and the `wtp-status` command are retired. No BLE job upload, remote job control, or carrier-selection operation is provided. Native recurrence executes locally through the shared JobService.
+`scripts/wsprrypico_ble.py` is the native BlueZ client for the retained commissioning, identity, field access, provisioning, security, and controller-time operations. The [Field-GATT guide](../protocol/Field-GATT.md) and [conformance vectors](../protocol/Field-GATT-v1-vectors.json) define its current contract. No BLE job upload, remote job control, or carrier-selection operation is provided. Native recurrence executes locally through the shared JobService.
 
 ## Prerequisites and security boundary
 

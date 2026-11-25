@@ -65,7 +65,7 @@ bash scripts/install_usb.sh install --branch devel --version FIRMWARE_VERSION \
 
 ## 6. Reopen setup Wi-Fi on the configured Pico
 
-Use the verified USB Console on either host. Discovery identifies Console under port role `"0"`; WTP is `"2"` and management is `"4"`. Follow [USB Console instructions](../../docs/usb.md#find-and-open-the-console-on-macos-or-linux), with DTR enabled and LF/newline command endings. In `screen`, send each command with **Ctrl+J**; exit with **Ctrl+A**, then **backslash**, then **y**.
+Use the verified USB Console on either host. Discovery identifies Console under port role `"0"`. Application firmware assigns role `"2"` to Reserved, `"4"` to Management, and `"6"` to Logging. Follow [USB Console instructions](../../docs/usb.md#find-and-open-the-console-on-macos-or-linux), with DTR enabled and LF/newline command endings. In `screen`, send each command with **Ctrl+J**. Exit with **Ctrl+A**, then **backslash**, then **y**.
 
 ```text
 INFO

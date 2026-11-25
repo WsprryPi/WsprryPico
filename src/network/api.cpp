@@ -12,11 +12,11 @@
 #include "network/test_tone_query.hpp"
 #include "rf/calibration.hpp"
 #include "rf/waveform.hpp"
-#include "wtp/memory_budget.hpp"
-#include "wtp/observation.hpp"
+#include "runtime/memory_budget.hpp"
+#include "rf/observation.hpp"
 
 namespace wsprrypico::network {
-using namespace wtp;
+using namespace execution;
 namespace {
 std::string hex(std::span<const std::uint8_t> bytes) {
     std::string result;
@@ -43,8 +43,8 @@ HttpResponse ok_parts(std::initializer_list<std::string_view> parts) {
     for (auto part : parts) {
         if (first) {
             if (part.empty() || part.front() != '{' ||
-                !result.buffered_body.append(wtp::InputView("{").at(0)) ||
-                !result.buffered_body.append(wtp::InputView(contract).at(0)))
+                !result.buffered_body.append(execution::InputView("{").at(0)) ||
+                !result.buffered_body.append(execution::InputView(contract).at(0)))
                 return http_error(503, "resource_exhausted");
             part.remove_prefix(1);
             first = false;
@@ -573,24 +573,24 @@ HttpResponse BrowserApi::amplifier_timing() const {
     const auto observation = service_.rf_chain_observation();
     const char* phase = "inactive";
     switch (observation.chain_phase) {
-    case wtp::ChainPhase::Waiting:
-    case wtp::ChainPhase::Selecting:
+    case execution::ChainPhase::Waiting:
+    case execution::ChainPhase::Selecting:
         phase = "waiting";
         break;
-    case wtp::ChainPhase::Lead:
+    case execution::ChainPhase::Lead:
         phase = "lead";
         break;
-    case wtp::ChainPhase::Rf:
+    case execution::ChainPhase::Rf:
         phase = "rf";
         break;
-    case wtp::ChainPhase::Tail:
+    case execution::ChainPhase::Tail:
         phase = "tail";
         break;
-    case wtp::ChainPhase::Fault:
+    case execution::ChainPhase::Fault:
         phase = "fault";
         break;
     default:
-        if (observation.output_active || observation.state == wtp::EngineState::Failed)
+        if (observation.output_active || observation.state == execution::EngineState::Failed)
             phase = "fault";
         break;
     }
@@ -602,7 +602,7 @@ HttpResponse BrowserApi::amplifier_timing() const {
            ",\"pending_restart\":" + (scheduler_.hardware_restart_required() ? "true" : "false") +
            ",\"phase\":" + json::quote(phase) +
            ",\"output_active\":" + (observation.output_active ? "true" : "false") +
-           ",\"rf_active\":" + (observation.chain_phase == wtp::ChainPhase::Rf ? "true" : "false") +
+           ",\"rf_active\":" + (observation.chain_phase == execution::ChainPhase::Rf ? "true" : "false") +
            ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}"));
     result.etag = revision();
     return result;
@@ -643,7 +643,7 @@ HttpResponse BrowserApi::filter_selector() const {
         (service_.engine_diagnostic() == "filter_coverage_required" ? "\"filter_coverage_required\""
                                                                     : "null") +
         ",\"output_active\":" + (observation.output_active ? "true" : "false") +
-        ",\"rf_active\":" + (observation.chain_phase == wtp::ChainPhase::Rf ? "true" : "false") +
+        ",\"rf_active\":" + (observation.chain_phase == execution::ChainPhase::Rf ? "true" : "false") +
         ",\"storage_healthy\":" + (store_.healthy() ? "true" : "false") +
         ",\"reserved\":" + reserved + "}");
     result.etag = revision();
@@ -908,7 +908,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
     const bool status_read = r.method == "GET" && (r.path == "/api/control/v1/status" ||
                                                    r.path == "/api/control/v1/operations");
     const auto request_scratch = status_read ? 8192 : working_bytes * 2 + 16384;
-    if (!wtp::memory_admitted(request_scratch))
+    if (!execution::memory_admitted(request_scratch))
         return http_error(503, "resource_exhausted");
     if (body.size() > max_http_body)
         return http_error(413, "body_too_large");
@@ -1019,7 +1019,7 @@ HttpResponse BrowserApi::handle_current(const HttpRequest& r, std::string_view p
         if (auto asset = web_asset(r.path)) {
             // Generated assets live in flash for the process lifetime. Stream
             // the immutable bytes directly rather than copying a full page
-            // into heap while WTP and RF state are resident. Preserve bounded
+            // into heap while execution and RF state are resident. Preserve bounded
             // transport/header scratch plus the independent authority reserve.
             if (!memory_admitted(4096))
                 return http_error(503, "resource_exhausted");

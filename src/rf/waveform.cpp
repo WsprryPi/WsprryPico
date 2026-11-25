@@ -18,7 +18,7 @@ std::optional<std::uint64_t> samples_at(std::uint64_t ns, bool terminal_off = fa
     // already-low tail to the next sample, including a host's 1 ns stop marker.
     if (terminal_off)
         return (ns * numerator + denominator - 1) / denominator;
-    // WTP carries nanoseconds, not sample indexes. Realize each absolute
+    // Event boundaries use nanoseconds. Realize each absolute
     // boundary at its nearest sample, without accumulating per-event rounding.
     // plan_job rejects collapsed events, including sub-sample RF-on/off gaps.
     return (ns * numerator + denominator / 2) / denominator;
@@ -85,7 +85,7 @@ std::uint32_t packed_word(std::uint32_t phase, unsigned tone_index) {
 }
 
 
-std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb) {
+std::optional<Plan> plan_job(const execution::Job& job, std::int32_t correction_ppb) {
     if (correction_ppb < -max_correction_ppb || correction_ppb > max_correction_ppb ||
         (correction_ppb != 0 && !job.allow_frequency_adjustment))
         return std::nullopt;

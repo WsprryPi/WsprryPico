@@ -26,8 +26,8 @@ bool PicoConsumerClaimPlatform::safe_to_commit() {
          access_.record()->default_password);
     const auto activity = service_.activity();
     return !service_.maintenance() && access_ok && !activity.owned && !activity.output_active &&
-           activity.state != wtp::State::Loaded && activity.state != wtp::State::Armed &&
-           activity.state != wtp::State::Running && activity.state != wtp::State::Failed;
+           activity.state != execution::State::Loaded && activity.state != execution::State::Armed &&
+           activity.state != execution::State::Running && activity.state != execution::State::Failed;
 }
 
 std::uint64_t PicoConsumerClaimPlatform::monotonic_now_ms() {
@@ -44,8 +44,8 @@ std::optional<std::uint64_t> PicoConsumerClaimPlatform::trusted_utc_now() {
     const auto snapshot = service_.clock_snapshot();
     const auto source = arbiter_.status();
     if (source.source != time::ActiveTimeSource::Sntp || source.age_ns > 10'000'000'000ULL ||
-        snapshot.state != wtp::ClockState::Synchronized ||
-        snapshot.leap != wtp::LeapState::Normal || snapshot.uncertainty_ns > 1'000'000'000ULL ||
+        snapshot.state != execution::ClockState::Synchronized ||
+        snapshot.leap != execution::LeapState::Normal || snapshot.uncertainty_ns > 1'000'000'000ULL ||
         snapshot.utc_now_ns < time::sntp_min_utc_ns || snapshot.utc_now_ns >= time::sntp_max_utc_ns)
         return {};
     return snapshot.utc_now_ns / 1'000'000'000ULL;
@@ -57,8 +57,8 @@ std::optional<std::uint64_t> PicoConsumerClaimPlatform::trusted_local_utc_now() 
     const auto snapshot = service_.clock_snapshot();
     const auto source = arbiter_.status();
     if (source.source != time::ActiveTimeSource::Controller || source.principal != "usb-physical" ||
-        source.age_ns > 10'000'000'000ULL || snapshot.state != wtp::ClockState::Synchronized ||
-        snapshot.leap != wtp::LeapState::Normal ||
+        source.age_ns > 10'000'000'000ULL || snapshot.state != execution::ClockState::Synchronized ||
+        snapshot.leap != execution::LeapState::Normal ||
         snapshot.uncertainty_ns > time::standalone_max_uncertainty_ns ||
         snapshot.utc_now_ns < time::sntp_min_utc_ns || snapshot.utc_now_ns >= time::sntp_max_utc_ns)
         return {};

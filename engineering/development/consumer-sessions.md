@@ -10,7 +10,7 @@ Lookup requires a bounded CR01 header before using its ID as an untrusted select
 
 ## Duration and compatibility
 
-Authenticated requests renew a thirty-minute idle interval. The eight-hour absolute lifetime starts at successful login and never renews. Public requests, page visibility, and editing do not renew idle time. Existing armed/running-job status polling may renew it; no general keepalive is added. Closing or reloading a tab can abandon a server slot until expiry. Explicit logout and authenticated retirement can free it sooner.
+Ordinary authenticated requests renew a thirty-minute idle interval. The eight-hour absolute lifetime starts at successful login and never renews. Public requests, including automatic status reads during native execution, do not renew idle time. Automatic browser-time observations also leave the idle interval unchanged. Closing or reloading a tab can abandon a server slot until expiry. Explicit logout and authenticated retirement can free it sooner.
 
 
 Pi adapters consume the current `management` document within `Wsprry-Control/1`, with exact fields, integer limits, matching capability references, and validated policy bounds. Local consumer deadlines come from that authenticated document. Unsupported control versions and inconsistent policies refuse without fallback, eviction, or automatic mutation retry. Consumer-Radio/1 retains its independent handshake and cryptographic vectors.

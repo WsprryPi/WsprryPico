@@ -2,7 +2,7 @@
 
 #include "application/resources.hpp"
 #include "network/identity.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <limits>
 
@@ -53,16 +53,16 @@ std::string HostnameSettings::readback(std::string_view boot, bool local_usb) co
                             ? "profile_unavailable"
                             : "credential_bound_deployment";
     auto result = "{\"schema\":\"hostname\",\"target\":" + application::target(device_, boot) +
-                  ",\"saved\":" + wtp::json::quote(saved) +
-                  ",\"active\":" + wtp::json::quote(active_) +
-                  ",\"default\":" + wtp::json::quote(default_) + ",\"source\":" +
-                  wtp::json::quote(consumer       ? "consumer_profile"
+                  ",\"saved\":" + execution::json::quote(saved) +
+                  ",\"active\":" + execution::json::quote(active_) +
+                  ",\"default\":" + execution::json::quote(default_) + ",\"source\":" +
+                  execution::json::quote(consumer       ? "consumer_profile"
                                    : network_only ? "network_profile"
                                                   : "deployment") +
                   ",\"writable\":" + (writable ? "true" : "false") +
-                  ",\"reason\":" + wtp::json::quote(reason) +
+                  ",\"reason\":" + execution::json::quote(reason) +
                   ",\"pending_restart\":" + (saved != active_ ? "true" : "false") +
-                  ",\"generation\":" + wtp::json::quote(std::to_string(store_.sequence())) +
+                  ",\"generation\":" + execution::json::quote(std::to_string(store_.sequence())) +
                   ",\"storage_healthy\":" + (store_.healthy() ? "true}" : "false}");
     if (parsed)
         scrub(*parsed);

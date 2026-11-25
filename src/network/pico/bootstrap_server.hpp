@@ -81,7 +81,7 @@ class PicoBootstrapServer {
         recovery_random_ = &random;
     }
     void reset_control(provisioning::ResetResult (*begin)(provisioning::ResetLevel,
-                                                          const wtp::PayloadDigest&, void*),
+                                                          const execution::PayloadDigest&, void*),
                        void* context) {
         reset_begin_ = begin;
         reset_context_ = context;
@@ -153,7 +153,7 @@ class PicoBootstrapServer {
     std::optional<std::array<std::uint8_t, 16>> recovery_login_;
     PicoRecoveryCrypto recovery_crypto_;
     bool reset_pending_ = false;
-    provisioning::ResetResult (*reset_begin_)(provisioning::ResetLevel, const wtp::PayloadDigest&,
+    provisioning::ResetResult (*reset_begin_)(provisioning::ResetLevel, const execution::PayloadDigest&,
                                               void*) = nullptr;
     void* reset_context_ = nullptr;
     std::string recovery_boot_id_;

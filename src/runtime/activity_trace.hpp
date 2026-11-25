@@ -1,7 +1,7 @@
 #pragma once
 
-#include "wtp/input_buffer.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/input_buffer.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <array>
 #include <cstddef>
@@ -41,7 +41,7 @@ class ActivityTrace {
     bool begin() {
         if (open_spans_)
             return false;
-        if (!storage_.capacity() && (!wtp::memory_admitted(capacity * sizeof(ActivityRecord)) ||
+        if (!storage_.capacity() && (!execution::memory_admitted(capacity * sizeof(ActivityRecord)) ||
                                      !storage_.reserve(capacity * sizeof(ActivityRecord))))
             return false;
         count_ = 0;
@@ -119,7 +119,7 @@ class ActivityTrace {
         record.sequence = ++sequence_;
         std::construct_at(reinterpret_cast<ActivityRecord*>(storage_.data()) + count_++, record);
     }
-    wtp::InputBuffer storage_;
+    execution::InputBuffer storage_;
     std::size_t count_ = 0, open_spans_ = 0;
     std::uint64_t sequence_ = 0, dropped_spans_ = 0, last_ns_ = 0, capture_epoch_ = 0;
     bool enabled_ = false, clock_regressed_ = false;

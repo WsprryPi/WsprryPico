@@ -141,7 +141,7 @@ try {
     await click('refresh');await until(()=>cdp.evaluate('typeof busy!=="undefined" && !busy'),'paused recurrence');
     assert.equal(await cdp.evaluate(`document.getElementById('console-next-item').hidden`),true);
     assert.equal(await cdp.evaluate(`document.getElementById('console-next').textContent`),'');
-    // Native recurrence owns preparation, launch, and stopping after WTP retirement.
+    // Native recurrence owns preparation, launch, and stopping.
     await field('message-text','PRESERVE LOCAL DRAFT');
     for(const mode of ['qrss','fskcw','dfcw']) {
         const read=await other.request('message-schedule'),resource=await read.json();

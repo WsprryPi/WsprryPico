@@ -17,7 +17,7 @@ int main() {
     network_test::Clock clock;
     standalone::DryRunEngine engine;
     network_test::Identity identities;
-    wtp::JobService service(clock, engine, identities);
+    execution::JobService service(clock, engine, identities);
     standalone::Scheduler scheduler(store, service);
     network_test::Network network;
     network::BrowserApi api(service, store, scheduler, network, std::string(32, 'a'),

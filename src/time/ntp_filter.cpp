@@ -1,6 +1,6 @@
 #include "time/ntp_filter.hpp"
 
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 namespace wsprrypico::time {
 std::optional<std::int32_t> oscillator_correction(const RateEstimate& rate) {
@@ -21,7 +21,7 @@ std::string rate_json(const RateEstimate& r) {
            std::to_string(r.generation) + "\",\"sampled_raw_ns\":\"" +
            std::to_string(r.sampled_ns) + "\",\"span_ns\":\"" + std::to_string(r.span_ns) +
            "\",\"samples\":" + std::to_string(r.samples) +
-           ",\"reason\":" + wtp::json::quote(r.reason) + "}";
+           ",\"reason\":" + execution::json::quote(r.reason) + "}";
 }
 std::string sample_json(const NtpSample& s) {
     return "{\"id\":\"" + std::to_string(s.id) + "\",\"clock_epoch\":\"" + std::to_string(s.epoch) +

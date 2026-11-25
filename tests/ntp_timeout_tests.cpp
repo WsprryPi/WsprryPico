@@ -1,12 +1,12 @@
 #include "application/config_update.hpp"
 #include "network_support.hpp"
-#include "standalone/wtp_profile.hpp"
+#include "standalone/execution_profile.hpp"
 #include "time/utc_discipline.hpp"
 
 #include <tuple>
 
 using namespace wsprrypico;
-using namespace wtp::json;
+using namespace execution::json;
 namespace {
 struct Member {
     network_test::Fixture f;
@@ -93,11 +93,11 @@ void unlimited_holdover() {
     std::uint64_t mono = 0;
     const auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
     time::UtcDiscipline clock(now, &mono, standalone::clock_profile(0));
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
-    REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, 1'000'000, wtp::LeapState::Normal));
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
+    REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, 1'000'000, execution::LeapState::Normal));
     mono = (30ULL * 86'400 + 116) * ns;
     const auto snapshot = clock.snapshot();
-    REQUIRE(snapshot.state == wtp::ClockState::Holdover);
+    REQUIRE(snapshot.state == execution::ClockState::Holdover);
     REQUIRE(snapshot.uncertainty_ns > time::standalone_max_uncertainty_ns);
     REQUIRE(snapshot.sync_age_ns == mono);
     network_test::Flash flash;
@@ -111,17 +111,17 @@ void unlimited_holdover() {
     REQUIRE(store.save(config));
     standalone::DryRunEngine engine;
     network_test::Identity ids;
-    wtp::JobService service(clock, engine, ids, standalone::wtp_profile(false, 0));
+    execution::JobService service(clock, engine, ids, standalone::execution_profile(false, 0));
     standalone::Scheduler scheduler(store, service);
     scheduler.poll();
-    REQUIRE(service.status().state == wtp::State::Armed);
+    REQUIRE(service.status().state == execution::State::Armed);
     REQUIRE(!service.status().output_active);
     REQUIRE(store.watermark());
     REQUIRE(service.config().maximum_holdover_age_ns == UINT64_MAX);
     REQUIRE(service.config().maximum_arm_uncertainty_ns == UINT64_MAX);
     // Disabling NTP expiry never creates a clock on an unsynchronized boot.
     clock.invalidate();
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
 }
 
 void holdover() {
@@ -130,20 +130,20 @@ void holdover() {
         std::uint64_t mono = 0;
         const auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
         time::UtcDiscipline clock(now, &mono, standalone::clock_profile(seconds));
-        REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, 1'000'000, wtp::LeapState::Normal));
+        REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, 1'000'000, execution::LeapState::Normal));
         mono = std::uint64_t{seconds} * ns;
-        REQUIRE(clock.snapshot().state != wtp::ClockState::Unsynchronized);
-        REQUIRE(standalone::wtp_profile(false, seconds).maximum_holdover_age_ns == mono);
+        REQUIRE(clock.snapshot().state != execution::ClockState::Unsynchronized);
+        REQUIRE(standalone::execution_profile(false, seconds).maximum_holdover_age_ns == mono);
         ++mono;
-        REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+        REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     }
     std::uint64_t mono = 0;
     const auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
     time::UtcDiscipline clock(now, &mono, standalone::clock_profile());
-    REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, 1'000'000, wtp::LeapState::Normal));
+    REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, 1'000'000, execution::LeapState::Normal));
     mono = 116 * ns;
-    REQUIRE(clock.snapshot().state == wtp::ClockState::Holdover);
-    REQUIRE(clock.snapshot().sync_age_ns < standalone::wtp_profile(false).maximum_holdover_age_ns);
+    REQUIRE(clock.snapshot().state == execution::ClockState::Holdover);
+    REQUIRE(clock.snapshot().sync_age_ns < standalone::execution_profile(false).maximum_holdover_age_ns);
     REQUIRE(clock.snapshot().uncertainty_ns < time::standalone_max_uncertainty_ns);
 }
 void scheduled_holdover() {
@@ -154,7 +154,7 @@ void scheduled_holdover() {
         std::uint64_t mono = 0;
         const auto now = [](void* p) { return *static_cast<std::uint64_t*>(p); };
         time::UtcDiscipline clock(now, &mono, standalone::clock_profile());
-        REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, uncertainty, wtp::LeapState::Normal));
+        REQUIRE(clock.observe(1'792'800'000ULL * ns, 0, uncertainty, execution::LeapState::Normal));
         network_test::Flash flash;
         standalone::Store store(flash);
         REQUIRE(store.load());
@@ -165,11 +165,11 @@ void scheduled_holdover() {
         REQUIRE(store.save(config));
         standalone::DryRunEngine engine;
         network_test::Identity ids;
-        wtp::JobService service(clock, engine, ids, standalone::wtp_profile(false));
+        execution::JobService service(clock, engine, ids, standalone::execution_profile(false));
         standalone::Scheduler scheduler(store, service);
         mono = age * ns;
         scheduler.poll();
-        REQUIRE(service.status().state == (admitted ? wtp::State::Armed : wtp::State::Empty));
+        REQUIRE(service.status().state == (admitted ? execution::State::Armed : execution::State::Empty));
         REQUIRE(!service.status().output_active);
         REQUIRE(bool(store.watermark()) == admitted);
     }
@@ -182,12 +182,12 @@ void controller_freshness() {
         mono = 0;
         time::UtcDiscipline clock(now, &mono, standalone::clock_profile(0));
         REQUIRE(clock.observe(source, 1'792'800'000'000'000'000ULL, 0, 1'000'000,
-                              wtp::LeapState::Normal, {}, {}));
+                              execution::LeapState::Normal, {}, {}));
         mono =
             source == time::ObservationSource::Browser ? 3'600'000'000'000ULL : 90'000'000'000ULL;
-        REQUIRE(clock.snapshot().state != wtp::ClockState::Unsynchronized);
+        REQUIRE(clock.snapshot().state != execution::ClockState::Unsynchronized);
         ++mono;
-        REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+        REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     }
 }
 void browser_uncertainty_is_independent() {
@@ -197,22 +197,22 @@ void browser_uncertainty_is_independent() {
         time::UtcDiscipline clock(now, &mono, standalone::clock_profile(timeout));
         mono = 0;
         REQUIRE(clock.observe(time::ObservationSource::Browser, 1'792'800'000'000'000'000ULL, 0,
-                              450'000'000ULL, wtp::LeapState::Normal, {}, "browser"));
+                              450'000'000ULL, execution::LeapState::Normal, {}, "browser"));
         REQUIRE(clock.snapshot().rate_uncertainty_ppb >= 50'000);
         mono = 1'000'000'000'000ULL;
-        REQUIRE(clock.snapshot().state != wtp::ClockState::Unsynchronized);
+        REQUIRE(clock.snapshot().state != execution::ClockState::Unsynchronized);
         ++mono;
         REQUIRE(clock.snapshot().uncertainty_ns > 500'000'000ULL);
-        REQUIRE(clock.snapshot().state != wtp::ClockState::Unsynchronized);
+        REQUIRE(clock.snapshot().state != execution::ClockState::Unsynchronized);
         mono = 3'600'000'000'001ULL;
-        REQUIRE(clock.snapshot().state == wtp::ClockState::Unsynchronized);
+        REQUIRE(clock.snapshot().state == execution::ClockState::Unsynchronized);
     }
     mono = 0;
     time::UtcDiscipline limited(now, &mono, standalone::clock_profile(3600));
     time::UtcDiscipline unlimited(now, &mono, standalone::clock_profile(0));
     for (auto* clock : {&limited, &unlimited})
         REQUIRE(clock->observe(time::ObservationSource::Sntp, 1'792'800'000'000'000'000ULL, 0,
-                               450'000'000ULL, wtp::LeapState::Normal, {}, {}));
+                               450'000'000ULL, execution::LeapState::Normal, {}, {}));
     mono = 1'001'000'000'000ULL;
     REQUIRE(!limited.browser_time_available());
     REQUIRE(!unlimited.browser_time_available());

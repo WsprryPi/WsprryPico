@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wtp/frame_buffer.hpp"
+#include "runtime/frame_buffer.hpp"
 
 #include <algorithm>
 #include <string>
@@ -51,8 +51,8 @@ class ConsoleResponse {
             return *this;
         }
         const auto total = pages_.size() + bytes.size();
-        const auto capacity = (total + wtp::FrameBuffer::page_bytes - 1) /
-                              wtp::FrameBuffer::page_bytes * wtp::FrameBuffer::page_bytes;
+        const auto capacity = (total + execution::FrameBuffer::page_bytes - 1) /
+                              execution::FrameBuffer::page_bytes * execution::FrameBuffer::page_bytes;
         if (!pages_.reserve(capacity)) {
             failed_ = true;
             return *this;
@@ -77,7 +77,7 @@ class ConsoleResponse {
   private:
     std::string text_;
     std::string_view constant_;
-    wtp::FrameBuffer pages_;
+    execution::FrameBuffer pages_;
     bool paged_ = false, failed_ = false;
 };
 

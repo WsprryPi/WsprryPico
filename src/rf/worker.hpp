@@ -11,30 +11,30 @@ namespace wsprrypico::rf {
 // Single producer/single consumer rendezvous. There is no abandoned command:
 // caller-owned payloads remain immutable and alive until a matching completion.
 // Failure to acknowledge invokes the platform's non-returning recovery hook.
-class WorkerEngine final : public wtp::RfEngine {
+class WorkerEngine final : public execution::RfEngine {
   public:
     using Now = std::uint64_t (*)();
     using Wait = void (*)();
     using Failure = void (*)();
     using Mask = std::uint32_t (*)();
     using Restore = void (*)(std::uint32_t);
-    WorkerEngine(wtp::RfEngine& engine, time::UtcDiscipline& clock, Now now, Wait wait,
+    WorkerEngine(execution::RfEngine& engine, time::UtcDiscipline& clock, Now now, Wait wait,
                  Failure failure, Mask mask, Restore restore);
     // Worker owner only; call continuously, including with no commands.
     void step();
-    std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
+    std::size_t preparation_memory_bytes(const execution::Job& job) const override {
         return engine_.preparation_memory_bytes(job);
     }
-    wtp::PadObservation pad_observation() const override {
+    execution::PadObservation pad_observation() const override {
         call(Op::Inspect);
         return pad_reply_;
     }
-    wtp::SynthesisObservation synthesis_observation() const override {
+    execution::SynthesisObservation synthesis_observation() const override {
         // Immutable ARM evidence is copied with each ordinary RPC reply.
         // Reading it adds no extra rendezvous to a timing-sensitive launch.
         return synthesis_reply_;
     }
-    wtp::PrepareResult prepare(const wtp::Job&) override;
+    execution::PrepareResult prepare(const execution::Job&) override;
     bool set_frequency_correction_ppb(std::int32_t) override;
     bool schedules_locally() const override {
         return true;
@@ -60,11 +60,11 @@ class WorkerEngine final : public wtp::RfEngine {
     bool externally_controlled_completion() const override {
         return externally_controlled_completion_;
     }
-    bool schedule(const wtp::Job&, std::uint64_t, const wtp::LocalStartConditions&) override;
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool schedule(const execution::Job&, std::uint64_t, const execution::LocalStartConditions&) override;
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t) override;
+    execution::EngineReport poll(std::uint64_t) override;
     bool disable(std::uint64_t) override;
     void inhibit_output() override {
         safety_inhibited_.store(true, std::memory_order_release);
@@ -137,7 +137,7 @@ class WorkerEngine final : public wtp::RfEngine {
     enum class Op { Inspect, Metrics, Prepare, Schedule, Disable, Correct, Suspend, Resume };
     void call(Op) const;
     void check_safety();
-    wtp::RfEngine& engine_;
+    execution::RfEngine& engine_;
     time::UtcDiscipline& clock_;
     mutable time::UtcDiscipline staged_clock_;
     time::UtcDiscipline worker_clock_;
@@ -152,21 +152,21 @@ class WorkerEngine final : public wtp::RfEngine {
     // 0: producer owns payload, 1: consumer owns it, 2: completed.
     mutable std::atomic<unsigned> phase_{0};
     mutable Op op_ = Op::Inspect;
-    const wtp::Job* job_ = nullptr;
+    const execution::Job* job_ = nullptr;
     std::uint64_t instant_ = 0;
     std::int32_t correction_ = 0;
-    wtp::LocalStartConditions conditions_{};
-    wtp::PrepareResult prepared_;
-    wtp::EngineReport report_{};
-    mutable wtp::PadObservation pad_reply_{};
-    mutable wtp::SynthesisObservation synthesis_reply_{};
+    execution::LocalStartConditions conditions_{};
+    execution::PrepareResult prepared_;
+    execution::EngineReport report_{};
+    mutable execution::PadObservation pad_reply_{};
+    mutable execution::SynthesisObservation synthesis_reply_{};
     bool result_ = false;
     mutable std::string_view diagnostic_;
     void (*probe_)(Metrics&, void*) = nullptr;
     void* probe_context_ = nullptr;
     void (*observer_)(Metrics&, void*) = nullptr;
     void* observer_context_ = nullptr;
-    wtp::EngineState worker_state_ = wtp::EngineState::Idle;
+    execution::EngineState worker_state_ = execution::EngineState::Idle;
     std::uint64_t last_step_ = 0;
     Metrics worker_metrics_{}, reply_metrics_{};
     bool (*safety_probe_)(void*) = nullptr;

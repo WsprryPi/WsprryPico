@@ -124,27 +124,6 @@ for value in documents(sys.argv[3], '--samples'):
         bad['fields']['pins'].pop('amplifier_active_high')
         invalid('progress', bad)
 
-# Retained native observations keep their exact canonical execution types.
-# Shared control no longer imports wire request/response envelopes or advertises them.
-wtp = json.loads((ROOT / 'engineering/protocol/wtp-1.schema.json').read_text())['$defs']
-core = SCHEMA['$defs']['execution-core']['$defs']
-def rebase(value):
-    if isinstance(value, dict):
-        return {key: ('#/$defs/execution-core/$defs/' + item.split('/')[-1] if key == '$ref' else rebase(item)) for key, item in value.items()}
-    if isinstance(value, list):
-        return [rebase(item) for item in value]
-    return value
-assert 'wtp' not in SCHEMA['$defs']
-assert set(core) == {'status', 'id', 'state', 'terminalRecord', 'u64', 'error', 'errorCode', 'clockState'}
-for name, definition in core.items():
-    expected = rebase(wtp[name])
-    if name == "error":
-        expected["properties"].pop("detail")  # Wire-only open detail is not a native observation.
-    assert definition == expected, name
-for name in ['wtp', 'message_jobs', 'max_wtp_connections', 'active_job_connections']:
-    invalid('capabilities', {**caps, name: {}})
-invalid('capabilities', {**caps, 'features': {**caps['features'], 'jobs': True}})
-assert not any(name == 'jobs' or name.startswith('jobs/') for names in SCHEMA['management_routes'].values() for name in names)
 # Conditional refinements intersect the closed base resource definition. They
 # cannot add fields; verify that closure rather than requiring each refinement
 # to redeclare every field with additionalProperties:false.
@@ -177,4 +156,4 @@ def inspect(value, path=()):
         for index, item in enumerate(value): inspect(item, path + (index,))
 for name, definition in SCHEMA['$defs'].items():
     inspect(definition, (name,))
-print('PASS Draft 2020-12 actual producer documents, closed leaves, carrier sets, negative mutations, retired wire advertisements and preserved native observation types')
+print('PASS Draft 2020-12 actual producer documents, closed leaves, carrier sets, negative mutations, and native observations')

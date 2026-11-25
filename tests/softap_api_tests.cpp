@@ -75,7 +75,7 @@ struct Fixture {
     standalone::Store store{flash};
     standalone::DryRunEngine engine;
     network_test::Identity identities;
-    wtp::JobService service;
+    execution::JobService service;
     standalone::Scheduler scheduler;
     network_test::Network network;
     network::BrowserApi browser;
@@ -90,8 +90,8 @@ struct Fixture {
     provisioning::SoftApHttpAdmission admission;
     network::SoftApApi api;
 
-    Fixture(wtp::RfEngine* selected = nullptr,
-            wtp::ServiceConfig limits = network_test::Fixture::physical_policy())
+    Fixture(execution::RfEngine* selected = nullptr,
+            execution::ServiceConfig limits = network_test::Fixture::physical_policy())
         : clock(monotonic, &now, discipline_config),
           service(clock, selected ? *selected : engine, identities, limits),
           scheduler(store, service),
@@ -206,7 +206,7 @@ void policy() {
     f.now += 10'000'000ULL;
     REQUIRE(f.api.handle(network_test::control_request(submit), provisioning::SoftApSurface::ProvisionedPreClock, hostname, 7, 10)
                 .status == 200);
-    REQUIRE(f.clock.snapshot().state == wtp::ClockState::Synchronized);
+    REQUIRE(f.clock.snapshot().state == execution::ClockState::Synchronized);
 
     auto caps = request("GET", "/api/control/v1/capabilities");
     caps.headers.erase("origin");
@@ -352,28 +352,28 @@ void expired_challenge_bookkeeping_is_reused() {
     }
 }
 void test_tone_field_reconnect() {
-    struct Engine : wtp::RfEngine {
+    struct Engine : execution::RfEngine {
         standalone::DryRunEngine native;
-        wtp::PadObservation pad;
+        execution::PadObservation pad;
         unsigned schedules = 0;
-        wtp::PrepareResult prepare(const wtp::Job&) override {
+        execution::PrepareResult prepare(const execution::Job&) override {
             return {true, {}};
         }
         bool schedules_locally() const override {
             return true;
         }
-        bool schedule(const wtp::Job& job, std::uint64_t at,
-                      const wtp::LocalStartConditions& c) override {
+        bool schedule(const execution::Job& job, std::uint64_t at,
+                      const execution::LocalStartConditions& c) override {
             pad = {++schedules, 1'000'000'000, 2, 12};
             return native.schedule(job, at, c);
         }
-        wtp::PadObservation pad_observation() const override {
+        execution::PadObservation pad_observation() const override {
             return pad;
         }
-        bool begin(const wtp::Job&, std::uint64_t) override {
+        bool begin(const execution::Job&, std::uint64_t) override {
             return false;
         }
-        wtp::EngineReport poll(std::uint64_t at) override {
+        execution::EngineReport poll(std::uint64_t at) override {
             return native.poll(at);
         }
         bool disable(std::uint64_t at) override {
@@ -389,7 +389,7 @@ void test_tone_field_reconnect() {
     standalone::FrequencyPolicyEngine policy(engine, f.store, rf::minimum_frequency_nhz,
                                              rf::maximum_frequency_nhz);
     f.browser.test_tone_policy(policy);
-    REQUIRE(f.clock.observe(1'800'000'000'000'000'000ULL, f.now, 1000, wtp::LeapState::Normal));
+    REQUIRE(f.clock.observe(1'800'000'000'000'000'000ULL, f.now, 1000, execution::LeapState::Normal));
     unsigned transaction = 1000;
     const auto send = [&](network::HttpRequest r) {
         return f.api.handle(r, provisioning::SoftApSurface::Normal, hostname, 2000, transaction++);
@@ -413,7 +413,7 @@ void test_tone_field_reconnect() {
     const auto accepted = send(start);
     REQUIRE(accepted.status == 202);
     const auto payload = accepted.body_text();
-    const auto root = wtp::json::parse(payload);
+    const auto root = execution::json::parse(payload);
     REQUIRE(root);
     const auto job = root->get("job")->get("job_id")->string();
     auto logout = request("POST", "/local/v1/logout", "{}");

@@ -38,10 +38,7 @@ static watchdog_hw_t watchdog{};
 watchdog_hw_t* watchdog_hw = &watchdog;
 static std::uint64_t now_us;
 static unsigned enables, disables, driver_polls, delivered_goodbyes, lost_goodbyes;
-static unsigned station_service_ptr, station_service_goodbye, ap_service_ptr;
 static unsigned station_http_ptr, station_http_goodbye;
-static unsigned station_plain_txt, station_tls_txt;
-static unsigned station_service_port;
 static unsigned connect_calls;
 static unsigned station_ntp_packets, ap_ntp_packets, ap_local_packets;
 static unsigned leave_calls;
@@ -137,36 +134,6 @@ static err_t output(netif* interface, pbuf* packet, const ip4_addr_t*) {
             ++station_http_ptr;
             if (!positive)
                 ++station_http_goodbye;
-        }
-        if (read16(dns + end) == 12 && domain_is(name, "_wtp._tcp.local")) {
-            mdns_domain instance{};
-            assert(mdns_readname(message, end + 10, &instance) != MDNS_READNAME_ERROR);
-            assert(domain_is(instance, "pico-a._wtp._tcp.local"));
-            if (interface == &cyw43_state.netif[CYW43_ITF_AP])
-                ++ap_service_ptr;
-            else {
-                ++station_service_ptr;
-                if (!positive)
-                    ++station_service_goodbye;
-            }
-        }
-        if (interface == &cyw43_state.netif[CYW43_ITF_STA] &&
-            domain_is(name, "pico-a._wtp._tcp.local")) {
-            if (read16(dns + end) == 33) {
-                assert(length >= 8);
-                station_service_port = read16(dns + end + 14);
-            } else if (read16(dns + end) == 16) {
-                const auto* txt = dns + end + 10;
-                assert(length >= 11 && txt[0] == 9 && std::memcmp(txt + 1, "txtvers=1", 9) == 0);
-                if (length == 1 + 9 + 1 + 13 && txt[10] == 13 &&
-                    std::memcmp(txt + 11, "binding=plain", 13) == 0)
-                    ++station_plain_txt;
-                else if (length == 1 + 9 + 1 + 11 && txt[10] == 11 &&
-                         std::memcmp(txt + 11, "binding=tls", 11) == 0)
-                    ++station_tls_txt;
-                else
-                    assert(false);
-            }
         }
         if (read16(dns + end) == 1 && positive) {
             assert(length == 4 && read16(dns + end + 2) == 0x8001);
@@ -339,7 +306,6 @@ int main(int argc, char** argv) {
     assert(network.set_enabled(false) && disables == disables_before_off + 1);
     assert(network.set_enabled(true));
     active(network);
-    assert(station_service_ptr == 0);
     // Consumer hostname/HTTP registration needs neither TLS nor accepted UTC.
     network.listener_status(false, false);
     network.consumer_listener_status(true);
@@ -352,9 +318,9 @@ int main(int argc, char** argv) {
     assert(network.status().find("\"advertised_hostname\":\"\"") != std::string::npos);
     network.listener_status(true, true);
     active(network);
-    // Engineering management keeps its hostname without a retired WTP service.
+    // Engineering management keeps its hostname.
     advance(network, 4'000'000);
-    assert(station_service_ptr == 0 && !station_plain_txt && station_service_port == 0);
+    assert(network.status().find("\"mdns_state\":\"active\"") != std::string::npos);
     ip4_addr_t ap_address{}, ap_mask{}, ap_gateway{};
     IP4_ADDR(&ap_address, 192, 168, 4, 1);
     IP4_ADDR(&ap_mask, 255, 255, 255, 0);
@@ -442,7 +408,6 @@ int main(int argc, char** argv) {
     udp_remove(local_pcb);
     assert(ap_local_packets == 1);
     assert(network.softap_name(true, "wpico-60df.local"));
-    assert(ap_service_ptr == 0);
     assert(!network.softap_name(false, {}));
     netif_remove(&cyw43_state.netif[CYW43_ITF_AP]);
     const auto http_before_restart = station_http_ptr;
@@ -453,8 +418,6 @@ int main(int argc, char** argv) {
     network.consumer_listener_status(false);
     advance(network, 4'000'000);
     assert(station_http_goodbye > goodbyes_before_stop);
-    assert(station_service_ptr == 0 && station_service_goodbye == 0 &&
-           !station_plain_txt && !station_tls_txt && station_service_port == 0);
     watchdog_hw->scratch[1] = 5;
     assert(network.association() == "{\"valid\":true,\"bssid\":\"42:98:b5:fe:36:a1\"}");
     assert(watchdog_hw->scratch[1] == 5);

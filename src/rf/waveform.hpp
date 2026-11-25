@@ -1,6 +1,6 @@
 #pragma once
 
-#include "wtp/job_service.hpp"
+#include "rf/job_service.hpp"
 
 #include <array>
 #include <cstdint>
@@ -31,7 +31,7 @@ inline constexpr auto increments = [] {
     return result;
 }();
 
-// WTP's integer nHz representation, rounded from the exact NCO rational.
+// The integer nHz representation, rounded from the exact NCO rational.
 constexpr std::uint64_t realized_nhz(std::uint32_t increment) {
     const auto product = sample_rate * increment;
     return (product >> 32) * 1'000'000'000 +
@@ -76,7 +76,7 @@ struct Plan {
 // Does not mutate a previously accepted plan or interact with an output device.
 [[nodiscard]] std::optional<std::uint32_t> frequency_increment(std::uint64_t frequency_nhz,
                                                                std::int32_t correction_ppb = 0);
-[[nodiscard]] std::optional<Plan> plan_job(const wtp::Job& job, std::int32_t correction_ppb = 0);
+[[nodiscard]] std::optional<Plan> plan_job(const execution::Job& job, std::int32_t correction_ppb = 0);
 
 // Diagnostic default-increment packer for tone indexes 0..3.
 // Call prepare_word_tables before packed_word; independent of Waveform tables.

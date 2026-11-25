@@ -11,9 +11,9 @@ std::uint64_t StreamEngine::filter_preparation_ns() const {
     return filters_ && filters_->required() ? filters_->preparation_ns() + 1 : 0;
 }
 
-bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
-                            const wtp::LocalStartConditions& conditions) {
-    if (!schedules_locally() || !conditions.clock || state_ != wtp::EngineState::Idle) {
+bool StreamEngine::schedule(const execution::Job& job, std::uint64_t start_ns,
+                            const execution::LocalStartConditions& conditions) {
+    if (!schedules_locally() || !conditions.clock || state_ != execution::EngineState::Idle) {
         return false;
     }
     start_conditions_ = conditions;
@@ -21,7 +21,7 @@ bool StreamEngine::schedule(const wtp::Job& job, std::uint64_t start_ns,
     if (resolution == 0)
         return false;
     start_conditions_.start_adjustment_ns = (resolution - start_ns % resolution) % resolution;
-    const auto window = wtp::start_window_ns(conditions.start_utc_ns);
+    const auto window = execution::start_window_ns(conditions.start_utc_ns);
     const auto limit = std::numeric_limits<std::uint64_t>::max();
     const auto realized_duration =
         (plan_.total_samples * 1000 + sample_rate / 1'000'000 / 2) / (sample_rate / 1'000'000);
@@ -52,14 +52,14 @@ LaunchTarget StreamEngine::project_clock(void* context) {
     const auto now = conditions.clock->snapshot();
     if (!self.job_ || now.monotonic_now_ns >= self.launch_deadline_ns_ ||
         now.uncertainty_ns > conditions.maximum_uncertainty_ns ||
-        !(now.state == wtp::ClockState::Synchronized ||
-          (now.state == wtp::ClockState::Holdover && conditions.maximum_holdover_age_ns > 0 &&
+        !(now.state == execution::ClockState::Synchronized ||
+          (now.state == execution::ClockState::Holdover && conditions.maximum_holdover_age_ns > 0 &&
            now.sync_age_ns <= conditions.maximum_holdover_age_ns))) {
         return {};
     }
     const auto duration = self.end_ns_ - self.start_ns_;
     const auto limit = std::numeric_limits<std::uint64_t>::max();
-    const auto window = wtp::start_window_ns(conditions.start_utc_ns);
+    const auto window = execution::start_window_ns(conditions.start_utc_ns);
     if (conditions.start_utc_ns > limit - window ||
         now.utc_now_ns >= conditions.start_utc_ns + window ||
         conditions.start_utc_ns > limit - duration) {
@@ -80,7 +80,7 @@ LaunchTarget StreamEngine::project_clock(void* context) {
         return {};
     target += rounding;
     const auto pending =
-        now.leap == wtp::LeapState::InsertPending || now.leap == wtp::LeapState::DeletePending;
+        now.leap == execution::LeapState::InsertPending || now.leap == execution::LeapState::DeletePending;
     std::uint64_t rounding_utc{}, future_growth{}, realized_utc{};
     if (!time::project(now, target, realized_utc) ||
         realized_utc >= conditions.start_utc_ns + window ||
@@ -89,7 +89,7 @@ LaunchTarget StreamEngine::project_clock(void* context) {
         target >= self.launch_deadline_ns_ ||
         future_growth > conditions.maximum_uncertainty_ns - now.uncertainty_ns ||
         rounding_utc > conditions.maximum_uncertainty_ns - now.uncertainty_ns - future_growth ||
-        now.leap == wtp::LeapState::Unknown || pending != now.leap_transition_utc_ns.has_value()) {
+        now.leap == execution::LeapState::Unknown || pending != now.leap_transition_utc_ns.has_value()) {
         return {};
     }
     std::uint64_t horizon_duration{};
@@ -103,7 +103,7 @@ LaunchTarget StreamEngine::project_clock(void* context) {
         const auto low = leap > 1'000'000'000 ? leap - 1'000'000'000 : 0;
         const auto high = leap > limit - 1'000'000'000 ? limit : leap + 1'000'000'000;
         const auto latest_start =
-            conditions.start_utc_ns + wtp::start_window_ns(conditions.start_utc_ns) - 1;
+            conditions.start_utc_ns + execution::start_window_ns(conditions.start_utc_ns) - 1;
         std::uint64_t utc_duration{};
         if (!time::duration_utc_bound(duration, now, utc_duration) ||
             !(conditions.start_utc_ns > high ||
@@ -114,25 +114,25 @@ LaunchTarget StreamEngine::project_clock(void* context) {
 }
 
 bool StreamEngine::set_frequency_correction_ppb(std::int32_t ppb) {
-    if (state_ != wtp::EngineState::Idle || job_ || output_active() || ppb < -max_correction_ppb ||
+    if (state_ != execution::EngineState::Idle || job_ || output_active() || ppb < -max_correction_ppb ||
         ppb > max_correction_ppb)
         return false;
     correction_ppb_ = ppb;
     return true;
 }
 
-std::size_t StreamEngine::preparation_memory_bytes(const wtp::Job& job) const {
+std::size_t StreamEngine::preparation_memory_bytes(const execution::Job& job) const {
     const auto marks = std::count_if(job.events.begin(), job.events.end(),
                                      [](const auto& event) { return event.rf_on; });
     // Plan segments and one exactly reserved adjustment vector coexist. The
     // compact retained list may coexist with that vector as well. Fixed slack
     // covers its shared metadata, allocator bookkeeping and bounded job fields.
     return 4096 + job.events.size() * sizeof(Segment) +
-           marks * (sizeof(wtp::FrequencyAdjustment) + sizeof(std::uint16_t));
+           marks * (sizeof(execution::FrequencyAdjustment) + sizeof(std::uint16_t));
 }
 
-wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
-    if (state_ != wtp::EngineState::Idle || output_active()) {
+execution::PrepareResult StreamEngine::prepare(const execution::Job& job) {
+    if (state_ != execution::EngineState::Idle || output_active()) {
         return {};
     }
     auto candidate = plan_job(job, correction_ppb_);
@@ -143,7 +143,7 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
         failure_ = "filter_coverage_required";
         return {};
     }
-    wtp::PrepareResult result{true, {}};
+    execution::PrepareResult result{true, {}};
     const auto adjustments = std::count_if(
         candidate->segments.begin(), candidate->segments.end(), [&](const auto& segment) {
             const auto index = &segment - candidate->segments.data();
@@ -160,7 +160,7 @@ wtp::PrepareResult StreamEngine::prepare(const wtp::Job& job) {
         }
     }
     failure_ = "";
-    job_ = wtp::job_digest(job);
+    job_ = execution::job_digest(job);
     plan_ = std::move(*candidate);
     waveform_.reset(plan_);
     valid_[0] = waveform_.render(buffers_[0]);
@@ -182,12 +182,12 @@ bool StreamEngine::submit_next(std::size_t slot) {
     return true;
 }
 
-bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) {
+bool StreamEngine::begin(const execution::Job& job, std::uint64_t start_monotonic_ns) {
     // Compare lifecycle progress with the same realized sample timeline used
     // by the sink, including nearest-sample RF boundaries and low tail padding.
     const auto realized_duration_ns =
         (plan_.total_samples * 1000 + sample_rate / 1'000'000 / 2) / (sample_rate / 1'000'000);
-    if (state_ != wtp::EngineState::Idle || !job_ || *job_ != wtp::job_digest(job) ||
+    if (state_ != execution::EngineState::Idle || !job_ || *job_ != execution::job_digest(job) ||
         epoch_ == std::numeric_limits<std::uint64_t>::max() ||
         start_monotonic_ns > std::numeric_limits<std::uint64_t>::max() -
                                  std::max(job.total_duration_ns, realized_duration_ns) -
@@ -195,7 +195,7 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
         return false;
     }
     if (!sink_.stop(start_monotonic_ns) || output_active()) {
-        state_ = wtp::EngineState::Failed;
+        state_ = execution::EngineState::Failed;
         filter_observation_ = -2;
         return false;
     }
@@ -212,25 +212,25 @@ bool StreamEngine::begin(const wtp::Job& job, std::uint64_t start_monotonic_ns) 
         (void)fail(start_ns_, failure_);
         return false;
     }
-    state_ = wtp::EngineState::Armed;
+    state_ = execution::EngineState::Armed;
     return true;
 }
 
-wtp::EngineReport StreamEngine::fail(std::uint64_t now_ns, const char* reason) {
+execution::EngineReport StreamEngine::fail(std::uint64_t now_ns, const char* reason) {
     failure_ = reason;
-    state_ = wtp::EngineState::Failed;
+    state_ = execution::EngineState::Failed;
     // Even when stop fails, never recycle buffers or restart without successful disable.
     filter_observation_ = sink_.stop(now_ns) ? -1 : -2;
     return {state_, output_active()};
 }
 
-wtp::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
+execution::EngineReport StreamEngine::poll(std::uint64_t now_ns) {
     auto result = poll_impl(now_ns);
     result.filter_selector = filter_observation_;
     return result;
 }
-wtp::EngineReport StreamEngine::poll_impl(std::uint64_t now_ns) {
-    if (state_ != wtp::EngineState::Armed && state_ != wtp::EngineState::Running) {
+execution::EngineReport StreamEngine::poll_impl(std::uint64_t now_ns) {
+    if (state_ != execution::EngineState::Armed && state_ != execution::EngineState::Running) {
         return {state_, output_active()};
     }
     const auto report = sink_.poll(now_ns);
@@ -270,16 +270,16 @@ wtp::EngineReport StreamEngine::poll_impl(std::uint64_t now_ns) {
     }
     // An alarm may be serviced late within the accepted second. A finite
     // waveform's duration is measured only once its launch is observed.
-    if (report.state == wtp::EngineState::Armed && start_conditions_.clock &&
+    if (report.state == execution::EngineState::Armed && start_conditions_.clock &&
         report.consumed_samples == 0 && report.completed_blocks == 0 &&
-        (!active || report.chain_phase == wtp::ChainPhase::Lead ||
-         report.chain_phase == wtp::ChainPhase::Selecting)) {
+        (!active || report.chain_phase == execution::ChainPhase::Lead ||
+         report.chain_phase == execution::ChainPhase::Selecting)) {
         last_poll_ns_ = now_ns;
         if (now_ns < launch_deadline_ns_)
-            return {wtp::EngineState::Armed, active, {}, report.chain_phase};
+            return {execution::EngineState::Armed, active, {}, report.chain_phase};
         if (!sink_.stop(now_ns) || output_active())
             return fail(now_ns, "missed_disable_failed");
-        state_ = wtp::EngineState::Missed;
+        state_ = execution::EngineState::Missed;
         return {state_, false};
     }
     const auto expected_completed =
@@ -293,46 +293,46 @@ wtp::EngineReport StreamEngine::poll_impl(std::uint64_t now_ns) {
         return fail(now_ns, "progress_time");
     }
     last_poll_ns_ = now_ns;
-    if (report.state == wtp::EngineState::Missed) {
+    if (report.state == execution::EngineState::Missed) {
         if (report.consumed_samples != 0 || active) {
             return fail(now_ns);
         }
         const auto reason = sink_.diagnostic();
         failure_ = reason.empty() ? "missed_launch" : reason.data();
-        state_ = wtp::EngineState::Missed;
+        state_ = execution::EngineState::Missed;
         return {state_, false, launch_ns_};
     }
-    if (report.state == wtp::EngineState::Complete) {
+    if (report.state == execution::EngineState::Complete) {
         if (now_ns < end_ns_ || report.consumed_samples != plan_.total_samples ||
             report.completed_blocks != submitted_ || waveform_.position() != plan_.total_samples ||
             active) {
             return fail(now_ns, "invalid_completion");
         }
-        state_ = wtp::EngineState::Complete;
+        state_ = execution::EngineState::Complete;
         return {state_, false, launch_ns_};
     }
-    if (report.chain_phase == wtp::ChainPhase::Tail && report.state == wtp::EngineState::Running &&
+    if (report.chain_phase == execution::ChainPhase::Tail && report.state == execution::EngineState::Running &&
         launch_ns_ && now_ns >= end_ns_ && report.tail_deadline_monotonic_ns &&
         *report.tail_deadline_monotonic_ns > now_ns &&
         *report.tail_deadline_monotonic_ns - now_ns <= amplifier_tail_ns() &&
         report.consumed_samples == plan_.total_samples && report.completed_blocks == submitted_ &&
         waveform_.position() == plan_.total_samples && active) {
-        state_ = wtp::EngineState::Running;
+        state_ = execution::EngineState::Running;
         completed_ = report.completed_blocks;
         consumed_ = report.consumed_samples;
-        return {state_, true, launch_ns_, wtp::ChainPhase::Tail, report.tail_deadline_monotonic_ns};
+        return {state_, true, launch_ns_, execution::ChainPhase::Tail, report.tail_deadline_monotonic_ns};
     }
     // Final data and zero-tail IRQ acknowledgements can both lag the hardware.
     // Allow only the final submitted block to be unacknowledged, for at most
     // 100 us after the nominal end. This does not generate extra RF samples.
     const bool awaiting_tail =
-        report.state == wtp::EngineState::Running && waveform_.position() == plan_.total_samples &&
+        report.state == execution::EngineState::Running && waveform_.position() == plan_.total_samples &&
         submitted_ == (plan_.total_samples + block_samples - 1) / block_samples &&
         report.consumed_samples >= (submitted_ - 1) * block_samples && now_ns >= end_ns_ &&
         now_ns - end_ns_ <= maximum_completion_acknowledgement_ns;
     if ((now_ns < start_ns_ &&
-         (report.state != wtp::EngineState::Armed || report.consumed_samples != 0 || active)) ||
-        (now_ns >= start_ns_ && report.state != wtp::EngineState::Running) ||
+         (report.state != execution::EngineState::Armed || report.consumed_samples != 0 || active)) ||
+        (now_ns >= start_ns_ && report.state != execution::EngineState::Running) ||
         (now_ns >= end_ns_ && !awaiting_tail) || report.completed_blocks == submitted_) {
         return fail(now_ns, now_ns >= end_ns_ ? "completion_deadline" : "sink_state");
     }
@@ -351,11 +351,11 @@ wtp::EngineReport StreamEngine::poll_impl(std::uint64_t now_ns) {
 
 bool StreamEngine::disable(std::uint64_t deadline_monotonic_ns) {
     if (!sink_.stop(deadline_monotonic_ns) || output_active()) {
-        state_ = wtp::EngineState::Failed;
+        state_ = execution::EngineState::Failed;
         filter_observation_ = -2;
         return false;
     }
-    state_ = wtp::EngineState::Idle;
+    state_ = execution::EngineState::Idle;
     filter_observation_ = -1;
     job_.reset();
     plan_ = {};

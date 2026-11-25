@@ -1,6 +1,6 @@
 # USB UTC uncertainty
 
-First-party WsprryPi submissions use the peer's advertised uncertainty ceiling. The ordinary Pico advertises the full uint64 ceiling: UTC uncertainty is displayed for operator judgment rather than automatically vetoing a transmission. Historical stored profile values are retained without scheduling authority. External WTP callers can still request an explicit smaller limit, checked at ARM and local launch. Symbol timing, lead time, missed-start, cleanup and source-age rules remain independent.
+A USB Management controller can supply a qualified UTC observation. Native jobs run from the Pico's admitted clock and report UTC uncertainty for operator judgment. Source age, symbol timing, lead time, missed-start handling, and cleanup retain their independent limits.
 
 ## Interval accounting
 
@@ -21,6 +21,6 @@ Runtime observations expose host uncertainty, sample round trip, midpoint radius
 
 ## Precision limits and validation
 
-The cooperative JSON USB exchange is not qualified for 1 ms physical UTC transfer. A stricter request retains its limit and refuses when the complete host/transfer/aging bound exceeds it. Do not assume symmetric delay, omit host clock error, clamp uncertainty, or treat a connected reference as calibrated RF/UTC evidence. A first internally valid host sample cannot prove its own absolute correctness.
+The cooperative USB Management exchange has no 1 ms physical UTC qualification. Sample admission includes controller clock error, measured transfer time, and local aging. An internally valid first observation cannot prove its own absolute accuracy. RF accuracy requires an independent measurement.
 
 Existing interval tests cover one-sided delay, odd rounding, delayed/missing ACK, pre/post-ACK clock steps, regression, unqualified observations, overflow, cancellation, and strict framing/binding. They verify accounting and failure behavior; they do not measure physical UTC offset, launch timing, or RF error.

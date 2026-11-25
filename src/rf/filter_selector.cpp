@@ -37,7 +37,7 @@ bool FilterSelector::initialize() {
     initialized_ = inactive_;
     return inactive_;
 }
-bool FilterSelector::prepare(const wtp::Job& job, const Plan& plan) {
+bool FilterSelector::prepare(const execution::Job& job, const Plan& plan) {
     if (!initialized_ || !inactive_ || job.events.size() != plan.count)
         return false;
     FilterCoverage coverage(settings_);
@@ -58,7 +58,7 @@ bool FilterSelector::deactivate() {
     initialized_ = initialized_ || inactive_;
     return inactive_;
 }
-bool FilterSelector::prepare_frequencies(std::span<const wtp::FrequencyAdjustment> points) {
+bool FilterSelector::prepare_frequencies(std::span<const execution::FrequencyAdjustment> points) {
     if (!initialized_ || !inactive_ || points.empty())
         return false;
     FilterCoverage coverage(settings_);

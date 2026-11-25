@@ -114,9 +114,6 @@ if(NOT WSPRRY_PICO_JOURNAL_FAULT_STAGE STREQUAL "0")
     endif()
 endif()
 
-if(DEFINED WSPRRY_PICO_CONSUMER_LAN_MODE)
-    message(FATAL_ERROR "WTP is retired; remove WSPRRY_PICO_CONSUMER_LAN_MODE from the build configuration")
-endif()
 
 option(WSPRRY_PICO_SESSION_DEADLINE_FIXTURE
     "RF-inhibited engineering session fixture: 15s inactivity/60s absolute" OFF)
@@ -172,7 +169,7 @@ endif()
 set_property(TARGET WsprryPico-Inhibited APPEND PROPERTY LINK_DEPENDS
              ${CMAKE_SOURCE_DIR}/scripts/check_bootsel_topology.py)
 
-# Explicit diagnostic target: no WTP endpoint or UTC claim; boots without a job.
+# Explicit diagnostic target: relative timing; boots without a job.
 add_executable(WsprryPico-RFBench EXCLUDE_FROM_ALL
     ../src/rf/pico/bench_main.cpp usb_descriptors.c ../src/usb/transport.cpp)
 target_include_directories(WsprryPico-RFBench PRIVATE

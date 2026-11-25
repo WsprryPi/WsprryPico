@@ -1,7 +1,7 @@
 #include "provisioning/softap_http.hpp"
 
 #include "network/identity.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 
@@ -91,34 +91,34 @@ std::string_view SoftApHttpAdmission::cookie_token(const network::HttpRequest& r
 
 SoftApHttpResponse SoftApHttpAdmission::login(const network::HttpRequest& request,
                                               SoftApSurface surface,
-                                              std::string_view protected_wtp_session,
+                                              std::string_view protected_execution_session,
                                               std::uint64_t now_ms) {
     if (surface == SoftApSurface::BlankReadOnly)
         return error(AccessCode::AuthenticationRequired);
     if (request.method != "POST" || request.path != "/local/v1/login" ||
         !same_origin(request, true))
         return error(AccessCode::Invalid);
-    const auto root = wtp::json::parse(request.body_view());
-    if (!root || !wtp::json::fields(*root, {"version", "device_id", "password"}))
+    const auto root = execution::json::parse(request.body_view());
+    if (!root || !execution::json::fields(*root, {"version", "device_id", "password"}))
         return error(AccessCode::Invalid);
     const auto version = root->get("version");
     const auto device = root->get("device_id");
     const auto password_value = root->get("password");
     if (!version || version->type() != '1' || version->integer() != 1 || !device ||
-        !wtp::json::identifier(*device) || !password_value || password_value->type() != '"')
+        !execution::json::identifier(*device) || !password_value || password_value->type() != '"')
         return error(AccessCode::Invalid);
     if (device->string() != device_id_)
         return error(AccessCode::WrongDevice);
     auto password = password_value->string();
     const auto admitted = valid_local_password(password)
-                              ? access_.softap_login(password, now_ms, protected_wtp_session)
+                              ? access_.softap_login(password, now_ms, protected_execution_session)
                               : SoftApLogin{AccessCode::AuthenticationRequired};
     clear(password);
     if (admitted.code != AccessCode::Ok)
         return error(admitted.code);
     SoftApHttpResponse response{
         network::HttpResponse{
-            200, "{\"ok\":true,\"principal\":" + wtp::json::quote(admitted.principal) + "}",
+            200, "{\"ok\":true,\"principal\":" + execution::json::quote(admitted.principal) + "}",
             "application/json", {}},
         LocalAccessController::cookie_header(admitted.token)};
     if (response.set_cookie.empty())
@@ -128,7 +128,7 @@ SoftApHttpResponse SoftApHttpAdmission::login(const network::HttpRequest& reques
 
 SoftApHttpAuthority SoftApHttpAdmission::authorize(const network::HttpRequest& request,
                                                    SoftApSurface surface, SoftApOperation operation,
-                                                   std::string_view wtp_session,
+                                                   std::string_view execution_session,
                                                    const Activity& activity, std::uint64_t now_ms,
                                                    std::string_view active_owner_session,
                                                    bool establish_session) {
@@ -141,23 +141,23 @@ SoftApHttpAuthority SoftApHttpAdmission::authorize(const network::HttpRequest& r
     const auto token = cookie_token(request);
     if (token.empty())
         return {AccessCode::AuthenticationRequired, {}, false, {}};
-    if (establish_session && !wtp_session.empty()) {
-        const auto bound = access_.bind_softap_session(token, wtp_session, now_ms);
+    if (establish_session && !execution_session.empty()) {
+        const auto bound = access_.bind_softap_session(token, execution_session, now_ms);
         if (bound != AccessCode::Ok)
             return {bound, {}, false, {}};
     }
-    const auto admitted = access_.softap_authorize(token, operation, wtp_session,
+    const auto admitted = access_.softap_authorize(token, operation, execution_session,
                                                    active_owner_session, activity, now_ms);
     if (admitted.code != AccessCode::Ok)
         return {admitted.code, {}, false, {}};
     return {AccessCode::Ok,
             {true, true, true, admitted.principal},
             admitted.owner_only_grace,
-            admitted.wtp_session};
+            admitted.execution_session};
 }
 
 AccessCode SoftApHttpAdmission::logout(const network::HttpRequest& request, SoftApSurface surface,
-                                       std::string_view wtp_session,
+                                       std::string_view execution_session,
                                        std::string_view active_owner_session,
                                        const Activity& activity, std::uint64_t now_ms) {
     if (surface == SoftApSurface::BlankReadOnly || request.method != "POST" ||
@@ -166,7 +166,7 @@ AccessCode SoftApHttpAdmission::logout(const network::HttpRequest& request, Soft
     const auto token = cookie_token(request);
     if (token.empty())
         return AccessCode::AuthenticationRequired;
-    return access_.softap_logout(token, wtp_session, active_owner_session, activity, now_ms);
+    return access_.softap_logout(token, execution_session, active_owner_session, activity, now_ms);
 }
 
 } // namespace wsprrypico::provisioning

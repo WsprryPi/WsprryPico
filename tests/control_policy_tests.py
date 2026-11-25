@@ -36,13 +36,12 @@ for mutation in ['route', 'descriptor', 'selector', 'suffix-selector', 'suffix-s
     if mutation == 'enum-schema': bad['$defs']['application']['$defs']['station_read']['properties']['schema'] = {'enum': ['station/2']}
     if mutation == 'selector': bad['$defs']['capabilities']['properties']['api_version'] = {'const': 1}
     rejected(policy, bad)
-for mutation in ['public-generation', 'descriptor-selector', 'progress-selector', 'oneof-selector', 'hidden-wtp', 'wire-drift', 'document-contract', 'foreign-namespace']:
+for mutation in ['public-generation', 'descriptor-selector', 'progress-selector', 'oneof-selector', 'wire-drift', 'document-contract', 'foreign-namespace']:
     bad = copy.deepcopy(schema)
     if mutation == 'public-generation': bad['public_resources'].append('application/2')
     if mutation == 'descriptor-selector': bad['resource_descriptors']['gpio_drive']['update_schema'] = 'config-update/2'
     if mutation == 'progress-selector': bad['resource_descriptors']['amplifier_enable']['progress_schema'] = 'progress-v2'
     if mutation == 'oneof-selector': bad['$defs']['application']['$defs']['station_read']['properties']['schema'] = {'oneOf': [{'const': 'station'}, {'const': 'station/2'}]}
-    if mutation == 'hidden-wtp': bad['resource_descriptors']['wtp'] = {'schema': 'application/2'}
     if mutation == 'foreign-namespace': bad['resource_descriptors']['gpio_drive']['read'] = '/api/v2/gpio-drive'
     if mutation == 'document-contract': bad['$defs']['management']['properties']['contract'] = {'const': 'Wsprry-Control/2'}
     if mutation == 'wire-drift': bad['$defs']['udp-logging-capabilities']['oneOf'][0]['properties']['wire_schema'] = {'const': 'wsprry-udp/2'}
@@ -79,7 +78,7 @@ for mutation in ['missing-method', 'extra-method', 'duplicate-route', 'foreign-r
     if mutation == 'wrong-method': adapter['host_routes']['POST'].append('host/readiness')
     if mutation == 'missing-document': adapter['documents'].remove('configuration-recovery-save')
     rejected(policy, bad)
-validate(policy, schema) # Existing WTP, log wire, host storage and owner-read boundaries remain valid.
+validate(policy, schema) # Log wire, host storage and owner-read boundaries remain valid.
 from check_control_policy import pi_resource_descriptors
 for field in ['configuration','management']:
     changed_policy=copy.deepcopy(schema)
@@ -97,9 +96,6 @@ validate(released, schema, True)
 rejected(released, changed)
 rejected({**released, 'first_release': '1.0.0-beta.1'}, schema)
 rejected({**policy, 'schema_sha256': schema_digest(schema)}, schema)
-# Independent WTP content is outside resource naming rules and retains its own version.
-assert 'wtp' not in schema['$defs']
-assert json.loads((ROOT / 'engineering/protocol/wtp-1.schema.json').read_text())['$defs']['capsResponse']['properties']['profiles']['items']['const'] == 'rf-events/1'
 with tempfile.TemporaryDirectory() as directory:
     p, s = Path(directory) / 'policy.json', Path(directory) / 'schema.json'
     p.write_text(json.dumps(policy)); s.write_text(json.dumps(schema))

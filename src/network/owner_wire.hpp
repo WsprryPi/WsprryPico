@@ -1,7 +1,7 @@
 #pragma once
 
 #include "provisioning/storage.hpp"
-#include "wtp/sha256.hpp"
+#include "runtime/sha256.hpp"
 
 #include <array>
 #include <cstdint>
@@ -50,7 +50,7 @@ struct OwnerSigningFields {
 
 // Returns SHA-256 of the canonical binary signing input. This only constructs
 // bytes: it does not verify an owner key, issue a challenge or grant authority.
-std::optional<wtp::PayloadDigest> owner_signing_digest(const OwnerSigningFields& fields);
+std::optional<execution::PayloadDigest> owner_signing_digest(const OwnerSigningFields& fields);
 
 // Canonical session/start, finish-signature and HKDF-salt inputs. These
 // portable builders do not authenticate an owner or create a live session.
@@ -68,9 +68,9 @@ struct OwnerSessionFields {
     std::uint64_t expiry_monotonic_ms = 0;
 };
 
-std::optional<wtp::PayloadDigest> owner_session_start_digest(const OwnerSessionFields& fields);
-std::optional<wtp::PayloadDigest> owner_session_finish_digest(const OwnerSessionFields& fields);
-std::optional<wtp::PayloadDigest> owner_session_salt(const OwnerSessionFields& fields);
+std::optional<execution::PayloadDigest> owner_session_start_digest(const OwnerSessionFields& fields);
+std::optional<execution::PayloadDigest> owner_session_finish_digest(const OwnerSessionFields& fields);
+std::optional<execution::PayloadDigest> owner_session_salt(const OwnerSessionFields& fields);
 
 // Claim AEAD AAD is the complete fixed-order transcript. The caller must
 // validate the P-256 point and X25519 exchange, bind these fields to the live

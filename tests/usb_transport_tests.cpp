@@ -3,8 +3,7 @@
 #include "usb/reply_priority.hpp"
 #include "usb/roles.h"
 #include "usb/transport.hpp"
-#include "wtp/frame_parser.hpp"
-#include "wtp/memory_budget.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <algorithm>
 #include <array>
@@ -68,9 +67,9 @@ int main() {
     CHECK(!take_bench_reset());
     // Merely connecting does not reserve 8 KiB. Failed optional diagnostics
     // preserve the safety reserve; a successful retry and disconnect release it.
-    wsprrypico::wtp::allocate_input = console_allocate;
-    wsprrypico::wtp::deallocate_input = console_release;
-    wsprrypico::wtp::available_memory = +[] { return free_bytes; };
+    wsprrypico::execution::allocate_input = console_allocate;
+    wsprrypico::execution::deallocate_input = console_release;
+    wsprrypico::execution::available_memory = +[] { return free_bytes; };
     CHECK(console_write("") && console_allocations == 0);
     CHECK(console_allocations == 0 && !console_write("pressure"));
     CHECK(console_allocations == 0);
@@ -83,10 +82,10 @@ int main() {
     service();
     CHECK(console_releases == 1 && !console_output_pending());
     open(USB_CDC_CONSOLE);
-    wsprrypico::wtp::allocate_input = std::malloc;
-    wsprrypico::wtp::deallocate_input = std::free;
-    wsprrypico::wtp::available_memory = nullptr;
-    // Startup-sized UTF-8 diagnostic survives short writes; WTP stays silent.
+    wsprrypico::execution::allocate_input = std::malloc;
+    wsprrypico::execution::deallocate_input = std::free;
+    wsprrypico::execution::available_memory = nullptr;
+    // Startup-sized UTF-8 diagnostic survives short writes; Commands stays silent.
     const std::string banner = "WsprryPico\r\n" + std::string(600, 'x') + " UTF-8: π\r\n";
     ports[0].capacity = 7;
     CHECK(console_write(banner));
@@ -99,7 +98,7 @@ int main() {
     // Software queue empty, but TinyUSB still has a packet to drain.
     // The RF INFO snapshot crosses the former whole-reply 8 KiB limit when
     // launch/refill counters populate. Keep the real queue fixed and drain a
-    // larger UTF-8 reply through short writes without blocking WTP.
+    // larger UTF-8 reply through short writes without blocking Commands.
     const std::string info = "{\"diagnostic\":\"" + std::string(9'000, 'x') + "π\"}\n";
     ConsoleReply reply;
     CHECK(reply.begin(info));
@@ -131,7 +130,7 @@ int main() {
     calls = &page_calls;
     live = &live_pages;
     failure = &fail_at;
-    wsprrypico::wtp::allocate_input = [](std::size_t bytes) -> void* {
+    wsprrypico::execution::allocate_input = [](std::size_t bytes) -> void* {
         CHECK(bytes <= 4096);
         ++*calls;
         if (*calls == *failure)
@@ -139,7 +138,7 @@ int main() {
         ++*live;
         return std::malloc(bytes);
     };
-    wsprrypico::wtp::deallocate_input = [](void* bytes) {
+    wsprrypico::execution::deallocate_input = [](void* bytes) {
         if (bytes) {
             --*live;
             std::free(bytes);
@@ -181,8 +180,8 @@ int main() {
     CHECK(reply.begin(std::move(complete)));
     reply.reset();
     CHECK(live_pages == 0);
-    wsprrypico::wtp::allocate_input = std::malloc;
-    wsprrypico::wtp::deallocate_input = std::free;
+    wsprrypico::execution::allocate_input = std::malloc;
+    wsprrypico::execution::deallocate_input = std::free;
     ports[0].delivered.assign(banner.begin(), banner.end());
     ports[0].pending.push_back('x');
     CHECK(console_output_pending());
@@ -197,7 +196,7 @@ int main() {
         service();
     }
     CHECK(ports[1].delivered == std::vector<std::uint8_t>(binary.begin(), binary.end()));
-    // Slow console and saturated WTP independently return without blocking.
+    // Slow console and saturated Commands independently return without blocking.
     ports[0].capacity = 0;
     ports[1].capacity = 0;
     CHECK(console_write(std::string(kConsoleCapacity, 'a')));
@@ -205,7 +204,7 @@ int main() {
     CHECK(bench_transport_write(binary) == 0);
     for (unsigned i = 0; i < 10; ++i)
         service();
-    // A stalled console does not stall binary WTP output, and a stalled WTP
+    // A stalled console does not stall binary Commands output, and a stalled Commands channel
     // does not stall a wrapped, full console ring once Console resumes reading.
     ports[1].capacity = 64;
     CHECK(bench_transport_write(binary) == binary.size());
@@ -221,22 +220,18 @@ int main() {
     ports[1].delivered.assign(binary.begin(), binary.end());
     ports[0].capacity = 0;
     CHECK(console_write("discard on reconnect"));
-    // Console RX is available to an explicit source adapter and cannot consume the WTP frame.
-    const std::array<std::uint8_t, 2> payload{'{', '}'};
-    auto frame = wsprrypico::wtp::encode_frame(payload);
+    // Console and diagnostic Commands receive their own bytes.
+    const std::array<std::uint8_t, 7> command{'S', 'T', 'A', 'T', 'U', 'S', '\n'};
     ports[0].rx = std::deque<std::uint8_t>(200, 'c');
-    ports[1].rx = {frame.begin(), frame.end()};
+    ports[1].rx = {command.begin(), command.end()};
     service();
     CHECK(ports[0].rx.size() == 200);
     std::array<std::uint8_t, 256> input{};
     CHECK(console_transport_read(input) == kServiceBytes);
     CHECK(ports[0].rx.size() == 200 - kServiceBytes);
     auto count = bench_transport_read(input);
-    CHECK(count == frame.size());
-    wsprrypico::wtp::FrameParser parser;
-    auto events = parser.feed(std::span(input).first(count), 0);
-    CHECK(events.size() == 1);
-    CHECK(events[0].payload == std::vector<std::uint8_t>(payload.begin(), payload.end()));
+    CHECK(count == command.size());
+    CHECK(std::equal(command.begin(), command.end(), input.begin()));
     ports[1].rx = std::deque<std::uint8_t>(200, 'w');
     CHECK(bench_transport_read(input) == kServiceBytes);
     // Falling/rising DTR between polls must still clear stale data/reset parser.

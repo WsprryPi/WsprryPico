@@ -2,7 +2,7 @@
 #pragma once
 
 #include "logging/logger.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -60,7 +60,7 @@ class UsbSession {
   private:
     std::string prefix() const {
         return "{\"schema\":\"usb-logging/1\",\"target\":{\"device_id\":" +
-               wtp::json::quote(device_) + ",\"boot_id\":" + wtp::json::quote(boot_) + "}";
+               execution::json::quote(device_) + ",\"boot_id\":" + execution::json::quote(boot_) + "}";
     }
     void command(std::uint64_t now) {
         const std::string_view text(line_.data(), length_);

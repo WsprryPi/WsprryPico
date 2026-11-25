@@ -49,7 +49,7 @@ if(TRUTH_PRODUCTION_CAPTURE)
   ${OWNED}/hardware/gps_settings.cpp ${OWNED}/hardware/pins.cpp
   ${OWNED}/hardware/si5351_settings.cpp ${OWNED}/hardware/filter_settings.cpp
   ${OWNED}/rf/si5351_plan.cpp ${OWNED}/rf/reference_counter.cpp
-  ${OWNED}/rf/reference_measurement.cpp ${OWNED}/wtp/json.cpp)
+  ${OWNED}/rf/reference_measurement.cpp ${OWNED}/runtime/json.cpp)
  target_include_directories(Si5351Truth PRIVATE ${OWNED})
  target_link_libraries(Si5351Truth PRIVATE pico_multicore hardware_irq hardware_ticks)
 endif()

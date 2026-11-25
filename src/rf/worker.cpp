@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 namespace wsprrypico::rf {
-WorkerEngine::WorkerEngine(wtp::RfEngine& engine, time::UtcDiscipline& clock, Now now, Wait wait,
+WorkerEngine::WorkerEngine(execution::RfEngine& engine, time::UtcDiscipline& clock, Now now, Wait wait,
                            Failure failure, Mask mask, Restore restore)
     : engine_(engine), clock_(clock), staged_clock_(clock), worker_clock_(clock), now_(now),
       wait_(wait), failure_(failure), mask_(mask), restore_(restore),
@@ -52,7 +52,7 @@ void WorkerEngine::step() {
     check_safety();
     const auto now = now_();
     const bool executing =
-        worker_state_ == wtp::EngineState::Armed || worker_state_ == wtp::EngineState::Running;
+        worker_state_ == execution::EngineState::Armed || worker_state_ == execution::EngineState::Running;
     if (executing && last_step_)
         worker_metrics_.max_service_gap_ns =
             std::max(worker_metrics_.max_service_gap_ns, now - last_step_);
@@ -73,7 +73,7 @@ void WorkerEngine::step() {
     case Op::Metrics:
         break;
     case Op::Prepare:
-        prepared_ = safety_inhibited() || background_suspended_ ? wtp::PrepareResult{}
+        prepared_ = safety_inhibited() || background_suspended_ ? execution::PrepareResult{}
                                                                 : engine_.prepare(*job_);
         break;
     case Op::Schedule:
@@ -89,7 +89,7 @@ void WorkerEngine::step() {
                   engine_.set_frequency_correction_ppb(correction_);
         break;
     case Op::Suspend:
-        result_ = !background_suspended_ && worker_state_ == wtp::EngineState::Idle &&
+        result_ = !background_suspended_ && worker_state_ == execution::EngineState::Idle &&
                   !engine_.output_active() &&
                   (!background_pause_ || background_pause_(instant_, background_context_));
         if (result_)
@@ -132,7 +132,7 @@ void WorkerEngine::step() {
         reply_metrics_ = worker_metrics_;
     phase_.store(2, std::memory_order_release);
 }
-wtp::PrepareResult WorkerEngine::prepare(const wtp::Job& job) {
+execution::PrepareResult WorkerEngine::prepare(const execution::Job& job) {
     job_ = &job;
     call(Op::Prepare);
     job_ = nullptr;
@@ -143,8 +143,8 @@ bool WorkerEngine::set_frequency_correction_ppb(std::int32_t ppb) {
     call(Op::Correct);
     return result_;
 }
-bool WorkerEngine::schedule(const wtp::Job& job, std::uint64_t when,
-                            const wtp::LocalStartConditions& conditions) {
+bool WorkerEngine::schedule(const execution::Job& job, std::uint64_t when,
+                            const execution::LocalStartConditions& conditions) {
     if (conditions.clock != &clock_)
         return false;
     job_ = &job;
@@ -154,7 +154,7 @@ bool WorkerEngine::schedule(const wtp::Job& job, std::uint64_t when,
     job_ = nullptr;
     return result_;
 }
-wtp::EngineReport WorkerEngine::poll(std::uint64_t) {
+execution::EngineReport WorkerEngine::poll(std::uint64_t) {
     call(Op::Inspect);
     return report_;
 }
@@ -166,7 +166,7 @@ bool WorkerEngine::disable(std::uint64_t deadline) {
 bool WorkerEngine::execution_started() const {
     call(Op::Inspect);
     return report_.launch_monotonic_ns.has_value() ||
-           (report_.chain_phase == wtp::ChainPhase::Unspecified && report_.output_active);
+           (report_.chain_phase == execution::ChainPhase::Unspecified && report_.output_active);
 }
 bool WorkerEngine::output_active() const {
     call(Op::Inspect);

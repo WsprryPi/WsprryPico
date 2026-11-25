@@ -4,7 +4,7 @@
 #include "provisioning/network_profile.hpp"
 #include "provisioning/runtime.hpp"
 #include "provisioning/storage.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 #include <algorithm>
 #include <array>
@@ -193,7 +193,7 @@ int main() {
     assert(network::owner_saved_station_json(initial, network_runtime, device) == "null");
     assert(network::owner_saved_network_json(initial, network_runtime, device) ==
            "{\"ssid\":\"Home Net\",\"time_server\":" +
-               wtp::json::quote(standalone::default_time_server) + "}");
+               execution::json::quote(standalone::default_time_server) + "}");
     // Re-entering the same Wi-Fi settings is still a distinct browser save.
     MemoryMedia repeat_media;
     provisioning::ProfileStore repeat(repeat_media);

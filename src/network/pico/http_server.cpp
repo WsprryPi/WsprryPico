@@ -1,7 +1,7 @@
 #include "network/pico/http_server.hpp"
 
 #include "pico/time.h"
-#include "wtp/memory_budget.hpp"
+#include "runtime/memory_budget.hpp"
 
 #include <algorithm>
 #include <limits>
@@ -77,7 +77,7 @@ err_t PicoHttpServer::receive(void* context, tcp_pcb* pcb, pbuf* packet, err_t e
     // Header maps and string growth precede HttpParser's body admission gate.
     // Check each header fragment against shared heap state, since another task
     // may have allocated since accept. Reserved body pages need no new growth.
-    if (!client.parser.headers_complete() && !wtp::memory_admitted(header_workspace)) {
+    if (!client.parser.headers_complete() && !execution::memory_admitted(header_workspace)) {
         pbuf_free(packet);
         self.close(client, false);
         return ERR_ABRT;

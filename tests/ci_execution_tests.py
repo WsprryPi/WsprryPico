@@ -345,10 +345,10 @@ class ExecutionTests(unittest.TestCase):
 
     def test_contract_and_ctest_need_nonempty_completion_summaries(self):
         execution.evidence('ctest', '100% tests passed, 0 tests failed out of 2\n', self.audit)
-        execution.evidence('wtp-contract', 'WTP/1 contract valid: 2 schema cases, 2 raw JSON cases, 1 framing case, and 2 transition cases\n', self.audit)
+        execution.evidence('control-policy', 'Control lifecycle policy valid: prerelease\n', self.audit)
         for context, output in [('ctest', ''), ('ctest', 'No tests were found'),
                                 ('ctest', '100% tests passed, 0 tests failed out of 0'),
-                                ('wtp-contract', 'WTP/1 contract valid')]:
+                                ('control-policy', 'Control lifecycle policy valid')]:
             with self.subTest(context=context, output=output), self.assertRaises(ValueError):
                 execution.evidence(context, output, self.audit)
 

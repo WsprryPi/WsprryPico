@@ -1,6 +1,6 @@
 #include "application/resources.hpp"
 #include "network_support.hpp"
-#include "wtp/json.hpp"
+#include "runtime/json.hpp"
 
 using namespace wsprrypico;
 namespace {
@@ -30,9 +30,9 @@ struct Member {
         return api.handle(network_test::control_request(r), "test", "127.0.0.1:8443");
     }
     std::string envelope(std::string_view schema, std::string_view field, std::string payload) {
-        return "{\"schema\":" + wtp::json::quote(schema) + ",\"target\":" +
+        return "{\"schema\":" + execution::json::quote(schema) + ",\"target\":" +
                application::target(std::string(32, 'a'), f.service.status().boot_id) + ',' +
-               wtp::json::quote(field) + ':' + payload + '}';
+               execution::json::quote(field) + ':' + payload + '}';
     }
     network::HttpRequest station() {
         auto r = request("PUT", "/api/control/v1/station",
@@ -146,7 +146,7 @@ void suspended_hardware_without_dial() {
                     REQUIRE(m.scheduler.active_pins() == active &&
                             m.scheduler.hardware_restart_required());
                     const auto status_text = m.scheduler.status();
-                    const auto state = wtp::json::parse(status_text);
+                    const auto state = execution::json::parse(status_text);
                     REQUIRE(state && state->get("suspended")->boolean() == suspended);
                     REQUIRE(!m.f.service.activity().owned && !m.f.service.activity().output_active);
                     REQUIRE(m.f.store.watermark() == watermark);
@@ -179,7 +179,7 @@ void readings_and_scoped_saves() {
     for (const auto path : {"/api/control/v1/application", "/api/control/v1/station", "/api/control/v1/hardware"}) {
         const auto response = m.call(request("GET", path));
         REQUIRE(response.status == 200 && response.etag == revision);
-        REQUIRE(wtp::json::parse(response.body_view()));
+        REQUIRE(execution::json::parse(response.body_view()));
         REQUIRE(response.body_size() < 4096);
         REQUIRE(response.body_text().find("test-password") == response.body_text().npos);
         REQUIRE(response.body_text().find("test-network") == response.body_text().npos);
@@ -245,7 +245,7 @@ void rejection_is_atomic() {
         REQUIRE(m.f.flash.bytes == original && m.api.revision() == revision);
     };
     for (const auto field : {"scope", "device_id", "boot_id"}) {
-        auto value = wtp::json::parse(invalid.body_view());
+        auto value = execution::json::parse(invalid.body_view());
         const auto part = value->get("target")->get(field)->raw;
         auto r = invalid;
         r.body.replace(part.offset(), part.size(), "\"wrong\"");
@@ -276,7 +276,7 @@ void rejection_is_atomic() {
     reject(m.hardware(p), 400);
     const auto conflict = m.call(m.hardware(p));
     REQUIRE(conflict.etag.empty());
-    const auto details = wtp::json::parse(conflict.body_view());
+    const auto details = execution::json::parse(conflict.body_view());
     REQUIRE(details && details->get("error")->string() == "pin_conflict");
     REQUIRE(details->get("gp")->raw == "14" && details->get("owner")->string() == "rf");
     auto legacy = *m.f.store.config();
@@ -285,7 +285,7 @@ void rejection_is_atomic() {
     legacy_request.headers["if-match"] = revision;
     const auto legacy_error = m.call(legacy_request);
     REQUIRE(legacy_error.status == 400 && legacy_error.etag.empty());
-    REQUIRE(wtp::json::parse(legacy_error.body_view())->get("error")->string() == "pin_conflict");
+    REQUIRE(execution::json::parse(legacy_error.body_view())->get("error")->string() == "pin_conflict");
     p = {};
     p.amplifier = 14;
     reject(m.hardware(p), 400);
@@ -312,8 +312,8 @@ void ownership_and_pending_changes() {
     REQUIRE(m.call(m.hardware()).status == 409);
     m.api.finish_request(0, false);
     unsigned sequence = 0;
-    auto invoke = [&](std::string operation, wtp::RequestBody body) {
-        wtp::Request request;
+    auto invoke = [&](std::string operation, execution::RequestBody body) {
+        execution::Request request;
         request.principal = "usb";
         request.session_id = std::string(32, 'b');
         request.request_id = std::string(31, '0') + std::to_string(++sequence);
@@ -322,23 +322,23 @@ void ownership_and_pending_changes() {
         request.payload_digest[0] = sequence;
         return m.f.service.handle(request);
     };
-    REQUIRE(invoke("HELLO", wtp::HelloBody{{"WTP/1"}}).ok);
-    REQUIRE(invoke("CLAIM", wtp::ClaimBody{std::string(32, 'b'), 60000}).ok);
+    REQUIRE(invoke("HELLO", execution::HelloBody{{"native-execution/1"}}).ok);
+    REQUIRE(invoke("CLAIM", execution::ClaimBody{std::string(32, 'b'), 60000}).ok);
     const auto flash = m.f.flash.bytes;
     REQUIRE(m.call(m.station()).status == 409);
-    wtp::Job job{std::string(32, 'c'), "rf-events/1", "tone", 1'000'000'000, {}, false};
+    execution::Job job{std::string(32, 'c'), "rf-events/1", "tone", 1'000'000'000, {}, false};
     REQUIRE(job.events.push_back({0, job.total_duration_ns, true, 7'040'000'000'000'000ULL}));
     REQUIRE(invoke("LOAD", std::move(job)).ok);
-    REQUIRE(m.f.service.status().state == wtp::State::Loaded);
+    REQUIRE(m.f.service.status().state == execution::State::Loaded);
     REQUIRE(m.call(m.hardware()).status == 409);
-    REQUIRE(invoke("ARM", wtp::ArmBody{std::string(32, 'c'),
+    REQUIRE(invoke("ARM", execution::ArmBody{std::string(32, 'c'),
                                        m.f.clock.snapshot().utc_now_ns + 3'000'000'000, 1000})
                 .ok);
     REQUIRE(m.call(m.station()).status == 409);
     REQUIRE(m.call(m.hardware()).status == 409);
     m.f.clock.now += 3'000'000'000;
     m.f.service.poll();
-    REQUIRE(m.f.service.status().state == wtp::State::Running);
+    REQUIRE(m.f.service.status().state == execution::State::Running);
     REQUIRE(m.call(m.hardware()).status == 409);
     REQUIRE(m.f.flash.bytes == flash);
 }
@@ -349,12 +349,12 @@ void saved_active_and_failures() {
     const auto boot_active = m.call(request("GET", "/api/control/v1/hardware"));
     auto response = m.call(m.hardware(p));
     REQUIRE(response.status == 200 && m.f.service.output_inhibited());
-    auto parsed = wtp::json::parse(response.body_view());
+    auto parsed = execution::json::parse(response.body_view());
     REQUIRE(parsed->get("saved")->get("rf_gp")->raw == "28");
     REQUIRE(parsed->get("active")->get("rf_gp")->raw == "2");
     REQUIRE(parsed->get("pending_restart")->boolean());
     REQUIRE(parsed->get("active_revision")->string() ==
-            wtp::json::parse(boot_active.body_view())->get("active_revision")->string());
+            execution::json::parse(boot_active.body_view())->get("active_revision")->string());
     REQUIRE(m.call(m.station()).status == 200 && m.f.service.output_inhibited());
     REQUIRE(m.call(m.hardware()).status == 200); // Restore old pins; latch remains.
     REQUIRE(m.scheduler.hardware_restart_required() && m.f.service.output_inhibited());
@@ -366,7 +366,7 @@ void saved_active_and_failures() {
     REQUIRE(failure.f.store.config() == before);
     REQUIRE(!failure.f.store.healthy());
     const auto read = failure.call(request("GET", "/api/control/v1/hardware"));
-    parsed = wtp::json::parse(read.body_view());
+    parsed = execution::json::parse(read.body_view());
     REQUIRE(parsed->get("saved")->raw == "null" && !parsed->get("storage_healthy")->boolean());
     failure.f.flash.fail = false;
     standalone::Store recovered(failure.f.flash);
@@ -388,7 +388,7 @@ void samples() {
         if (comma)
             std::cout << ',';
         comma = true;
-        std::cout << wtp::json::quote(name) << ':' << result.body_text();
+        std::cout << execution::json::quote(name) << ':' << result.body_text();
     };
     emit("application", m.call(request("GET", "/api/control/v1/application")));
     emit("station", m.call(request("GET", "/api/control/v1/station")));
@@ -404,16 +404,16 @@ void samples() {
     emit("unhealthy", m.call(request("GET", "/api/control/v1/application")));
     std::cout << "}\n";
 }
-class DisableEngine final : public wtp::RfEngine {
+class DisableEngine final : public execution::RfEngine {
   public:
     bool can_disable = true;
-    wtp::PrepareResult prepare(const wtp::Job&) override {
+    execution::PrepareResult prepare(const execution::Job&) override {
         return {true, {}};
     }
-    bool begin(const wtp::Job&, std::uint64_t) override {
+    bool begin(const execution::Job&, std::uint64_t) override {
         return false;
     }
-    wtp::EngineReport poll(std::uint64_t) override {
+    execution::EngineReport poll(std::uint64_t) override {
         return {};
     }
     bool disable(std::uint64_t) override {
@@ -427,7 +427,7 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
     Member m;
     DisableEngine engine;
     network_test::Identity identity;
-    wtp::JobService service(m.f.clock, engine, identity);
+    execution::JobService service(m.f.clock, engine, identity);
     standalone::Scheduler scheduler(m.f.store, service);
     network::BrowserApi api(service, m.f.store, scheduler, m.f.network, std::string(32, 'a'),
                             "test");
@@ -441,7 +441,7 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
             failure.body_text().find("output_disable_failed") != std::string::npos);
     REQUIRE(service.output_inhibited() && scheduler.hardware_application_failed());
     const auto readback = api.handle(network_test::control_request(request("GET", "/api/control/v1/hardware")), "test", "127.0.0.1:8443");
-    REQUIRE(wtp::json::parse(readback.body_view())->get("application_error")->string() ==
+    REQUIRE(execution::json::parse(readback.body_view())->get("application_error")->string() ==
             "output_disable_failed");
     if (emit_fault)
         std::cout << readback.body_text() << '\n';
@@ -453,7 +453,7 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
     const auto sequence = m.f.store.config_sequence();
     const auto watermark = m.f.store.watermark();
     const auto revision = api.revision();
-    REQUIRE(service.status().state == wtp::State::Empty);
+    REQUIRE(service.status().state == execution::State::Empty);
     REQUIRE(!scheduler.idle() && scheduler.reset_permitted());
     REQUIRE(!engine.disable(m.f.clock.now + 100'000'000ULL));
     engine.can_disable = true;
@@ -464,16 +464,16 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
     REQUIRE(m.f.store.config() == saved && m.f.store.config_sequence() == sequence &&
             m.f.store.watermark() == watermark && api.revision() == revision);
     REQUIRE(api.handle(network_test::control_request(request("POST","/api/control/v1/jobs","{}")),"test","127.0.0.1:8443").status==404);
-    const auto hello=[&](wtp::JobService &core){return network_test::internal_command(core,"HELLO",wtp::HelloBody{{"WTP/1"}});};
-    const auto claim=[&](wtp::JobService &core){return network_test::internal_command(core,"CLAIM",wtp::ClaimBody{std::string(32,'b'),60000});};
+    const auto hello=[&](execution::JobService &core){return network_test::internal_command(core,"HELLO",execution::HelloBody{{"native-execution/1"}});};
+    const auto claim=[&](execution::JobService &core){return network_test::internal_command(core,"CLAIM",execution::ClaimBody{std::string(32,'b'),60000});};
     REQUIRE(hello(service).ok);
     const auto refused=claim(service);
-    REQUIRE(!refused.ok&&refused.error==wtp::ErrorCode::Busy);
+    REQUIRE(!refused.ok&&refused.error==execution::ErrorCode::Busy);
     REQUIRE(!service.activity().owned);
     standalone::Store rebooted_store(m.f.flash);
     REQUIRE(rebooted_store.load() && rebooted_store.config() == saved &&
             rebooted_store.watermark() == watermark);
-    wtp::JobService rebooted_service(m.f.clock, engine, identity);
+    execution::JobService rebooted_service(m.f.clock, engine, identity);
     standalone::Scheduler rebooted_scheduler(rebooted_store, rebooted_service);
     REQUIRE(rebooted_scheduler.active_pins() == saved.pins && rebooted_scheduler.boot_configured());
     REQUIRE(!rebooted_scheduler.hardware_application_failed() &&
@@ -495,7 +495,7 @@ void disable_failure_and_maximum_response(bool emit_fault = false) {
     REQUIRE(maximum.f.store.save(config));
     auto result = maximum.call(request("GET", "/api/control/v1/application"));
     REQUIRE(result.status == 200 && result.body_size() < 4096);
-    const auto parsed = wtp::json::parse(result.body_view());
+    const auto parsed = execution::json::parse(result.body_view());
     REQUIRE(parsed->get("recurrence")->get("expires_utc_s")->string() == "2147483647");
     REQUIRE(parsed->get("recurrence")->get("schedules")->elements().size() == 8);
 }

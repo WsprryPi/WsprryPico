@@ -2,7 +2,7 @@
 
 UDP logging exports selected Pico and Pi events to one IPv4 unicast destination. Export and collection default off. Direct Pico export, native Pi export, and forwarding selected USB Pico records are independent settings. A collector need not control a transmitter. Imported UDP records never forward to another collector.
 
-Pico UDP settings and descriptors use stable `udp-logging` and `udp-logging-capabilities` types within `Wsprry-Control/1`. The UDP event wire `wsprry-udp/1` and Pi host policy `host-udp-logging/1` remain independent. USB logging carriers, Consumer-Radio sessions, and WTP command formats retain their separate authority. The shared [portable codec](../../src/logging/udp_wire.hpp) and fixed event policy are mirrored in Pi and Pico source; their fixtures exercise the actual selected sources.
+Pico UDP settings and descriptors use stable `udp-logging` and `udp-logging-capabilities` types within `Wsprry-Control/1`. The UDP event wire `wsprry-udp/1` and Pi host policy `host-udp-logging/1` remain independent. USB logging and Consumer-Radio sessions retain separate authority. The shared [portable codec](../../src/logging/udp_wire.hpp) and fixed event policy are mirrored in Pi and Pico source; their fixtures exercise the actual selected sources.
 
 ## Wire profile and trust
 
@@ -26,7 +26,7 @@ Pico event creation assigns one origin sequence and snapshots the cumulative ori
 
 The dedicated Pi worker reads only the real `wsprrypi.service` journal and emits imports under its own real `wsprrypi-log.service` unit. Export requires matching local collector identity, native, or verified USB ingress, selected USB profile/device binding where applicable, and producer-owned fixed export templates. Unknown native event classes and arbitrary MESSAGE bodies are excluded. UDP imports and worker diagnostics never forward. No UDP payload supplies trusted underscore-prefixed journal metadata.
 
-Routine Pico WTP and Management port transitions use `USB_STATE` at DEBUG severity 7, with fixed text identifying the port and opening or closing. Default severity 6 excludes them. Direct Pico export and Pi forwarding admit the same four templates and retain the historical generic message for older firmware. Event schemas, carrier versions, and settings limits are unchanged.
+The Pico emits `USB_STATE` at DEBUG severity 7 for observed Management port openings and closings. Default severity 6 excludes them. The [fixed event allowlist](../../src/logging/udp_event_policy.hpp) also recognizes older port-specific and generic texts for existing records and forwarding.
 
 The verified Pi executable embeds the separately built logging worker. Installation extracts and compares that image before installing the dedicated executable and hardened static-user service. Existing precompiled application images without the worker retain disabled UDP policies and report the feature unavailable; an enabled policy refuses such a downgrade. Installed host logging stacks and firewall rules remain unchanged. The logging user's supplementary journal group grants broad host-journal read access; it does not grant device or transmitter authority.
 

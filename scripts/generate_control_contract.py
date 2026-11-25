@@ -106,26 +106,26 @@ function jsonType(value,type){
  if(type==='null')return value===null;
  return false;
 }
-function wtpSchema(value,rule,depth=0,schemas=executionSchemas){
+function matchesSchema(value,rule,depth=0,schemas=executionSchemas){
  if(depth>16||!rule||typeof rule!=='object')return false;
- if(rule.$ref)return wtpSchema(value,schemas[rule.$ref.split('/').pop()],depth+1,schemas);
- if(rule.allOf&&!rule.allOf.every(r=>wtpSchema(value,r,depth+1,schemas)))return false;
- if(rule.oneOf&&rule.oneOf.filter(r=>wtpSchema(value,r,depth+1,schemas)).length!==1)return false;
- if(rule.anyOf&&!rule.anyOf.some(r=>wtpSchema(value,r,depth+1,schemas)))return false;
+ if(rule.$ref)return matchesSchema(value,schemas[rule.$ref.split('/').pop()],depth+1,schemas);
+ if(rule.allOf&&!rule.allOf.every(r=>matchesSchema(value,r,depth+1,schemas)))return false;
+ if(rule.oneOf&&rule.oneOf.filter(r=>matchesSchema(value,r,depth+1,schemas)).length!==1)return false;
+ if(rule.anyOf&&!rule.anyOf.some(r=>matchesSchema(value,r,depth+1,schemas)))return false;
  if(rule.type&&!(rule.type==='integer'&&schemas===controllerSchemas?Number.isSafeInteger(value):jsonType(value,rule.type)))return false;
  if(Object.hasOwn(rule,'const')&&!equal(value,rule.const)||rule.enum&&!rule.enum.some(x=>equal(x,value)))return false;
  if(object(value)){
   if(rule.required&&rule.required.some(k=>!Object.hasOwn(value,k)))return false;
   const props=rule.properties||{};
   for(const [key,item]of Object.entries(value)){
-   if(Object.hasOwn(props,key)){if(!wtpSchema(item,props[key],depth+1,schemas))return false;}
+   if(Object.hasOwn(props,key)){if(!matchesSchema(item,props[key],depth+1,schemas))return false;}
    else if(rule.additionalProperties===false)return false;
   }
  }
  if(Array.isArray(value)){
   if(value.length<(rule.minItems??0)||value.length>(rule.maxItems??512))return false;
   if(rule.uniqueItems&&new Set(value.map(v=>canonical(v))).size!==value.length)return false;
-  if(rule.items&&!value.every(v=>wtpSchema(v,rule.items,depth+1,schemas)))return false;
+  if(rule.items&&!value.every(v=>matchesSchema(v,rule.items,depth+1,schemas)))return false;
  }
  if(typeof value==='number'&&(rule.minimum!==undefined&&value<rule.minimum||rule.maximum!==undefined&&value>rule.maximum))return false;
  if(typeof value==='string'){
@@ -138,7 +138,7 @@ function wtpSchema(value,rule,depth=0,schemas=executionSchemas){
  return true;
 }
 function validExecutionCapabilities(value){
- try{return wtpSchema(value,executionSchemas['native-execution'])&&value.frequency_ranges.every(r=>BigInt(r.minimum_nhz)<=BigInt(r.maximum_nhz))&&BigInt(value.minimum_arm_lead_ns)<=BigInt(value.maximum_arm_ahead_ns);}
+ try{return matchesSchema(value,executionSchemas['native-execution'])&&value.frequency_ranges.every(r=>BigInt(r.minimum_nhz)<=BigInt(r.maximum_nhz))&&BigInt(value.minimum_arm_lead_ns)<=BigInt(value.maximum_arm_ahead_ns);}
  catch(_){return false;}
 }
 function validCapabilities(value){
@@ -153,7 +153,7 @@ function validCapabilities(value){
  return true;
 }
 function validControllerDocument(value,name){
- try{return controllerDocuments.includes(name)&&wtpSchema(value,controllerSchemas[name],0,controllerSchemas)&&
+ try{return controllerDocuments.includes(name)&&matchesSchema(value,controllerSchemas[name],0,controllerSchemas)&&
   (name!=='targets'||new Set(value.targets.map(target=>target.device_id)).size===value.targets.length)&&
   (name!=='pair-discovery'||(value.available||value.discoveries.length===0)&&
    new Set(value.discoveries.map(entry=>entry.discovery_id)).size===value.discoveries.length&&
@@ -194,7 +194,7 @@ function controllerPiConfigurationField(section,key){
  return resolve(properties[section].properties[key],0);
 }
 function supportedPiResource(value){
- try{const expected=piDescriptors[value.resource];return !!expected&&wtpSchema(value,controllerSchemas['target-capability'],0,controllerSchemas)&&
+ try{const expected=piDescriptors[value.resource];return !!expected&&matchesSchema(value,controllerSchemas['target-capability'],0,controllerSchemas)&&
   value.schema_id===expected.schema_id&&value.schema_digest===expected.schema_digest&&
   (value.activation!=='unsupported'||!value.write);}
  catch(_){return false;}

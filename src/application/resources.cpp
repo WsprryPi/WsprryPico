@@ -4,9 +4,9 @@
 #include "network/control_contract.hpp"
 
 namespace wsprrypico::application {
-Envelope validate_envelope(wtp::json::Value root, std::string_view schema, std::string_view payload,
+Envelope validate_envelope(execution::json::Value root, std::string_view schema, std::string_view payload,
                            std::string_view device, std::string_view boot) {
-    using namespace wtp::json;
+    using namespace execution::json;
     if (!fields(root, {"schema", "target", payload}))
         return Envelope::Invalid;
     const auto version = *root.get("schema"), destination = *root.get("target");
@@ -24,25 +24,25 @@ Envelope validate_envelope(wtp::json::Value root, std::string_view schema, std::
     return Envelope::Valid;
 }
 std::string target(std::string_view device, std::string_view boot) {
-    return "{\"scope\":\"member\",\"device_id\":" + wtp::json::quote(device) +
-           ",\"boot_id\":" + wtp::json::quote(boot) + "}";
+    return "{\"scope\":\"member\",\"device_id\":" + execution::json::quote(device) +
+           ",\"boot_id\":" + execution::json::quote(boot) + "}";
 }
 std::string station(const standalone::Config& c) {
-    return "{\"callsign\":" + wtp::json::quote(c.callsign) +
-           ",\"locator\":" + wtp::json::quote(c.locator) +
+    return "{\"callsign\":" + execution::json::quote(c.callsign) +
+           ",\"locator\":" + execution::json::quote(c.locator) +
            ",\"power_dbm\":" + std::to_string(c.power_dbm) + "}";
 }
 std::string gpio_drive_capabilities() {
     return std::string(network::control_descriptor("gpio_drive"));
 }
-std::string execution_capabilities(const wtp::ServiceConfig& c) {
-    const auto number = [](std::uint64_t value) { return wtp::json::quote(std::to_string(value)); };
+std::string execution_capabilities(const execution::ServiceConfig& c) {
+    const auto number = [](std::uint64_t value) { return execution::json::quote(std::to_string(value)); };
     std::string modes;
     for (const auto& mode : c.supported_modes) {
         if (!modes.empty()) modes += ',';
-        modes += wtp::json::quote(mode);
+        modes += execution::json::quote(mode);
     }
-    return "{\"modes\":[" + modes + "],\"engine\":" + wtp::json::quote(c.capability_engine) +
+    return "{\"modes\":[" + modes + "],\"engine\":" + execution::json::quote(c.capability_engine) +
         ",\"frequency_ranges\":[{\"minimum_nhz\":" + number(c.minimum_frequency_nhz) +
         ",\"maximum_nhz\":" + number(c.maximum_frequency_nhz) + "}],\"max_events\":" +
         std::to_string(c.max_events) + ",\"max_job_duration_ns\":" + number(c.max_job_duration_ns) +
@@ -56,17 +56,17 @@ std::string amplifier_capabilities(bool physical) {
     auto descriptor = std::string(network::control_descriptor("amplifier_enable"));
     descriptor.pop_back();
     return descriptor + ",\"execution\":" +
-           wtp::json::quote(physical ? "local_job" : "inhibited_inactive_only") + "}";
+           execution::json::quote(physical ? "local_job" : "inhibited_inactive_only") + "}";
 }
 std::string amplifier_timing_capabilities() {
     return std::string(network::control_descriptor("amplifier_timing"));
 }
 std::string amplifier_observation(const rf::AmplifierObservation& o) {
     const auto time = [](std::uint64_t n) {
-        return n ? wtp::json::quote(std::to_string(n)) : "null";
+        return n ? execution::json::quote(std::to_string(n)) : "null";
     };
     return "{\"schema\":\"amplifier-readback\",\"epoch\":" +
-           wtp::json::quote(std::to_string(o.epoch)) +
+           execution::json::quote(std::to_string(o.epoch)) +
            ",\"configured\":" + (o.configured ? "true" : "false") +
            ",\"lead_ms\":" + std::to_string(o.lead_ms) +
            ",\"tail_ms\":" + std::to_string(o.tail_ms) +
@@ -93,7 +93,7 @@ std::string wspr_plan(const standalone::Config& config) {
         for (unsigned i = 0; i < plan->count; ++i) {
             if (i)
                 types += ',';
-            types += wtp::json::quote("type" + std::to_string(unsigned(plan->frames[i].type)));
+            types += execution::json::quote("type" + std::to_string(unsigned(plan->frames[i].type)));
         }
     types += ']';
     std::string rationale =
@@ -119,8 +119,8 @@ std::string wspr_plan(const standalone::Config& config) {
                      "requested identity.";
     return "{\"schema\":\"wspr-plan\",\"supported\":" + std::string(plan ? "true" : "false") +
            ",\"type2_ambiguous\":" + (plan && plan->type2_ambiguous ? "true" : "false") +
-           ",\"alternate_callsign\":" + (alternate.empty() ? "null" : wtp::json::quote(alternate)) +
+           ",\"alternate_callsign\":" + (alternate.empty() ? "null" : execution::json::quote(alternate)) +
            ",\"frame_types\":" + types + ",\"frames\":" + std::to_string(plan ? plan->count : 0) +
-           ",\"slot_separation_s\":120,\"rationale\":" + wtp::json::quote(rationale) + "}";
+           ",\"slot_separation_s\":120,\"rationale\":" + execution::json::quote(rationale) + "}";
 }
 } // namespace wsprrypico::application
