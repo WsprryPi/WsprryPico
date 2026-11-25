@@ -241,6 +241,8 @@ std::optional<Config> Progress::candidate(const std::optional<Config>& applied,
         return {};
     if (!applied && domain != "station" && domain != "all")
         return {};
+    if (domain == "drive" && !values_[10])
+        return {}; // A domain request cannot invent an unapplied drive draft.
     Config c = (applied ? *applied : factory_config());
     const auto value = [&](std::size_t i) -> std::optional<wtp::json::Value> {
         return values_[i] ? std::optional{wtp::json::Value{*values_[i]}} : std::nullopt;
@@ -307,6 +309,8 @@ std::optional<Config> Progress::candidate(const std::optional<Config>& applied,
             break;
         }
     }
+    if (domain != "drive" && !encoding::valid_station_details(c.callsign, c.locator, c.power_dbm))
+        return {};
     return parse_config(serialize_config(c));
 }
 bool Progress::amplifier_view_required() const {
@@ -318,7 +322,8 @@ bool Progress::amplifier_view_required() const {
 std::string Progress::station_fields(const std::optional<Config>& applied) const {
     std::string result = "{";
     for (std::size_t i = 0; i < 3; ++i) {
-        const auto prior = !applied ? "null"
+        const auto prior = !applied || (applied->callsign.empty() && applied->locator.empty())
+                               ? "null"
                            : i == 0 ? quote(applied->callsign)
                            : i == 1 ? quote(applied->locator)
                                     : std::to_string(applied->power_dbm);

@@ -135,22 +135,8 @@ Set `CHROME_BIN` as described in the [browser validation guide](README.md#browse
 
 ## Shared site icon
 
-The manual and firmware use `docs/_static/favicon.ico`, unchanged from
-WsprryPi-Docs revision `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`.
-Attribution is retained in the public credits and third-party notices. Sphinx
-resolves the icon relative to each documentation page, including nested pages
-and Read the Docs version/language prefixes.
+The manual and firmware use `docs/_static/favicon.ico`, unchanged from WsprryPi-Docs revision `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`. Attribution is retained in the public credits and third-party notices. Sphinx resolves the icon relative to each documentation page, including nested pages and Read the Docs version/language prefixes.
 
-The asset generator embeds the same binary bytes once as immutable flash data.
-All independently served station, setup, owner, and recovery documents reference
-`/favicon.ico`. The route returns `image/x-icon` with the exact binary length,
-without authentication or session creation, under the existing Host/interface
-admission rules. Captive probes redirect to the AP origin before local assets
-are fetched. Unknown routes and trailing slashes retain their existing handling.
-The existing `Cache-Control: no-store` policy applies to the icon, so repeat
-requests retrieve the current firmware asset. No Internet request is needed.
+The asset generator embeds the same binary bytes once as immutable flash data. All independently served station, setup, owner, and recovery documents reference `/favicon.ico`. The route returns `image/x-icon` with the exact binary length, without authentication or session creation, under the existing Host/interface admission rules. Captive probes redirect to the AP origin before local assets are fetched. Unknown routes and trailing slashes retain their existing handling. The existing `Cache-Control: no-store` policy applies to the icon, so repeat requests retrieve the current firmware asset. No Internet request is needed.
 
-Production route tests compare delivered bytes with the canonical file. Native
-browser section tests verify the sole icon link, exact bytes, image decoding,
-and repeat delivery before login on consumer, certificate, and configured AP
-pages. Physical operating-system captive viewers may omit site icons.
+Production route tests compare delivered bytes with the canonical file. Native browser section tests verify the sole icon link, exact bytes, image decoding, and repeat delivery before login on consumer, certificate, and configured AP pages. Physical operating-system captive viewers may omit site icons.

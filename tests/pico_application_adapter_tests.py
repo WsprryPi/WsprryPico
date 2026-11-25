@@ -494,7 +494,8 @@ int main() {
                         '-I' + str(ROOT / 'src/microchrony'),
                         '-I' + str(ROOT / 'src'), str(path / 'adapter.cpp'),
                         str(ROOT / 'src/wtp/json.cpp'), str(ROOT / 'src/wtp/observation.cpp'),
-                        str(ROOT / 'src/wtp/job_service.cpp'), str(ROOT / 'src/wtp/sha256.cpp'),
+                        str(ROOT / 'src/wtp/job_service.cpp'), str(ROOT / 'src/wtp/arm_admission.cpp'),
+                        str(ROOT / 'src/wtp/sha256.cpp'),
                         str(ROOT / 'src/network/http.cpp'),
                         '-o', str(path / 'adapter')]
                 if rf:

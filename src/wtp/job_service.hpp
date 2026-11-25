@@ -481,10 +481,30 @@ struct PrepareResult {
     std::vector<FrequencyAdjustment> adjustments;
 };
 
+// Internal worker observation; never decoded from WTP or client documents.
+struct PadObservation {
+    std::uint64_t epoch = 0, observed_monotonic_ns = 0;
+    int rf_pin = -1, drive_ma = -1; // -1 unavailable, -2 verification failed.
+};
+
+// RF-owner register evidence, separate from RP2350 pad observations and all
+// wire formats. The service binds each fresh epoch to its accepted job.
+struct SynthesisObservation {
+    std::uint64_t epoch = 0, observed_monotonic_ns = 0;
+    int transmit_output = -1, drive_ma = -1;
+    std::uint32_t reference_hz = 0;
+};
+
 class RfEngine {
   public:
     static constexpr std::uint64_t maximum_completion_acknowledgement_ns = 100'000;
     virtual ~RfEngine() = default;
+    virtual PadObservation pad_observation() const {
+        return {};
+    }
+    virtual SynthesisObservation synthesis_observation() const {
+        return {};
+    }
     virtual std::uint64_t filter_preparation_ns() const {
         return 0;
     }
@@ -501,6 +521,10 @@ class RfEngine {
         return 32768;
     }
     virtual PrepareResult prepare(const Job& job) = 0;
+    // Local application preparation policy. The engine still prepares the same job.
+    virtual PrepareResult prepare_native_test_tone(const Job& job) {
+        return prepare(job);
+    }
     // Permanent local interlock also suppresses optional background hardware
     // work. Cleanup remains available; this never re-enables an inhibited job.
     virtual void inhibit_output() {}
@@ -719,7 +743,15 @@ class JobService {
     // Trusted in-process producers use fresh IDs and never replay requests.
     // Omit only their reply cache; retain sessions, ownership, validation and
     // completed-job identity/history exactly as for transport requests.
-    Response handle_internal(Request&& request);
+    // Optional application verification is synchronous, in-process only, and
+    // never part of ArmBody or any decoded WTP message. No context is retained.
+    using ExecutionVerifier = bool (*)(const PadObservation&, const SynthesisObservation&,
+                                       const void*);
+    Response handle_internal(Request&& request, ExecutionVerifier verify = nullptr,
+                             const void* context = nullptr);
+    // Only for the trusted Test Tone coordinator's LOAD. This purpose is
+    // passed on the call stack and is never decoded from a request.
+    Response handle_internal_test_tone_load(Request&& request);
     // Physical Console safety control only; never exposed as a network operation.
     Response local_abort();
     // Local physical output interlock. Once set, no transport or scheduler may
@@ -781,6 +813,23 @@ class JobService {
     [[nodiscard]] ClockSnapshot clock_snapshot() const {
         return clock_.snapshot();
     }
+    std::optional<std::uint64_t> execution_launch(std::string_view job) const {
+        return job_ && job_->job_id == job && arm_ ? arm_->launch_monotonic_ns : std::nullopt;
+    }
+    PadObservation execution_pad(std::string_view job) const {
+        return job == pad_job_ ? accepted_pad_ : PadObservation{};
+    }
+    SynthesisObservation execution_synthesis(std::string_view job) const {
+        return job == pad_job_ ? accepted_synthesis_ : SynthesisObservation{};
+    }
+    std::uint64_t start_resolution_ns() const {
+        return engine_.start_resolution_ns();
+    }
+    using TerminalObserver = void (*)(const TerminalRecord&, void*);
+    void terminal_observer(TerminalObserver observer, void* context) {
+        terminal_observer_ = observer;
+        terminal_context_ = context;
+    }
     [[nodiscard]] const ServiceConfig& config() const {
         return config_;
     }
@@ -824,8 +873,10 @@ class JobService {
         std::uint64_t lru;
     };
 
-    Response handle_owned(Request& request, bool retain_response = true);
-    Response dispatch(Request& request);
+    enum class LoadPurpose { Ordinary, NativeTestTone };
+    Response handle_owned(Request& request, bool retain_response = true,
+                          LoadPurpose purpose = LoadPurpose::Ordinary);
+    Response dispatch(Request& request, LoadPurpose purpose);
     Response abort_job(std::string_view job_id);
     Response reject(ErrorCode code) const;
     Response success() const;
@@ -874,6 +925,13 @@ class JobService {
     ArmObserver arm_observer_ = nullptr;
     void* arm_observer_context_ = nullptr;
     bool update_verification_ = false;
+    ExecutionVerifier arm_verifier_ = nullptr;
+    const void* arm_verifier_context_ = nullptr;
+    std::string pad_job_;
+    PadObservation accepted_pad_;
+    SynthesisObservation accepted_synthesis_;
+    TerminalObserver terminal_observer_ = nullptr;
+    void* terminal_context_ = nullptr;
 };
 
 } // namespace wsprrypico::wtp

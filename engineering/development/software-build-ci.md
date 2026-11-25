@@ -10,9 +10,7 @@ Pushes to `devel` and semantic `v<version>` tags run checks and build firmware. 
 
 The full checked-out source SHA identifies each build. PR heads, synthetic merge commits, and trusted branch commits are distinct. Preview artifacts are not trusted installation candidates. Verification is read-only; a successful build grants no publication authority. The installer consumes immutable, verified bundles independently of its own implementation version.
 
-All current firmware help links use the `devel` operator manual. `main` is absent
-during prerelease development; recreating it and selecting stable documentation
-belong to the stable `1.0.0` release process. The USB installer defaults to `devel`.
+All current firmware help links use the `devel` operator manual. `main` is absent during prerelease development; recreating it and selecting stable documentation belong to the stable `1.0.0` release process. The USB installer defaults to `devel`.
 
 ## Inputs and checks
 
@@ -72,90 +70,29 @@ A bookmark identifies the newest accepted source along the selected branch's anc
 
 ## Execution completeness and local qualification
 
-The canonical harness uses pinned Python 3.12.11 and Node 24.8.0. The shared Python
-ownership/evidence helpers require Python 3.11 or newer; the standalone installer's
-separate Python support contract is unchanged. Do not use `-O` or PYTHONOPTIMIZE
-for assertion-based checks.
+The canonical harness uses pinned Python 3.12.11 and Node 24.8.0. The shared Python ownership/evidence helpers require Python 3.11 or newer; the standalone installer's separate Python support contract is unchanged. Do not use `-O` or PYTHONOPTIMIZE for assertion-based checks.
 
-[`execution-policy.json`](../../scripts/ci/execution-policy.json) declares eighteen
-required command contexts. Its independently versioned `ci-execution-policy/2`
-requires the producer's frozen
-[`ctest-completion-policy.json`](../../scripts/ci/ctest-completion-policy.json).
-Every declared Python unittest and Node test entry point must report its exact
-nonempty case count with no skips, TODOs, cancellations, or duplicate summaries.
-CTest's successful and failed output limits are both one MiB so the required
-framework footers remain available; output truncation refuses acceptance. These
-policies add evidence without changing deployment or control major versions.
-Older bundles use the policy selected from their own immutable source.
+[`execution-policy.json`](../../scripts/ci/execution-policy.json) declares eighteen required command contexts. Its independently versioned `ci-execution-policy/2` requires the producer's frozen [`ctest-completion-policy.json`](../../scripts/ci/ctest-completion-policy.json). Every declared Python unittest and Node test entry point must report its exact nonempty case count with no skips, TODOs, cancellations, or duplicate summaries. CTest's successful and failed output limits are both one MiB so the required framework footers remain available; output truncation refuses acceptance. These policies add evidence without changing deployment or control major versions. Older bundles use the policy selected from their own immutable source.
 
-Each command's `execution.json` record binds source, run/attempt, command, working
-directory, monotonic elapsed span, actual exit, completion evidence, and exact log
-byte range/hash. Failed commands retain failed receipts. Assembly requires the
-complete successful context set, registered commands, JUnit XML, framework counts,
-and source-bound logs. An uploaded producer label alone cannot establish trust;
-retrieval independently checks the actual GitHub Actions workflow and jobs.
+Each command's `execution.json` record binds source, run/attempt, command, working directory, monotonic elapsed span, actual exit, completion evidence, and exact log byte range/hash. Failed commands retain failed receipts. Assembly requires the complete successful context set, registered commands, JUnit XML, framework counts, and source-bound logs. An uploaded producer label alone cannot establish trust; retrieval independently checks the actual GitHub Actions workflow and jobs.
 
-A local build can omit optional SDK-backed registrations and analysis dependencies.
-Its successful subset does not qualify the canonical lane. Select focused tests
-from `ctest --test-dir BUILD --show-only=json-v1` and use `--no-tests=error`:
+A local build can omit optional SDK-backed registrations and analysis dependencies. Its successful subset does not qualify the canonical lane. Select focused tests from `ctest --test-dir BUILD --show-only=json-v1` and use `--no-tests=error`:
 
 ```sh
 ctest --test-dir BUILD --no-tests=error --output-on-failure -R REGISTERED_NAME_REGEX
 ```
 
-Reconcile the selected result inventory before reporting success. The full lane
-requires all source-declared contexts and optional dependencies selected by the
-canonical recipe. Linux tool-download checks execute as an ordinary user; running
-their filesystem/permission assertions as root is not equivalent evidence.
+Reconcile the selected result inventory before reporting success. The full lane requires all source-declared contexts and optional dependencies selected by the canonical recipe. Linux tool-download checks execute as an ordinary user; running their filesystem/permission assertions as root is not equivalent evidence.
 
 ## Fixture ownership, clocks, and resources
 
-Native browser scenarios use
-[`browser_harness.mjs`](../../tests/browser_harness.mjs),
-[`browser_scope.mjs`](../../tests/browser_scope.mjs),
-[`browser_cdp.mjs`](../../tests/browser_cdp.mjs), and
-[`browser_deadline.mjs`](../../tests/browser_deadline.mjs).
-[`fixture_process.mjs`](../../tests/fixture_process.mjs) and
-[`fixture_process.py`](../../tests/fixture_process.py) own command/reply fixtures.
-Register ownership before fallible initialization, preserve the original error
-alongside cleanup errors, check late child exits, stop every owned writer, and
-remove private profiles only after observed termination. Cancellation remains
-visible through qualification, receipt commit, and signal-handler handoff; its
-non-I/O exception cannot be swallowed as a recoverable OSError. Child/cancellation
-failures remain grouped with log, storage, or handler-restoration failures.
-Worker/module paths
-resolve relative to their owning module; the caller's working directory does not
-select another repository's worker.
+Native browser scenarios use [`browser_harness.mjs`](../../tests/browser_harness.mjs), [`browser_scope.mjs`](../../tests/browser_scope.mjs), [`browser_cdp.mjs`](../../tests/browser_cdp.mjs), and [`browser_deadline.mjs`](../../tests/browser_deadline.mjs). [`fixture_process.mjs`](../../tests/fixture_process.mjs) and [`fixture_process.py`](../../tests/fixture_process.py) own command/reply fixtures. Register ownership before fallible initialization, preserve the original error alongside cleanup errors, check late child exits, stop every owned writer, and remove private profiles only after observed termination. Cancellation remains visible through qualification, receipt commit, and signal-handler handoff; its non-I/O exception cannot be swallowed as a recoverable OSError. Child/cancellation failures remain grouped with log, storage, or handler-restoration failures. Worker/module paths resolve relative to their owning module; the caller's working directory does not select another repository's worker.
 
-Readiness requires actual protocol/state evidence. TLS control commands acknowledge
-foreground polling before logical time advances; hostname cancellation holds and
-executes the actual callback. Keep product timing unchanged, distinguish logical
-test time from real host time, and retain finite independent hang watchdogs when a
-clock is injected. A fixed delay or absent marker does not qualify readiness,
-expiry, cancellation, or cleanup. Startup qualification includes a live page;
-partial/malformed discovery, stalled bodies, late success, and early exits refuse.
+Readiness requires actual protocol/state evidence. TLS control commands acknowledge foreground polling before logical time advances; hostname cancellation holds and executes the actual callback. Keep product timing unchanged, distinguish logical test time from real host time, and retain finite independent hang watchdogs when a clock is injected. A fixed delay or absent marker does not qualify readiness, expiry, cancellation, or cleanup. Startup qualification includes a live page; partial/malformed discovery, stalled bodies, late success, and early exits refuse.
 
-The canonical CTest command uses two workers. Keep all existing RUN_SERIAL
-exclusions: network/interop fixtures own loopback 18443/18444 and generated test
-credentials, and the session pilot owns its exclusive browser fixture. Native
-profile qualification uses separate 19439, 19459/19461, and 19479–19488 ports.
-Standalone browser commands retain sequential ownership of 19139 (pilot 19149).
-Other startup endpoints use ephemeral ports; profiles, journals, and scratch
-outputs are private. The selected-source regression caps its nested compilation
-at four workers. Recheck ports, files, credentials, memory, and nested process
-budgets before increasing concurrency or replacing an exclusion with a lock.
+The canonical CTest command uses two workers. Keep all existing RUN_SERIAL exclusions: network/interop fixtures own loopback 18443/18444 and generated test credentials, and the session pilot owns its exclusive browser fixture. Native profile qualification uses separate 19439, 19459/19461, and 19479–19488 ports. Standalone browser commands retain sequential ownership of 19139 (pilot 19149). Other startup endpoints use ephemeral ports; profiles, journals, and scratch outputs are private. The selected-source regression caps its nested compilation at four workers. Recheck ports, files, credentials, memory, and nested process budgets before increasing concurrency or replacing an exclusion with a lock.
 
-The thirteen native-browser command contexts are frequency, first-use,
-session-timeout, progress, recovery, submission, hostname, organization, WSPR,
-message-frequency, operator, sections-consumer, and sections-engineering. The
-message-frequency invocation uses two sequential browsers; recovery uses three
-isolated contexts inside one browser, while hostname/organization use separate
-device tabs. These are different counting units. Seven review-server invocations
-select eight actual native profiles in total; direct-fixture/replacement starts
-and regression processes are additional. Preserve source/shipped paths, layout
-assertions, captures, real crypto, independent journals, and the explicit first-use
-USB/overlay/network-backing and field-AP options. Capture suppression must not skip
-behavior or layout assertions.
+The thirteen native-browser command contexts are frequency, first-use, session-timeout, progress, recovery, submission, hostname, organization, WSPR, message-frequency, operator, sections-consumer, and sections-engineering. The message-frequency invocation uses two sequential browsers; recovery uses three isolated contexts inside one browser, while hostname/organization use separate device tabs. These are different counting units. Seven review-server invocations select eight actual native profiles in total; direct-fixture/replacement starts and regression processes are additional. Preserve source/shipped paths, layout assertions, captures, real crypto, independent journals, and the explicit first-use USB/overlay/network-backing and field-AP options. Capture suppression must not skip behavior or layout assertions.
 
 ### Native scenario obligations
 
@@ -178,35 +115,15 @@ behavior or layout assertions.
 | Operator cleanup | direct session fixture and source/shipped assets | Preserve intentional source HTML plus minified script/bundle path, status, filters, grids, GPIO, uncertainty/recovery, captures |
 
 
-The standalone lifecycle group runs cleanup, startup, and contextual-help tests.
-Its source-bound completion count includes early-exit observation, initialization
-cancellation, and recovery of descendants after an abrupt owner exit. The actual
-companion workflow invokes these modules from its own working directory.
+The standalone lifecycle group runs cleanup, startup, and contextual-help tests. Its source-bound completion count includes early-exit observation, initialization cancellation, and recovery of descendants after an abrupt owner exit. The actual companion workflow invokes these modules from its own working directory.
 
 ## Build reuse and source pairs
 
-The selected host-client libraries share five freshly compiled objects only for
-the same physical companion source root, under the common stricter warning flags.
-Both consumer archives, source verifiers, and real consumers remain. Different
-roots receive independent objects. Header, source, and flag edits must invalidate
-and rebuild the affected code; missing sources and genuine compiler failures
-refuse without falling back to another peer.
+The selected host-client libraries share five freshly compiled objects only for the same physical companion source root, under the common stricter warning flags. Both consumer archives, source verifiers, and real consumers remain. Different roots receive independent objects. Header, source, and flag edits must invalidate and rebuild the affected code; missing sources and genuine compiler failures refuse without falling back to another peer.
 
-Normal and inhibited firmware targets share common objects in the first fresh
-configuration. Target-specific definitions, engines, generated inputs, image
-checks, and separate audit outputs remain; normal ELF/map/UF2 bytes must remain
-unchanged after the inhibited build. The second normal reproducibility build uses
-an independently fresh directory. Existing output directories, files, and broken
-symlinks refuse instead of being reused or removed. Compiler overrides/launchers
-refuse, and actual firmware compiler commands must invoke the verified Arm tools
-directly. No object cache substitutes for fresh reproducibility.
+Normal and inhibited firmware targets share common objects in the first fresh configuration. Target-specific definitions, engines, generated inputs, image checks, and separate audit outputs remain; normal ELF/map/UF2 bytes must remain unchanged after the inhibited build. The second normal reproducibility build uses an independently fresh directory. Existing output directories, files, and broken symlinks refuse instead of being reused or removed. Compiler overrides/launchers refuse, and actual firmware compiler commands must invoke the verified Arm tools directly. No object cache substitutes for fresh reproducibility.
 
-Both production network and USB suites are required when shared fixtures or
-protocol-facing behavior changes. Select actual candidate sources, pinned
-Mbed TLS and recursive framework, and current companion consumers explicitly.
-The authoritative Pi recipes are its `.github/workflows/debian-non-hardware.yml`
-`wtp-network-loopback` and `wtp-usb-management-pair` jobs. With candidate host targets
-already configured and retained dependencies, the required software commands are:
+Both production network and USB suites are required when shared fixtures or protocol-facing behavior changes. Select actual candidate sources, pinned Mbed TLS and recursive framework, and current companion consumers explicitly. The authoritative Pi recipes are its `.github/workflows/debian-non-hardware.yml` `wtp-network-loopback` and `wtp-usb-management-pair` jobs. With candidate host targets already configured and retained dependencies, the required software commands are:
 
 ```sh
 export WSPRRYPI_DISABLE_HARDWARE_ACCESS=1
@@ -218,30 +135,10 @@ node "$PI_SOURCE/WsprryPi-UI/tests/wtp_usb_settings_test.js"
 WSPRRYPI_GPIO_DRIVE_REQUIRED=1 node "$PI_SOURCE/WsprryPi-UI/tests/wtp_usb_pair_test.js" "$PI_SOURCE/src/build/wtp-network/wtp_usb_pair_client" "$PICO_BUILD/usb_management_driver"
 ```
 
-Use distinct existing or unused build locations with identified duties. Explicitly
-set WSPRRY_PICO_WSPRRYPI_SOURCE and WSPRRY_PICO_NETWORK_CLIENT_SOURCE to the intended
-companion when configuring full host coverage. Record both actual revisions,
-working changes/hashes, dependencies, exact commands, and results. Failed,
-cancelled, timed-out, skipped, wrong-source, or missing required checks remain
-unresolved. An unmerged paired branch is feature-branch delivery, not delivery on
-devel/main. These fixtures exercise production handlers, crypto, serialization,
-framing/ACK, and journals without physical USB or RF qualification.
+Use distinct existing or unused build locations with identified duties. Explicitly set WSPRRY_PICO_WSPRRYPI_SOURCE and WSPRRY_PICO_NETWORK_CLIENT_SOURCE to the intended companion when configuring full host coverage. Record both actual revisions, working changes/hashes, dependencies, exact commands, and results. Failed, cancelled, timed-out, skipped, wrong-source, or missing required checks remain unresolved. An unmerged paired branch is feature-branch delivery, not delivery on devel/main. These fixtures exercise production handlers, crypto, serialization, framing/ACK, and journals without physical USB or RF qualification.
 
 ## Merge gates and performance observations
 
-Pico devel requires the current up-to-date candidate's `verify` check from GitHub
-Actions, pull-request merging, and administrator enforcement. Force pushes and
-branch deletion are disabled. Optional publication remains separate. Restore a
-broken verifier through a tested PR; do not weaken protection to accept a failed
-or absent result. A documentation commit skipped by CI cannot merge until its
-current candidate is verified.
+Pico devel requires the current up-to-date candidate's `verify` check from GitHub Actions, pull-request merging, and administrator enforcement. Force pushes and branch deletion are disabled. Optional publication remains separate. Restore a broken verifier through a tested PR; do not weaken protection to accept a failed or absent result. A documentation commit skipped by CI cannot merge until its current candidate is verified.
 
-Reliability, safety, complete coverage, and independent defect detection govern
-optimization. Compare identical source pairs, case inventories, tools, resource
-budgets, and fresh/warm states. Predeclare bounded observations, retain every
-first-attempt failure, and separate queue, setup, command spans, and whole-job
-elapsed time. Different-source hosted runs are observational comparisons. Do not
-infer a flake rate from a small green sample or retry until green. Physical files,
-code/bytes, logical cases, commands, native processes, browsers, compilations,
-links, jobs, and matrices have separate denominators; unused fixture retirement
-receives no reduction-goal credit. Reduction targets cannot remove required work.
+Reliability, safety, complete coverage, and independent defect detection govern optimization. Compare identical source pairs, case inventories, tools, resource budgets, and fresh/warm states. Predeclare bounded observations, retain every first-attempt failure, and separate queue, setup, command spans, and whole-job elapsed time. Different-source hosted runs are observational comparisons. Do not infer a flake rate from a small green sample or retry until green. Physical files, code/bytes, logical cases, commands, native processes, browsers, compilations, links, jobs, and matrices have separate denominators; unused fixture retirement receives no reduction-goal credit. Reduction targets cannot remove required work.

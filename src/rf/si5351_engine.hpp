@@ -29,6 +29,9 @@ class Engine final : public wtp::RfEngine {
            bool engineering_allowed, IndicatorGate* indicator = nullptr,
            AmplifierEnable* amplifier = nullptr, FilterSelector* filters = nullptr,
            bool ordinary_qualified = false);
+    wtp::SynthesisObservation synthesis_observation() const override {
+        return synthesis_observation_;
+    }
     std::size_t preparation_memory_bytes(const wtp::Job&) const override;
     wtp::PrepareResult prepare(const wtp::Job&) override;
     bool set_frequency_correction_ppb(std::int32_t) override;
@@ -82,7 +85,7 @@ class Engine final : public wtp::RfEngine {
   private:
     static constexpr std::uint64_t preparation_budget_ns = 60'000'000;
     static constexpr std::uint64_t transition_budget_ns = 8'000'000;
-    static constexpr std::uint64_t minimum_transition_ns = 10'000'000;
+    static constexpr std::uint64_t minimum_transition_ns = execution_minimum_transition_ns;
     static constexpr std::uint64_t chain_service_margin_ns = 1'000'000;
     bool initialize();
     bool fail(std::string_view, wtp::EngineState = wtp::EngineState::Failed);
@@ -109,6 +112,7 @@ class Engine final : public wtp::RfEngine {
     std::optional<std::uint64_t> launch_ns_, release_ns_, selection_ns_, enable_ns_, tail_ns_;
     std::uint64_t enable_command_ns_ = 0, disable_command_ns_ = 0;
     AmplifierObservation amplifier_observation_;
+    wtp::SynthesisObservation synthesis_observation_;
     unsigned event_ = 0;
     std::uint8_t primed_tone_ = JobPlan::off;
     std::string_view failure_ = "not_initialized";

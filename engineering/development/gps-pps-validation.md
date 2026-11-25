@@ -137,85 +137,21 @@ The shared installer first completed a preserving same-image transaction using t
 
 ### Existing-wiring counter diagnostic, 2026-11-07
 
-Pico C completed two RAM-only 301-PPS captures using diagnostic source
-`c1f96a5e3af3c42304b374929b43c3ec2b3470f5`, at 138 MHz, with CLK2 on GP7,
-QLG3 PPS on GP3, and QLG3 serial on GP1. The user reconfirmed this setup.
-The actual production GPS/reference adapters ran alongside independent GPIO
-polling brackets on the same hardware counter. CLK2 used the fixture's integer
-PLLA 900 MHz / MS900 plan, which differs from the ordinary PLLB plan. The
-continuous counter also differs from ordinary twelve-second monitor restarts.
-No CLK0/GP2 RF job, SDR capture, GPSDO control, or GPSDO-to-GPIO connection
-was used. USB output alternated between quiet and bounded load every sixty
-PPS edges, with the second capture reversing the initial state.
+Pico C completed two RAM-only 301-PPS captures using diagnostic source `c1f96a5e3af3c42304b374929b43c3ec2b3470f5`, at 138 MHz, with CLK2 on GP7, QLG3 PPS on GP3, and QLG3 serial on GP1. The user reconfirmed this setup. The actual production GPS/reference adapters ran alongside independent GPIO polling brackets on the same hardware counter. CLK2 used the fixture's integer PLLA 900 MHz / MS900 plan, which differs from the ordinary PLLB plan. The continuous counter also differs from ordinary twelve-second monitor restarts. No CLK0/GP2 RF job, SDR capture, GPSDO control, or GPSDO-to-GPIO connection was used. USB output alternated between quiet and bounded load every sixty PPS edges, with the second capture reversing the initial state.
 
-Both captures retained 301 consecutive PPS/UTC observations, maximum independent
-poll gap 9 us, and zero UART-error, dropped-record, or capture-rejection increments
-during capture. The quiet-first run retained 30 pre-capture UART errors; the
-loaded-first run retained zero. Startup counters were not reset. Load writes
-were 12,001 and 18,077. Ten and nine production count snapshots, respectively,
-legitimately refused concurrent publication; those observations remain present.
-Per run, 28/30 ten-second, 8/10 thirty-second, and 3/5 sixty-second windows had
-coherent endpoints. Unavailable windows were neither shifted nor fabricated.
-Every available production reconstruction agreed with independent count brackets.
-Maximum absolute midpoint differences were 535.50/585.50 ppb at ten seconds,
-116.67/100.00 ppb at thirty seconds, and 41.67/39.25 ppb at sixty seconds
-(quiet-first/loaded-first). Midpoints are not exact acquisition errors. Windows
-crossing or touching a load transition are labeled separately; the limited
-interior windows do not establish a causal USB-load effect.
+Both captures retained 301 consecutive PPS/UTC observations, maximum independent poll gap 9 us, and zero UART-error, dropped-record, or capture-rejection increments during capture. The quiet-first run retained 30 pre-capture UART errors; the loaded-first run retained zero. Startup counters were not reset. Load writes were 12,001 and 18,077. Ten and nine production count snapshots, respectively, legitimately refused concurrent publication; those observations remain present. Per run, 28/30 ten-second, 8/10 thirty-second, and 3/5 sixty-second windows had coherent endpoints. Unavailable windows were neither shifted nor fabricated. Every available production reconstruction agreed with independent count brackets. Maximum absolute midpoint differences were 535.50/585.50 ppb at ten seconds, 116.67/100.00 ppb at thirty seconds, and 41.67/39.25 ppb at sixty seconds (quiet-first/loaded-first). Midpoints are not exact acquisition errors. Windows crossing or touching a load transition are labeled separately; the limited interior windows do not establish a causal USB-load effect.
 
-Independent ten-second reference midpoints ranged −550 to +500 ppb and −400
-to +300 ppb. Thirty-second ranges narrowed to −166.67…+66.67 and
-−183.33…+33.33 ppb; sixty-second ranges were −108.33…+8.33 and
-−141.67…+8.33 ppb. Both complete 300-second estimates were −63.33 ppb,
-with outward-rounded conditional half intervals of 90.01 ppb. These are
-conditional on the explicit 10 us allowance per PPS endpoint, count quantization,
-and retained GPIO/count brackets; this allowance is not a metrology certificate.
-Longer windows reduce observed spread in these captures, but do not uniquely
-separate oscillator variation, physical PPS variation, and acquisition effects.
-Shared hardware-counter errors and rapid source changes during post-edge reads
-are not independently resolved. This is not RF improvement evidence, and no
-production calibration policy changed. These captures do not establish RF improvement; the bounded investigation outcome is recorded below.
+Independent ten-second reference midpoints ranged −550 to +500 ppb and −400 to +300 ppb. Thirty-second ranges narrowed to −166.67…+66.67 and −183.33…+33.33 ppb; sixty-second ranges were −108.33…+8.33 and −141.67…+8.33 ppb. Both complete 300-second estimates were −63.33 ppb, with outward-rounded conditional half intervals of 90.01 ppb. These are conditional on the explicit 10 us allowance per PPS endpoint, count quantization, and retained GPIO/count brackets; this allowance is not a metrology certificate. Longer windows reduce observed spread in these captures, but do not uniquely separate oscillator variation, physical PPS variation, and acquisition effects. Shared hardware-counter errors and rapid source changes during post-edge reads are not independently resolved. This is not RF improvement evidence, and no production calibration policy changed. These captures do not establish RF improvement; the bounded investigation outcome is recorded below.
 
-An initial preflight failed on an unconfigured-profile assumption before RAM
-loading. The first diagnostic capture was refused for aggregate UART errors;
-its original image was restored and evidence retained. The accepted successor
-starts the capture core before UART ingress, preserves a post-settling health
-baseline, and rejects any error increment during capture. Stack-usage review
-also replaced inadequate SDK defaults with separate 16 KiB/8 KiB stacks and
-verified linker bounds. Both RAM variants were cross-built with pinned SDK
-2.3.1 and Arm GNU 15.3.1; every UF2 payload address was checked to be SRAM.
-The external GP9/GP11 variant was built but has not been physically run.
+An initial preflight failed on an unconfigured-profile assumption before RAM loading. The first diagnostic capture was refused for aggregate UART errors; its original image was restored and evidence retained. The accepted successor starts the capture core before UART ingress, preserves a post-settling health baseline, and rejects any error increment during capture. Stack-usage review also replaced inadequate SDK defaults with separate 16 KiB/8 KiB stacks and verified linker bounds. Both RAM variants were cross-built with pinned SDK 2.3.1 and Arm GNU 15.3.1; every UF2 payload address was checked to be SRAM. The external GP9/GP11 variant was built but has not been physically run.
 
-Before this session, another project had installed CI image
-`0.1.0-ci.42429358845.1`, source
-`922935f0097ed3014f8f20bef4bb0c9289645422`. Its exact published bundle was
-retained and verified before RAM loading. The older local developer reference
-was inapplicable to this CI image and was not edited. Final restoration verified
-that all 4 MiB of flash remained unchanged (SHA-256
-`6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906`),
-with no flash rewrite, the original CI image, equal saved semantics, an empty
-unowned job queue, and inactive output. Pico C was released after verification.
-The exact bundle, raw transcripts, original snapshots, failed attempts, controller,
-and backups remain private under
-`/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage1-20261107`.
-Raw transcripts contain GPS status and are excluded from tracked source. The
-adjacent JSON records sanitized measurements and capture hashes. The
-[diagnostic instructions](../../tests/hardware/si5351-reference-truth/README.md)
-define tomorrow's disabled-output wiring and preservation requirements.
+The RAM diagnostic baseline was CI image `0.1.0-ci.42429358845.1`, source `922935f0097ed3014f8f20bef4bb0c9289645422`. Its exact published bundle was retained and verified before RAM loading. The older local developer reference was inapplicable to this CI image and was not edited. Final restoration verified that all 4 MiB of flash remained unchanged (SHA-256 `6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906`), with no flash rewrite, the original CI image, equal saved semantics, an empty unowned job queue, and inactive output. Pico C was released after verification. The exact bundle, raw transcripts, original snapshots, failed attempts, controller, and backups remain private under `/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage1-20261107`. Raw transcripts contain GPS status and are excluded from tracked source. The adjacent JSON records sanitized measurements and capture hashes. The [diagnostic instructions](../../tests/hardware/si5351-reference-truth/README.md) define disabled-output wiring and preservation requirements.
 
 ### GPSDO GPIO routing diagnostic, 2026-11-08
 
-Pico C used RAM fixture `9c0092aae381fa68b8b61a9b0840703e1ab81df5`, at
-138 MHz, with LBE-1421 `0673ED0FA107` firmware 1.9 on GP9 clock / GP11 PPS.
-Original GP7 CLK2, GP3 QLG3 PPS, and GP1 serial remained connected. The user
-confirmed both-ended connections and supplied a photo showing GP9 and its
-adjacent ground. Electrical probes subsequently verified both intended signal
-bindings; no user wiring change was required.
+Pico C used RAM fixture `9c0092aae381fa68b8b61a9b0840703e1ab81df5`, at 138 MHz, with LBE-1421 `0673ED0FA107` firmware 1.9 on GP9 clock / GP11 PPS. Original GP7 CLK2, GP3 QLG3 PPS, and GP1 serial remained connected. The user confirmed both-ended connections and supplied a photo showing GP9 and its adjacent ground. Electrical probes subsequently verified both intended signal bindings; no user wiring change was required.
 
-The retained GPSDO utility's enable labels did not establish independent physical
-output gating on this unit. Setting OUT1 to 5 Hz and OUT2 to 10 Hz distinguished
-the paths without relying on the PWM frequency counter. Every probe lasted
-2.2 seconds with input-only pads and quiet GP8/GP10/GP12/GP13:
+The retained GPSDO utility's enable labels did not establish independent physical output gating on this unit. Setting OUT1 to 5 Hz and OUT2 to 10 Hz distinguished the paths without relying on the PWM frequency counter. Every probe lasted 2.2 seconds with input-only pads and quiet GP8/GP10/GP12/GP13:
 
 | Requested frequency enables / PPS | GP9 hardware edges | GP11 polled rising edges |
 | --- | --- | --- |
@@ -227,60 +163,15 @@ the paths without relying on the PWM frequency counter. Every probe lasted
 | Both off / PPS on | 0 | 2 |
 | Both on, OUT2 1 MHz / PPS on, separate combined guard | 2,199,998 | 2 |
 
-All interleaved all-off controls were quiet. The 5/10 Hz GPIO polling counts
-independently establish the cable/pin bindings and show that the requested
-OUT1-only state produces both programmed signals, while OUT2-only produces
-neither. This is an observed utility/device interaction, not a diagnosed general
-firmware defect. The corrected bench controller explicitly requests both
-frequency enables and PPS, then verifies actual 1 MHz on GP9 and PPS on GP11.
-Status readback alone is insufficient. No third-party repository was edited.
-The [fixture instructions](../../tests/hardware/si5351-reference-truth/README.md)
-record this unit-specific setup and its digital-validation limits.
+All interleaved all-off controls were quiet. The 5/10 Hz GPIO polling counts independently establish the cable/pin bindings and show that the requested OUT1-only state produces both programmed signals, while OUT2-only produces neither. This is an observed utility/device interaction, not a diagnosed general firmware defect. The corrected bench controller explicitly requests both frequency enables and PPS, then verifies actual 1 MHz on GP9 and PPS on GP11. Status readback alone is insufficient. No third-party repository was edited. The [fixture instructions](../../tests/hardware/si5351-reference-truth/README.md) record this unit-specific setup and its digital-validation limits.
 
-An initial all-off probe correctly refused `input_only=0`: the fixture's SDK
-function switch cleared its forced-input override. No GPSDO output had been
-enabled. The successor changes only FUNCSEL and preserves the override; later
-probes report input-only operation with a 1 us maximum polling gap. That refused
-attempt, subsequent missing-clock probes under the earlier enable configuration,
-and a mutation-free bundle-directory preflight refusal remain separate evidence.
-None is counted as a calibration pass.
+An initial all-off probe correctly refused `input_only=0`: the fixture's SDK function switch cleared its forced-input override. No GPSDO output had been enabled. The successor changes only FUNCSEL and preserves the override; later probes report input-only operation with a 1 us maximum polling gap. That refused attempt, subsequent missing-clock probes under the earlier enable configuration, and a mutation-free bundle-directory preflight refusal remain separate evidence. None is counted as a calibration pass.
 
-The simultaneous off/combined/off guard passed. The following quiet-first
-five-minute capture retained all 301 independent PPS/count endpoints, maximum
-poll gap 10 us, 12,001 USB load writes, and zero new UART, dropped-record, or
-capture-rejection errors. Twenty-three reference-state checks, including start,
-15-second checks, and end, retained antenna/satellite/PLL health and expected
-source settings. However, the production GPS observation sequence jumps from
-96 to 99 with the corresponding three-second UTC/raw interval: observations
-97 and 98 are absent. The full production analyzer therefore refused continuity,
-and the second capture did not start. No missing observations were fabricated,
-no window was shifted to hide the gap, and the cause of the emission gap remains
-unestablished by the retained final health counters.
+The simultaneous off/combined/off guard passed. The following quiet-first five-minute capture retained all 301 independent PPS/count endpoints, maximum poll gap 10 us, 12,001 USB load writes, and zero new UART, dropped-record, or capture-rejection errors. Twenty-three reference-state checks, including start, 15-second checks, and end, retained antenna/satellite/PLL health and expected source settings. However, the production GPS observation sequence jumps from 96 to 99 with the corresponding three-second UTC/raw interval: observations 97 and 98 are absent. The full production analyzer therefore refused continuity, and the second capture did not start. No missing observations were fabricated, no window was shifted to hide the gap, and the cause of the emission gap remains unestablished by the retained final health counters.
 
-Independent-only analysis remains separately useful: ten-second midpoint values
-span -550 to +400 ppb, sixty-second values -75 to +33.33 ppb, and the full
-300-second value is -6.67 ppb with an outward-rounded conditional half interval
-of 90.01 ppb. These retain the explicit 10 us allowance per PPS endpoint and
-count/edge brackets; they do not certify source accuracy or accept the refused
-production capture. Native replay through the unchanged production learner uses
-all original 299 observations, retaining the gap and its acquisition reset. It
-produces 235 overlapping count-based updates spanning -169 to +235 ppb, all
-within their own declared bounds. These are offline replay outputs for the
-GPSDO input, not device-reported Si5351 calibrations or independent experimental
-repeats. Shared counter errors, source relative jitter, and post-edge read-delay
-variation remain unresolved. No production calibration policy or RF-improvement
-criterion changed. This stage did not establish RF improvement; the bounded investigation outcome is recorded below.
+Independent-only analysis remains separately useful: ten-second midpoint values span -550 to +400 ppb, sixty-second values -75 to +33.33 ppb, and the full 300-second value is -6.67 ppb with an outward-rounded conditional half interval of 90.01 ppb. These retain the explicit 10 us allowance per PPS endpoint and count/edge brackets; they do not certify source accuracy or accept the refused production capture. Native replay through the unchanged production learner uses all original 299 observations, retaining the gap and its acquisition reset. It produces 235 overlapping count-based updates spanning -169 to +235 ppb, all within their own declared bounds. These are offline replay outputs for the GPSDO input, not device-reported Si5351 calibrations or independent experimental repeats. Shared counter errors, source relative jitter, and post-edge read-delay variation remain unresolved. No production calibration policy or RF-improvement criterion changed. This stage did not establish RF improvement; the bounded investigation outcome is recorded below.
 
-Final handback verified original CI image `0.1.0-ci.42429358845.1`, source
-`922935f0097ed3014f8f20bef4bb0c9289645422`, equal saved semantics, idle/empty/
-unowned/inactive output, and unchanged full flash SHA-256
-`6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906`.
-No flash rewrite or CLK0/GP2 RF job occurred. Both GPSDO frequency enables and
-PPS are verified off. Test frequencies 5 Hz / 1 MHz remain configured but disabled;
-restoration of the original enabled RF-reference configuration is deferred while
-GPIO leads remain attached. Private transcripts, tools, exact original bundles,
-backups, refused attempts, and sanitized scalar analysis remain under
-`/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage2-20261108`.
+Final handback verified original CI image `0.1.0-ci.42429358845.1`, source `922935f0097ed3014f8f20bef4bb0c9289645422`, equal saved semantics, idle/empty/ unowned/inactive output, and unchanged full flash SHA-256 `6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906`. No flash rewrite or CLK0/GP2 RF job occurred. Both GPSDO frequency enables and PPS are verified off. Test frequencies 5 Hz / 1 MHz remain configured but disabled; restoration of the original enabled RF-reference configuration is deferred while GPIO leads remain attached. Private transcripts, tools, exact original bundles, backups, refused attempts, and sanitized scalar analysis remain under `/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage2-20261108`.
 
 ### Pairing trace and receiver-delay profile, 2026-11-08
 
@@ -303,11 +194,11 @@ All available 30/60 s reconstruction midpoints lie within the independent same-e
 
 Final verification again found all 4 MiB of original flash byte-identical (SHA-256 `6bb5e48bf27d528cdeec802fb229453092a933adfb6ec51b2e050ab61cc3c906`), with no flash rewrite. Original CI image `0.1.0-ci.42429358845.1` / source `922935f0097ed3014f8f20bef4bb0c9289645422`, equal saved semantics, and an empty/unowned/inactive queue were verified. Pico C is released. Both frequency enables and PPS are off; 5 Hz/1 MHz remain configured but disabled while the GPIO leads are attached. No CLK0/GP2 RF job, SDR control, or ordinary candidate-image deployment occurred. Exact bundles, backups, controller sources, refused attempts, and raw GPS-bearing transcripts remain private under `/home/pi/.local/state/wsprrypi-qualification/si5351-repeatability-stage3-20261108`; the two accepted records are in its `profile-1250-01` child directory.
 
-Software validation passed for Pico feature code `df8de6a08617d6e40bde83f63969cfb29880c641`: [Pico CI](https://github.com/WsprryPi/WsprryPico/actions/runs/42486702825) reports 234 CTests, zero skipped, eighteen required contexts, 27 execution records, and thirteen native-browser contexts. Its synthetic preview `1b9c6b87fbab2dbdd49ffa3ac5074bb13b67da86` adds thirteen installer/prepared-publication/docs/pin/completion-policy files from base `7d841b75`, with no RF/GPS, fixture, or analysis implementation difference. No preview/base merge was performed. All nine [Pi CI jobs](https://github.com/WsprryPi/WsprryPi/actions/runs/42487195354) passed against Pi `0a794eeb3eeddbf3fdbb74bcc04ca9f84c8fe030` on `devel`, explicitly selecting this full Pico feature SHA. Both actual network runtime/interoperability/configuration and USB management/pair suites passed. The former companion `5594964f` is retained in Pi `devel` following an external merge; its deleted CI branch was not recreated. The final feature successor changes only the backlog and these Markdown/JSON evidence records. Local checks passed 26 analysis cases, five focused GPS producer/adapter/browser/schema CTests, eight private controller/cleanup cases, both pinned RAM builds, SRAM/stack checks, strict Sphinx, 1,754 local-target checks, and whitespace validation. The original Pi worktree and unrelated user changes remain untouched. Pico PR 19 remains draft with auto-merge disabled. The subsequent bounded closure is recorded below.
+Software validation passed for Pico code `df8de6a08617d6e40bde83f63969cfb29880c641`: [Pico CI](https://github.com/WsprryPi/WsprryPico/actions/runs/42486702825) reports 234 CTests, zero skipped, eighteen required contexts, 27 execution records, and thirteen native-browser contexts. Its synthetic preview `1b9c6b87fbab2dbdd49ffa3ac5074bb13b67da86` adds thirteen installer/prepared-publication/docs/pin/completion-policy files from base `7d841b75`, with no RF/GPS, fixture, or analysis implementation difference. All nine [Pi CI jobs](https://github.com/WsprryPi/WsprryPi/actions/runs/42487195354) passed against Pi `0a794eeb3eeddbf3fdbb74bcc04ca9f84c8fe030` explicitly selecting this full Pico source SHA. Both actual network runtime/interoperability/configuration and USB management/pair suites passed. Local checks passed 26 analysis cases, five focused GPS producer/adapter/browser/schema CTests, eight private controller/cleanup cases, both pinned RAM builds, SRAM/stack checks, strict Sphinx, 1,754 local-target checks, and whitespace validation. The subsequent bounded closure is recorded below.
 
 ### Bounded investigation closure, 2026-11-08
 
-**Outcome: the bounded investigation is complete, with a resolution-limited negative result.** Automatic Si5351 correction has not demonstrated repeatable carrier improvement for the tested hardware, acquisition method, and measurement resolution. No new acquisition candidate was selected, so the conditional acquisition and RF campaigns were not started. This is an engineering stopping decision within the authorized scope, not proof that finer capture, different acquisition, or future techniques cannot improve the result. The existing automatic feature remains available; its physical accuracy limitations and the instruction to measure before and after correction remain unchanged.
+**Outcome: a resolution-limited negative result.** Automatic Si5351 correction has not demonstrated repeatable carrier improvement for the tested hardware, acquisition method, and measurement resolution. No new acquisition candidate was selected, so the conditional acquisition and RF campaigns were not started. This result does not establish whether finer capture, different acquisition, or another measurement technique could improve accuracy. The existing automatic feature remains available; its physical accuracy limitations and the instruction to measure before and after correction remain unchanged.
 
 The offline gate reanalyzes the exact retained common-source transcripts after checking their original SHA-256 hashes. All 45 available comparisons in each run overlap the independent count bracket when the recorded production endpoint bounds are included. The original quiet-first PPS 100–110 midpoint discrepancy remains +35.49974095…+1,535.49974095 ppb; the midpoint and its original false consistency flag are preserved. Its full difference enclosure is −41,841.61349…+43,412.76648 ppb. Conditioning on independently polled raw PPS brackets instead of the configured PPS allowance gives −3,337.22658…+3,437.23701 ppb. Both contain zero. The latter shares the raw timer and counter and is not an external accuracy qualification. Overlap means the discrepancy is not unexplained by the recorded allowances; it does not validate those allowances physically or demonstrate improved acquisition.
 
@@ -323,13 +214,13 @@ The modeled normal owner supplies ten- to twelve-second synthesis fits, rather t
 | 5,366,200 Hz | 35.42672 | 23.05125 | Less than 12.37547 |
 | 28,126,100 Hz | 59.27205 | 13.96261 | Less than 45.30945 |
 
-Displayed values are rounded; the machine-readable record retains the unrounded values and each record's own allowance. These budgets describe the retained campaign and its per-record allowances, not immutable limits on future experiments. The independent common-source observer's maximum ten-second half intervals are about 2,800/2,850 ppb and its full 300-second half intervals are about 93.34 ppb. Those bounds do not resolve the residual budgets above. They cannot be reduced by treating overlapping windows as independent or assuming an unverified white-noise model. Finer PPS capture could reduce one quantization contribution, and longer acquisitions could reduce endpoint sensitivity, but neither the causal evidence nor the existing observer selects and validates a practical production change at the required scale. Longer acquisition would also change the normal session policy; the continuous diagnostic is insufficient qualification for that change. The gate therefore stops without selecting a firmware candidate whose benefit the present acceptance test can resolve. This does not establish that a different experiment using the same hardware could not succeed; it limits the conclusion to the retained observations, bounds, and authorized sequence.
+Displayed values are rounded; the machine-readable record retains the unrounded values and each record's own allowance. These budgets describe the retained campaign and its per-record allowances, not immutable limits on future experiments. The independent common-source observer's maximum ten-second half intervals are about 2,800/2,850 ppb and its full 300-second half intervals are about 93.34 ppb. Those bounds do not resolve the residual budgets above. They cannot be reduced by treating overlapping windows as independent or assuming an unverified white-noise model. Finer PPS capture could reduce one quantization contribution, and longer acquisitions could reduce endpoint sensitivity, but neither the causal evidence nor the existing observer selects and validates a practical production change at the required scale. Longer acquisition would also change the normal session policy; the continuous diagnostic is insufficient qualification for that change. The retained evidence does not select a firmware candidate whose benefit the acceptance test can resolve. This does not establish that a different experiment using the same hardware could not succeed; it limits the conclusion to the retained observations, bounds, and authorized sequence.
 
-No Pico, GPSDO, SDR, service, firmware, settings, or RF interface was accessed during this bounded execution. Actual Pico occupancy, new acquisition records, RF jobs, and commanded RF duration are all zero. The proposed acquisition and RF sessions each had a 60-minute ceiling, but their entry gates were not reached. The prior same-board restoration record remains historical evidence; this execution makes no fresh claim about live device state. No new wiring or operator action is required for this closure.
+The analysis used recorded inputs only: no device or RF access, new acquisitions, or transmissions occurred. The prior same-board restoration record does not establish the present device state.
 
-The maintained analysis reports full enclosures alongside the original midpoint comparisons. Production firmware, correction selection, acquisition cadence, settings/control contracts, and RF acceptance criteria are unchanged. The machine-readable record retains the derivation, sanitized results, source identities, validation commands/results, review disposition, and stopping decision. The obsolete open-ended execution prompt is removed after consolidating these findings. Broader experiments require a new explicitly scoped task.
+The maintained analysis reports full enclosures alongside the original midpoint comparisons. Production firmware, correction selection, acquisition cadence, settings/control contracts, and RF acceptance criteria are unchanged. The machine-readable record retains the derivation, sanitized results, source identities, validation commands/results, review disposition, and stopping decision. Additional acquisition or RF measurements require their own identified setup, finite measurement plan, and acceptance criteria.
 
-Final code/test revision `2938a3351de00b482a6d83134de496cfb353a803` passes [Pico verification](https://github.com/WsprryPi/WsprryPico/actions/runs/42491630528): 234 CTests with zero skipped, eighteen required contexts, 27 passing execution records, thirteen native-browser contexts, and the source-bound 28-case analysis inventory. Its synthetic preview is `f2f4a4fb81a0d3a0ee7c2e401fb89999aea95971`; thirteen newer-base files concern installer/prepared-publication/docs/pins/completion policy, with identical analysis and ordinary-runtime regression sources. No base merge was performed. All nine [Pi CI jobs](https://github.com/WsprryPi/WsprryPi/actions/runs/42491647088) pass using Pi `88fe1855e63e0c42ca8d2e822f29526a74789592` and explicitly selected Pico `2938a3351de00b482a6d83134de496cfb353a803`, including both actual production network and USB suites. Superseded source runs were cancelled and are not counted as passes. Local validation passes 28 analysis cases, the GPS/reference-monitor CTests, twelve modeled owner/learner controls, fourteen original-record replay checks, strict Sphinx, 1,743 local-target checks, and whitespace validation. The final successor changes documentation and removes the superseded prompt only; all implementation and tests match the selected code revision. Original companion worktrees and unrelated user changes remain untouched. Pico PR 19 remains draft without auto-merge, and no release or feature-branch merge occurred.
+Code/test revision `2938a3351de00b482a6d83134de496cfb353a803` passed [Pico verification](https://github.com/WsprryPi/WsprryPico/actions/runs/42491630528): 234 CTests with zero skipped, eighteen required contexts, 27 passing execution records, thirteen native-browser contexts, and the source-bound 28-case analysis inventory. Its synthetic preview is `f2f4a4fb81a0d3a0ee7c2e401fb89999aea95971`; thirteen newer-base files concern installer/prepared-publication/docs/pins/completion policy, with identical analysis and ordinary-runtime regression sources. All nine [Pi CI jobs](https://github.com/WsprryPi/WsprryPi/actions/runs/42491647088) pass using Pi `88fe1855e63e0c42ca8d2e822f29526a74789592` and explicitly selected Pico `2938a3351de00b482a6d83134de496cfb353a803`, including both actual production network and USB suites. Superseded source runs were cancelled and are not counted as passes. Local validation passes 28 analysis cases, the GPS/reference-monitor CTests, twelve modeled owner/learner controls, fourteen original-record replay checks, strict Sphinx, 1,743 local-target checks, and whitespace validation. The cited checks apply to the identified code/test revision and do not establish acceptance for another firmware image.
 
 ### Earlier conducted GPS/PPS observations
 

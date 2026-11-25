@@ -133,9 +133,9 @@ SoftApHttpAuthority SoftApHttpAdmission::authorize(const network::HttpRequest& r
                                                    std::string_view active_owner_session,
                                                    bool establish_session) {
     if (surface == SoftApSurface::BlankReadOnly ||
-        (surface == SoftApSurface::ProvisionedPreClock &&
-         operation != SoftApOperation::Hello && operation != SoftApOperation::Status &&
-         operation != SoftApOperation::Time && operation != SoftApOperation::NativeStop) ||
+        (surface == SoftApSurface::ProvisionedPreClock && operation != SoftApOperation::Hello &&
+         operation != SoftApOperation::Status && operation != SoftApOperation::Time &&
+         operation != SoftApOperation::NativeStop && operation != SoftApOperation::TestTone) ||
         !same_origin(request, request.method != "GET"))
         return {AccessCode::AuthenticationRequired, {}, false, {}};
     const auto token = cookie_token(request);

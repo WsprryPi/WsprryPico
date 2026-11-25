@@ -90,6 +90,9 @@ function supported(name,value){
  for(const [key,expected]of Object.entries(base)){
   if(variable[key]?!policy(variable[key],value[key],value,base):!equal(value[key],expected))return false;
  }
+ if(name==='test_tone' && (value.available
+   ? !Object.hasOwn(base.engines,value.active_engine)||value.minimum_duration_ms!==base.engines[value.active_engine].minimum_duration_ms
+   : value.active_engine!==null||value.minimum_duration_ms!==0))return false;
  return Object.entries(extra).every(([key,rule])=>policy(rule,value[key],value,base));
 }
 function jsonType(value,type){
@@ -216,14 +219,18 @@ root.WsprryControl=api;if(typeof module!=='undefined'&&module.exports)module.exp
             q['reference_uses'] != ['measurement_only', 'trusted_local'] or
             q['modes'] != ['wspr', 'tone', 'qrss', 'fskcw', 'dfcw']):
         raise ValueError('Unsupported ordinary Si5351 qualification profile')
-    profile = common + '#include <string_view>\nnamespace wsprrypico::hardware::si5351_support {\n'
+    profile = common + '#include <array>\n#include <algorithm>\n#include <string_view>\nnamespace wsprrypico::hardware::si5351_support {\n'
     profile += f'inline constexpr std::string_view id = {json.dumps(q["id"])};\n'
     profile += f'inline constexpr bool qualified = {str(q["qualified"]).lower()};\n'
     for name in ('system_clock_hz', 'i2c_pair', 'address', 'reference_hz', 'transmit_output',
-                 'drive_ma', 'loopback_output', 'loopback_input_gp'):
+                 'loopback_output', 'loopback_input_gp'):
         if type(q[name]) is not int or q[name] < 0:
             raise ValueError('Invalid Si5351 qualification constant: ' + name)
         profile += f'inline constexpr unsigned {name} = {q[name]};\n'
+    if q['drive_ma'] != [2, 4, 6, 8]:
+        raise ValueError('Invalid Si5351 execution drive set')
+    profile += 'inline constexpr std::array<unsigned, 4> drive_ma{2, 4, 6, 8};\n'
+    profile += 'inline bool supports_drive(unsigned value) { return std::find(drive_ma.begin(), drive_ma.end(), value) != drive_ma.end(); }\n'
     profile += '}\n'
     return {ROOT/'src/network/control_contract.hpp': constants, ROOT/'src/network/public_read.hpp': catalog,
             ROOT/'src/network/web/control-contract.js': javascript,

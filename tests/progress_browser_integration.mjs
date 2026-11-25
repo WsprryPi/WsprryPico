@@ -284,9 +284,45 @@ try {
     await cdp.send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     await cdp.send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab',windowsVirtualKeyCode:9});
     assert.equal(await cdp.evaluate(`document.activeElement.id`),'apply-engineering-station-progress');
-    console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,real_crypto:true,callsign_only:true,blank_qrss:true,mixed_outcomes:true,zero_power:true,explicit_reload:true,keep_draft_readback:true,explicit_application:true,reconstructed_reboot:true,network_only_no_profile_promotion:true,engineering_numeric_overflow:true,keyboard:true,future_reply:true,late_edit:true,late_rejected_and_cleared_outcomes:true,network_only_lost_reply_readback:true,native_power_clear:true,captures_enabled:process.env.PROGRESS_BROWSER_NO_CAPTURE!=='1'}));
+    // A real blank station can save/apply drive through the shipped page.
+    const removeDriveDialog = cdp.on('Page.javascriptDialogOpening', (_params, session) =>
+      cdp.send('Page.handleJavaScriptDialog', {accept:true}, session));
+    await cdp.send('Page.navigate',{url:'about:blank'});
+    engineering=false;
+    await f.stop();f=await h.fixture(process.argv[2]);
+    await f.command({op:'page_profile',mode:'network'});
+    await f.command({op:'first_use_profile',mode:'network'});await f.time(1000);
+    await cdp.send('Page.navigate',{url:'http://192.168.4.1/station'});
+    await until(()=>cdp.evaluate(`typeof localIdentity!=='undefined' && localIdentity && !busy`),'station-free drive discovery');
+    await field('local-password','test-password');await cdp.evaluate(`document.getElementById('local-login').requestSubmit()`);
+    await until(()=>cdp.evaluate(`localAuthenticated && !busy && savedProgress`),'station-free drive login');
+    await click('read-saved');await until(()=>cdp.evaluate(`writeState==='review' && !busy`),'station-free drive saved readback');
+    await click('review-saved');await until(()=>cdp.evaluate(`writeState==='ready' && !busy`),'station-free drive reviewed');
+    const driveBefore=await f.command({op:'stats'});
+    await click('gpio-drive-read');
+    await until(()=>cdp.evaluate(`!document.getElementById('gpio-drive-select').disabled && !busy`),'station-free drive editor');
+    await field('gpio-drive-select','8');
+    await cdp.evaluate(`document.getElementById('gpio-drive-select').dispatchEvent(new Event('change',{bubbles:true}))`);
+    assert.equal(await cdp.evaluate(`document.getElementById('gpio-drive-save-draft').disabled`),false);
+    await click('gpio-drive-save-draft');
+    await until(()=>cdp.evaluate(`!busy`),'station-free drive request settled');
+    await until(()=>cdp.evaluate(`!busy && document.getElementById('gpio-drive-draft-status').textContent.includes('Saved drive progress: 8 mA.')`),'station-free drive draft saved');
+    await click('read-saved');await until(()=>cdp.evaluate(`writeState==='review' && !busy`),'station-free draft readback');
+    await click('review-saved');await until(()=>cdp.evaluate(`writeState==='ready' && !busy`),'station-free draft review');
+    await click('gpio-drive-read');
+    await until(()=>cdp.evaluate(`!busy && !document.getElementById('gpio-drive-apply-draft').disabled`),'station-free drive application admitted');
+    await click('gpio-drive-apply-draft');
+    await until(()=>cdp.evaluate(`!busy && document.getElementById('gpio-drive-status').textContent.includes('Saved: 8 mA.')`),'station-free drive applied');
+    const driveRead=await cdp.evaluate(`api('gpio-drive').then(r=>r.data)`);
+    assert.equal(driveRead.saved,8);assert.equal(driveRead.boot_active,12);assert.equal(driveRead.pending_restart,true);
+    const settingsRead=await cdp.evaluate(`api('config').then(r=>r.data)`);
+    assert.equal(settingsRead.config.station.callsign,'');assert.equal(settingsRead.config.station.locator,'');
+    assert.equal(settingsRead.config.enabled,false);assert.equal(settingsRead.config.gpio_drive_ma,8);
+    assert.equal(await cdp.evaluate(`validSavedConfig(${JSON.stringify(settingsRead.config)})`),true);
+    assert.equal((await f.command({op:'stats'})).profile_programs,driveBefore.profile_programs);
+    removeDriveDialog();
+    console.log(JSON.stringify({browser:(await cdp.send('Browser.getVersion')).product,real_crypto:true,station_free_drive:true,callsign_only:true,blank_qrss:true,mixed_outcomes:true,zero_power:true,explicit_reload:true,keep_draft_readback:true,explicit_application:true,reconstructed_reboot:true,network_only_no_profile_promotion:true,engineering_numeric_overflow:true,keyboard:true,future_reply:true,late_edit:true,late_rejected_and_cleared_outcomes:true,network_only_lost_reply_readback:true,native_power_clear:true,captures_enabled:process.env.PROGRESS_BROWSER_NO_CAPTURE!=='1'}));
 } catch(error) {
-    primaryFailure=error;
     console.error(JSON.stringify({requests,driver_stderr:f.stderr,page:cdp?await cdp.evaluate(`({url:location.href,text:document.body?.innerText.slice(0,1800)})`).catch(e=>e.message):null}));throw error;
 }
 });

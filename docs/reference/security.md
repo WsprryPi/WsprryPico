@@ -10,12 +10,7 @@ A browser login expires after **30 minutes without an authenticated request** or
 
 **Setup Wi-Fi** is the temporary open network the Pico broadcasts. Joining it requires no Wi-Fi password. On a configured Pico, changing settings or controlling output requires the Pico password. The separate [recovery page](../maintain.md#recovery-and-reset) allows destructive resets from that setup network without a browser login. Anyone connected to it can reach those reset controls.
 
-External WTP execution is retired on TCP, TLS, USB, BLE, and HTTP. Generic job
-submission, claim, load, arm, abort-job, and release controls are unavailable.
-WsprryPi and the Pico browser manage device-owned schedules through retained
-authenticated management. Native schedule stop remains explicit. Engineering
-HTTPS keeps certificate and hostname verification and `http/1.1`; it offers no
-`wtp/1` ALPN or automatic carrier fallback.
+External WTP execution is retired on TCP, TLS, USB, BLE, and HTTP. Generic job submission, claim, load, arm, abort-job, and release controls are unavailable. WsprryPi and the Pico browser manage device-owned schedules through retained authenticated management. Native schedule stop remains explicit. Engineering HTTPS keeps certificate and hostname verification and `http/1.1`; it offers no `wtp/1` ALPN or automatic carrier fallback.
 
 USB management relies on physical access to the cable and device. It can change saved settings without the browser password. Ordinary management access does not take over an existing job. The [USB Console stop command](../usb.md#stop-output-from-the-console) is an explicit physical shutdown control.
 

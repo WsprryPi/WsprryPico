@@ -51,6 +51,8 @@ extern "C" [[gnu::used]] const char wsprrypico_usb_update_contract[] =
     "WsprryPico USB maintenance 1 postboot verification 1";
 extern "C" [[gnu::used]] const char wsprrypico_saved_grid_storage[] =
     "WsprryPico GPS and beacon storage 4";
+extern "C" [[gnu::used]] const char wsprrypico_station_free_drive_settings[] =
+    "WsprryPico station-independent GPIO drive settings";
 #include "network/control_contract.hpp"
 extern "C" [[gnu::used]] const char wsprrypico_control_schema[] =
     "WsprryPico Control schema sha256 " WSPRRY_PICO_CONTROL_SCHEMA_SHA256;
@@ -337,6 +339,7 @@ std::string access_reply(wsprrypico::provisioning::AccessCode code) {
 int main() {
     asm volatile("" : : "r"(wsprrypico_usb_update_contract) : "memory");
     asm volatile("" : : "r"(wsprrypico_saved_grid_storage) : "memory");
+    asm volatile("" : : "r"(wsprrypico_station_free_drive_settings) : "memory");
     asm volatile("" : : "r"(wsprrypico_control_schema) : "memory");
     paint_stack();
     const bool usb_update_boot = rom_get_last_boot_type() == BOOT_TYPE_FLASH_UPDATE;
@@ -503,20 +506,23 @@ int main() {
         return runtime_profile.consumer_browser_selected(profile_store);
     };
 #ifdef WSPRRY_PICO_STANDALONE_RF
+    const bool boot_ordinary_si5351 =
+        store.config() && store.config()->si5351 &&
+        wsprrypico::hardware::si5351_ordinary_qualified(
+            boot_pins, *store.config()->si5351, clock_get_hz(clk_sys), filter_selector.settings());
     auto config = wsprrypico::standalone::wtp_profile(
         true, ntp_timeout_s, boot_pins.engine, WSPRRY_PICO_SI5351_ENGINEERING,
-        store.config() && store.config()->si5351 &&
-            wsprrypico::hardware::si5351_ordinary_qualified(boot_pins, *store.config()->si5351,
-                                                            clock_get_hz(clk_sys),
-                                                            filter_selector.settings()));
+        boot_ordinary_si5351);
 #else
+    constexpr bool boot_ordinary_si5351 = false;
     auto config = wsprrypico::standalone::wtp_profile(false, ntp_timeout_s, boot_pins.engine);
 #endif
     if (store.config() && store.config()->gps && store.config()->gps->enabled)
         config.maximum_holdover_age_ns = std::max<std::uint64_t>(config.maximum_holdover_age_ns,
                                                                3'600'000'000'000ULL);
     static wsprrypico::standalone::FrequencyPolicyEngine policy_engine(
-        engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz);
+        engine, store, config.minimum_frequency_nhz, config.maximum_frequency_nhz,
+        boot_ordinary_si5351);
     static wsprrypico::wtp::JobService service(clock, policy_engine, identities, config);
     if (usb_update_boot)
         service.hold_update_verification();
@@ -807,6 +813,7 @@ int main() {
     wsprrypico::logging::UsbControlStateLogger usb_control_logger;
 
 #ifdef WSPRRY_PICO_STANDALONE_RF
+    browser_api.test_tone_policy(policy_engine);
     browser_api.gpio_drive_observer(wsprrypico::rf::gpio_drive_observation);
     struct SiRuntimeContext {
         wsprrypico::rf::WorkerEngine* engine;
@@ -2451,6 +2458,7 @@ int main() {
         );
         poll_indicator();
         service.poll();
+        browser_api.poll_test_tone();
         const auto clock_now = service.clock_snapshot();
         const bool consumer_tls_time_ready =
             !consumer_local_profile ||
@@ -2499,6 +2507,7 @@ int main() {
                     station_ip + (server.port() == 443 ? "" : ":" + std::to_string(server.port())),
                     softap_authority, surface, allow_http_steps);
         service.poll();
+        browser_api.poll_test_tone();
         watchdog_hw->scratch[1] = 5;
 #ifdef WSPRRY_PICO_STANDALONE_RF
         const auto usb_us = time_us_64();

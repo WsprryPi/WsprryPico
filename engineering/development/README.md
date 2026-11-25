@@ -14,17 +14,11 @@ Normal firmware `all`, the `pico2-w` preset, and `scripts/build_pico.sh` select 
 
 Firmware versions and the installer's implementation version are independent. Installation downloads a compiled, verified UF2. Pushes run verification without publishing firmware.
 
-The [CI execution contract](software-build-ci.md#execution-completeness-and-local-qualification)
-defines mandatory contexts and framework counts, nonempty focused checks, shared
-process/browser ownership, isolated scheduling, verified build reuse, and both
-production source-pair recipes. Its source-bound completion policy governs
-canonical acceptance; a local optional-dependency subset does not satisfy it.
+The [CI execution contract](software-build-ci.md#execution-completeness-and-local-qualification) defines mandatory contexts and framework counts, nonempty focused checks, shared process/browser ownership, isolated scheduling, verified build reuse, and both production source-pair recipes. Its source-bound completion policy governs canonical acceptance; a local optional-dependency subset does not satisfy it.
 
 ## RF qualification
 
-The [Pico RF qualification guide](pico-rf-qualification.md) describes the distinct
-Harness target, engine/GPS/correction matrix, setup boundaries, and evidence.
-Software checks remain separate from an exact-artifact physical campaign.
+The [Pico RF qualification guide](pico-rf-qualification.md) describes native execution, campaign coverage, measurement limits, installation and recovery duties, and evidence requirements. Software checks remain separate from an exact-artifact physical campaign.
 
 ## Deterministic validation
 
@@ -79,14 +73,7 @@ node tests/ui_sections_browser.mjs build-host/consumer_bootstrap_driver build/ui
 
 Set `CHROME_BIN` to the installed browser executable on hosts using another path. The consumer and engineering checks run sequentially because each owns a fixed local fixture port range. They use RAM-backed synthetic configuration, isolated browser profiles, and bounded requests; they access no Pico or RF hardware. The certificate fixture supplies an authenticated principal and does not qualify browser certificate selection or TLS admission. The existing organization and session-timeout browser workflows cover setup/save reconciliation and session lifetime separately.
 
-Browser startup and process-lifecycle fixtures run with
-`node --test tests/chrome_startup.test.mjs tests/ui_process_cleanup.test.mjs`.
-Fault cases establish an observed probe, incomplete-discovery read, or captured
-stderr before advancing an injected startup-deadline clock. The normal browser
-startup uses a monotonic 60-second budget; an independent real watchdog remains
-finite when tests control the deadline clock. The cold-start regression retains
-its real 21-second stimulus. These are host-only fixtures, with no firmware,
-settings, service, or RF changes.
+Browser startup and process-lifecycle fixtures run with `node --test tests/chrome_startup.test.mjs tests/ui_process_cleanup.test.mjs`. Fault cases establish an observed probe, incomplete-discovery read, or captured stderr before advancing an injected startup-deadline clock. The normal browser startup uses a monotonic 60-second budget; an independent real watchdog remains finite when tests control the deadline clock. The cold-start regression retains its real 21-second stimulus. These are host-only fixtures, with no firmware, settings, service, or RF changes.
 
 The shipped Station/Wi-Fi controls also have a production HTTP/AEAD fixture for public settings, lock behavior, independent WSPR/pin saves, a committed lost reply, responsive layout, and keyboard navigation:
 
@@ -141,7 +128,7 @@ The opt-in [Si5351 bench diagnostics](../../tests/hardware/si5351-diagnostics.md
 
 The [Si5351 library and adapters](si5351.md) provide synthesis, register control, allocation, and reference-measurement calculations. Application selection, conditional controls, atomic persistence and capture integration are implemented. Ordinary transmission and reference activation support the qualified QRP Labs Rev. 6 / 25 MHz TCXO profile; other configurations require an explicit engineering build. Conducted mode results and their limits are recorded in the Si5351 guide.
 
-`scripts/usb_inventory.py` provides a read-only, explicitly selected USB Console and WTP inventory. `scripts/console_trace.py` reads bounded diagnostic pages; `scripts/network_trace.py` validates trace framing and identity offline, and `scripts/radio_capture.py` decodes radiotap/802.11 PCAP records offline. `scripts/gp14_diagnostics.py` drives the explicit button diagnostic image. Inspect an opt-in entry point before running it; normal software checks do not open devices.
+Use [USB management discovery and identity checks](../protocol/USB-Management.md) or the shared installer's documented discovery workflow for current images. `scripts/console_trace.py` reads bounded diagnostic pages; `scripts/network_trace.py` validates trace framing and identity offline, and `scripts/radio_capture.py` decodes radiotap/802.11 PCAP records offline. `scripts/gp14_diagnostics.py` drives the explicit button diagnostic image. Inspect an opt-in entry point before running it; normal software checks do not open devices.
 
 μChrony supplies UTC discipline and a persisted provisional clock rate. Optional [GPS/PPS input](gps-pps.md) uses its existing servo, with separate PPS-derived RF correction, position snapshots, and day/night policy. The [GPS/PPS validation record](gps-pps-validation.md) identifies completed checks, source/image provenance and remaining qualification. The [UTC/RF contract](clock-discipline.md) defines compatibility and the independent measurement boundary. NTP-derived RF calibration and the retired Pico-to-Pi GPIO pulse path remain unavailable.
 
@@ -171,10 +158,7 @@ Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`, `WSPRRY_PICO_JOURNA
 
 Current operator instructions are in [the Sphinx manual](../../docs/index.md). Only `docs/` is a Sphinx source tree; engineering contracts, schemas, and technical guides stay here and are excluded from public search.
 
-The recommended firmware version is defined once as `recommended_firmware_version`
-in `docs/conf.py`. After publishing a release, update that value to recommend it.
-The installation manual uses `@RECOMMENDED_FIRMWARE_VERSION@` in prose, release
-links, and commands; Sphinx resolves the token before parsing the page.
+The recommended firmware version is defined once as `recommended_firmware_version` in `docs/conf.py`. After publishing a release, update that value to recommend it. The installation manual uses `@RECOMMENDED_FIRMWARE_VERSION@` in prose, release links, and commands; Sphinx resolves the token before parsing the page.
 
 Build with the project-local documentation environment:
 
@@ -200,3 +184,7 @@ The documentation dependencies do not install an SDK or toolchain. Current instr
 The [UDP logging contract](udp-logging.md) defines the wire profile, independent settings, finite test resources, worker packaging, storage boundaries, and validation applicability. Physical logging evidence does not establish RF performance or lossless delivery.
 
 The [field access and time contract](field-time.md) defines protected field Wi-Fi, outage recovery, authenticated automatic browser UTC, and holdover boundaries.
+
+The authenticated [finite Test Tone contract](../protocol/Native-Execution.md#authenticated-finite-test-tone) has hardware-free `test_tone_review`, `test_tone_api`, and `test_tone_schema` CTest coverage. The API fixture exercises the native coordinator, exact Stop, finite expiry beyond the native lease, replay/receipt bounds, and actual USB management framing/ACK. Consumer adapter and PIO/DMA fixtures cover reauthentication scope and fresh pad evidence. These software checks establish no RF or meter qualification.
+
+The opt-in `scripts/si5351_test_tone_check.py` runs one finite tone through the production USB management path on an explicitly selected board. `--dry-run` performs no device or file access. With a verified conducted setup, `--device SERIAL --drive 6 --configure --duration-ms 3000 --output /absolute/private/new-run` saves the supported allocation, restarts, verifies the immutable boot drive, and checks native finite expiry. It preserves other existing supported Si5351 settings and both disabled schedules. Omit `--configure` to assert the current boot drive without a save; `--stop-after-ms 1000` exercises identified Stop. Configuration remains at the requested drive afterward. Evidence includes the original public settings, accepted job, fresh register readback, and terminal result; it establishes no measured RF power or physical shutdown by itself.

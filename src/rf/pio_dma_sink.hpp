@@ -20,6 +20,10 @@ class PioDmaHardware {
   public:
     using Handler = void (*)(void*, DriverEvent);
     virtual ~PioDmaHardware() = default;
+    // Owner-core SDK verification, called once per new execution epoch.
+    virtual wtp::PadObservation verify_pad() {
+        return {};
+    }
     virtual std::uint32_t lock() = 0;
     virtual void unlock(std::uint32_t saved) = 0;
     virtual bool open(Handler handler, void* context) = 0;
@@ -61,6 +65,9 @@ class PioDmaSink final : public BlockSink {
     }
     [[nodiscard]] std::string_view diagnostic() const override {
         return failure_;
+    }
+    wtp::PadObservation pad_observation() const override {
+        return pad_;
     }
     bool stop(std::uint64_t deadline_ns) override;
     bool submit(std::uint64_t epoch, std::uint64_t sequence, std::span<const std::uint32_t> words,
@@ -116,6 +123,7 @@ class PioDmaSink final : public BlockSink {
     bool opened_ = false, tail_ = false, tail_submitted_ = false;
     wtp::EngineState state_ = wtp::EngineState::Idle;
     LaunchGuard guard_{};
+    wtp::PadObservation pad_;
     std::uint64_t epoch_ = 0, submitted_ = 0, accepted_ = 0;
     std::uint64_t dma_blocks_ = 0, dma_samples_ = 0, total_ = 0, start_ = 0;
     std::uint32_t zero_ = 0;

@@ -77,6 +77,9 @@ class RuntimeProfile {
         // Callers still require control_healthy() before admitting that authority.
         return consumer_selected(store) || store.source() == ProfileSource::NetworkOnly;
     }
+    std::uint64_t authentication_generation() const {
+        return station_source_generation_.value_or(generation_);
+    }
     std::uint64_t generation() const {
         return generation_;
     }

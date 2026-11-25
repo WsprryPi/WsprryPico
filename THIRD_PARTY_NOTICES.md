@@ -1,180 +1,52 @@
 # Third-party notices
 
-Original WsprryPico code and documentation are covered by [MIT](LICENSE.md).
-Third-party material retains its own license and attribution requirements.
+Original WsprryPico code and documentation are covered by [MIT](LICENSE.md). Third-party material retains its own license and attribution requirements.
 
-The operator manual adapts typography, navigation styling, keyboard support
-and Sphinx build helpers
-from [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs) at
-`c0215b6d980ae809dfacdeb9d2ef557dfc71445e`. Its
-`docs/_static/WsprryPi_Logo.png` and `docs/_static/favicon.ico` are copied
-unchanged from that revision, along with `docs/_templates/layout.html` and
-`tests/test_image_delivery.py`. The adapted `docs/_ext/image_delivery.py`
-converts inferred pixel styles to intrinsic HTML dimensions for the pinned
-Docutils 0.21 writer, preserving responsive sizing and authored dimensions.
-MIT, copyright 2024 and 2026 Lee Bussy; the complete
-retained notice is in [the manual's credits](docs/reference/credits.md).
-Preserve that notice with distributions of these assets and adapted material.
-The firmware also embeds the same unmodified favicon for local browser pages.
+The operator manual adapts typography, navigation styling, keyboard support and Sphinx build helpers from [WsprryPi-Docs](https://github.com/WsprryPi/WsprryPi-Docs) at `c0215b6d980ae809dfacdeb9d2ef557dfc71445e`. Its `docs/_static/WsprryPi_Logo.png` and `docs/_static/favicon.ico` are copied unchanged from that revision, along with `docs/_templates/layout.html` and `tests/test_image_delivery.py`. The adapted `docs/_ext/image_delivery.py` converts inferred pixel styles to intrinsic HTML dimensions for the pinned Docutils 0.21 writer, preserving responsive sizing and authored dimensions. MIT, copyright 2024 and 2026 Lee Bussy; the complete retained notice is in [the manual's credits](docs/reference/credits.md). Preserve that notice with distributions of these assets and adapted material. The firmware also embeds the same unmodified favicon for local browser pages.
 
-The wiring diagrams `docs/_static/images/wiring/pico2w-base-configuration.svg`,
-`docs/_static/images/wiring/pico2w-gps-flipped-wiring.svg`
-and `docs/_static/images/wiring/pico2w-si5351-flipped-wiring.svg` incorporate the underside artwork from [Gadgetoid's Pico 2 W pinout](https://pico2w.pinout.xyz/),
-MIT, copyright 2024 Gadgetoid (Phil Howard). The complete retained notice is
-[`pico2w-pinout-LICENSE.txt`](docs/_static/images/wiring/pico2w-pinout-LICENSE.txt)
-and is also embedded in the SVG. Preserve it with distributions of these diagrams.
+The wiring diagrams `docs/_static/images/wiring/pico2w-base-configuration.svg`, `docs/_static/images/wiring/pico2w-gps-flipped-wiring.svg` and `docs/_static/images/wiring/pico2w-si5351-flipped-wiring.svg` incorporate the underside artwork from [Gadgetoid's Pico 2 W pinout](https://pico2w.pinout.xyz/), MIT, copyright 2024 Gadgetoid (Phil Howard). The complete retained notice is [`pico2w-pinout-LICENSE.txt`](docs/_static/images/wiring/pico2w-pinout-LICENSE.txt) and is also embedded in the SVG. Preserve it with distributions of these diagrams.
 
-The annotated Si5351 and QLG3 wiring images
-`docs/_static/images/wiring/qrp-labs-si5351-pico2w-wiring.png` and
-`docs/_static/images/wiring/qrp-labs-qlg3-pico2w-wiring.png` use QRP Labs board
-artwork with permission from Hans Summers, QRP Labs. WsprryPico adds the wiring
-annotations. The underlying artwork remains the property of QRP Labs and is
-not covered by the project's MIT license.
+The annotated Si5351 and QLG3 wiring images `docs/_static/images/wiring/qrp-labs-si5351-pico2w-wiring.png` and `docs/_static/images/wiring/qrp-labs-qlg3-pico2w-wiring.png` use QRP Labs board artwork with permission from Hans Summers, QRP Labs. WsprryPico adds the wiring annotations. The underlying artwork remains the property of QRP Labs and is not covered by the project's MIT license.
 
-The optional host interoperability test compiles unmodified WTP-Client
-sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at
-`c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. The external component is MIT,
-copyright 2026 Lee Bussy; its notice remains in `src/WTP-Client/LICENSE.md`
-and source headers in that checkout. No client source is vendored here, no
-production dependency is added and no client code enters the firmware. Preserve
-the component's MIT notice if distributing the optional test executable.
+The optional host interoperability test compiles unmodified WTP-Client sources from [WsprryPi](https://github.com/WsprryPi/WsprryPi) at `c39fae35a77afb0f9a1fbe741a4f1fbdf9cbdccf`. The external component is MIT, copyright 2026 Lee Bussy; its notice remains in `src/WTP-Client/LICENSE.md` and source headers in that checkout. No client source is vendored here, no production dependency is added and no client code enters the firmware. Preserve the component's MIT notice if distributing the optional test executable.
 
 The firmware build uses these external components without vendoring them:
 
-- Raspberry Pi Pico SDK 2.3.1, commit
-  `079c6f39023649b154152db30f1d781e884879bc`, BSD-3-Clause. The SDK retains
-  its license and component notices in its own checkout.
-- TinyUSB 0.18.0, SDK submodule commit
-  `86ad6e56c1700e85f1c5678607a762cfe3aa2f47`, MIT. The dual-CDC descriptor
-  source is adapted from TinyUSB's `cdc_dual_ports` example and retains its
-  license header.
-- picotool 2.3.0, commit
-  `6f6458d792b93685a11423b244a585eaa99eafcf`, BSD-3-Clause. Pico SDK fetches
-  and builds this pinned host tool in the ignored build directory to
-  produce RP2350 UF2 artifacts; it is not linked into firmware.
+- Raspberry Pi Pico SDK 2.3.1, commit `079c6f39023649b154152db30f1d781e884879bc`, BSD-3-Clause. The SDK retains its license and component notices in its own checkout.
+- TinyUSB 0.18.0, SDK submodule commit `86ad6e56c1700e85f1c5678607a762cfe3aa2f47`, MIT. The dual-CDC descriptor source is adapted from TinyUSB's `cdc_dual_ports` example and retains its license header.
+- picotool 2.3.0, commit `6f6458d792b93685a11423b244a585eaa99eafcf`, BSD-3-Clause. Pico SDK fetches and builds this pinned host tool in the ignored build directory to produce RP2350 UF2 artifacts; it is not linked into firmware.
 
-Before importing source, assets or dependencies, record the component, upstream
-URL, exact version/revision, license, retained notice location, modifications
-and distribution requirements here. This applies to WsprryPi code, the Pico SDK,
-USB/network/Bluetooth libraries and any Si5351 implementation. Inspect the actual
-dependency tree rather than assuming the SDK's license covers every component.
+Before importing source, assets or dependencies, record the component, upstream URL, exact version/revision, license, retained notice location, modifications and distribution requirements here. This applies to WsprryPi code, the Pico SDK, USB/network/Bluetooth libraries and any Si5351 implementation. Inspect the actual dependency tree rather than assuming the SDK's license covers every component.
 
-The portable Type 1 encoder packing and synchronization constants, and the
-AA0NT/EM18/20 and /37 test vectors, are adapted from WsprryPi WSPR-Reference at
-`3222b7eb7ad04cb8ddff6a012c4983164d7f206b`
-(<https://github.com/WsprryPi/WsprryPi>), files
-`src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, `wspr_constants.hpp` and
-`test_vectors/wspr_golden_vectors.json`. MIT, copyright 2026 Lee Bussy; retained
-notice: [WsprryPi license](src/encoding/WsprryPi-LICENSE.md). The adaptation uses
-strict bounded Type 1 validation and a stateless C++20 implementation. Types 2/3
-and upstream permissive normalization are not imported. Preserve this notice
-and the retained MIT license when distributing the encoder.
+The portable Type 1 encoder packing and synchronization constants, and the AA0NT/EM18/20 and /37 test vectors, are adapted from WsprryPi WSPR-Reference at `3222b7eb7ad04cb8ddff6a012c4983164d7f206b` (<https://github.com/WsprryPi/WsprryPi>), files `src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, `wspr_constants.hpp` and `test_vectors/wspr_golden_vectors.json`. MIT, copyright 2026 Lee Bussy; retained notice: [WsprryPi license](src/encoding/WsprryPi-LICENSE.md). The adaptation uses strict bounded Type 1 validation and a stateless C++20 implementation. Types 2/3 and upstream permissive normalization are not imported. Preserve this notice and the retained MIT license when distributing the encoder.
 
 Standalone Wi-Fi builds also link the pinned SDK's network dependencies:
 
-- [lwIP](https://git.savannah.nongnu.org/cgit/lwip.git/), 2.2.1 at
-  `77dcd25a72509eb83f72b033d219b1d40cd8eb95`, BSD-3-Clause. Retained upstream
-  [COPYING](engineering/licenses/lwip.txt). The project supplies `lwipopts.h`; upstream
-  source is unchanged and remains in the external SDK checkout.
-- [cyw43-driver](https://github.com/georgerobotics/cyw43-driver), v1.1.1 at
-  `055d64274b014dd7b1c2fc94d26e8a18face7124`, including the SDK-selected
-  `firmware/wb43439A0_7_95_49_00_combined.h` Wi-Fi/Bluetooth/CLM resource. The external SDK source and
-  resources remain unchanged. A hash-verified build overlay of `cyw43_ll.c` also keeps explicit WPA2/AES AP selection WPA2-only, preserving mixed mode only when explicitly selected. The overlay
-  preserves outgoing frames across shared-buffer receive polling; generated
-  copies retain the original header and identify the modification. Retained upstream
-  [LICENSE.RP](engineering/licenses/cyw43-driver-RP.txt) covers use with Raspberry Pi
-  semiconductor devices; the alternative upstream
-  [LICENSE](engineering/licenses/cyw43-driver.txt) is retained too. These are distinct
-  from the project's MIT license. Preserve the applicable notices and
-  disclaimers in documentation/materials accompanying firmware distribution.
+- [lwIP](https://git.savannah.nongnu.org/cgit/lwip.git/), 2.2.1 at `77dcd25a72509eb83f72b033d219b1d40cd8eb95`, BSD-3-Clause. Retained upstream [COPYING](engineering/licenses/lwip.txt). The project supplies `lwipopts.h`; upstream source is unchanged and remains in the external SDK checkout.
+- [cyw43-driver](https://github.com/georgerobotics/cyw43-driver), v1.1.1 at `055d64274b014dd7b1c2fc94d26e8a18face7124`, including the SDK-selected `firmware/wb43439A0_7_95_49_00_combined.h` Wi-Fi/Bluetooth/CLM resource. The external SDK source and resources remain unchanged. A hash-verified build overlay of `cyw43_ll.c` also keeps explicit WPA2/AES AP selection WPA2-only, preserving mixed mode only when explicitly selected. The overlay preserves outgoing frames across shared-buffer receive polling; generated copies retain the original header and identify the modification. Retained upstream [LICENSE.RP](engineering/licenses/cyw43-driver-RP.txt) covers use with Raspberry Pi semiconductor devices; the alternative upstream [LICENSE](engineering/licenses/cyw43-driver.txt) is retained too. These are distinct from the project's MIT license. Preserve the applicable notices and disclaimers in documentation/materials accompanying firmware distribution.
 
-The SoftAP DHCP server in `src/provisioning/pico/dhcp_server.c` and its header
-are derived from the MicroPython DHCP server carried by Raspberry Pi's
-`pico-examples` at commit `0d62f75bafc2c8120d3276c3343d1a9195e909e9`, files
-`pico_w/wifi/access_point/dhcpserver/dhcpserver.c` and `dhcpserver.h`. MIT,
-copyright 2018-2019 Damien P. George. The retained source headers contain the
-complete license. WsprryPico adds bounded packet parsing, checked initialization,
-an explicit AP-netif binding and deterministic packet tests; no SDK source is
-modified.
+The SoftAP DHCP server in `src/provisioning/pico/dhcp_server.c` and its header are derived from the MicroPython DHCP server carried by Raspberry Pi's `pico-examples` at commit `0d62f75bafc2c8120d3276c3343d1a9195e909e9`, files `pico_w/wifi/access_point/dhcpserver/dhcpserver.c` and `dhcpserver.h`. MIT, copyright 2018-2019 Damien P. George. The retained source headers contain the complete license. WsprryPico adds bounded packet parsing, checked initialization, an explicit AP-netif binding and deterministic packet tests; no SDK source is modified.
 
-No NTP implementation was copied from another project. The portable exchange
-parser is original project code based on the published packet format.
+No NTP implementation was copied from another project. The portable exchange parser is original project code based on the published packet format.
 
-The network firmware links [Mbed TLS](https://github.com/Mbed-TLS/mbedtls), 3.6.6 at
-`0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`, from the pinned SDK submodule.
-It is dual licensed Apache-2.0 OR GPL-2.0-or-later; this project selects
-Apache-2.0. The unmodified upstream [LICENSE](engineering/licenses/mbedtls.txt) is
-retained. The SDK checkout remains external and unchanged, including the PSA
-RNG source explicitly added to the SDK target. The build compiles three generated,
-hash-checked modified Mbed TLS translation units for TLS 1.3 certificate alerts;
-see the [patch provenance](engineering/development/tls-certificate-alerts.md). These
-derived files retain upstream headers and use Apache-2.0, not the project MIT license. Preserve applicable upstream
-notices and the Apache license with distributed firmware/test binaries.
-The HTTP adapter, browser assets and certificate scripts are original MIT
-project contributions; no WsprryPi vendor browser assets are copied.
+The network firmware links [Mbed TLS](https://github.com/Mbed-TLS/mbedtls), 3.6.6 at `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`, from the pinned SDK submodule. It is dual licensed Apache-2.0 OR GPL-2.0-or-later; this project selects Apache-2.0. The unmodified upstream [LICENSE](engineering/licenses/mbedtls.txt) is retained. The SDK checkout remains external and unchanged, including the PSA RNG source explicitly added to the SDK target. The build compiles three generated, hash-checked modified Mbed TLS translation units for TLS 1.3 certificate alerts; see the [patch provenance](engineering/development/tls-certificate-alerts.md). These derived files retain upstream headers and use Apache-2.0, not the project MIT license. Preserve applicable upstream notices and the Apache license with distributed firmware/test binaries. The HTTP adapter, browser assets and certificate scripts are original MIT project contributions; no WsprryPi vendor browser assets are copied.
 
-The network firmware also links the exact pinned lwIP mDNS responder (`mdns.c`,
-`mdns_domain.c`, `mdns_out.c`). Its retained [BSD notice](engineering/licenses/lwip-mdns.txt)
-and [integration record](engineering/development/mdns-responder.md) describe the narrow
-project-owned lifecycle wrapper. SDK source is unmodified; no DNS-SD service
-registration or third-party application code is added.
+The network firmware also links the exact pinned lwIP mDNS responder (`mdns.c`, `mdns_domain.c`, `mdns_out.c`). Its retained [BSD notice](engineering/licenses/lwip-mdns.txt) and [integration record](engineering/development/mdns-responder.md) describe the narrow project-owned lifecycle wrapper. SDK source is unmodified; no DNS-SD service registration or third-party application code is added.
 
 
-The consumer radio page also bundles these pinned browser cryptography
-libraries from the retained npm dependency tree:
+The consumer radio page also bundles these pinned browser cryptography libraries from the retained npm dependency tree:
 
-- [noble-curves](https://github.com/paulmillr/noble-curves), npm
-  @noble/curves 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact
-  [license](engineering/licenses/noble-curves.txt). The page uses its X25519 adapter.
-- [noble-ciphers](https://github.com/paulmillr/noble-ciphers), npm
-  @noble/ciphers 2.3.0, MIT, copyright 2022 Paul Miller and 2016 Thomas Pornin
-  in the package license. Retained exact [license](engineering/licenses/noble-ciphers.txt).
-  The page uses ChaCha20-Poly1305. Original module copyright comments are
-  preserved by the bundle's legal-comments setting.
-- [noble-hashes](https://github.com/paulmillr/noble-hashes), npm
-  @noble/hashes 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact
-  [license](engineering/licenses/noble-hashes.txt). The page uses SHA-256 and HKDF.
+- [noble-curves](https://github.com/paulmillr/noble-curves), npm @noble/curves 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact [license](engineering/licenses/noble-curves.txt). The page uses its X25519 adapter.
+- [noble-ciphers](https://github.com/paulmillr/noble-ciphers), npm @noble/ciphers 2.3.0, MIT, copyright 2022 Paul Miller and 2016 Thomas Pornin in the package license. Retained exact [license](engineering/licenses/noble-ciphers.txt). The page uses ChaCha20-Poly1305. Original module copyright comments are preserved by the bundle's legal-comments setting.
+- [noble-hashes](https://github.com/paulmillr/noble-hashes), npm @noble/hashes 2.3.0, MIT, copyright 2022 Paul Miller. Retained exact [license](engineering/licenses/noble-hashes.txt). The page uses SHA-256 and HKDF.
 
-The upstream library sources are unchanged; the original project adapter
-performs identity/session binding and bounded encrypted radio API requests.
-The exact package versions, registry URLs and integrity values are retained
-in src/network/bootstrap_web/package-lock.json. Its build-only esbuild 0.28.2
-bundles and minifies JavaScript; it is not linked into Pico firmware as a tool.
-Its exact MIT license is retained at [esbuild](engineering/licenses/esbuild.txt);
-preserve that notice if distributing the build tool.
-The generated radio bundle preserves upstream legal comments. Distribute these
-full retained licenses with the bundled browser assets and firmware materials.
-These notices do not assert a cryptographic or production-security qualification.
+The upstream library sources are unchanged; the original project adapter performs identity/session binding and bounded encrypted radio API requests. The exact package versions, registry URLs and integrity values are retained in src/network/bootstrap_web/package-lock.json. Its build-only esbuild 0.28.2 bundles and minifies JavaScript; it is not linked into Pico firmware as a tool. Its exact MIT license is retained at [esbuild](engineering/licenses/esbuild.txt); preserve that notice if distributing the build tool. The generated radio bundle preserves upstream legal comments. Distribute these full retained licenses with the bundled browser assets and firmware materials. These notices do not assert a cryptographic or production-security qualification.
 
 
-WSPR Type 2/3 packing and portable lookup3/hashlittle arithmetic are adapted
-from WsprryPi `a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1`,
-`src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, retaining the MIT notice
-above. Bob Jenkins' lookup3 arithmetic is identified as public domain in the
-upstream provenance. The adaptation uses explicit byte reads, bounded views,
-unsigned arithmetic and the WSPR seed/reduction; it does not copy upstream
-unchecked string operations, aligned overreads, decoder or JSON dependencies.
+WSPR Type 2/3 packing and portable lookup3/hashlittle arithmetic are adapted from WsprryPi `a2437d1bf026e91ea95ac7e2a7a0101e3c4f11a1`, `src/WSPR-Reference/src/wspr/wspr_ref_encoder.cpp`, retaining the MIT notice above. Bob Jenkins' lookup3 arithmetic is identified as public domain in the upstream provenance. The adaptation uses explicit byte reads, bounded views, unsigned arithmetic and the WSPR seed/reduction; it does not copy upstream unchecked string operations, aligned overreads, decoder or JSON dependencies.
 
-Independent numeric oracle vectors in `tests/wspr_oracle_vectors.json` record
-WSJT-X `967c85a6119110788b0df3782cf796485b2cee14`, exact source hashes, inputs,
-payloads, symbols and observed receiver results. GPL WSJT-X implementation was
-built only in temporary validation storage and is not included in firmware or
-this repository. The numeric observations are kept distinct from Pi goldens and
-from receiver/RF acceptance; see the WSPR planning contract.
+Independent numeric oracle vectors in `tests/wspr_oracle_vectors.json` record WSJT-X `967c85a6119110788b0df3782cf796485b2cee14`, exact source hashes, inputs, payloads, symbols and observed receiver results. GPL WSJT-X implementation was built only in temporary validation storage and is not included in firmware or this repository. The numeric observations are kept distinct from Pi goldens and from receiver/RF acceptance; see the WSPR planning contract.
 
-Firmware distribution bundles include `DEPENDENCY-LICENSES.txt`, assembled from
-this repository's retained notices, the exact SDK checkout and the verified
-Arm toolchain's consolidated `license.txt`. In addition to the components
-above, the linked SDK uses BTstack at
-`eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec` under the SDK's Raspberry Pi
-`src/rp2_common/pico_btstack/LICENSE.RP` supplement and upstream BTstack license.
-The supplement explicitly covers Pico 2 W. Preserve both texts. Linked
-BTstack third-party code includes micro-ecc's BSD-2-Clause notice and the
-public-domain rijndael source attribution. CMSIS retains Apache-2.0; pico_printf
-retains Marco Paland's MIT notice. The consolidated Arm document includes
-the linked GNU C++ runtime's GCC Runtime Library Exception and newlib notices.
-Compiler and host tooling are build inputs rather than firmware components.
-The workflow collects their exact applicable license materials with source
-paths and SHA-256s; it does not distribute the compiler or SDK as firmware.
+Firmware distribution bundles include `DEPENDENCY-LICENSES.txt`, assembled from this repository's retained notices, the exact SDK checkout and the verified Arm toolchain's consolidated `license.txt`. In addition to the components above, the linked SDK uses BTstack at `eb0bb8b5ea6d234ccb940313b47f7a5c3b4e20ec` under the SDK's Raspberry Pi `src/rp2_common/pico_btstack/LICENSE.RP` supplement and upstream BTstack license. The supplement explicitly covers Pico 2 W. Preserve both texts. Linked BTstack third-party code includes micro-ecc's BSD-2-Clause notice and the public-domain rijndael source attribution. CMSIS retains Apache-2.0; pico_printf retains Marco Paland's MIT notice. The consolidated Arm document includes the linked GNU C++ runtime's GCC Runtime Library Exception and newlib notices. Compiler and host tooling are build inputs rather than firmware components. The workflow collects their exact applicable license materials with source paths and SHA-256s; it does not distribute the compiler or SDK as firmware.
 
 The fixed UTC formatter in `src/logging/logger.cpp` adapts Howard Hinnant's [civil_from_days arithmetic](https://howardhinnant.github.io/date_algorithms.html#civil_from_days), donated to the public domain in the paper's Summary. The adaptation uses nonnegative Unix nanoseconds and fixed output storage.

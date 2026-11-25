@@ -742,9 +742,10 @@ std::string Scheduler::status(const wtp::ServiceStatus* observation) const {
     std::string station = "null", schedules = "[]";
     if (store_.config()) {
         const auto& c = *store_.config();
-        station = "{\"callsign\":" + wtp::json::quote(c.callsign) +
-                  ",\"locator\":" + wtp::json::quote(c.locator) +
-                  ",\"power_dbm\":" + std::to_string(c.power_dbm) + "}";
+        if (encoding::valid_station_details(c.callsign, c.locator, c.power_dbm))
+            station = "{\"callsign\":" + wtp::json::quote(c.callsign) +
+                      ",\"locator\":" + wtp::json::quote(c.locator) +
+                      ",\"power_dbm\":" + std::to_string(c.power_dbm) + "}";
         schedules = "[";
         for (const auto& schedule : c.schedules) {
             if (schedules.size() > 1)
@@ -837,7 +838,7 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
     const auto supplied = wtp::json::parse(line.substr(7));
     if (!store_.config() && supplied) {
         const auto defaults = factory_config();
-        if (!supplied->get("gpio_drive_ma"))
+        if (!supplied->get("gpio_drive_ma") && purpose != ConfigPurpose::Drive)
             config->gpio_drive_ma = defaults.gpio_drive_ma;
         if (!supplied->get("pins"))
             config->pins = defaults.pins;
@@ -860,7 +861,7 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
         if (!supplied->get("ntp_timeout_s"))
             config->ntp_timeout_s = store_.config()->ntp_timeout_s;
     }
-    if (supplied->get("wspr_dial_frequency_hz") &&
+    if (purpose != ConfigPurpose::Drive && supplied->get("wspr_dial_frequency_hz") &&
         (!store_.config() ||
          config->wspr_dial_frequency_hz != store_.config()->wspr_dial_frequency_hz) &&
         !wspr_frequency_allowed(*config, service_.config().minimum_frequency_nhz,
@@ -873,8 +874,15 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
     if (config->wspr_dial_frequency_hz &&
         (!store_.config() || !store_.config()->wspr_dial_frequency_hz))
         config->enabled = false; // First Console selection also requires deliberate enablement.
-    const bool hardware_write = purpose == ConfigPurpose::Hardware;
-    if (hardware_write &&
+    const bool drive_write = purpose == ConfigPurpose::Drive;
+    const bool synthesis_settings = purpose == ConfigPurpose::Hardware && store_.config() &&
+                                    config->pins.engine == hardware::PinPlan::Engine::I2c &&
+                                    config->si5351 && !config->enabled;
+    if (!drive_write && !synthesis_settings && config->callsign.empty() && config->locator.empty())
+        return error("invalid_station");
+    const bool hardware_write = purpose == ConfigPurpose::Hardware || drive_write;
+    const bool first_drive = drive_write && !store_.config();
+    if (hardware_write && !first_drive &&
         (!store_.config() || config->enabled != store_.config()->enabled ||
          config->schedules != store_.config()->schedules ||
          config->gray_line != store_.config()->gray_line ||
@@ -896,6 +904,8 @@ std::string Scheduler::command(std::string_view line, ConfigPurpose purpose) {
     if (!store_.healthy() ||
         ((!store_.config() || *store_.config() != *config) && !store_.save(*config)))
         return error("storage_fault");
+    if (first_drive)
+        active_network_ = network_digest(*config);
     // The scheduler reads station/schedules from Store on each new job. Only
     // network and pin settings are boot-initialized. Compare with the active boot, not
     // the previous save: a later station edit cannot conceal a pending change.

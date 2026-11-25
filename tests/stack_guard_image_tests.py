@@ -47,6 +47,14 @@ class GuardImageTests(unittest.TestCase):
             with self.subTest(fragment=fragment), self.assertRaises(ValueError):
                 validate((BASE + CORE1).replace(fragment, 'nop'), True)
 
+    def test_nested_tone_poll_stack_budget(self):
+        label = '10000500 <_ZN10wsprrypico11application8TestTone4pollEv>:\n'
+        small = label + '10000500: b082 sub sp, #8\n10000502: f5ad 7d80 sub.w sp, sp, #256\n'
+        self.assertEqual(validate(BASE + small, False)['test_tone_poll_stack_adjustment_bytes'], 264)
+        for instruction in ('sub.w sp, sp, #6560', 'subw sp, sp, #2048', 'sub sp, #2048'):
+            with self.subTest(instruction=instruction), self.assertRaisesRegex(ValueError, 'Test Tone poll'):
+                validate(BASE + label + '10000500: f5ad 5dcd ' + instruction, False)
+
 
 if __name__ == '__main__':
     unittest.main()

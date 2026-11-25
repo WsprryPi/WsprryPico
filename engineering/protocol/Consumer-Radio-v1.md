@@ -78,3 +78,7 @@ The Pico verifies the journal save and seals the response before retiring all br
 ## Authenticated field time
 
 The optional exact `field_access` descriptor in Control/1 capabilities advertises consumer field settings and AP-only browser-time routes. Their closed documents remain within Control/1; the Radio/1 cryptographic transcript and packet format are unchanged. Time observations consume ordinary authenticated sequence numbers but do not renew login inactivity. Field settings retain ordinary revision and idle-write guards. See [field-time policy and routes](../development/field-time.md).
+
+## Finite Test Tone authority
+
+The authenticated logical request can carry the four [Test Tone resources](Native-Execution.md#authenticated-finite-test-tone). An exact Status selector can use up to 256 path bytes; ordinary logical paths retain their 128-byte limit. The query requires current device/boot and exactly one request or job ID, without extra, repeated, or encoded fields. Tone receipts bind to the trusted profile/credential generation shared by reauthenticated AP/station sessions, while their private native owner remains independent of login delivery or expiry. No tone detail is added to public reads, and authentication transcripts, AEAD framing, counters, and version remain unchanged.

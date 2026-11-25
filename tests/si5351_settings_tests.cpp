@@ -31,6 +31,27 @@ void strict_settings() {
     const auto value = settings();
     const auto text = hardware::serialize_si5351(value);
     REQUIRE(hardware::parse_si5351(text) == value);
+    for (const unsigned ma : {2, 4, 6, 8}) {
+        auto selected = value;
+        selected.synthesis.drive_ma = ma;
+        REQUIRE(hardware::parse_si5351(hardware::serialize_si5351(selected)) == selected);
+        auto config = *standalone::parse_config(network_test::config);
+        config.gpio_drive_ma = standalone::factory_config().gpio_drive_ma;
+        config.si5351 = selected; // Inactive-engine settings remain storable.
+        network_test::Flash flash;
+        standalone::Store store(flash);
+        REQUIRE(store.load());
+        REQUIRE(store.save(config));
+        standalone::Store reloaded(flash);
+        REQUIRE(reloaded.load());
+        REQUIRE(reloaded.config()->si5351 == selected);
+        REQUIRE(reloaded.config()->gpio_drive_ma == 12);
+        REQUIRE(reloaded.config()->power_dbm == config.power_dbm);
+    }
+    for (const auto bad : {"0", "1", "3", "5", "7", "9", "12", "-1", "2.5", "2.0", "2e0", "true",
+                           "false", "null", "\"2\"", "4294967296", "18446744073709551616"})
+        REQUIRE(!hardware::parse_si5351(
+            replace(text, "\"drive_ma\":2", "\"drive_ma\":" + std::string(bad))));
     REQUIRE(!hardware::parse_si5351("null"));
     for (auto [from, to] : std::array<std::pair<std::string, std::string>, 16>{
              {{"\"address\":96", "\"address\":97"},
@@ -66,20 +87,24 @@ void qualification_scope() {
     pins.rf.reset();
     pins.i2c_pair = 1;
     auto s = settings();
-    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.drive_ma = 8;
     REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000));
     REQUIRE(!hardware::si5351_profile_matches(pins, s, 132'000'000));
     pins.i2c_pair = 2;
     REQUIRE(!hardware::si5351_profile_matches(pins, s, 138'000'000));
     pins.i2c_pair = 1;
-    s.synthesis.drive_ma = 4;
-    REQUIRE(!hardware::si5351_profile_matches(pins, s, 138'000'000));
+    for (const unsigned ma : {2, 4, 6, 8}) {
+        s.synthesis.drive_ma = ma;
+        REQUIRE(hardware::validate_si5351_settings(s).empty());
+        REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000) ==
+                (ma == 2 || ma == 4 || ma == 6 || ma == 8));
+    }
     s = settings();
-    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.drive_ma = 8;
     s.synthesis.reference_hz = 27'000'000;
     REQUIRE(!hardware::si5351_profile_matches(pins, s, 138'000'000));
     s = settings();
-    s.synthesis.drive_ma = hardware::si5351_support::drive_ma;
+    s.synthesis.drive_ma = 8;
     s.synthesis.loopback.reset();
     s.loopback_input.reset();
     REQUIRE(hardware::si5351_profile_matches(pins, s, 138'000'000));
@@ -174,7 +199,7 @@ int main(int argc, char** argv) {
         config.si5351 = settings();
         const bool matched_profile = std::string_view(argv[1]) == "--qualified-samples";
         if (matched_profile)
-            config.si5351->synthesis.drive_ma = hardware::si5351_support::drive_ma;
+            config.si5351->synthesis.drive_ma = 8;
         REQUIRE(f.store.save(config));
         const auto service_policy = standalone::wtp_profile(
             matched_profile, standalone::default_ntp_timeout_s,

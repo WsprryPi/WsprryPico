@@ -13,15 +13,25 @@ namespace wsprrypico::standalone {
 class FrequencyPolicyEngine final : public wtp::RfEngine {
   public:
     FrequencyPolicyEngine(wtp::RfEngine& engine, const Store& store,
-                          std::uint64_t minimum_frequency_nhz, std::uint64_t maximum_frequency_nhz)
+                          std::uint64_t minimum_frequency_nhz, std::uint64_t maximum_frequency_nhz,
+                          bool boot_ordinary_si5351 = false)
         : engine_(engine), store_(store), minimum_(minimum_frequency_nhz),
           maximum_(maximum_frequency_nhz), boot_filters_(store.filters()),
           boot_engine_(store.config() ? store.config()->pins.engine
-                                      : hardware::PinPlan::Engine::Direct) {}
+                                      : hardware::PinPlan::Engine::Direct),
+          boot_si5351_(store.config() ? store.config()->si5351 : std::nullopt),
+          boot_ordinary_si5351_(boot_ordinary_si5351) {}
+    wtp::PadObservation pad_observation() const override {
+        return engine_.pad_observation();
+    }
+    wtp::SynthesisObservation synthesis_observation() const override {
+        return engine_.synthesis_observation();
+    }
     std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
         return engine_.preparation_memory_bytes(job);
     }
     wtp::PrepareResult prepare(const wtp::Job& job) override;
+    wtp::PrepareResult prepare_native_test_tone(const wtp::Job& job) override;
     void inhibit_output() override {
         engine_.inhibit_output();
     }
@@ -47,6 +57,24 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         std::uint64_t generation, observed_raw_ns;
         std::uint32_t uncertainty_ppb;
     };
+    struct ToneAssessment {
+        std::string_view refusal;
+        std::optional<CorrectionSnapshot> correction;
+        std::optional<std::uint32_t> increment;
+        std::optional<std::uint64_t> programmed_nhz;
+    };
+    // Numerical/policy assessment only: no engine methods, calibration freeze,
+    // filter preparation, GPIO access, or journal writes.
+    ToneAssessment assess_direct_tone(std::uint64_t frequency_nhz) const;
+    struct SynthesisToneAssessment {
+        std::string_view refusal;
+        std::optional<CorrectionSnapshot> correction;
+        std::optional<std::uint64_t> programmed_nhz;
+        std::uint64_t numerical_bound_nhz = 0;
+    };
+    // Pure numerical and frequency policy assessment for native Si5351 Test Tone.
+    SynthesisToneAssessment assess_si5351_tone(std::uint64_t frequency_nhz,
+                                               unsigned proposed_drive_ma) const;
     std::optional<CorrectionSnapshot> prepared_correction() const {
         if (!frozen_) return {};
         return CorrectionSnapshot{frozen_->ppb, frozen_->automatic, frozen_->generation,
@@ -118,6 +146,10 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
         std::optional<time::gps::Calibration> input;
     };
     Selection selection() const;
+    bool qualified_test_tone_carrier(std::uint64_t requested_nhz) const;
+    const char* frequency_refusal(std::uint64_t frequency_nhz,
+                                  bool qualified_test_tone = false) const;
+    wtp::PrepareResult prepare_job(const wtp::Job& job, bool qualified_test_tone);
     std::optional<Selection> frozen_;
     std::string prepared_job_id_;
     bool pair_frozen_ = false;
@@ -127,6 +159,8 @@ class FrequencyPolicyEngine final : public wtp::RfEngine {
     const std::uint64_t minimum_, maximum_;
     const hardware::FilterSettings boot_filters_;
     const hardware::PinPlan::Engine boot_engine_;
+    const std::optional<hardware::Si5351Settings> boot_si5351_;
+    const bool boot_ordinary_si5351_;
     const char* failure_ = nullptr;
     std::optional<time::gps::Calibration> gps_calibration_;
     std::uint64_t gps_now_ = 0;

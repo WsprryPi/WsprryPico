@@ -2,6 +2,7 @@
 
 #include "runtime/activity_trace.hpp"
 #include "time/mapping.hpp"
+#include "wtp/arm_admission.hpp"
 #include "wtp/json.hpp"
 #include "wtp/memory_budget.hpp"
 
@@ -141,11 +142,26 @@ Response JobService::handle(Request&& request) {
     return handle_owned(request);
 }
 
-Response JobService::handle_internal(Request&& request) {
+Response JobService::handle_internal(Request&& request, ExecutionVerifier verify,
+                                     const void* context) {
+    struct Clear {
+        ExecutionVerifier& verifier;
+        const void*& context;
+        ~Clear() {
+            verifier = nullptr;
+            context = nullptr;
+        }
+    } clear{arm_verifier_, arm_verifier_context_};
+    arm_verifier_ = verify;
+    arm_verifier_context_ = context;
     return handle_owned(request, false);
 }
 
-Response JobService::handle_owned(Request& request, bool retain_response) {
+Response JobService::handle_internal_test_tone_load(Request&& request) {
+    return handle_owned(request, false, LoadPurpose::NativeTestTone);
+}
+
+Response JobService::handle_owned(Request& request, bool retain_response, LoadPurpose purpose) {
     const auto now = clock_.snapshot();
     runtime::ActivitySpan status_span(
         runtime::activity_trace(), runtime::ActivityKind::Status,
@@ -227,13 +243,13 @@ Response JobService::handle_owned(Request& request, bool retain_response) {
         return response;
     }
 
-    auto response = dispatch(request);
+    auto response = dispatch(request, purpose);
     if (retain_response)
         remember(request, response, now.monotonic_now_ns);
     return response;
 }
 
-Response JobService::dispatch(Request& request) {
+Response JobService::dispatch(Request& request, LoadPurpose purpose) {
     const auto now = clock_.snapshot();
     constexpr std::array<std::string_view, 11> operations{"HELLO",   "CAPS",      "CLAIM", "RENEW",
                                                           "RELEASE", "LOAD",      "ARM",   "ABORT",
@@ -414,12 +430,24 @@ Response JobService::dispatch(Request& request) {
         Job accepted = std::move(*body);
         if (!accepted.events.valid())
             return reject(ErrorCode::InternalError);
-        auto preparation = engine_.prepare(accepted);
-        if (!preparation.accepted) {
-            return reject(ErrorCode::FrequencyRejected);
-        }
+        const auto preparation_failure = [&](ErrorCode error) {
+            // Preparation can allocate/initialize before a later policy or
+            // adjustment refusal. Never orphan that state or hide shutdown failure.
+            if (!engine_.disable(
+                    saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns)) ||
+                engine_.output_active()) {
+                record_terminal(State::Failed, ErrorCode::OutputStateUnknown, now.monotonic_now_ns);
+                return reject(ErrorCode::OutputStateUnknown);
+            }
+            return reject(error);
+        };
+        auto preparation = purpose == LoadPurpose::NativeTestTone
+                               ? engine_.prepare_native_test_tone(accepted)
+                               : engine_.prepare(accepted);
+        if (!preparation.accepted)
+            return preparation_failure(ErrorCode::FrequencyRejected);
         if (!accepted.allow_frequency_adjustment && !preparation.adjustments.empty()) {
-            return reject(ErrorCode::FrequencyRejected);
+            return preparation_failure(ErrorCode::FrequencyRejected);
         }
         for (auto current = preparation.adjustments.begin();
              current != preparation.adjustments.end(); ++current) {
@@ -433,7 +461,7 @@ Response JobService::dispatch(Request& request) {
                 *accepted.events[adjustment.event_index].frequency_nhz !=
                     adjustment.requested_frequency_nhz ||
                 adjustment.realized_frequency_nhz == 0 || duplicate) {
-                return reject(ErrorCode::DeviceFault);
+                return preparation_failure(ErrorCode::DeviceFault);
             }
         }
         observed_event_count_ = accepted.events.size();
@@ -516,13 +544,26 @@ Response JobService::dispatch(Request& request) {
         arm_ = ArmRecord{body->start_utc_ns, body->max_start_uncertainty_ns, start_monotonic_ns,
                          now, engine_.schedules_locally()};
         auto response = arm_response(job_->job_id, *arm_);
-        if (arm_->scheduled_locally &&
-            (!engine_.schedule(
-                 *job_, start_monotonic_ns,
-                 {&clock_, body->start_utc_ns,
-                  std::min(body->max_start_uncertainty_ns, config_.maximum_arm_uncertainty_ns),
-                  config_.maximum_holdover_age_ns}) ||
-             engine_.output_active())) {
+        const auto previous_pad = engine_.pad_observation();
+        const auto previous_synthesis = engine_.synthesis_observation();
+        pad_job_ = job_->job_id;
+        accepted_pad_ = {};
+        accepted_synthesis_ = {};
+        const bool scheduled = !arm_->scheduled_locally ||
+                               engine_.schedule(*job_, start_monotonic_ns,
+                                                {&clock_, body->start_utc_ns,
+                                                 std::min(body->max_start_uncertainty_ns,
+                                                          config_.maximum_arm_uncertainty_ns),
+                                                 config_.maximum_holdover_age_ns});
+        accepted_pad_ = engine_.pad_observation();
+        if (!accepted_pad_.epoch || accepted_pad_.epoch == previous_pad.epoch)
+            accepted_pad_ = {};
+        accepted_synthesis_ = engine_.synthesis_observation();
+        if (!accepted_synthesis_.epoch || accepted_synthesis_.epoch == previous_synthesis.epoch)
+            accepted_synthesis_ = {};
+        const bool pad_valid = !arm_verifier_ || arm_verifier_(accepted_pad_, accepted_synthesis_,
+                                                               arm_verifier_context_);
+        if (!scheduled || !pad_valid || (arm_->scheduled_locally && engine_.output_active())) {
             arm_.reset();
             const auto stopped = engine_.disable(
                 saturating_add(now.monotonic_now_ns, config_.output_disable_timeout_ns));
@@ -906,84 +947,10 @@ ErrorCode JobService::validate_job(const Job& job) const {
 
 ErrorCode JobService::validate_arm(const ArmBody& arm, const ClockSnapshot& now,
                                    std::uint64_t& start_monotonic_ns) const {
-    if (now.state == ClockState::Unsynchronized) {
-        return ErrorCode::ClockUnsynchronized;
-    }
-    if (now.state == ClockState::Holdover && (config_.maximum_holdover_age_ns == 0 ||
-                                              now.sync_age_ns > config_.maximum_holdover_age_ns)) {
-        return ErrorCode::ClockUnsynchronized;
-    }
-    if (now.uncertainty_ns > arm.max_start_uncertainty_ns ||
-        now.uncertainty_ns > config_.maximum_arm_uncertainty_ns) {
-        return ErrorCode::ClockUncertain;
-    }
-    const bool pending_leap =
-        now.leap == LeapState::InsertPending || now.leap == LeapState::DeletePending;
-    if (now.leap == LeapState::Unknown || pending_leap != now.leap_transition_utc_ns.has_value()) {
-        return ErrorCode::LeapUnsafe;
-    }
-    if (arm.start_utc_ns < now.utc_now_ns ||
-        arm.start_utc_ns - now.utc_now_ns < config_.minimum_arm_lead_ns) {
-        return ErrorCode::ArmTooLate;
-    }
-    const auto ahead = arm.start_utc_ns - now.utc_now_ns;
-    if (ahead > config_.maximum_arm_ahead_ns) {
-        return ErrorCode::ArmTooFar;
-    }
-    if (ahead > std::numeric_limits<std::uint64_t>::max() - now.monotonic_now_ns ||
-        (job_ &&
-         job_->total_duration_ns > std::numeric_limits<std::uint64_t>::max() - arm.start_utc_ns)) {
-        return ErrorCode::InvalidMessage;
-    }
-    const auto resolution = engine_.start_resolution_ns();
-    if (resolution == 0)
-        return ErrorCode::DeviceFault;
-    std::uint64_t nominal_start{};
-    if (!time::inverse(now, arm.start_utc_ns, nominal_start))
-        return ErrorCode::InvalidMessage;
-    const auto adjustment = (resolution - nominal_start % resolution) % resolution;
-    const auto window = start_window_ns(arm.start_utc_ns);
-    const auto limit = std::numeric_limits<std::uint64_t>::max();
-    if (nominal_start > limit - window || arm.start_utc_ns > limit - window ||
-        adjustment >= window || job_->total_duration_ns > limit - (nominal_start + window) ||
-        job_->total_duration_ns > limit - (arm.start_utc_ns + window))
-        return ErrorCode::InvalidMessage;
-    const auto budget = std::min(arm.max_start_uncertainty_ns, config_.maximum_arm_uncertainty_ns);
-    std::uint64_t rounding_utc{}, future_growth{};
-    if (!time::elapsed_utc(adjustment + (now.rate_ppb != 0), now.rate_ppb, rounding_utc, true) ||
-        !time::growth(nominal_start - now.monotonic_now_ns, now.rate_uncertainty_ppb,
-                      future_growth) ||
-        future_growth > budget - now.uncertainty_ns ||
-        rounding_utc > budget - now.uncertainty_ns - future_growth)
-        return ErrorCode::ClockUncertain;
-    // WTP reports the exact mapping. Round the hardware target upward so timer
-    // quantization never requests an early launch. Clock uncertainty remains
-    // independent of permitted scheduling delay within the requested UTC second.
-    start_monotonic_ns = nominal_start;
-    if (job_->total_duration_ns > std::numeric_limits<std::uint64_t>::max() - start_monotonic_ns)
-        return ErrorCode::InvalidMessage;
-    std::uint64_t horizon_duration{};
-    const auto horizon_latest = arm.start_utc_ns + window - 1;
-    if (!time::duration_utc_bound(job_->total_duration_ns, now, horizon_duration) ||
-        horizon_latest >= now.valid_until_utc_ns ||
-        horizon_duration >= now.valid_until_utc_ns - horizon_latest)
-        return ErrorCode::LeapUnsafe;
-    if (now.leap_transition_utc_ns) {
-        const auto transition = *now.leap_transition_utc_ns;
-        const auto exclusion_start =
-            transition > kLeapExclusionNs ? transition - kLeapExclusionNs : 0;
-        const auto exclusion_end = saturating_add(transition, kLeapExclusionNs);
-        std::uint64_t duration{};
-        const auto latest = arm.start_utc_ns + window - 1;
-        if (!time::duration_utc_bound(job_->total_duration_ns, now, duration) ||
-            duration > limit - latest)
-            return ErrorCode::InvalidMessage;
-        const auto job_end = latest + duration;
-        if (arm.start_utc_ns <= exclusion_end && job_end >= exclusion_start) {
-            return ErrorCode::LeapUnsafe;
-        }
-    }
-    return ErrorCode::None;
+    if (!job_)
+        return ErrorCode::InvalidState;
+    return assess_arm(job_->total_duration_ns, arm, now, config_, engine_.start_resolution_ns(),
+                      start_monotonic_ns);
 }
 
 void JobService::expire_resources(std::uint64_t monotonic_now_ns) {
@@ -1013,6 +980,8 @@ void JobService::record_terminal(State state, ErrorCode error, std::uint64_t now
     state_ = state;
     terminal_records_.push_front(TerminalRecord{job_ ? job_->job_id : std::string{}, state, now_ns,
                                                 engine_.output_active(), error});
+    if (terminal_observer_)
+        terminal_observer_(terminal_records_.front(), terminal_context_);
     if (job_) {
         // Reconstruct the fixed LOAD reply fields on replay instead of keeping
         // a full Response (including unused clock/status storage) per job.

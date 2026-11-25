@@ -22,7 +22,7 @@ I²C LPF output control remains planning only and is not included in RC.3. See [
 
 RC.2 improves preparation of long transmission jobs, indicator scheduling, configuration validation, and GPS correction diagnostics on Pico 2 W.
 
-The canonical build, software tests, and production Pi/Pico network and USB integration checks passed. Physical installation and RF qualification of this exact image were not performed. The conducted campaign remains incomplete.
+The canonical build, software tests, and production Pi/Pico network and USB integration checks passed. Physical installation and RF qualification of this exact image were not performed.
 
 - Long job sequences use bounded memory during loading. Accepted jobs still execute locally on the Pico.
 - Indicator timer programming can recover from a missed programming opportunity within the accepted UTC start window. The job keeps its original start deadline and complete transmission sequence.

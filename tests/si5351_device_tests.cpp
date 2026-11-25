@@ -42,6 +42,43 @@ struct MemoryBus : Bus {
 };
 } // namespace
 int main() {
+    // AN619 Rev. 0.8: CLKx_IDRV[1:0] is 00/01/10/11 for 2/4/6/8 mA.
+    // Exercise actual planning and bus writes for every supported TX output,
+    // including R-divider, fractional MultiSynth and VHF integer paths.
+    for (const auto& [ma, bits] : {std::pair{2u, 0u}, {4u, 1u}, {6u, 2u}, {8u, 3u}}) {
+        for (const auto output : {Output::Clk0, Output::Clk1, Output::Clk2}) {
+            for (const auto hz : {137'500ULL, 14'097'100ULL, 144'490'500ULL}) {
+                Configuration selected{25'000'000, Reference::ExternalXa, {}, output, {}, ma};
+                const std::uint64_t tones[]{hz * 1'000'000'000, hz * 1'000'000'000 + 1'464'843'750};
+                const auto planned = plan(selected, tones, 0, 0.001L);
+                assert(planned.plan);
+                MemoryBus registers;
+                Device actual(registers);
+                assert(actual.configure(selected, *planned.plan, 100));
+                const auto reg = 16 + static_cast<unsigned>(output);
+                const auto control = registers.registers[reg];
+                assert((control & 3) == bits);
+                assert(control & 0x80);           // Driver remains powered down before enable.
+                assert((control & 0x1c) == 0x0c); // Noninverted MultiSynth source.
+                for (unsigned other = 16; other <= 18; ++other)
+                    if (other != reg)
+                        assert(registers.registers[other] == 0x80);
+                assert(actual.locked(100));
+                assert(actual.verify_transmit_drive(100) == ma);
+                assert(actual.transmit_enabled(true, 100));
+                assert(!actual.verify_transmit_drive(100)); // RF must be disabled for ARM evidence.
+                assert(registers.registers[reg] == (control & 0x7f));
+                assert(actual.transmit_tone(planned.plan->tones()[1], 100));
+                assert(registers.registers[reg] == (control & 0x7f));
+                assert(actual.transmit_enabled(false, 100));
+                assert(registers.registers[reg] == control);
+                const auto writes = registers.writes;
+                selected.drive_ma = 12;
+                assert(!actual.configure(selected, *planned.plan, 100));
+                assert(registers.writes == writes);
+            }
+        }
+    }
     Configuration config{25'000'000, Reference::Crystal, 8, Output::Clk1, Output::Clk0, 4};
     const std::uint64_t frequencies[]{14'097'100'000'000'000ULL, 14'097'101'464'843'750ULL};
     const auto result = plan(config, frequencies, 0, 0.001L);

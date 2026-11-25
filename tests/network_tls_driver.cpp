@@ -46,11 +46,24 @@ mbedtls_time_t unset_tls_time(mbedtls_time_t* output) {
 class LocalTimerEngine final : public wsprrypico::wtp::RfEngine {
     using State = wsprrypico::wtp::EngineState;
     State state_ = State::Idle;
-    std::uint64_t start_ = 0, duration_ = 0;
+    std::uint64_t start_ = 0, duration_ = 0, epoch_ = 0;
+    wsprrypico::wtp::PadObservation pad_;
     wsprrypico::wtp::LocalStartConditions conditions_;
+    const bool assess_tone_;
 
   public:
-    wsprrypico::wtp::PrepareResult prepare(const wsprrypico::wtp::Job&) override {
+    explicit LocalTimerEngine(bool assess_tone) : assess_tone_(assess_tone) {}
+    wsprrypico::wtp::PadObservation pad_observation() const override {
+        return pad_;
+    }
+    wsprrypico::wtp::PrepareResult prepare(const wsprrypico::wtp::Job& job) override {
+        if (assess_tone_ && job.mode == "tone" && job.events.size() == 1) {
+            const auto frequency = *job.events[0].frequency_nhz;
+            const auto increment = wsprrypico::rf::frequency_increment(frequency);
+            if (!increment)
+                return {};
+            return {true, {{0, frequency, wsprrypico::rf::realized_nhz(*increment)}}};
+        }
         return {true, {}};
     }
     bool schedules_locally() const override {
@@ -60,6 +73,7 @@ class LocalTimerEngine final : public wsprrypico::wtp::RfEngine {
                   const wsprrypico::wtp::LocalStartConditions& conditions) override {
         if (state_ != State::Idle)
             return false;
+        pad_ = {++epoch_, now(), 2, 12};
         conditions_ = conditions;
         start_ = start;
         duration_ = job.total_duration_ns;
@@ -121,7 +135,9 @@ int main(int argc, char** argv) {
                                        .count());
     if (!clock.observe(utc, now(), 1000, wtp::LeapState::Normal))
         return 1;
-    LocalTimerEngine simulated_physical;
+    const bool tone_fixture = std::getenv("WSPRRY_NETWORK_TEST_TONE") &&
+                              std::string_view(std::getenv("WSPRRY_NETWORK_TEST_TONE")) == "1";
+    LocalTimerEngine simulated_physical(tone_fixture);
     rf::WorkerEngine engine(simulated_physical, clock, now, wait, failure, mask, restore);
     std::atomic<bool> finished{false};
     std::thread worker([&] {
@@ -129,10 +145,19 @@ int main(int argc, char** argv) {
             engine.step();
     });
     network_test::Identity identities(argc > 1 ? std::stoul(argv[1]) : 0);
-    wtp::JobService service(clock, engine, identities, network_test::Fixture::physical_policy());
+    std::optional<standalone::FrequencyPolicyEngine> tone_policy;
+    auto service_limits = network_test::Fixture::physical_policy();
+    if (tone_fixture) {
+        service_limits.capability_engine = "pio-dma-gp2";
+        tone_policy.emplace(engine, store, rf::minimum_frequency_nhz, rf::maximum_frequency_nhz);
+    }
+    wtp::JobService service(clock, tone_policy ? static_cast<wtp::RfEngine&>(*tone_policy) : engine,
+                            identities, service_limits);
     standalone::Scheduler scheduler(store, service);
     network_test::Network network;
     network::BrowserApi api(service, store, scheduler, network, device, "test-worker-firmware");
+    if (tone_policy)
+        api.test_tone_policy(*tone_policy);
     network_test::Flash udp_flash;
     logging::UdpStore udp_store(udp_flash);
     if (!udp_store.load())

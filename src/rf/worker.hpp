@@ -25,6 +25,15 @@ class WorkerEngine final : public wtp::RfEngine {
     std::size_t preparation_memory_bytes(const wtp::Job& job) const override {
         return engine_.preparation_memory_bytes(job);
     }
+    wtp::PadObservation pad_observation() const override {
+        call(Op::Inspect);
+        return pad_reply_;
+    }
+    wtp::SynthesisObservation synthesis_observation() const override {
+        // Immutable ARM evidence is copied with each ordinary RPC reply.
+        // Reading it adds no extra rendezvous to a timing-sensitive launch.
+        return synthesis_reply_;
+    }
     wtp::PrepareResult prepare(const wtp::Job&) override;
     bool set_frequency_correction_ppb(std::int32_t) override;
     bool schedules_locally() const override {
@@ -149,6 +158,8 @@ class WorkerEngine final : public wtp::RfEngine {
     wtp::LocalStartConditions conditions_{};
     wtp::PrepareResult prepared_;
     wtp::EngineReport report_{};
+    mutable wtp::PadObservation pad_reply_{};
+    mutable wtp::SynthesisObservation synthesis_reply_{};
     bool result_ = false;
     mutable std::string_view diagnostic_;
     void (*probe_)(Metrics&, void*) = nullptr;

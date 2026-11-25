@@ -4,22 +4,143 @@
 #include "rf/calibration.hpp"
 #include "wtp/json.hpp"
 
+#include <cmath>
+
 namespace wsprrypico::standalone {
+namespace {
+// Conducted finite tone at 8 mA with the ordinary profile's hardware settings.
+// See engineering/development/si5351-band-support.json.
+constexpr std::uint64_t qualified_test_tone_nhz = 144'490'500'000'000'000;
+} // namespace
+
+bool FrequencyPolicyEngine::qualified_test_tone_carrier(std::uint64_t requested_nhz) const {
+    return boot_ordinary_si5351_ && boot_engine_ == hardware::PinPlan::Engine::I2c &&
+           boot_si5351_ && requested_nhz == qualified_test_tone_nhz;
+}
+
+const char* FrequencyPolicyEngine::frequency_refusal(std::uint64_t frequency,
+                                                     bool qualified_test_tone) const {
+    if (frequency < minimum_ || frequency > maximum_)
+        return "frequency_out_of_range";
+    if (qualified_test_tone)
+        return nullptr;
+    const auto& config = store_.config();
+    const bool unqualified = config && config->allow_unqualified_frequency;
+    const bool non_amateur = config && config->allow_non_amateur_frequency;
+    if (application::frequency_allowed(frequency, unqualified, non_amateur))
+        return nullptr;
+    return application::frequency_disposition(frequency) ==
+                   application::FrequencyDisposition::NonAmateur
+               ? "non_amateur_frequency_not_permitted"
+               : "unqualified_frequency_not_permitted";
+}
+FrequencyPolicyEngine::ToneAssessment
+FrequencyPolicyEngine::assess_direct_tone(std::uint64_t frequency) const {
+    ToneAssessment result;
+    if (!store_.healthy()) {
+        result.refusal = "storage_fault";
+        return result;
+    }
+    if (boot_engine_ != hardware::PinPlan::Engine::Direct) {
+        result.refusal = "inactive_direct_engine";
+        return result;
+    }
+    const auto selected = selection();
+    if (!selected.valid) {
+        result.refusal = "gps_calibration_required";
+        return result;
+    }
+    result.correction = CorrectionSnapshot{selected.ppb, selected.automatic, selected.generation,
+                                           selected.observed_raw_ns, selected.uncertainty_ppb};
+    result.increment = rf::frequency_increment(frequency, selected.ppb);
+    if (result.increment)
+        result.programmed_nhz = rf::realized_nhz(*result.increment);
+    if (const auto refusal = frequency_refusal(frequency))
+        result.refusal = refusal;
+    else if (!result.programmed_nhz)
+        result.refusal = "frequency_not_realizable";
+    else if (const auto refusal = frequency_refusal(*result.programmed_nhz))
+        result.refusal = refusal;
+    else {
+        rf::FilterCoverage coverage(boot_filters_);
+        coverage.include(frequency, *result.programmed_nhz);
+        if (coverage.selection() == -2)
+            result.refusal = "filter_coverage_required";
+    }
+    return result;
+}
+FrequencyPolicyEngine::SynthesisToneAssessment
+FrequencyPolicyEngine::assess_si5351_tone(std::uint64_t frequency, unsigned drive) const {
+    SynthesisToneAssessment result;
+    if (!store_.healthy()) {
+        result.refusal = "storage_fault";
+        return result;
+    }
+    if (boot_engine_ != hardware::PinPlan::Engine::I2c || !boot_si5351_) {
+        result.refusal = "inactive_si5351_engine";
+        return result;
+    }
+    const auto selected = selection();
+    if (!selected.valid) {
+        result.refusal = "gps_calibration_required";
+        return result;
+    }
+    auto configuration = boot_si5351_->synthesis;
+    configuration.drive_ma = drive;
+    const std::array frequencies{frequency};
+    const auto candidate = rf::si5351::plan(configuration, frequencies, selected.ppb,
+                                             rf::si5351::execution_frequency_error_hz);
+    if (!candidate.plan) {
+        result.refusal = candidate.error;
+        return result;
+    }
+    const auto& tone = candidate.plan->tones().front();
+    result.correction = CorrectionSnapshot{selected.ppb, selected.automatic, selected.generation,
+                                           selected.observed_raw_ns, selected.uncertainty_ppb};
+    // Match the production engine's unsigned rounding, including its target
+    // floating-point reporting guard. No hardware or calibration freeze.
+    result.programmed_nhz = tone.realized_nhz();
+    constexpr auto guard = rf::si5351::frequency_reporting_guard_nhz;
+    result.numerical_bound_nhz =
+        static_cast<std::uint64_t>(std::ceil(std::fabs(tone.error_hz) * 1e9L)) + guard;
+    const bool qualified = qualified_test_tone_carrier(frequency);
+    if (const auto refusal = frequency_refusal(frequency, qualified))
+        result.refusal = refusal;
+    else if (const auto refusal = frequency_refusal(*result.programmed_nhz, qualified))
+        result.refusal = refusal;
+    else {
+        rf::FilterCoverage coverage(boot_filters_);
+        coverage.include(frequency, *result.programmed_nhz - guard);
+        coverage.include(frequency, *result.programmed_nhz + guard);
+        if (coverage.selection() == -2)
+            result.refusal = "filter_coverage_required";
+    }
+    return result;
+}
 wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
+    return prepare_job(job, false);
+}
+
+wtp::PrepareResult FrequencyPolicyEngine::prepare_native_test_tone(const wtp::Job& job) {
+    if (job.mode != "tone" || job.events.size() != 1)
+        return prepare(job);
+    const auto& event = job.events[0];
+    const bool qualified = event.rf_on && event.offset_ns == 0 &&
+                           event.duration_ns == job.total_duration_ns &&
+                           qualified_test_tone_carrier(event.frequency_nhz.value_or(0));
+    return prepare_job(job, qualified);
+}
+
+wtp::PrepareResult FrequencyPolicyEngine::prepare_job(const wtp::Job& job,
+                                                       bool qualified_test_tone) {
     failure_ = nullptr;
     // Storage faults revoke all new execution, including qualified bands that
     // need no saved experimental permissions.
     if (!store_.healthy())
         return {};
-    const auto& config = store_.config();
-    const bool unqualified = store_.healthy() && config && config->allow_unqualified_frequency;
-    const bool non_amateur = store_.healthy() && config && config->allow_non_amateur_frequency;
-    const auto allowed = [&](std::uint64_t frequency) {
-        return frequency >= minimum_ && frequency <= maximum_ &&
-               application::frequency_allowed(frequency, unqualified, non_amateur);
-    };
     for (const auto& event : job.events) {
-        if (event.rf_on && (!event.frequency_nhz || !allowed(*event.frequency_nhz)))
+        if (event.rf_on &&
+            (!event.frequency_nhz || frequency_refusal(*event.frequency_nhz, qualified_test_tone)))
             return {};
     }
     const auto selected = pair_frozen_ && frozen_ ? *frozen_ : selection();
@@ -46,10 +167,13 @@ wtp::PrepareResult FrequencyPolicyEngine::prepare(const wtp::Job& job) {
         failure_ = "filter_coverage_required";
         return {};
     }
-    // Quantization consent is independent of experimental consent. An engine
-    // adjustment must not cross a policy or advertised hardware boundary.
+    // Apply the point qualification only to the Si5351 plan's adjustment for
+    // that event. Every realized frequency still needs to fit the engine range.
     for (const auto& adjustment : prepared.adjustments) {
-        if (!allowed(adjustment.realized_frequency_nhz))
+        const bool qualified_adjustment =
+            qualified_test_tone && adjustment.event_index == 0 &&
+            adjustment.requested_frequency_nhz == qualified_test_tone_nhz;
+        if (frequency_refusal(adjustment.realized_frequency_nhz, qualified_adjustment))
             return {};
     }
     frozen_ = selected;

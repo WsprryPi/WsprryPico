@@ -66,6 +66,10 @@ bool PioDmaSink::submit(std::uint64_t epoch, std::uint64_t sequence,
         failure_ = "submit_contract";
         return false;
     }
+    if (!submitted_) {
+        pad_ = {};
+        pad_.epoch = epoch;
+    }
     if (!opened_) {
         if (!hw_.open(dispatch, this)) {
             failure_ = "open_rejected";
@@ -116,6 +120,12 @@ bool PioDmaSink::arm(std::uint64_t epoch, std::uint64_t start_ns, std::uint64_t 
                                  hw_.now_ns() >= start_ns - amplifier_lead_ns() - 1'000'000)) ||
         (selecting && (start_ns < preparation + 2'000'000 ||
                        hw_.now_ns() >= start_ns - preparation - 2'000'000))) {
+        return false;
+    }
+    pad_ = hw_.verify_pad();
+    pad_.epoch = epoch;
+    if (pad_.rf_pin >= 0 && pad_.drive_ma < 0) {
+        failure_ = "pad_verification_failed";
         return false;
     }
     start_ = start_ns;

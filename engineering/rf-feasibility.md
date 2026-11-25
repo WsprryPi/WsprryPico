@@ -1,6 +1,6 @@
 # RF synthesis model and tradeoffs
 
-This hardware-free comparison uses an ideal 150 MHz reference. The normal application implements that engine at 138 MHz; `WsprryPico-Inhibited` explicitly selects a simulator. The calculations below are analytical estimates, not support for every band or a production RF qualification. The separate [Si5351 engine](development/si5351.md) is engineering-gated pending physical qualification; its actual planner differs from this analytical study.
+This hardware-free comparison uses an ideal 150 MHz reference. The normal application implements that engine at 138 MHz; `WsprryPico-Inhibited` explicitly selects a simulator. The calculations below are analytical estimates, not support for every band or a production RF qualification. The current [Si5351 engine](development/si5351.md#qualified-ordinary-profile) supports the recorded QRP Labs Rev. 6 / 25 MHz TCXO profile. Its planner and scoped conducted results are separate from this analytical study.
 
 ## Scope and sources
 
@@ -26,7 +26,7 @@ Let F=150,000,000 Hz, tone t=0..3 and requested frequency f(t)=base+t*(375/256) 
 | Static clock output | f=F*65536/q | Reject as a general four-tone solution across this matrix; several tones collapse and maximum errors reach tens of Hz. |
 | Retuned PLL plus GPOUT | Enumerate legal parents and nearest 16.16 divider independently per tone | Some combinations give small mean errors, but they do not prove phase continuity, lock time, or a usable shared clock tree. PLL retuning is not an application engine. |
 | PIO/DMA packed NCO bits | k=round(f*2^32/F); output MSB of an accumulating 32-bit phase at F | Fine mean resolution and continuous phase state. Numerical resolution does not establish generation throughput or unwanted emissions. |
-| Si5351A alternative | Fixed 900 MHz PLL; fractional MultiSynth divisor approximates 900 MHz/f | Numerically strong, but needs additional hardware and measured update behavior. The separate implementation remains physically unqualified. |
+| Si5351A alternative | Fixed 900 MHz PLL; fractional MultiSynth divisor approximates 900 MHz/f | Numerically strong, but needs additional hardware and measured update behavior. The current engine has separately recorded [conducted results](development/si5351.md#conducted-mode-acceptance). |
 
 The script chooses the closer output frequency of the two neighboring static dividers, rather than rounding a divisor blindly. NCO error is at most F/2^33 = 0.017462299 Hz; adjacent-tone error is at most F/2^32. The generated report includes all 32 tone plans, so representability can be checked directly. A fine mean frequency does not imply low jitter or low spurs.
 

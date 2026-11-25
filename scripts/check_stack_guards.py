@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check linked MSP guard installation routes, not target execution or WCET."""
+"""Check linked MSP guard routes and bounded Test Tone poll stack adjustments."""
 import argparse
 import json
 from pathlib import Path
@@ -38,8 +38,21 @@ def validate(disassembly, physical):
             raise ValueError('Missing stack register readback: ' + register)
     if not re.search(r'\bisb\b', '\n'.join(functions.get(installer, ()))):
         raise ValueError('Missing post-install synchronization')
+    # The application poll also runs inside authenticated Stop/release. An
+    # aggregate receipt-array assignment once reserved over 6 KiB here and
+    # overflowed the nested USB path despite both MSP guards being installed.
+    # Standalone diagnostic images do not link this application function.
+    tone_poll = functions.get('_ZN10wsprrypico11application8TestTone4pollEv')
+    tone_stack = None
+    if tone_poll is not None:
+        tone_stack = sum(int(match[1]) for line in tone_poll
+                         if (match := re.search(
+                             r'\bsub(?:\.w|w)?\s+sp,\s*(?:sp,\s*)?#(\d+)', line)))
+        if tone_stack > 1536:
+            raise ValueError('Test Tone poll stack adjustment exceeds 1536 bytes: ' + str(tone_stack))
     return {'startup_callers': sorted(callers), 'msplim_writers': writes,
-            'scope': 'Linked startup/readback routes only; inspect constants and target evidence separately'}
+            'test_tone_poll_stack_adjustment_bytes': tone_stack,
+            'scope': 'Linked guard routes and poll stack adjustments; no whole-call-chain or target qualification'}
 
 
 def main():

@@ -1,7 +1,8 @@
 #include "network/softap_api.hpp"
-#include "network/control.hpp"
 
 #include "network/assets.hpp"
+#include "network/control.hpp"
+#include "network/test_tone_query.hpp"
 #include "wtp/json.hpp"
 
 #include <algorithm>
@@ -141,6 +142,10 @@ HttpResponse SoftApApi::local_status(std::string_view principal, std::string_vie
 SoftApOperation SoftApApi::operation(const HttpRequest& request, std::string&,
                                      bool& valid) {
     valid = true;
+    if (request.path.starts_with("/api/control/v1/test-tone/") &&
+        (control_route(request.path.substr(control_prefix.size()), request.method) ||
+         test_tone_status_path(request.method, request.path)))
+        return SoftApOperation::TestTone;
     if (request.path == "/api/control/v1/schedules/stop" &&
         (request.method == "GET" || request.method == "POST"))
         return request.method == "GET" ? SoftApOperation::Status : SoftApOperation::NativeStop;
@@ -246,7 +251,8 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
                                std::string_view authority, std::uint64_t now_ms,
                                std::uint64_t transaction) {
     if (request.path.starts_with(control_prefix) &&
-        !control_route(request.path.substr(control_prefix.size()), request.method))
+        !control_route(request.path.substr(control_prefix.size()), request.method) &&
+        !test_tone_status_path(request.method, request.path))
         return http_error(404, "not_found");
     if (request.method == "GET" && request.path == "/local/v1/identity")
         return identity(surface);
@@ -325,8 +331,12 @@ HttpResponse SoftApApi::handle(const HttpRequest& request, SoftApSurface surface
         return challenge(request, authorized.authorization.principal, session, transaction);
     if (request.path == "/local/v1/time/submit")
         return submit_time(request, authorized.authorization.principal, session);
-    auto response = browser_.handle(request, authorized.authorization.principal, authority,
-                                    transaction, ManagementCarrier::EngineeringField);
+    const application::TestToneAuthority tone_authority{
+        application::TestToneAuthority::Scope::Field, "field-credentials", 0,
+        access_.credential_epoch()};
+    auto response =
+        browser_.handle(request, authorized.authorization.principal, authority, transaction,
+                        ManagementCarrier::EngineeringField, &tone_authority);
     if (selected == SoftApOperation::Hello && request.method == "GET" && response.status >= 200 &&
         response.status < 300) {
         const auto bound = admission_.authorize(request, surface, selected, session, activity(),

@@ -243,7 +243,7 @@
     },
     "stack_guard_image_tests": {
       "kind": "unittest",
-      "count": 5,
+      "count": 6,
       "entrypoint": "tests/stack_guard_image_tests.py"
     },
     "standalone_console_tests": {
@@ -266,9 +266,14 @@
       "count": 7,
       "entrypoint": "tests/ui_fixture_process.test.mjs"
     },
+    "si5351_test_tone_check_tests": {
+      "kind": "unittest",
+      "count": 3,
+      "entrypoint": "tests/si5351_test_tone_check_tests.py"
+    },
     "usb_installer_tests": {
       "kind": "unittest",
-      "count": 181,
+      "count": 182,
       "entrypoint": "tests/usb_installer_tests.py"
     },
     "usb_inventory_tests": {

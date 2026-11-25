@@ -21,6 +21,10 @@ class PicoPioDma final : public PioDmaHardware {
     const unsigned rf_pin;
     explicit PicoPioDma(unsigned pin = 2, unsigned drive_ma = 4)
         : rf_pin(pin), drive_ma_(drive_ma) {}
+    wtp::PadObservation verify_pad() override {
+        const bool valid = verify_drive();
+        return {0, now_ns(), static_cast<int>(rf_pin), valid ? drive_observation() : -2};
+    }
     int drive_observation() const {
         return drive_observation_.load(std::memory_order_acquire);
     }

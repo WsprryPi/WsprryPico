@@ -128,8 +128,10 @@ struct Test {
         r.headers["origin"] = "http://" + authority;
         return api.handle(r, now, tx, interface);
     }
-    Test(bool network_only = false, wtp::RfEngine* engine = nullptr)
-        : fixture(0, std::string(32, 'a'), engine) {
+    Test(bool network_only = false, wtp::RfEngine* engine = nullptr,
+         wtp::ServiceConfig policy = Fixture::physical_policy(), bool no_config = false,
+         bool usb_managed = false)
+        : fixture(0, std::string(32, 'a'), engine, policy) {
         provisioning::ConsumerProfile profile;
         profile.device_id = device;
         profile.owner_epoch = 0;
@@ -139,6 +141,12 @@ struct Test {
         profile.callsign = "AA0NT";
         profile.locator = "EM18";
         profile.power_dbm = 37;
+        if (usb_managed) {
+            profile.usb_managed = true;
+            profile.callsign.clear();
+            profile.locator.clear();
+            profile.power_dbm = 0;
+        }
         profile.tls_pending = true;
         profile.tls.hostname = "wsprrypico-0a60df.local";
         profile.request_sha256 = std::string(64, 'a');
@@ -155,7 +163,7 @@ struct Test {
         fixture.api.consumer_config(runtime);
         assert(progress.load());
         fixture.api.local_usb_settings(settings);
-        if (!network_only)
+        if (!network_only && !no_config)
             assert(fixture.scheduler.command("CONFIG " + config).find("true") != std::string::npos);
         api.admission(runtime.control_healthy(store) && runtime.consumer_browser_selected(store));
         api.listeners(true, "192.168.1.53", "wsprrypico-0a60df.local");
@@ -198,6 +206,129 @@ struct Test {
         return send(request("/api/consumer/v1/request", packet, true), transaction++);
     }
 };
+
+void station_independent_drive() {
+    for (unsigned profile_kind : {0, 1, 2, 3})
+        for (bool station_interface : {false, true}) {
+            const bool network_only = profile_kind == 0 || profile_kind == 3;
+            Test t(network_only, nullptr, Fixture::physical_policy(), true, profile_kind == 2);
+            if (station_interface) {
+                t.interface = network::ConsumerInterface::Station;
+                t.authority = "192.168.1.53";
+            }
+            if (profile_kind == 3)
+                assert(t.fixture.store.save(*standalone::parse_config(config)));
+            t.login();
+            const auto generation = t.runtime.generation();
+            const auto profile = t.store.data();
+            for (unsigned drive : {2, 4, 8, 12}) {
+                const auto body =
+                    "{\"contract\":\"Wsprry-Control/1\",\"schema\":\"gpio-drive\",\"target\":" +
+                    application::target(std::string(32, 'a'), t.fixture.service.status().boot_id) +
+                    ",\"gpio_drive_ma\":" + std::to_string(drive) + "}";
+                const auto r =
+                    t.call("PUT", "/api/control/v1/gpio-drive", body, t.fixture.api.revision());
+                if (r.body_text().find("\"status\":200") == std::string::npos)
+                    std::cerr << r.body_text() << "\n";
+                assert(r.body_text().find("\"status\":200") != std::string::npos);
+                t.api.finish_request(t.transaction - 1, true);
+                assert(t.fixture.store.config()->gpio_drive_ma == drive);
+                assert(t.fixture.store.config()->callsign ==
+                       (profile_kind == 1 || profile_kind == 3 ? "AA0NT" : ""));
+                assert(t.fixture.store.config()->locator ==
+                       (profile_kind == 1 || profile_kind == 3 ? "EM18" : ""));
+                assert(!t.fixture.store.config()->enabled);
+                assert(t.fixture.store.config()->ssid == "test-network");
+                assert(t.runtime.generation() == generation && t.store.data() == profile &&
+                       t.api.active(t.now));
+            }
+        }
+}
+
+void tone_reconnect_authority() {
+    struct Engine : wtp::RfEngine {
+        standalone::DryRunEngine native;
+        wtp::PadObservation pad;
+        unsigned arms = 0;
+        wtp::PrepareResult prepare(const wtp::Job&) override {
+            return {true, {}};
+        }
+        bool schedules_locally() const override {
+            return true;
+        }
+        bool schedule(const wtp::Job& job, std::uint64_t at,
+                      const wtp::LocalStartConditions& c) override {
+            pad = {++arms, 1'000'000'000, 2, 12};
+            return native.schedule(job, at, c);
+        }
+        wtp::PadObservation pad_observation() const override {
+            return pad;
+        }
+        bool begin(const wtp::Job&, std::uint64_t) override {
+            return false;
+        }
+        wtp::EngineReport poll(std::uint64_t at) override {
+            return native.poll(at);
+        }
+        bool disable(std::uint64_t at) override {
+            return native.disable(at);
+        }
+        bool output_active() const override {
+            return false;
+        }
+    } engine;
+    auto limits = Fixture::physical_policy();
+    limits.capability_engine = "pio-dma-gp2";
+    Test t(true, &engine, limits);
+    standalone::FrequencyPolicyEngine policy(engine, t.fixture.store, rf::minimum_frequency_nhz,
+                                             rf::maximum_frequency_nhz);
+    t.fixture.api.test_tone_policy(policy);
+    t.login(__LINE__);
+    const auto target =
+        application::target(std::string(32, 'a'), t.fixture.service.status(false).boot_id);
+    const auto start = "{\"schema\":\"test-tone-start\",\"target\":" + target +
+                       ",\"request_id\":\"" + std::string(32, '9') +
+                       "\",\"tone\":{\"engine\":\"pio-dma-gp2\",\"carrier_hz\":5366200,\"duration_"
+                       "ms\":120000,\"expected_drive_ma\":12}}";
+    auto accepted =
+        t.call("POST", "/api/control/v1/test-tone/start", start, t.fixture.api.revision());
+    assert(wtp::json::parse(accepted.body)->get("status")->integer() == 202);
+    assert(wtp::json::parse(accepted.body)->get("body")->get("current")->get("saved_drive_ma")->raw == "null");
+    const auto job =
+        wtp::json::parse(accepted.body)->get("body")->get("job")->get("job_id")->string();
+    const auto match = wtp::json::parse(accepted.body)->get("etag")->string();
+    // The accepted job survives a lost delivery ACK and a retired login.
+    t.api.finish_request(t.transaction - 1, false);
+    t.api.close();
+    t.now += 1000;
+    t.login(__LINE__);
+    const auto query = "/api/control/v1/test-tone/status?device_id=" + std::string(32, 'a') +
+                       "&boot_id=" + t.fixture.service.status(false).boot_id +
+                       "&request_id=" + std::string(32, '9');
+    auto read = t.call("GET", query);
+    assert(wtp::json::parse(read.body)->get("status")->integer() == 200);
+    t.api.finish_request(t.transaction - 1, true);
+    assert(engine.arms == 1);
+    // The same shared credential scope can reconcile from station after AP login.
+    t.api.close();
+    t.now += 1000;
+    t.interface = network::ConsumerInterface::Station;
+    t.authority = "192.168.1.53";
+    t.login(__LINE__);
+    auto stop = t.call("POST", "/api/control/v1/test-tone/stop",
+                       "{\"schema\":\"test-tone-stop\",\"target\":" + target + ",\"job_id\":\"" +
+                           job + "\"}",
+                       match);
+    assert(wtp::json::parse(stop.body)->get("status")->integer() == 200);
+    assert(wtp::json::parse(stop.body)
+               ->get("body")
+               ->get("job")
+               ->get("output_inactive_confirmed")
+               ->raw == "true");
+    assert(engine.arms == 1);
+    assert(t.api.handle(request("/api/control/v1/test-tone/start", start), t.now, 9999).status >=
+           400);
+}
 network::HttpResponse read_public(Test& test) {
     auto get = request("/api/consumer/v1/status");
     get.method = "GET";
@@ -205,6 +336,8 @@ network::HttpResponse read_public(Test& test) {
 }
 } // namespace
 int main() {
+    station_independent_drive();
+    tone_reconnect_authority();
     {
         Test t;
         auto read = [&](std::string path, std::string method = "GET", std::string body = {}) {
