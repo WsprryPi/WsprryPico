@@ -92,7 +92,7 @@ The [LPF/band selector contract](lpf-band-selector.md) defines optional GPIO sel
 
 ### Production Pi/Pico source-pair checks
 
-Management changes use both `wtp-network-loopback` and `wtp-usb-management-pair` recipes from WsprryPi's checked-in `.github/workflows/debian-non-hardware.yml`. Select the intended candidate Pico and Pi sources explicitly, record both revisions and any tested uncommitted changes, and use recursive MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`. Reuse retained dependencies and an unused host-build directory. The core commands below run from the selected Pi checkout; the full workflow also supplies source-selection, routing, compiler-failure, and UI gates.
+Management changes use both `pico-network-management-pair` and `pico-usb-management-pair` recipes from WsprryPi's checked-in `.github/workflows/debian-non-hardware.yml`. Select the intended candidate Pico and Pi sources explicitly, record both revisions and any tested uncommitted changes, and use recursive MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`. Reuse retained dependencies and an unused host-build directory. The core commands below run from the selected Pi checkout; the full workflow also supplies source-selection, routing, compiler-failure, and UI gates.
 
 To reproduce a recorded Pico source, run `git worktree add --detach PATH COMMIT` from the Pico repository using the recorded full commit and the intended checkout path. Verify it with `git -C PATH rev-parse HEAD`, then pass that checkout explicitly to the pair checks. Use a fresh build directory if an existing CMake cache points to an earlier checkout.
 
@@ -104,14 +104,14 @@ cmake -S "$pico_source" -B "$pico_host" \
   -DWSPRRY_PICO_BUILD_FIRMWARE=OFF -DWSPRRY_PICO_BUILD_TESTS=ON \
   -DCMAKE_BUILD_TYPE=Debug -DWSPRRY_PICO_TEST_MBEDTLS_PATH="$mbedtls_source"
 cmake --build "$pico_host" --target usb_management_driver --parallel 2
-WSPRRYPI_DISABLE_HARDWARE_ACCESS=1 make -C src wtp-network-runtime-test \
+WSPRRYPI_DISABLE_HARDWARE_ACCESS=1 make -C src pi-network-runtime-regression-test \
   BACKENDS=simulated ANCILLARY_GPIO=0 SUDO=
-make -C src wtp-network-interop-test wtp-config-interop-test SUDO= \
+make -C src pico-https-management-interop-test pico-control-interop-test SUDO= \
   PICO_SOURCE="$pico_source" MBEDTLS_SOURCE="$mbedtls_source"
-make -C src wtp-usb-pair-client-build wtp-usb-management-test SUDO=
+make -C src pico-usb-control-client-build pico-usb-management-contract-test SUDO=
 node WsprryPi-UI/tests/wtp_usb_settings_test.js
-node WsprryPi-UI/tests/wtp_usb_pair_test.js \
-  src/build/wtp-network/wtp_usb_pair_client "$pico_host/usb_management_driver"
+node WsprryPi-UI/tests/pico_usb_control_pair_test.js \
+  src/build/wtp-network/pico_usb_control_client "$pico_host/usb_management_driver"
 ```
 
 Both carriers exercise production clients/coordinators, handlers, crypto, serialization, framing/ACK, journals, and historical/current refusal cases. Failed, skipped, cancelled, or timed-out required checks remain unresolved. Hardware-free pair checks provide software evidence; physical USB/network, installer/service operation, local timing, and RF require separately identified setups.

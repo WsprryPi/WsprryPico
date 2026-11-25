@@ -123,16 +123,16 @@ The selected host-client libraries share five freshly compiled objects only for 
 
 Normal and inhibited firmware targets share common objects in the first fresh configuration. Target-specific definitions, engines, generated inputs, image checks, and separate audit outputs remain; normal ELF/map/UF2 bytes must remain unchanged after the inhibited build. The second normal reproducibility build uses an independently fresh directory. Existing output directories, files, and broken symlinks refuse instead of being reused or removed. Compiler overrides/launchers refuse, and actual firmware compiler commands must invoke the verified Arm tools directly. No object cache substitutes for fresh reproducibility.
 
-Both production network and USB suites are required when shared fixtures or protocol-facing behavior changes. Select actual candidate sources, pinned Mbed TLS and recursive framework, and current companion consumers explicitly. The authoritative Pi recipes are its `.github/workflows/debian-non-hardware.yml` `wtp-network-loopback` and `wtp-usb-management-pair` jobs. With candidate host targets already configured and retained dependencies, the required software commands are:
+Both production network and USB suites are required when shared fixtures or protocol-facing behavior changes. Select actual candidate sources, pinned Mbed TLS and recursive framework, and current companion consumers explicitly. The authoritative Pi recipes are its `.github/workflows/debian-non-hardware.yml` `pico-network-management-pair` and `pico-usb-management-pair` jobs. With candidate host targets already configured and retained dependencies, the required software commands are:
 
 ```sh
 export WSPRRYPI_DISABLE_HARDWARE_ACCESS=1
 cmake --build "$PICO_BUILD" --target usb_management_driver
-make -C "$PI_SOURCE/src" wtp-network-runtime-test BACKENDS=simulated ANCILLARY_GPIO=0 SUDO= WTP_NETWORK_BUILD_DIR="$PAIR_BUILD"
-make -C "$PI_SOURCE/src" wtp-network-interop-test wtp-config-interop-test SUDO= PICO_SOURCE="$PICO_SOURCE" MBEDTLS_SOURCE="$MBEDTLS_SOURCE" WTP_NETWORK_BUILD_DIR="$PAIR_BUILD"
-make -C "$PI_SOURCE/src" wtp-usb-pair-client-build wtp-usb-management-test SUDO=
+make -C "$PI_SOURCE/src" pi-network-runtime-regression-test BACKENDS=simulated ANCILLARY_GPIO=0 SUDO= WTP_NETWORK_BUILD_DIR="$PAIR_BUILD"
+make -C "$PI_SOURCE/src" pico-https-management-interop-test pico-control-interop-test SUDO= PICO_SOURCE="$PICO_SOURCE" MBEDTLS_SOURCE="$MBEDTLS_SOURCE" WTP_NETWORK_BUILD_DIR="$PAIR_BUILD"
+make -C "$PI_SOURCE/src" pico-usb-control-client-build pico-usb-management-contract-test SUDO=
 node "$PI_SOURCE/WsprryPi-UI/tests/wtp_usb_settings_test.js"
-WSPRRYPI_GPIO_DRIVE_REQUIRED=1 node "$PI_SOURCE/WsprryPi-UI/tests/wtp_usb_pair_test.js" "$PI_SOURCE/src/build/wtp-network/wtp_usb_pair_client" "$PICO_BUILD/usb_management_driver"
+WSPRRYPI_GPIO_DRIVE_REQUIRED=1 node "$PI_SOURCE/WsprryPi-UI/tests/pico_usb_control_pair_test.js" "$PI_SOURCE/src/build/wtp-network/pico_usb_control_client" "$PICO_BUILD/usb_management_driver"
 ```
 
 Use distinct existing or unused build locations with identified duties. Explicitly set WSPRRY_PICO_WSPRRYPI_SOURCE and WSPRRY_PICO_NETWORK_CLIENT_SOURCE to the intended companion when configuring full host coverage. Record both actual revisions, working changes/hashes, dependencies, exact commands, and results. Failed, cancelled, timed-out, skipped, wrong-source, or missing required checks remain unresolved. An unmerged paired branch is feature-branch delivery, not delivery on devel/main. These fixtures exercise production handlers, crypto, serialization, framing/ACK, and journals without physical USB or RF qualification.
