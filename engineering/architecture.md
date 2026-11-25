@@ -2,9 +2,9 @@
 
 ## Product and ownership
 
-WsprryPico operates standalone and as a WsprryPi hardware backend. Its defined hardware target is Pico 2 W / RP2350. Other Pico boards and RP2040 are not supported. Platform-independent job, protocol, encoder, and policy code is separate from SDK, transport, flash, network, and RF adapters.
+WsprryPico operates as a standalone transmitter and supports management from WsprryPi. Its defined hardware target is Pico 2 W / RP2350. Platform-independent job, protocol, encoder, and policy code is separate from SDK, transport, flash, network, and RF adapters.
 
-Native WSPR and keyed-message schedules use one `JobService` for bounded validation, ownership, output state, cancellation, and local execution. RP2350 owns symbol timing. External transmission submission and controller-side remote recurrence are unavailable; management never grants RF ownership.
+Native WSPR and keyed-message schedules and authenticated finite Test Tone use one `JobService` for bounded validation, ownership, output state, cancellation, and local execution. RP2350 owns symbol timing. Arbitrary external job submission and controller-side remote recurrence are unavailable. Test Tone acquires execution ownership through its own admission path.
 
 ## Transports and management
 
@@ -32,7 +32,7 @@ The portable [RF stream](development/rf-stream.md) plans and generates packed GP
 
 Core 0 owns application state, USB/network service, and storage. Core 1 owns the RF engine, sink/peripherals, and local launch interrupts. A synchronous one-command ownership-transfer mailbox coordinates the two cores. The RF core ages an independent UTC discipline copy. Idle-only flash writes use SDK core lockout. Two bounded engineering HTTPS contexts share the retained authentication and resource limits.
 
-Standalone [WSPR planning](development/wspr-planning.md) freezes complete Type 1/2/3 plans before admission; Type 2/3 pairs use separate adjacent-slot jobs with an independent clock check for each launch. The scheduler reserves durable watermarks before transmission and does not catch up or replay after failure. The compact QRSS/FSKCW/DFCW compiler bounds messages to 32 characters and expands all repeats before ARM, under independent 3,600-second/512-event ceilings. Host-produced encoded jobs converge at the same preparation point.
+Standalone [WSPR planning](development/wspr-planning.md) freezes complete Type 1/2/3 plans before admission. Type 2/3 pairs use separate adjacent-slot jobs with an independent clock check for each launch. The scheduler reserves durable watermarks before transmission and skips missed occurrences. The compact QRSS/FSKCW/DFCW compiler bounds messages to 32 characters and expands all repeats before ARM, under independent 3,600-second and 512-event ceilings. [Authenticated Test Tone](protocol/Native-Execution.md#authenticated-finite-test-tone) prepares a bounded native tone through the same RF admission path.
 
 The frequency policy wraps that single engine admission point for every job source. Default-off `allow_unqualified_frequency` and `allow_non_amateur_frequency` settings express explicit experimental consent. They cannot override engine range, clock, ownership, pin, or output-inhibit checks, and never change qualification. Native direct 2 m is unavailable; 4 m is unavailable at 138 MHz and unqualified at 150 MHz. See [clock limits](development/clock-support.md) and [band support](development/band-support.md).
 

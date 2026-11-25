@@ -1,6 +1,6 @@
 # Factory-new access checklist
 
-Use this checklist on a Pico 2 W with firmware containing the Wi-Fi-only access, separate Pico password, and connected-client setup-Wi-Fi changes from commit `3ffd65ec5c0c9856739dd5707f1df9716aace5ee`, or a reviewed descendant. Allow about 45 minutes for the main pass, including the timed checks. This is an access test; keep schedules disabled and do not start a radio job. An unchecked box is unverified, not a pass.
+Use this checklist to verify Wi-Fi-only access, a separate Pico password, and setup Wi-Fi retention while a client is connected. Use the exact verified Pico 2 W firmware you intend to test. Allow about 45 minutes for the main pass, including the timed checks. Keep schedules disabled and leave RF output idle. Record unchecked items as unverified.
 
 ## 1. Prepare the Mac or Raspberry Pi
 

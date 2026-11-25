@@ -95,6 +95,51 @@ After successful installation, leave the Pico powered and continue to [Connect t
 
 The command selects the recommended release explicitly. If an existing application cannot be identified, stop and inspect the refusal; do not assume that replacing it can preserve its settings.
 
+### Erase and reinstall from a Raspberry Pi
+
+Use the [USB full flash erase](maintain.md#recovery-and-reset) command when the installer can access the board. If a Raspberry Pi can mount the Pico's BOOTSEL drive but lacks a usable picotool, Raspberry Pi's `flash_nuke` UF2 can erase the firmware and saved settings. This makes no backup. It writes a `NUKE` marker, and copying it does not verify the erased flash by readback.
+
+1. If a controller uses the selected Pico, [release the USB connection](wsprrypi.md#standalone-installer-on-a-wsprrypi-host) first. Disconnect any other RP2350 devices. Remove all power from the selected Pico, including a separate VSYS supply, then hold **BOOTSEL** while reconnecting its data cable to the Pi. Release BOOTSEL after connecting.
+2. Run `lsblk -o NAME,TRAN,SIZE,LABEL,MOUNTPOINTS` on the Pi. Confirm that the selected Pico presents the `RP2350` drive. If it is missing, check the data cable and repeat BOOTSEL entry. Copy this entire block into Bash on the Pi, including the parentheses:
+
+   ```bash
+   (
+   set -euo pipefail
+   mapfile -t pico_devices < <(sudo blkid -t LABEL=RP2350 -o device)
+   if (( ${#pico_devices[@]} != 1 )); then
+       printf '%s\n' 'Expected exactly one RP2350 drive. Check the USB connections.' >&2
+       exit 1
+   fi
+
+   erase_download=$(mktemp -d)
+   trap 'rm -f "$erase_download/flash_nuke.uf2"; rmdir "$erase_download"' EXIT
+   curl -fsSL --proto '=https' --proto-redir '=https' \
+       https://datasheets.raspberrypi.com/soft/flash_nuke.uf2 \
+       --output "$erase_download/flash_nuke.uf2"
+
+   pico_device=${pico_devices[0]}
+   pico_mount=$(findmnt -n -S "$pico_device" -o TARGET || true)
+   if [[ -z "$pico_mount" ]]; then
+       sudo mkdir -p /mnt/pico-erase
+       sudo mount -o sync "$pico_device" /mnt/pico-erase
+       pico_mount=/mnt/pico-erase
+   fi
+   sudo cp "$erase_download/flash_nuke.uf2" "$pico_mount/flash_nuke.uf2"
+   sync
+   )
+   ```
+
+3. Leave the Pico connected and wait for it to return to BOOTSEL. Stop if the block reports an error. Follow [Get the installer](#get-the-installer-and-identify-the-pico) to download the launcher. To install the current published `devel` image, run this as your ordinary user:
+
+   ```sh
+   bash install_usb.sh install --branch devel --board pico2_w --yes \
+     --replace-unidentified-application
+   ```
+
+   Use `--replace-unidentified-application` here only after deliberately erasing the selected Pico with `flash_nuke`. It permits replacement of the marker, while the installer still checks the saved-state regions. Confirm the selected board's serial and port. The published image can lag the source branch.
+
+4. Wait for the verified result and check the reported version and source. If the installer requests recovery, use its printed continuation command with the same Pico. After verification, continue with [first Wi-Fi setup](connect.md#first-wi-fi-connection). Review the new settings before re-enabling schedules or restoring a paused controller.
+
 ## Preserve settings during an update
 
 1. Finish or abort any job through its owning controller, release control, and leave the Pico idle. Disable its standalone schedule. Resolve STOP/fault states through the normal controls before updating. If WsprryPi uses this USB connection, follow [the standalone-on-Pi procedure](wsprrypi.md#standalone-installer-on-a-wsprrypi-host) to pause its service while the standalone installer runs.

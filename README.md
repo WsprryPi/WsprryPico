@@ -1,8 +1,8 @@
 # WsprryPico
 
-WsprryPico turns a **Raspberry Pi Pico 2 W**, with its RP2350 processor, into a radio beacon. It can run independently, using settings saved on the Pico and its browser controls, or accept transmissions from **WsprryPi**, a controller running on a Raspberry Pi.
+WsprryPico turns a **Raspberry Pi Pico 2 W**, with its RP2350 processor, into a radio beacon. Configure it in its browser controls or manage its settings and native schedules from **WsprryPi**, a controller running on a Raspberry Pi. The Pico runs its saved schedules independently.
 
-It supports **WSPR**, **QRSS**, **FSKCW**, and **DFCW**, plus finite test tones submitted by controllers or prepared job files. Complete transmission jobs run locally on the Pico, so their timing does not depend on continuous USB or Wi-Fi delivery.
+It supports **WSPR**, **QRSS**, **FSKCW**, and **DFCW**. The authenticated Pico control API also supports finite test tones for bench work. The RP2350 executes and times each transmission locally.
 
 One normal firmware image supports direct GPIO output and a qualified QRP Labs Rev. 6 Si5351 setup with a 25 MHz TCXO. Select and configure the RF engine through the Pico or WsprryPi controls. Loopback can measure the clock ratio or, with explicit reference trust and uncertainty, help maintain phone-set time. Other Si5351 configurations require an engineering build. An optional GPS receiver supplies offline UTC and location through separate serial/PPS inputs. Qualified PPS measurements can correct the Pico oscillator or, with CLK2 loopback, the independent Si5351 reference. Configure GPS and automatic correction under Radio pins; receiver association and physical accuracy require independent validation.
 

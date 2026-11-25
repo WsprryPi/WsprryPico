@@ -1,6 +1,6 @@
 # Transmitter members and controllers
 
-WsprryPico operates as a standalone transmitter and a WsprryPi backend. Each member owns its hardware, admission, execution timing, cleanup, ownership, and persistence. The controller configures supported resources and submits complete finite jobs. Pico targets Pico 2 W / RP2350; Pi-specific Linux services, RP1, and DKMS hardware adapters stay on Pi.
+WsprryPico operates as a standalone transmitter managed locally or through WsprryPi. Each member owns its hardware, admission, execution timing, cleanup, ownership, and persistence. A controller configures supported resources on the selected member. Pico targets Pico 2 W / RP2350. Pi-specific Linux services, RP1, and DKMS hardware adapters stay on Pi.
 
 ## Shared application resources
 
@@ -12,13 +12,13 @@ Updates preserve omitted settings, validate the complete candidate, and require 
 
 ## Recurrence and execution
 
-A schedule has one recurrence authority. Controller-owned recurrence compiles and submits each complete job through WTP. It does not implicitly enable the member's saved schedule. Member-owned recurrence uses local saved settings and submits complete jobs through the same JobService as remote work. Pico's standalone `enabled` and Pi's local transmit reservation have distinct meanings; an idle interval does not establish availability for another owner.
+A schedule has one recurrence authority. The device with the saved schedule compiles and runs its complete jobs on its local transmitter. Managing a schedule on another device preserves that device's admission and explicit enablement. Pico's standalone `enabled` and Pi's local transmit reservation have distinct meanings. An idle interval does not establish availability for another owner.
 
 Individual jobs fit the member's advertised limits even when recurrence has no expiry. Packet arrival never determines symbol boundaries. Lease expiry while loaded aborts the unarmed job and relinquishes ownership. Armed or running jobs retain the finite-job terminal extension. Controller loss does not prove inactive output, select another endpoint, replay work, or start a replacement schedule. Uncertain outcomes require reconciliation. Durable controller/member schedule transfer is unavailable; advanced scheduling is handled by WsprryPi.
 
 ## Hardware and RF authority
 
-The ordinary Pico engine is PIO/DMA. Its build-selected clock and numerical limits are defined by [clock support](development/clock-support.md). Si5351 has separate settings and local execution behind an explicit engineering gate; physical qualification remains incomplete. Pi engine identifiers, resources, and limits do not apply to Pico. GPIO assignments use device-specific numbering and exclusive roles under the [pin contract](pin-assignment-contract.md).
+Pico direct GPIO uses PIO/DMA. Its build-selected clock and numerical limits are defined by [clock support](development/clock-support.md). Si5351 has separate settings and a qualified ordinary profile, with other profiles limited to engineering builds. See the [Si5351 evidence and limits](development/si5351.md). GPIO assignments use device-specific numbering and exclusive roles under the [pin contract](pin-assignment-contract.md).
 
 Pico supports manual RF correction, GPIO drive, optional amplifier enable and [timing](development/amplifier-enable.md), and [LPF/band selection](development/lpf-band-selector.md). WSPR reported dBm is message content; it is independent of pad drive and does not measure antenna power. UTC discipline and RF correction remain separate. A controller's clock estimate does not calibrate its member.
 
@@ -26,9 +26,9 @@ Required filter selection covers every nominal and programmed RF-on frequency in
 
 ## Transport boundaries
 
-[WTP/1](protocol/WTP.md) carries complete `rf-events/1` jobs. Its closed objects contain no hardware settings, arbitrary filter identifiers, or envelope events. CAPS reports the selected engine and execution limits; JSON management advertises supported configuration functions independently.
+[WTP/1](protocol/WTP.md) remains an independent format reference for complete `rf-events/1` jobs. Its closed objects contain no hardware settings, arbitrary filter identifiers, or envelope events. Its CAPS format is independent of the current management capability document.
 
-USB CDC is the reference WTP carrier; network WTP/TCP carries the same stream. An available job carrier does not imply a management carrier. The [management carrier contract](development/management-carriers.md) defines engineering mTLS HTTPS, authenticated consumer station/AP control, and local USB management through UMP1. All use the same current management shape with explicit selected-carrier and device/boot/profile bindings. Plain LAN WTP, TLS-WTP, and BLE do not carry shared JSON administration. Dedicated provisioning retains its separate authority. No fallback carrier or older control view is selected to make an unsupported request succeed.
+The [management carrier contract](development/management-carriers.md) defines engineering mTLS HTTPS, authenticated consumer station/AP control, and local USB management through UMP1. All use the same current management shape with explicit selected-carrier and device/boot/profile bindings. Dedicated provisioning retains its separate authority. Current firmware has retired external WTP execution and refuses unsupported carriers and control versions.
 
 ## Validation boundaries
 

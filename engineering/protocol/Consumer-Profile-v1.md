@@ -2,7 +2,7 @@
 
 `ProfileSource::ConsumerProfile = 5` uses the existing two-slot profile journal. The canonical UTF-8 JSON payload is at most 7,168 bytes under the committed header/digest/sequence rules. A missing, unknown-version, noncanonical, or invalid source-5 payload is a fault. A corrupt newer committed slot cannot restore an older profile or factory trust. The selected sequence is the externally reported profile generation; it is not a separate claim counter.
 
-Consumer setup uses `owner_epoch:"0"` and `owners:[]`: no phone retains setup authority. Nonzero-epoch/public-owner records remain parseable legacy formats, not a current owner-session or administration feature. The [station setup transaction](Owner-HTTP-v1.md) and [network setup transaction](WiFi-Bootstrap-v1-proposal.md) retain their own request, trial, commit, and reconciliation boundaries.
+Consumer setup uses `owner_epoch:"0"` and `owners:[]` so no phone retains setup authority. Nonzero-epoch/public-owner records remain parseable as legacy records. The [station setup transaction](Owner-HTTP-v1.md) and [network setup transaction](WiFi-Bootstrap-v1.md) retain their own request, trial, commit, and reconciliation boundaries.
 
 ## Record versions and fields
 

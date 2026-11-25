@@ -102,6 +102,8 @@ The [LPF/band selector contract](lpf-band-selector.md) defines optional GPIO sel
 
 Management changes use both `wtp-network-loopback` and `wtp-usb-management-pair` recipes from WsprryPi's checked-in `.github/workflows/debian-non-hardware.yml`. Select the intended candidate Pico and Pi sources explicitly, record both revisions and any tested uncommitted changes, and use recursive MbedTLS `0bebf8b8c7f07abe3571ded48a11aa907a1ffb20`. Reuse retained dependencies and an unused host-build directory. The core commands below run from the selected Pi checkout; the full workflow also supplies source-selection, routing, compiler-failure, and UI gates.
 
+To reproduce a recorded Pico source, run `git worktree add --detach PATH COMMIT` from the Pico repository using the recorded full commit and the intended checkout path. Verify it with `git -C PATH rev-parse HEAD`, then pass that checkout explicitly to the pair checks. Use a fresh build directory if an existing CMake cache points to an earlier checkout.
+
 ```sh
 pico_source=/absolute/path/to/candidate-WsprryPico
 mbedtls_source=/absolute/path/to/pinned-mbedtls
@@ -142,7 +144,7 @@ Inhibited diagnostics use `WSPRRY_PICO_JOURNAL_FAULT_STAGE`, `WSPRRY_PICO_JOURNA
 
 - [Portable core](portable-core.md), [Native execution core](wtp-endpoint.md), and [USB CDC roles](usb-cdc.md).
 - [USB installation and preserving upgrades](usb-installer.md).
-- [Factory reset and reflash devel from a Raspberry Pi](factory-reset-and-reflash.md), including BOOTSEL and flash_nuke without preinstalled Pico tools.
+- [Erase and reinstall from a Raspberry Pi](../../docs/install.md#erase-and-reinstall-from-a-raspberry-pi), including BOOTSEL and flash_nuke without preinstalled Pico tools.
 - [Factory-new Wi-Fi, Pico password, and setup-network checklist](factory-new-access-checklist.md) for manual checks from a Mac or Raspberry Pi.
 - [WTP/1](../protocol/WTP.md), [USB management/time](../protocol/USB-Management.md), [Field-GATT/1](../protocol/Field-GATT.md), [Consumer-Radio/1](../protocol/Consumer-Radio-v1.md), and the [browser API](../browser-api.md).
 - [Standalone configuration, journals, and scheduling](standalone.md), [configuration updates](configuration-updates.md), [saved progress](saved-progress.md), and [USB local configuration](usb-local-configuration.md).

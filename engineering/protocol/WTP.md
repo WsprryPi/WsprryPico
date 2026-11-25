@@ -4,13 +4,13 @@
 
 Status: normative protocol contract. No implementation or compliance claim is made by this document.
 
-The separate [DNS-SD discovery profile](WTP-DNS-SD.md) is implemented in WsprryPico. It does not alter this WTP/1 contract or claim an assigned service name.
+Current Pico discovery advertises the separate [management service](WTP-DNS-SD.md). The former WTP DNS-SD advertisement is retired.
 
 The key words **MUST**, **MUST NOT**, **REQUIRED**, **SHOULD**, **SHOULD NOT**, and **MAY** describe conformance requirements.
 
 ## 1. Scope and invariants
 
-WTP is a device-neutral protocol for loading, arming, observing, and cancelling finite transmitter jobs. WsprryPico is the reference server and WsprryPi is the reference client. Product and firmware versions are independent of WTP/1.
+WTP is a device-neutral protocol for loading, arming, observing, and cancelling finite transmitter jobs. WsprryPico and WsprryPi provided the original reference server and client. Product and firmware versions are independent of WTP/1.
 
 A client MUST load the complete job before arming it. After a successful `ARM`, the server's local monotonic clock and execution engine determine every event boundary. Transport traffic, latency, and loss MUST NOT set or alter RF timing. Every accepted job is finite and bounded by advertised capabilities.
 
@@ -209,6 +209,8 @@ For deterministic failure handling, a server evaluates a request in this order: 
 
 ## 13. Transport bindings and trust
 
+This section preserves the original WTP/1 binding semantics for the independent format contract and fixtures. Current firmware uses the separate [management carriers](../development/management-carriers.md).
+
 USB uses CDC ACM and carries the frame stream unchanged. Its trust boundary is physical access plus host operating-system device permissions.
 
 TCP carries the identical frame stream in one explicitly selected binding:
@@ -216,7 +218,7 @@ TCP carries the identical frame stream in one explicitly selected binding:
 - **TLS:** TLS 1.3 with ALPN `wtp/1`. Engineering network deployments require mutual authentication with a device-specific credential; a fleet-wide shared secret is forbidden. A product may instead admit a client without a client certificate after validating the device-specific TLS server identity and assign a shared local-network principal.
 - **Plain LAN:** raw WTP/1 frames on a configured TCP port, with no TLS or certificate exchange. The server MUST restrict this binding to its station interface and MUST NOT expose it on SoftAP. Every admitted client shares the `local-network` principal. Any client able to reach the port can submit WTP control commands, subject to the same ownership and lifecycle rules. The server MUST NOT automatically fall back between Plain LAN and TLS.
 
-Provisioning and credential rotation are outside WTP/1. The optional DNS-SD profile uses TCP port 31417 as the project default for direct connections when discovery is unavailable. A DNS-SD client uses the port in the selected instance's SRV record, which may differ from that default. Plain LAN is a product deployment choice, not a new wire protocol version.
+Provisioning and credential rotation are outside WTP/1. The former optional WTP DNS-SD profile used TCP port 31417 for direct connections when discovery was unavailable. A DNS-SD client used the port in the selected instance's SRV record. Plain LAN describes a deployment choice within WTP/1.
 
 Transport adapters supply the admitted principal to the common job service. They MUST NOT implement separate ownership, lifecycle, or timing rules.
 

@@ -1,6 +1,6 @@
 # Pico 2 W firmware foundation
 
-The firmware foundation builds the portable WTP job service for Pico 2 W and RP2350 Arm Secure. It exposes three USB CDC interfaces and uses the existing 138 MHz PIO/DMA RF application by default. `WsprryPico-Inhibited` explicitly selects the local lifecycle simulator without a physical RF engine. Both retain the same USB, Wi-Fi, storage, and application services. RF capability preserves saved enablement, timing, ownership, frequency policy, and output-admission controls. See the [standalone guide](standalone.md) for current configuration and timing behavior.
+The firmware foundation builds the portable job service for Pico 2 W and RP2350 Arm Secure. It exposes four USB CDC functions and uses the 138 MHz PIO/DMA RF application by default. `WsprryPico-Inhibited` explicitly selects the local lifecycle simulator without a physical RF engine. Both retain the same USB, Wi-Fi, storage, and application services. RF capability preserves saved enablement, timing, ownership, frequency policy, and output-admission controls. See the [standalone guide](standalone.md) for current configuration and timing behavior.
 
 ## Pinned build inputs
 
@@ -67,14 +67,14 @@ Inactive diagnostics do not reserve their full buffers. Activity tracing allocat
 The development USB identity uses TinyUSB's shared development VID `0xcafe` and PID `0x4012`. It is not a production USB allocation. The composite device has four CDC functions:
 
 1. `WsprryPico Console` carries standalone configuration commands and JSON diagnostics.
-2. `WsprryPico WTP` accepts binary WTP frames only.
+2. `WsprryPico Reserved` discards input without replying in application firmware.
 3. `WsprryPico Management` carries separately framed management/time transactions.
 4. `WsprryPico Logging` exports diagnostics without occupying Console.
 
 On macOS, list ports after connecting the board:
 
 ```sh
-python3 scripts/wtp_monitor.py --list
+bash scripts/install_usb.sh discover
 ls /dev/cu.usbmodem*
 ```
 
