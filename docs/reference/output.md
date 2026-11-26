@@ -4,6 +4,8 @@ One normal firmware image supports **Direct GPIO** and the qualified external **
 
 Both HP power sweeps report **meter-indicated power at the sensor input**, with sensor calibration factors applied. Because the unfiltered outputs include harmonics, the readings include power outside the wanted frequency. Neither sweep adds fixture-loss correction, uncertainty estimates, or baseline subtraction. These measurements describe the recorded setups and do not establish guaranteed output power, filtered antenna power, or emissions compliance.
 
+For direct-GPIO power measurements on the Raspberry Pi Model A+ and Raspberry Pi 5, see [Measured bare-GPIO power in the WsprryPi RF and Electrical Reference](https://wsprry-pi.readthedocs.io/devel/Advanced_Operations/rf_electrical.html#measured-bare-gpio-power).
+
 (gpio-drive-strength)=
 ## Direct GPIO output
 
