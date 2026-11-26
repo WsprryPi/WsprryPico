@@ -26,10 +26,10 @@ permissions:
   contents: read
 
 jobs:
-  verify:
+  host-tests:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    env:
+    timeout-minutes: 30
+    env: &ci-environment
       CI_PROFILE: ${{ inputs.profile || 'consumer' }}
       CI_PUBLISH: ${{ inputs.publish && 'true' || 'false' }}
       CI_MAKE_LATEST: ${{ inputs.make_latest && 'true' || 'false' }}
@@ -38,12 +38,16 @@ jobs:
       CI_EVENT_SHA: ${{ github.sha }}
       PYTHONDONTWRITEBYTECODE: '1'
       PIP_DISABLE_PIP_VERSION_CHECK: '1'
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - &checkout-source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - &setup-python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12.11'
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -52,13 +56,116 @@ jobs:
           package-manager-cache: false
       - name: Validate bounded inputs
         run: python scripts/ci/run.py inputs
-      - name: Install hash-pinned host tools and test dependencies
+      - &install-ci-python-dependencies
+        name: Install hash-pinned host tools and test dependencies
         run: |
           python -m pip install --require-hashes --only-binary=:all: -r scripts/ci/requirements.txt
-      - name: Obtain exact verified compiler, SDK and test sources
-        run: python scripts/ci/setup.py "$RUNNER_TEMP/wsprrypico-inputs"
-      - name: Check software and build verified firmware bundles
-        run: python scripts/ci/run.py build --dependencies "$RUNNER_TEMP/wsprrypico-inputs" --output "$RUNNER_TEMP/wsprrypico-output"
+      - name: Obtain verified host inputs
+        run: python scripts/ci/setup.py "$RUNNER_TEMP/wsprrypico-inputs" --stage host
+      - name: Run complete host tests
+        run: python scripts/ci/run.py host --dependencies "$RUNNER_TEMP/wsprrypico-inputs" --output "$RUNNER_TEMP/wsprrypico-host"
+      - name: Upload host stage evidence
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: WsprryPico-stage-host-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/wsprrypico-host/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain host failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: WsprryPico-failure-host-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/wsprrypico-host/audit/*.log
+            ${{ runner.temp }}/wsprrypico-host/audit/execution.json
+            ${{ runner.temp }}/wsprrypico-host/audit/host-tests.xml
+            ${{ runner.temp }}/wsprrypico-host/audit/registered-tests.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  firmware-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env: *ci-environment
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - *checkout-source
+      - *setup-python
+      - name: Validate bounded inputs
+        run: python scripts/ci/run.py inputs
+      - *install-ci-python-dependencies
+      - name: Obtain verified firmware inputs
+        run: python scripts/ci/setup.py "$RUNNER_TEMP/wsprrypico-inputs" --stage firmware
+      - name: Build, inspect, and reproduce firmware
+        run: python scripts/ci/run.py firmware --dependencies "$RUNNER_TEMP/wsprrypico-inputs" --output "$RUNNER_TEMP/wsprrypico-firmware"
+      - name: Upload firmware stage evidence
+        id: upload
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: WsprryPico-stage-firmware-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/wsprrypico-firmware/
+          if-no-files-found: error
+          retention-days: 7
+      - name: Retain firmware failure logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: WsprryPico-failure-firmware-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/wsprrypico-firmware/audit/*.log
+            ${{ runner.temp }}/wsprrypico-firmware/audit/execution.json
+            ${{ runner.temp }}/wsprrypico-firmware/audit/firmware-execution.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+  verify:
+    needs: [host-tests, firmware-build]
+    # A skipped required check can satisfy branch protection.
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env: *ci-environment
+    steps:
+      - name: Require both producers to succeed and upload distinct artifacts
+        env:
+          HOST_RESULT: ${{ needs.host-tests.result }}
+          FIRMWARE_RESULT: ${{ needs.firmware-build.result }}
+          HOST_ARTIFACT: ${{ needs.host-tests.outputs.artifact-id }}
+          FIRMWARE_ARTIFACT: ${{ needs.firmware-build.outputs.artifact-id }}
+        run: |
+          if [[ "$HOST_RESULT" != success || "$FIRMWARE_RESULT" != success ]]; then
+            echo "::error::Both host tests and firmware build must pass"
+            exit 1
+          fi
+          if [[ ! "$HOST_ARTIFACT" =~ ^[1-9][0-9]*$ || ! "$FIRMWARE_ARTIFACT" =~ ^[1-9][0-9]*$ ||
+                "$HOST_ARTIFACT" == "$FIRMWARE_ARTIFACT" ]]; then
+            echo "::error::Both producers must supply distinct immutable artifact IDs"
+            exit 1
+          fi
+      - *checkout-source
+      - *setup-python
+      - *install-ci-python-dependencies
+      - name: Download host stage
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          artifact-ids: ${{ needs.host-tests.outputs.artifact-id }}
+          path: ${{ runner.temp }}/wsprrypico-host
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Download firmware stage
+        uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8.0.0
+        with:
+          artifact-ids: ${{ needs.firmware-build.outputs.artifact-id }}
+          path: ${{ runner.temp }}/wsprrypico-firmware
+          merge-multiple: true
+          digest-mismatch: error
+      - name: Verify same-attempt evidence and assemble the bundle
+        run: |
+          python scripts/ci/run.py assemble --host "$RUNNER_TEMP/wsprrypico-host" \
+            --firmware "$RUNNER_TEMP/wsprrypico-firmware" --output "$RUNNER_TEMP/wsprrypico-output"
       - name: Upload linked-image audit materials
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -73,18 +180,6 @@ jobs:
           path: ${{ runner.temp }}/wsprrypico-output/deployment/*
           if-no-files-found: error
           retention-days: 90
-      - name: Retain failure logs without deployment assets
-        if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: WsprryPico-failure-logs-${{ env.CI_STREAM }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            ${{ runner.temp }}/wsprrypico-output/audit/*.log
-            ${{ runner.temp }}/wsprrypico-output/audit/execution.json
-            ${{ runner.temp }}/wsprrypico-output/audit/host-tests.xml
-            ${{ runner.temp }}/wsprrypico-output/audit/registered-tests.json
-          if-no-files-found: ignore
-          retention-days: 14
 
   publish:
     needs: verify

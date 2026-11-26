@@ -44,7 +44,7 @@ def uf2():
             block(0x2000, 0x10000100, 1, 2, 0xE48BFF59, b'B' * 256))
 
 
-def fixture(branch='devel', modern=False, version=None):
+def fixture(branch='devel', modern=False, version=None, split=False):
     """Real canonical public metadata with clearly synthetic image/license bytes."""
     base = ROOT / 'tests/fixtures/usb-installer'
     manifest = installer.decode((base / 'release-manifest.json').read_bytes())
@@ -70,6 +70,8 @@ def fixture(branch='devel', modern=False, version=None):
              for a in manifest['assets']}
     for asset in manifest['assets']:
         asset.update(bytes=len(files[asset['path']]), sha256=installer.sha(files[asset['path']]))
+    if split:
+        manifest['audit_assets'].append({'path': 'ci-stages.json', 'bytes': 10, 'sha256': 'a'*64})
     files['release-manifest.json'] = encoded(manifest)
     proof.update(manifest_sha256=installer.sha(files['release-manifest.json']),
                  uf2=next(a for a in manifest['assets'] if a['path'].endswith('.uf2')))
@@ -131,8 +133,8 @@ class UsbRoleDiscoveryTests(unittest.TestCase):
 
 
 class Network:
-    def __init__(self, branch='devel', version=None):
-        self.files, self.manifest, self.proof = fixture(branch,version=version)
+    def __init__(self, branch='devel', version=None, split=False):
+        self.files, self.manifest, self.proof = fixture(branch, version=version, split=split)
         self.branch, self.calls = branch, []
         self.tag = self.manifest['intended_tag']
         self.index = dict(schema='wsprrypico-ci-index/1', repository=installer.REPOSITORY,
@@ -153,6 +155,10 @@ class Network:
                         head_repository={'id':42,'full_name': installer.REPOSITORY}, event='workflow_dispatch' if version else 'push', run_attempt=1)
         self.jobs = {'total_count': 2, 'jobs': [dict(name='verify', id=self.proof['verify_job']['id'], status='completed', conclusion='success'),
                                               dict(name='publish', id=2, status='completed', conclusion='success')]}
+        if split:
+            self.jobs['jobs'].extend(dict(name=name, id=identifier, status='completed', conclusion='success')
+                                     for identifier, name in enumerate(('host-tests', 'firmware-build'), 64))
+            self.jobs['total_count'] = len(self.jobs['jobs'])
         for job in self.jobs['jobs']:
             job.update(run_id=self.proof['run_id'],run_attempt=1,head_sha=self.proof['source'],
                        head_branch=self.run['head_branch'],
@@ -789,12 +795,26 @@ class InstallerTests(unittest.TestCase):
 
     def test_public_bundles_on_both_branches(self):
         for branch in ('main', 'devel'):
-            with self.subTest(branch=branch):
-                net = Network(branch)
-                files, manifest, image = installer.resolve(net, branch)
-                self.assertEqual(image, b'A' * 256 + b'B' * 256)
-                self.assertEqual(manifest['workflow']['ref'], 'refs/heads/' + branch)
-                self.assertEqual(sum(c.startswith('releases/tags/ci-') for c in net.calls), 1)
+            for split in (False, True):
+                with self.subTest(branch=branch, split=split):
+                    net = Network(branch, split=split)
+                    files, manifest, image = installer.resolve(net, branch)
+                    self.assertEqual(image, b'A' * 256 + b'B' * 256)
+                    self.assertEqual(manifest['workflow']['ref'], 'refs/heads/' + branch)
+                    self.assertEqual(sum(c.startswith('releases/tags/ci-') for c in net.calls), 1)
+
+    def test_split_publication_refuses_missing_stale_or_skipped_stage_jobs(self):
+        for mode in ('missing', 'trimmed', 'stale', 'skipped'):
+            net = Network(split=True)
+            if mode in ('missing', 'trimmed'):
+                del net.jobs['jobs'][-(1 if mode == 'missing' else 2):]
+                net.jobs['total_count'] = len(net.jobs['jobs'])
+            elif mode == 'stale':
+                net.jobs['jobs'][-1]['run_attempt'] += 1
+            else:
+                net.jobs['jobs'][-1]['conclusion'] = 'skipped'
+            with self.subTest(mode=mode), self.assertRaises(installer.Refusal):
+                installer.resolve(net, 'devel')
 
     def test_default_devel_does_not_substitute_main(self):
         net = Network('main')

@@ -416,3 +416,16 @@ def verify_logs(report, audit):
         raw = data[record['offset']:record['offset'] + record['bytes']]
         require(len(raw) == record['bytes'] and hashlib.sha256(raw).hexdigest() == record['sha256'], 'Execution log differs')
         require(evidence(record['context'], raw.decode(errors='replace'), audit) == record['evidence'], 'Completion evidence differs')
+
+
+FIRMWARE_COMMAND_LOGS = ('consumer.log', 'consumer.log', 'inhibited-regression.log',
+                         'compatibility.log', 'reproducibility.log', 'reproducibility.log')
+FIRMWARE_EXECUTION = 'firmware-execution.json'
+
+
+def verify_firmware(report, audit, source, run_id, attempt):
+    verify(report, source, run_id, attempt, ())
+    require(tuple(record['log'] for record in report['records']) == FIRMWARE_COMMAND_LOGS and
+            all(record['evidence'] == {'kind': 'exit', 'count': 1} for record in report['records']),
+            'Incomplete firmware command evidence')
+    verify_logs(report, audit)

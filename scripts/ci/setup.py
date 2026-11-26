@@ -10,6 +10,13 @@ import tarfile
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
+REPOSITORIES = {
+    'sdk': 'https://github.com/raspberrypi/pico-sdk.git',
+    'picotool': 'https://github.com/raspberrypi/picotool.git',
+    'companion': 'https://github.com/WsprryPi/WsprryPi.git',
+    'harness': 'https://github.com/WsprryPi/WsprryPi-Qualification-Harness.git',
+}
+STAGE_SOURCES = {'host': ('sdk', 'companion', 'harness'), 'firmware': ('sdk', 'picotool')}
 
 
 def run(*args):
@@ -31,15 +38,7 @@ def checkout(destination, repository, revision):
             'submodules': submodules.splitlines()}
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('destination', type=Path)
-    args = parser.parse_args()
-    if platform.system() != 'Linux' or platform.machine() != 'x86_64':
-        raise SystemExit('CI dependency setup requires Linux x86_64; no tools were downloaded')
-    pins = json.loads((ROOT / 'scripts/ci/inputs.json').read_text())
-    destination = args.destination.resolve()
-    destination.mkdir(mode=0o700, parents=True, exist_ok=False)
+def setup_toolchain(destination, pins):
     archive = destination / 'arm-toolchain.tar.xz'
     with urllib.request.urlopen(pins['toolchain_url'], timeout=120) as response:
         with archive.open('xb') as output:
@@ -53,13 +52,24 @@ def main():
     toolchain = destination / 'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi'
     if run(toolchain / 'bin/arm-none-eabi-gcc', '-dumpfullversion') != pins['arm_gcc']:
         raise ValueError('Wrong Arm compiler')
-    inputs = {'pins': pins, 'toolchain_archive_sha256': digest}
-    for name, repository in (
-            ('sdk', 'https://github.com/raspberrypi/pico-sdk.git'),
-            ('picotool', 'https://github.com/raspberrypi/picotool.git'),
-            ('companion', 'https://github.com/WsprryPi/WsprryPi.git'),
-            ('harness', 'https://github.com/WsprryPi/WsprryPi-Qualification-Harness.git')):
-        inputs[name] = checkout(destination / name, repository, pins[name])
+    return digest
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('destination', type=Path)
+    parser.add_argument('--stage', choices=('host', 'firmware', 'all'), default='all')
+    args = parser.parse_args()
+    if platform.system() != 'Linux' or platform.machine() != 'x86_64':
+        raise SystemExit('CI dependency setup requires Linux x86_64; no tools were downloaded')
+    pins = json.loads((ROOT / 'scripts/ci/inputs.json').read_text())
+    destination = args.destination.resolve()
+    destination.mkdir(mode=0o700, parents=True, exist_ok=False)
+    inputs = {'pins': pins}
+    if args.stage != 'host':
+        inputs['toolchain_archive_sha256'] = setup_toolchain(destination, pins)
+    for name in STAGE_SOURCES.get(args.stage, REPOSITORIES):
+        inputs[name] = checkout(destination / name, REPOSITORIES[name], pins[name])
     actual_submodules = {line.strip().split()[1]: line.strip().split()[0]
                          for line in inputs['sdk']['submodules']}
     if any(actual_submodules.get(path) != revision for path, revision in pins['sdk_submodules'].items()):
@@ -69,7 +79,10 @@ def main():
             if hashlib.file_digest(source, 'sha256').hexdigest() != expected:
                 raise ValueError('SDK linked firmware resource digest mismatch')
     (destination / 'verified-inputs.json').write_text(json.dumps(inputs, indent=2) + '\n')
-    print(json.dumps({'dependency_directory': str(destination), 'toolchain_sha256': digest}))
+    summary = {'dependency_directory': str(destination)}
+    if 'toolchain_archive_sha256' in inputs:
+        summary['toolchain_sha256'] = inputs['toolchain_archive_sha256']
+    print(json.dumps(summary))
 
 
 if __name__ == '__main__':

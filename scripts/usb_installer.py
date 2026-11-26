@@ -52,6 +52,7 @@ import uuid
 import zipfile
 
 INSTALLER_VERSION = '0.3.0'
+CI_VERIFICATION_JOBS = ('host-tests', 'firmware-build', 'verify')
 CONTROL_RESOURCE_ABSENT = object()  # Explicit acknowledged 404, never JSON null.
 REPOSITORY = 'WsprryPi/WsprryPico'
 API = 'https://api.github.com/repos/' + REPOSITORY + '/'
@@ -663,9 +664,13 @@ def resolve(client, branch='devel', version=None, stable=False):
         verify_actions_provenance(run, jobs['jobs'], manifest['workflow']['run_id'],
                                   manifest['workflow']['attempt'], manifest['source']['revision'], expected_branch)
         by_name = {job['name']: job for job in jobs['jobs']}
+        verified_jobs = (set(CI_VERIFICATION_JOBS)
+                         if any(asset['path'] == 'ci-stages.json' for asset in manifest['audit_assets'])
+                         else {'verify'})
         require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
-                set(by_name) == {'verify', 'publish'} and
-                by_name['verify']['status'] == 'completed' and by_name['verify']['conclusion'] == 'success' and
+                set(by_name) == verified_jobs | {'publish'} and
+                all(by_name[name]['status'] == 'completed' and by_name[name]['conclusion'] == 'success'
+                    for name in verified_jobs) and
                 by_name['publish']['status'] == 'completed' and
                 by_name['publish']['conclusion'] in (('success', 'skipped') if delayed else ('success',)) and
                 by_name['verify']['id'] == decode(files['ci-publication.json'])['verify_job']['id'],

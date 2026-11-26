@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import shlex
+import shutil
 from pathlib import Path
 import struct
 import subprocess
@@ -274,6 +275,37 @@ class BundleTests(unittest.TestCase):
         self.assertEqual(workflow['permissions'], {'contents':'read'})
         publisher = workflow['jobs']['publish']
         self.assertEqual(publisher['needs'], 'verify')
+        self.assertEqual(workflow['jobs']['verify']['needs'], ['host-tests', 'firmware-build'])
+        for role, job_name in (('host', 'host-tests'), ('firmware', 'firmware-build')):
+            job = workflow['jobs'][job_name]
+            self.assertNotIn('needs', job)
+            self.assertNotIn('if', job)
+            self.assertNotIn('permissions', job)
+            self.assertIn('--stage ' + role, next(s['run'] for s in job['steps'] if 'Obtain verified' in s.get('name', '')))
+            upload = next(s for s in job['steps'] if s.get('id') == 'upload')
+            self.assertIn('${{ github.run_attempt }}', upload['with']['name'])
+            self.assertEqual(job['outputs']['artifact-id'], '${{ steps.upload.outputs.artifact-id }}')
+        verify = workflow['jobs']['verify']
+        self.assertEqual(verify['if'], '${{ always() }}')
+        gate = verify['steps'][0]
+        self.assertEqual(gate['env']['HOST_RESULT'], '${{ needs.host-tests.result }}')
+        self.assertEqual(gate['env']['FIRMWARE_RESULT'], '${{ needs.firmware-build.result }}')
+        for host, firmware, host_id, firmware_id, accepted in (
+                ('success', 'success', '10', '11', True),
+                ('failure', 'success', '10', '11', False),
+                ('success', 'cancelled', '10', '11', False),
+                ('success', 'skipped', '10', '11', False),
+                ('success', 'success', '', '11', False),
+                ('success', 'success', '10', '10', False)):
+            result = subprocess.run(['bash', '-e', '-c', gate['run']], capture_output=True,
+                                    env={**os.environ, 'HOST_RESULT': host, 'FIRMWARE_RESULT': firmware,
+                                         'HOST_ARTIFACT': host_id, 'FIRMWARE_ARTIFACT': firmware_id})
+            with self.subTest(host=host, firmware=firmware, ids=(host_id, firmware_id)):
+                self.assertEqual(result.returncode == 0, accepted, result.stdout + result.stderr)
+        downloads = [step['with'] for step in verify['steps'] if step.get('uses', '').startswith('actions/download-artifact@')]
+        self.assertEqual([s['artifact-ids'] for s in downloads],
+                         ['${{ needs.host-tests.outputs.artifact-id }}', '${{ needs.firmware-build.outputs.artifact-id }}'])
+        self.assertTrue(all(s['digest-mismatch'] == 'error' for s in downloads))
         self.assertEqual(workflow['on']['push']['tags'], ['v*'])
         self.assertIn("github.event_name == 'workflow_dispatch'", publisher['if'])
         self.assertIn('inputs.publish', publisher['if'])
@@ -341,6 +373,96 @@ class BundleTests(unittest.TestCase):
              patch.object(bundle, 'required_execution_contexts', return_value=None):
             return bundle.verify(self.deploy, self.audit, kwargs.get('source', self.source),
                                   kwargs.get('version', self.version), inspect=False)
+
+    def test_stage_assembly_refuses_cross_attempt_forged_and_incomplete_evidence(self):
+        env = dict(GITHUB_EVENT_NAME='push', GITHUB_REF='refs/heads/devel',
+                   CI_WORKFLOW_SHA=self.source, GITHUB_RUN_ID='1', GITHUB_RUN_ATTEMPT='1')
+        with patch.dict(os.environ, env), patch.object(bundle, 'inspect_payload'), \
+             patch.object(bundle, 'required_tests', return_value={'fixture'}), \
+             patch.object(bundle, 'required_execution_contexts', return_value=None):
+            identity = ci_run.stage_identity(self.source, self.version)
+            host, firmware = self.base/'host', self.base/'firmware'
+            dependencies = self.base/'dependencies'
+            dependencies.mkdir()
+            (dependencies/'verified-inputs.json').write_text(json.dumps(self.inputs))
+            firmware_names = {'inhibited_regression', 'compatibility_rf', 'reproducibility'}
+
+            def host_checks(deps, audit):
+                ci_run.execution.execute(audit/'host.log', [sys.executable, '-c', 'print("host")'], ROOT, self.source)
+                for name in ('registered-tests.json', 'host-tests.xml', 'evidence-skips.json'):
+                    shutil.copyfile(self.audit/name, audit/name)
+                return {name: result for name, result in self.checks.items() if name not in firmware_names}
+
+            def firmware_checks(deps, audit, deployment, version):
+                for log in ('consumer.log', 'consumer.log', 'inhibited-regression.log', 'compatibility.log',
+                            'reproducibility.log', 'reproducibility.log'):
+                    ci_run.execution.execute(audit/log, [sys.executable, '-c', 'print("firmware")'], ROOT, self.source)
+                shutil.copytree(self.audit/'consumer', audit/'consumer')
+                for name in ('LICENSE.md', 'THIRD_PARTY_NOTICES.md', 'DEPENDENCY-LICENSES.txt'):
+                    shutil.copyfile(self.deploy/name, deployment/name)
+                return {'checks': {name: self.checks[name] for name in firmware_names},
+                        'overlays': self.inputs['overlays'], 'linked_resources': self.inputs['linked_resources'],
+                        'reproduced_uf2_sha256': bundle.sha(audit/'consumer/WsprryPico.uf2')}
+
+            environment = {'versions': {'node': 'fixture', 'chrome': 'fixture'}}
+            with patch.object(ci_run, 'host_checks', side_effect=host_checks), \
+                 patch.object(ci_run, 'firmware_checks', side_effect=firmware_checks), \
+                 patch.object(ci_run, 'runner_environment', return_value=environment), \
+                 patch.object(ci_run, 'capture', side_effect=(self.source, '', self.source, '')):
+                ci_run.build_stage('host', dependencies, host, identity)
+                ci_run.build_stage('firmware', dependencies, firmware, identity)
+
+            with patch('builtins.print'):
+                ci_run.assemble(host, firmware, self.base/'joined', identity, ['consumer'])
+            self.assertEqual((self.base/'joined/deployment'/f'WsprryPico-{self.version}-pico2_w.uf2').read_bytes(),
+                             (self.audit/'consumer/WsprryPico.uf2').read_bytes())
+            for name in ('execution.json', 'firmware-execution.json'):
+                self.assertTrue((self.base/'joined/audit'/name).is_file())
+            report = firmware/'audit/firmware-execution.json'
+            receipt = firmware/'stage.json'
+            original_report, original_receipt = report.read_bytes(), receipt.read_bytes()
+            records = bundle.read_json(report)
+            records['records'].pop()
+            report.write_text(json.dumps(records))
+            firmware_stage = bundle.read_json(receipt)
+            firmware_stage['files'] = [bundle.descriptor(firmware/record['path'], firmware)
+                                       for record in firmware_stage['files']]
+            receipt.write_text(json.dumps(firmware_stage))
+            try:
+                with self.assertRaisesRegex(ValueError, 'Incomplete firmware command evidence'):
+                    ci_run.assemble(host, firmware, self.base/'refused', identity, ['consumer'])
+            finally:
+                report.write_bytes(original_report)
+                receipt.write_bytes(original_receipt)
+            for field, bad in (('source', 'f'*40), ('tree', 'e'*40), ('attempt', '2'), ('run_id', '3')):
+                path = host/'stage.json'
+                original = path.read_text()
+                manifest = json.loads(original)
+                manifest['identity'][field] = bad
+                path.write_text(json.dumps(manifest))
+                with self.subTest(field=field), self.assertRaisesRegex(ValueError, 'another source or run attempt'):
+                    ci_run.assemble(host, firmware, self.base/'refused', identity, ['consumer'])
+                path.write_text(original)
+            (host/'audit/host-tests.xml').write_text('<testsuite/>')
+            stage = bundle.read_json(host/'stage.json')
+            stage['files'] = [bundle.descriptor(host/record['path'], host) for record in stage['files']]
+            (host/'stage.json').write_text(json.dumps(stage))
+            with self.assertRaisesRegex(ValueError, 'Test reports differ'):
+                ci_run.assemble(host, firmware, self.base/'refused', identity, ['consumer'])
+            self.assertFalse((self.base/'refused').exists())
+
+    def test_canonical_download_requires_success_from_both_split_jobs(self):
+        names = {'host-tests', 'firmware-build', 'verify', 'publish'}
+        with patch.object(download, 'required_jobs', return_value=names):
+            args, responses, archives = self.download_fixture('devel')
+            jobs = responses['actions/runs/1/attempts/1/jobs']['jobs']
+            for role in ('host-tests', 'firmware-build'):
+                job = next(j for j in jobs if j['name'] == role)
+                for state in ('skipped', 'failure', 'cancelled'):
+                    with self.subTest(role=role, state=state), patch.dict(job, conclusion=state), \
+                         self.assertRaisesRegex(ValueError, 'Required CI job did not pass'):
+                        self.retrieve_fixture(args, responses, archives)
+            self.retrieve_fixture(args, responses, archives)
 
     def mutate_manifest(self, change):
         path = self.deploy / 'release-manifest.json'

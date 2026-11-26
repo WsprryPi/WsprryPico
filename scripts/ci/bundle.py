@@ -425,7 +425,10 @@ def verify(deployment, audit, source, version, inspect=True):
     basename = f'WsprryPico-{version}-pico2_w.uf2'
     require(set(assets) == {basename, 'LICENSE.md', 'THIRD_PARTY_NOTICES.md', 'DEPENDENCY-LICENSES.txt'},
             'Wrong consumer asset allowlist')
-    inventory(audit, manifest['audit_assets'])
+    audit_files = inventory(audit, manifest['audit_assets'])
+    if 'ci-stages.json' in audit_files:
+        execution.verify_firmware(read_json(audit / execution.FIRMWARE_EXECUTION), audit, source,
+                                  manifest['workflow']['run_id'], manifest['workflow']['attempt'])
     registered = read_json(audit / 'registered-tests.json')
     names = [item['name'] for item in registered['tests']]
     cases = ET.parse(audit / 'host-tests.xml').getroot().findall('testcase')

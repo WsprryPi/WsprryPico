@@ -121,8 +121,9 @@ def retrieve(args, for_publication=False, prepared=False):
     expected_jobs = required_jobs(args.source)
     by_name = {job['name']:job for job in jobs['jobs']}
     bundle.require(jobs['total_count'] == len(jobs['jobs']) == len(by_name) and
-                   set(by_name) == expected_jobs and by_name['verify']['status'] == 'completed' and
-                   by_name['verify']['conclusion'] == 'success',
+                   set(by_name) == expected_jobs and 'verify' in expected_jobs and
+                   all(by_name[name]['status'] == 'completed' and by_name[name]['conclusion'] == 'success'
+                       for name in expected_jobs - {'publish'}),
                    'Required CI job did not pass')
     if 'publish' in expected_jobs:
         publisher = by_name['publish']

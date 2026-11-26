@@ -10,6 +10,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -303,7 +304,7 @@ def firmware(deps, audit, identifier, version, reuse_build=None):
     (directory / 'picotool-info.txt').write_text(identity + '\n')
     os.environ['PATH'] = str(picotool[0].parent) + os.pathsep + os.environ['PATH']
     bundle.inspect_profile(directory, identifier, version, capture('git', 'rev-parse', 'HEAD'), picotool[0])
-    return directory, overlays
+    return overlays
 
 
 def licenses(deps, destination):
@@ -335,90 +336,217 @@ def licenses(deps, destination):
     destination.write_text('\n'.join(sections))
 
 
-def build(deps, output):
-    source, version, selected = inputs()
-    deps = deps.resolve(strict=True)
-    output.mkdir(parents=True, exist_ok=False)
-    audit, deployment = output / 'audit', output / 'deployment'
-    audit.mkdir()
-    deployment.mkdir()
-    os.environ['PICO_SDK_PATH'] = str(deps / 'sdk')
+def runner_environment(browser=False):
+    environment = {name: os.environ.get(name, '') for name in
+                   ('ImageOS', 'ImageVersion', 'RUNNER_OS', 'RUNNER_ARCH')}
+    tools = {
+        'cmake': ('cmake', '--version'), 'ninja': ('ninja', '--version'),
+        'host_cxx': ('c++', '--version'), 'python': (sys.executable, '--version'),
+        'openssl': ('openssl', 'version'), 'pip': (sys.executable, '-m', 'pip', 'freeze'),
+        'system_packages': ('dpkg-query', '-W', 'libssl-dev', 'gcc', 'g++'),
+    }
+    if browser:
+        tools.update(node=('node', '--version'), chrome=(os.environ['CHROME_BIN'], '--version'))
+    environment['versions'] = {tool: capture(*args) for tool, args in tools.items()}
+    return environment
+
+
+def firmware_checks(deps, audit, deployment, version):
     os.environ['PATH'] = str(deps / 'arm-gnu-toolchain-15.3.rel1-x86_64-arm-none-eabi/bin') + os.pathsep + os.environ['PATH']
-    checks = host_checks(deps, audit)
-    images, overlays = {}, {}
-    for identifier in selected:
-        images[identifier], overlays[identifier] = firmware(deps, audit, identifier, version)
-    # Compatibility shares application wiring, but is never a deployment asset.
+    consumer_overlays = firmware(deps, audit, 'consumer', version)
     normal = ROOT / 'build/ci-consumer/firmware/WsprryPico'
-    retained_normal = {suffix: bundle.sha(Path(str(normal) + suffix)) for suffix in ('.elf', '.elf.map', '.uf2')}
-    _, overlays['inhibited-regression'] = firmware(deps, audit, 'inhibited-regression', version,
-                                                 reuse_build=normal.parent.parent)
-    bundle.require(all(bundle.sha(Path(str(normal) + suffix)) == digest
-                       for suffix, digest in retained_normal.items()), 'Inhibited build changed the accepted normal image')
+    suffixes = ('.elf', '.elf.map', '.uf2')
+    retained = {suffix: bundle.sha(Path(str(normal) + suffix)) for suffix in suffixes}
+    inhibited_overlays = firmware(deps, audit, 'inhibited-regression', version,
+                                  reuse_build=normal.parent.parent)
+    bundle.require(all(bundle.sha(Path(str(normal) + suffix)) == retained[suffix] for suffix in suffixes),
+                   'Inhibited build changed the accepted normal image')
     (audit / 'inhibited-regression/WsprryPico-Inhibited.uf2').unlink()
-    checks['inhibited_regression'] = 'passed'
-    if 'consumer' in selected:
-        execute(audit / 'compatibility.log', 'cmake', '--build', ROOT / 'build/ci-consumer',
-                '--target', 'WsprryPico-StandaloneRF', '--parallel', '4')
-        checks['compatibility_rf'] = 'passed'
-        # Independent fresh directory with identical declared inputs and identity.
-        original = ROOT / 'build/ci-consumer'
-        fresh = fresh_directory(ROOT / 'build/ci-reproducibility')
-        execute(audit / 'reproducibility.log', 'cmake', '-S', ROOT, '-B', fresh, '-G', 'Ninja',
-                *DIRECT_COMPILER_OPTIONS,
-                '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
-                '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
-                '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w', '-DPICOTOOL_NO_LIBUSB=1',
-                f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
-                f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
-                f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
-        direct_firmware_compilers(fresh, deps)
-        execute(audit / 'reproducibility.log', 'cmake', '--build', fresh,
-                '--target', 'WsprryPico', '--parallel', '4')
-        checks['reproducibility'] = 'identical' if bundle.sha(original / 'firmware/WsprryPico.uf2') == bundle.sha(fresh / 'firmware/WsprryPico.uf2') else 'different'
-        if checks['reproducibility'] != 'identical':
-            raise ValueError('Two fresh consumer builds differ; investigate before distribution')
-    else:
-        checks.update(compatibility_rf='not-selected', reproducibility='not-selected')
+    execute(audit / 'compatibility.log', 'cmake', '--build', ROOT / 'build/ci-consumer',
+            '--target', 'WsprryPico-StandaloneRF', '--parallel', '4')
+
+    fresh = fresh_directory(ROOT / 'build/ci-reproducibility')
+    execute(audit / 'reproducibility.log', 'cmake', '-S', ROOT, '-B', fresh, '-G', 'Ninja',
+            *DIRECT_COMPILER_OPTIONS,
+            '-DCMAKE_EXPORT_COMPILE_COMMANDS=ON',
+            '-DCMAKE_BUILD_TYPE=Release', '-DWSPRRY_PICO_BUILD_FIRMWARE=ON',
+            '-DWSPRRY_PICO_BUILD_TESTS=OFF', '-DPICO_BOARD=pico2_w', '-DPICOTOOL_NO_LIBUSB=1',
+            f'-DPICOTOOL_GIT_REPOSITORY_URL={deps / "picotool"}',
+            f'-DWSPRRY_PICO_FIRMWARE_VERSION={version}',
+            f'-DWSPRRY_PICO_DOCUMENTATION_VERSION={documentation_version()}')
+    direct_firmware_compilers(fresh, deps)
+    execute(audit / 'reproducibility.log', 'cmake', '--build', fresh,
+            '--target', 'WsprryPico', '--parallel', '4')
+    reproduced = bundle.sha(fresh / 'firmware/WsprryPico.uf2')
+    bundle.require(reproduced == retained['.uf2'] == bundle.sha(audit / 'consumer/WsprryPico.uf2'),
+                   'Two fresh consumer builds differ; investigate before distribution')
+
     licenses(deps, deployment / 'DEPENDENCY-LICENSES.txt')
     for name in ('LICENSE.md', 'THIRD_PARTY_NOTICES.md'):
         shutil.copyfile(ROOT / name, deployment / name)
-    environment = {name: os.environ.get(name, '') for name in
-                   ('ImageOS', 'ImageVersion', 'RUNNER_OS', 'RUNNER_ARCH')}
-    environment['versions'] = {tool: capture(*args) for tool, args in {
-        'cmake': ('cmake', '--version'), 'ninja': ('ninja', '--version'),
-        'host_cxx': ('c++', '--version'), 'python': (sys.executable, '--version'),
-        'node': ('node', '--version'), 'openssl': ('openssl', 'version'),
-        'pip': (sys.executable, '-m', 'pip', 'freeze'),
-        'system_packages': ('dpkg-query', '-W', 'libssl-dev', 'gcc', 'g++'),
-        'chrome': (os.environ['CHROME_BIN'], '--version')}.items()}
-    build_inputs = json.loads((deps / 'verified-inputs.json').read_text())
-    build_inputs.update(environment=environment, overlays=overlays,
+    return {
+        'checks': {'inhibited_regression': 'passed', 'compatibility_rf': 'passed', 'reproducibility': 'identical'},
+        'reproduced_uf2_sha256': reproduced,
+        'overlays': {'consumer': consumer_overlays, 'inhibited-regression': inhibited_overlays},
+        'linked_resources': {name: bundle.sha(deps / 'sdk/lib/cyw43-driver/firmware' / name)
+                             for name in bundle.read_json(ROOT / 'scripts/ci/inputs.json')['linked_resource_sha256']},
+    }
+
+
+def stage_identity(source, version):
+    return {'source': source, 'tree': capture('git', 'rev-parse', source + '^{tree}'),
+            'version': version, 'workflow': os.environ['CI_WORKFLOW_SHA'],
+            'event': os.environ['GITHUB_EVENT_NAME'], 'ref': os.environ['GITHUB_REF'],
+            'run_id': os.environ['GITHUB_RUN_ID'], 'attempt': os.environ['GITHUB_RUN_ATTEMPT']}
+
+
+def stage_paths(output):
+    output.mkdir(mode=0o700, parents=True, exist_ok=False)
+    audit = output / 'audit'
+    audit.mkdir()
+    return audit
+
+
+STAGE_INPUT_KEYS = {
+    'host': ('pins', 'sdk', 'companion', 'harness'),
+    'firmware': ('pins', 'sdk', 'picotool', 'toolchain_archive_sha256'),
+}
+
+
+def build_stage(role, deps, output, identity):
+    deps = deps.resolve(strict=True)
+    os.environ['PICO_SDK_PATH'] = str(deps / 'sdk')
+    audit = stage_paths(output)
+    if role == 'host':
+        data = {'checks': host_checks(deps, audit)}
+    else:
+        deployment = output / 'deployment'
+        deployment.mkdir()
+        data = firmware_checks(deps, audit, deployment, identity['version'])
+        (audit / 'execution.json').rename(audit / execution.FIRMWARE_EXECUTION)
+    data['environment'] = runner_environment(browser=role == 'host')
+    inputs = bundle.read_json(deps / 'verified-inputs.json')
+    data['inputs'] = {key: inputs[key] for key in STAGE_INPUT_KEYS[role]}
+    bundle.require(capture('git', 'rev-parse', 'HEAD') == identity['source'] and
+                   not capture('git', 'status', '--porcelain', '--untracked-files=all'),
+                   'Source changed during ' + role + ' stage')
+    files = [bundle.descriptor(path, output) for path in sorted(output.rglob('*')) if path.is_file()]
+    manifest = {'schema': 'ci-stage/1', 'role': role, 'identity': identity, 'data': data, 'files': files}
+    (output / 'stage.json').write_text(json.dumps(manifest, indent=2) + '\n')
+
+
+def read_stage(root, role, identity):
+    bundle.require(root.is_dir() and not root.is_symlink(), 'Missing or unsafe ' + role + ' stage')
+    bundle.require((root / 'stage.json').is_file(), 'Missing ' + role + ' stage receipt')
+    manifest = bundle.read_json(root / 'stage.json')
+    bundle.require(isinstance(manifest, dict) and set(manifest) == {'schema', 'role', 'identity', 'data', 'files'}
+                   and manifest['schema'] == 'ci-stage/1' and manifest['role'] == role
+                   and manifest['identity'] == identity, role + ' stage belongs to another source or run attempt')
+    data_keys = {'checks', 'environment', 'inputs'}
+    if role == 'firmware':
+        data_keys.update({'reproduced_uf2_sha256', 'overlays', 'linked_resources'})
+    data = manifest['data']
+    bundle.require(isinstance(data, dict) and data.keys() == data_keys and
+                   all(isinstance(data[key], dict) for key in data_keys - {'reproduced_uf2_sha256'}),
+                   'Malformed ' + role + ' stage data')
+    bundle.require(data['inputs'].keys() == set(STAGE_INPUT_KEYS[role]) and
+                   isinstance(data['environment'].get('versions'), dict), 'Wrong stage input or tool evidence')
+    records = manifest['files']
+    bundle.require(isinstance(records, list) and 0 < len(records) <= 2000 and
+                   all(isinstance(record, dict) and record.keys() == {'path', 'bytes', 'sha256'} and
+                       isinstance(record['path'], str) and isinstance(record['sha256'], str) for record in records),
+                   'Malformed ' + role + ' stage file inventory')
+    for record in records:
+        name = record['path']
+        firmware_owned = (name.startswith(('audit/consumer/', 'audit/inhibited-regression/', 'deployment/')) or
+                          name.startswith('audit/') and name.removeprefix('audit/') in (
+                              *execution.FIRMWARE_COMMAND_LOGS, execution.FIRMWARE_EXECUTION))
+        bundle.require((firmware_owned if role == 'firmware' else name.startswith('audit/') and
+                        not firmware_owned) and name not in {'audit/build-inputs.json', 'audit/ci-stages.json'},
+                       'Wrong stage file owner: ' + name)
+    files = bundle.inventory(root, records, extra=('stage.json',))
+    return manifest, files
+
+
+def assemble(host, firmware_output, output, identity, selected):
+    host_stage, host_files = read_stage(host, 'host', identity)
+    firmware_stage, firmware_files = read_stage(firmware_output, 'firmware', identity)
+    bundle.require(not host_files.keys() & firmware_files.keys(), 'Stage file ownership overlaps')
+    host_data, firmware_data = host_stage['data'], firmware_stage['data']
+    host_inputs, firmware_inputs = host_data['inputs'], firmware_data['inputs']
+    pins = bundle.read_json(ROOT / 'scripts/ci/inputs.json')
+    bundle.require(host_inputs.get('pins') == firmware_inputs.get('pins') == pins and
+                   isinstance(host_inputs.get('sdk'), dict) and host_inputs['sdk'] == firmware_inputs.get('sdk'),
+                   'Stage dependency pins or SDK provenance differ')
+    host_checks = host_data['checks']
+    firmware_checks = firmware_data['checks']
+    bundle.require(set(host_checks) == {'registered', 'passed', 'failed', 'skipped', 'test_names', 'control_policy',
+                                       'browser_npm', 'packaging_failure_tests', 'consumer_ui', 'historical_evidence_skips'} and
+                   firmware_checks == {'inhibited_regression': 'passed', 'compatibility_rf': 'passed',
+                                       'reproducibility': 'identical'},
+                   'Incomplete stage check evidence')
+    uf2 = firmware_files.get('audit/consumer/WsprryPico.uf2')
+    bundle.require(uf2 is not None and bundle.sha(uf2) == firmware_data['reproduced_uf2_sha256'],
+                   'Reproducibility evidence does not match the staged image')
+    bundle.inspect_payload(uf2.parent, 'consumer', bundle.source_application_end(identity['source']))
+
+    build_inputs = dict(firmware_inputs)
+    build_inputs.update({key: host_inputs[key] for key in ('companion', 'harness')})
+    environment = firmware_data['environment']
+    environment = {**environment, 'versions': {**environment['versions'],
+                   **{key: host_data['environment']['versions'][key] for key in ('node', 'chrome')}}}
+    build_inputs.update(environment=environment, overlays=firmware_data['overlays'],
+                        linked_resources=firmware_data['linked_resources'],
                         python_lock_sha256=bundle.sha(ROOT / 'scripts/ci/requirements.txt'),
                         npm_lock_sha256=bundle.sha(ROOT / 'src/network/bootstrap_web/package-lock.json'))
-    build_inputs['linked_resources'] = {
-        name: bundle.sha(deps / 'sdk/lib/cyw43-driver/firmware' / name)
-        for name in ('wb43439A0_7_95_49_00_combined.h', 'wifi_nvram_43439.h', 'cyw43_btfw_43439.h')}
-    execution.verify(json.loads((audit / 'execution.json').read_text()), source,
-                     os.environ['GITHUB_RUN_ID'], os.environ['GITHUB_RUN_ATTEMPT'])
-    bundle.create(deployment, audit, source, version, selected, checks, build_inputs)
-    bundle.verify(deployment, audit, source, version)
+    source, version = identity['source'], identity['version']
+    checks = host_checks | firmware_checks
+    bundle.require(not output.exists() and not output.is_symlink(), 'Fresh bundle output required')
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='.wsprrypico-verify-', dir=output.parent) as temporary:
+        staged_bundle = Path(temporary) / 'bundle'
+        audit = stage_paths(staged_bundle)
+        deployment = staged_bundle / 'deployment'
+        for name, path in (host_files | firmware_files).items():
+            target = staged_bundle / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, target)
+        bundle.inventory(staged_bundle, host_stage['files'] + firmware_stage['files'])
+        (audit / 'ci-stages.json').write_text(json.dumps([host_stage, firmware_stage], indent=2) + '\n')
+        bundle.create(deployment, audit, source, version, selected, checks, build_inputs)
+        # The firmware job inspected the linked image using pinned tools.
+        # Check transported bytes and host evidence without running staged binaries.
+        bundle.verify(deployment, audit, source, version, inspect=False)
+        staged_bundle.rename(output)
     print(json.dumps({'source': source, 'version': version, 'profiles': selected,
-                      'deployment': str(deployment), 'checks': checks}, indent=2))
+                      'deployment': str(output / 'deployment'), 'checks': checks}, indent=2))
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=('inputs', 'build'))
+    parser.add_argument('action', choices=('inputs', 'build', 'host', 'firmware', 'assemble'))
     parser.add_argument('--dependencies', type=Path)
     parser.add_argument('--output', type=Path)
+    parser.add_argument('--host', type=Path)
+    parser.add_argument('--firmware', type=Path)
     args = parser.parse_args()
+    source, version, selected = inputs()
     if args.action == 'inputs':
-        print(inputs())
-    elif args.dependencies and args.output:
-        build(args.dependencies, args.output)
+        print((source, version, selected))
+    elif args.action == 'assemble' and args.host and args.firmware and args.output:
+        assemble(args.host, args.firmware, args.output, stage_identity(source, version), selected)
+    elif args.action in ('host', 'firmware', 'build') and args.dependencies and args.output:
+        identity = stage_identity(source, version)
+        if args.action == 'build':
+            with tempfile.TemporaryDirectory(prefix='wsprrypico-stages-') as temporary:
+                host, firmware_output = Path(temporary) / 'host', Path(temporary) / 'firmware'
+                build_stage('host', args.dependencies, host, identity)
+                build_stage('firmware', args.dependencies, firmware_output, identity)
+                assemble(host, firmware_output, args.output, identity, selected)
+        else:
+            build_stage(args.action, args.dependencies, args.output, identity)
     else:
-        parser.error('build requires --dependencies and --output')
+        parser.error('Provide --output with --dependencies for stages/build or --host and --firmware for assemble')
 
 
 if __name__ == '__main__':
