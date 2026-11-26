@@ -1481,10 +1481,12 @@ class BundleTests(unittest.TestCase):
         run=copy.deepcopy(responses['actions/runs/1/attempts/1'])
         run.update(path='.github/workflows/publish-prepared.yml',event='workflow_dispatch',
                    display_title='Prepared firmware '+plan['packet_sha256']+' (publish)')
-        jobs=copy.deepcopy(responses['actions/runs/1/attempts/1/jobs'])
-        for job in jobs['jobs']:
-            if job['name']=='verify':job.update(name='validate',conclusion='skipped')
-            else:job['conclusion']='success'
+        build_jobs = {job['name']: job for job in responses['actions/runs/1/attempts/1/jobs']['jobs']}
+        publisher_jobs = [
+            {**build_jobs['verify'], 'name': 'validate', 'conclusion': 'skipped'},
+            {**build_jobs['publish'], 'conclusion': 'success'},
+        ]
+        jobs = {'total_count': len(publisher_jobs), 'jobs': publisher_jobs}
         manifest=bundle.read_json(args.destination/'deployment/release-manifest.json')
         client=SimpleNamespace(api=lambda path:jobs if '/jobs?' in path else run)
         self.assertEqual(core.verify_prepared_publication(client,public,manifest),record)
